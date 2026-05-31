@@ -1,6 +1,15 @@
+import Link from "next/link";
+
 export default function Cotizar() {
   return (
     <main className="min-h-screen bg-zinc-100 px-6 py-20">
+      <div className="mx-auto mb-6 max-w-4xl">
+  <Link href="/">
+    <button className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold transition hover:opacity-70">
+      ← Inicio
+    </button>
+  </Link>
+</div>
       <div className="mx-auto max-w-4xl rounded-3xl bg-white p-10 shadow-xl">
         <h1 className="mb-8 text-4xl font-bold text-black">
           Configurar impresión 3D
