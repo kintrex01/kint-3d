@@ -2,7 +2,6 @@ export default function Cotizar() {
   return (
     <main className="min-h-screen bg-zinc-100 px-6 py-20">
       <div className="mx-auto max-w-4xl rounded-3xl bg-white p-10 shadow-xl">
-
         <h1 className="mb-8 text-4xl font-bold text-black">
           Configurar impresión 3D
         </h1>
@@ -33,7 +32,13 @@ export default function Cotizar() {
             <option>1:250</option>
             <option>1:500</option>
             <option>1:1000</option>
+            <option>Otra escala</option>
           </select>
+
+          <input
+            className="mt-3 w-full rounded-xl border border-zinc-500 p-4 text-black"
+            placeholder="Si elegiste otra escala, escribila acá. Ej: 1:125"
+          />
         </div>
 
         {/* Color */}
@@ -75,9 +80,7 @@ export default function Cotizar() {
           <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
-            <option>
-              Quiero presupuesto con y sin este servicio
-            </option>
+            <option>Quiero presupuesto con y sin este servicio</option>
           </select>
         </div>
 
@@ -88,13 +91,8 @@ export default function Cotizar() {
           </label>
 
           <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
-            <option>
-              0.2 mm — Máximo detalle
-            </option>
-
-            <option>
-              0.4 mm — Mejor equilibrio
-            </option>
+            <option>0.2 mm — Máximo detalle</option>
+            <option>0.4 mm — Mejor equilibrio</option>
           </select>
         </div>
 
@@ -104,12 +102,12 @@ export default function Cotizar() {
             Calidad / Económico
           </label>
 
-          <input
-            type="range"
-            min="1"
-            max="5"
-            className="w-full"
-          />
+          <div className="flex items-center justify-between text-sm font-medium text-zinc-700">
+            <span>Económico</span>
+            <span>Calidad</span>
+          </div>
+
+          <input type="range" min="1" max="5" className="w-full" />
         </div>
 
         {/* Fecha */}
