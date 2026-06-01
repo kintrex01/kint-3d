@@ -1,3 +1,7 @@
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -43,12 +47,34 @@ export async function POST(request: Request) {
       throw new Error(data.error || "Error en Apps Script");
     }
 
+    await resend.emails.send({
+      from: "Kint 3D <onboarding@resend.dev>",
+      to: "al.vlas.lop@gmail.com",
+      subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
+      html: `
+        <h2>Nuevo pedido recibido</h2>
+
+        <p><strong>N° Pedido:</strong> ${data.pedido}</p>
+        <p><strong>Nombre:</strong> ${payload.nombre}</p>
+        <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
+        <p><strong>Escala:</strong> ${payload.escala}</p>
+        <p><strong>Color:</strong> ${payload.color}</p>
+        <p><strong>Armado:</strong> ${payload.armado}</p>
+        <p><strong>Alisado:</strong> ${payload.alisado}</p>
+        <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
+        <p><strong>Archivo:</strong> ${archivoNombre || "Sin archivo"}</p>
+
+        <p><strong>Comentarios:</strong></p>
+        <p>${payload.comentarios || "Sin comentarios"}</p>
+      `,
+    });
+
     return Response.json({
-  ok: true,
-  pedido: data.pedido,
-});
+      ok: true,
+      pedido: data.pedido,
+    });
   } catch (error: any) {
-    console.error("ERROR APPS SCRIPT:", error);
+    console.error("ERROR PEDIDO:", error);
 
     return Response.json(
       {
