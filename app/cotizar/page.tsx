@@ -5,6 +5,8 @@ import { useState } from "react";
 
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
@@ -20,15 +22,15 @@ export default function Cotizar() {
   const [numeroPedido, setNumeroPedido] = useState("");
 
   async function enviarPedido() {
-    if (!nombre.trim()) {
-      alert("Por favor, escribí tu nombre o apodo.");
-      return;
-    }
-
-     if (!escala || !color || !armado || !alisado || !boquilla) {
-    alert("Por favor completá todas las opciones que dicen 'Seleccionar...'. Si no estás seguro de alguna, elegí la opción que más se acerque o dejá un comentario aclaratorio.");
+  if (!nombre.trim()) {
+    alert("Por favor, escribí tu nombre o apodo.");
     return;
-    }
+  }
+
+  if (!email.trim()) {
+    alert("Por favor, ingresá un correo electrónico.");
+    return;
+  }
     setEnviando(true);
 
     try {
@@ -38,6 +40,8 @@ export default function Cotizar() {
       const formData = new FormData();
 
       formData.append("nombre", nombre);
+      formData.append("email", email);
+      formData.append("telefono", telefono);
       formData.append("fechaEntrega", fechaEntrega);
       formData.append("escala", escalaFinal);
       formData.append("color", color);
@@ -63,6 +67,8 @@ if (!response.ok) {
   throw new Error(data.error || "Error al enviar el pedido");
 }
       setNombre("");
+      setEmail("");
+setTelefono("");
 setFechaEntrega("");
 setEscala("1:50");
 setEscalaPersonalizada("");
@@ -184,6 +190,42 @@ return (
             Formatos aceptados: STL y SketchUp (.SKP).
           </p>
         </div>
+
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Correo electrónico *
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Lo utilizaremos para enviarte presupuestos y actualizaciones del pedido.
+  </p>
+
+  <input
+    type="email"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    placeholder="ejemplo@gmail.com"
+  />
+</div>
+
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    WhatsApp (opcional)
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Si preferís que te contactemos por WhatsApp.
+  </p>
+
+  <input
+    type="tel"
+    value={telefono}
+    onChange={(e) => setTelefono(e.target.value)}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    placeholder="+598 99 123 456"
+  />
+</div>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
