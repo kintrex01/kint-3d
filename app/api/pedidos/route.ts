@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       alisado: String(formData.get("alisado") || ""),
       boquilla: String(formData.get("boquilla") || ""),
       comentarios: String(formData.get("comentarios") || ""),
+      codigoDescuento: String(formData.get("codigoDescuento") || ""),
       archivoBase64,
       archivoNombre,
       archivoTipo,
@@ -39,7 +40,15 @@ export async function POST(request: Request) {
     });
 
     const text = await response.text();
-    const data = JSON.parse(text);
+
+console.log("RESPUESTA APPS SCRIPT:", text);
+
+let data;
+try {
+  data = JSON.parse(text);
+} catch {
+  throw new Error("Apps Script no devolvió JSON. Respuesta: " + text.slice(0, 300));
+}
 
     if (!data.ok) {
       throw new Error(data.error || "Error en Apps Script");

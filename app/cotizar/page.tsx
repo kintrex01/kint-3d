@@ -13,6 +13,7 @@ export default function Cotizar() {
   const [alisado, setAlisado] = useState("");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
+  const [codigoDescuento, setCodigoDescuento] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
@@ -44,6 +45,7 @@ export default function Cotizar() {
       formData.append("alisado", alisado);
       formData.append("boquilla", boquilla);
       formData.append("comentarios", comentarios);
+      formData.append("codigoDescuento", codigoDescuento);
 
       if (archivo) {
         formData.append("archivo", archivo);
@@ -69,6 +71,7 @@ setArmado("Sí, quiero incluir este servicio");
 setAlisado("Sí, quiero incluir este servicio");
 setBoquilla("0.2 mm — Máximo detalle");
 setComentarios("");
+setCodigoDescuento("");
 setArchivo(null);
 
 setNumeroPedido(data.pedido || "");
@@ -317,6 +320,22 @@ return (
             <option>0.4 mm — Mejor equilibrio</option>
           </select>
         </div>
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Código de descuento
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Si tenés un código promocional, ingresalo aquí.
+  </p>
+
+  <input
+    value={codigoDescuento}
+    onChange={(e) => setCodigoDescuento(e.target.value.toUpperCase())}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    placeholder="Ej: KINT10"
+  />
+</div>
 
         <div className="mb-8">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
