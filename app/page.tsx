@@ -34,6 +34,12 @@ export default function Home() {
             </button>
           </Link>
 
+          <Link href="/seguimiento">
+  <button className="min-w-64 border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
+    Consultar pedido
+  </button>
+</Link>
+
           <a
             href="https://www.instagram.com/kint.3d/"
             target="_blank"
