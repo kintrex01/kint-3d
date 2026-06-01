@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -46,6 +44,7 @@ export async function POST(request: Request) {
     if (!data.ok) {
       throw new Error(data.error || "Error en Apps Script");
     }
+const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
       from: "Kint 3D <onboarding@resend.dev>",
