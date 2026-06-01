@@ -44,15 +44,17 @@ export async function POST(request: Request) {
     if (!data.ok) {
       throw new Error(data.error || "Error en Apps Script");
     }
-const resend = new Resend(process.env.RESEND_API_KEY);
 
-    await resend.emails.send({
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    console.log("RESEND KEY EXISTE:", !!process.env.RESEND_API_KEY);
+
+    const emailResult = await resend.emails.send({
       from: "Kint 3D <onboarding@resend.dev>",
       to: "al.vlas.lop@gmail.com",
       subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
       html: `
         <h2>Nuevo pedido recibido</h2>
-
         <p><strong>N° Pedido:</strong> ${data.pedido}</p>
         <p><strong>Nombre:</strong> ${payload.nombre}</p>
         <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
@@ -62,11 +64,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
         <p><strong>Alisado:</strong> ${payload.alisado}</p>
         <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
         <p><strong>Archivo:</strong> ${archivoNombre || "Sin archivo"}</p>
-
         <p><strong>Comentarios:</strong></p>
         <p>${payload.comentarios || "Sin comentarios"}</p>
       `,
     });
+
+    console.log("RESEND RESULT:", emailResult);
 
     return Response.json({
       ok: true,
