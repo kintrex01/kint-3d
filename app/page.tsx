@@ -12,9 +12,9 @@ export default function Home() {
         <div className="mb-8">
           
 
-          <h1 className="text-7xl font-black tracking-[0.35em] sm:text-8xl">
+          <h1 className="text-7xl font-black tracking-[0.15em] sm:text-8xl">
             KINT
-          </h1>
+            </h1>
 
           <p className="mt-2 text-4xl font-light tracking-[0.35em] text-[var(--text-muted)]">
             3D
