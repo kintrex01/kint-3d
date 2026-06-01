@@ -18,6 +18,8 @@ export async function POST(request: Request) {
 
     const payload = {
       nombre: String(formData.get("nombre") || ""),
+      email: String(formData.get("email") || ""),
+      telefono: String(formData.get("telefono") || ""),
       fechaEntrega: String(formData.get("fechaEntrega") || ""),
       escala: String(formData.get("escala") || ""),
       color: String(formData.get("color") || ""),

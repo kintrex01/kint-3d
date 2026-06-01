@@ -31,6 +31,11 @@ export default function Cotizar() {
     alert("Por favor, ingresá un correo electrónico.");
     return;
   }
+
+  if (!escala || !color || !armado || !alisado || !boquilla) {
+  alert("Por favor completá todas las opciones que dicen 'Seleccionar...'.");
+  return;
+}
     setEnviando(true);
 
     try {
