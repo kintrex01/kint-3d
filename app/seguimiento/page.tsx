@@ -96,13 +96,63 @@ export default function Seguimiento() {
             <p className="mb-6 text-2xl font-bold text-red-600">
               {resultado.estado || "Sin estado"}
             </p>
+            {resultado.estado && (
+  <div className="mb-8 mt-4">
+    {["Recibido", "Presupuestado", "En impresión", "Terminado", "Entregado"].map(
+      (estado, index) => {
+        const estados = ["Recibido", "Presupuestado", "En impresión", "Terminado", "Entregado"];
+        const estadoActual = estados.indexOf(resultado.estado);
+        const activo = index <= estadoActual;
+
+        return (
+          <div key={estado} className="mb-4 flex items-center gap-4">
+            <div
+              className={`h-4 w-4 rounded-full border ${
+                activo
+                  ? "border-red-600 bg-red-600"
+                  : "border-[var(--border-color)]"
+              }`}
+            />
+
+            <div
+              className={`text-xs font-bold uppercase tracking-[0.25em] ${
+                activo ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
+              }`}
+            >
+              {estado}
+            </div>
+          </div>
+        );
+      }
+    )}
+  </div>
+)}
 
             <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
               Precio
             </p>
-            <p className="text-xl font-semibold">
-              {resultado.precio || "Pendiente"}
-            </p>
+            <p className="text-2xl font-bold text-red-600">
+              {resultado.precio && resultado.precio !== "Pendiente"
+              ? `$${resultado.precio}`
+              : "Pendiente"}
+              </p>
+              {resultado.historial && (
+  <div className="mt-10">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Historial
+    </p>
+
+    <div className="space-y-3">
+      {String(resultado.historial)
+        .split("\n")
+        .map((item, index) => (
+          <p key={index} className="text-sm font-semibold">
+            {item}
+          </p>
+        ))}
+    </div>
+  </div>
+)}
           </div>
         )}
       </section>
