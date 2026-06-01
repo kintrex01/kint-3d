@@ -6,12 +6,12 @@ import { useState } from "react";
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
-  const [escala, setEscala] = useState("1:50");
+  const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
-  const [color, setColor] = useState("Blanco");
-  const [armado, setArmado] = useState("Sí, quiero incluir este servicio");
-  const [alisado, setAlisado] = useState("Sí, quiero incluir este servicio");
-  const [boquilla, setBoquilla] = useState("0.2 mm — Máximo detalle");
+  const [color, setColor] = useState("");
+  const [armado, setArmado] = useState("");
+  const [alisado, setAlisado] = useState("");
+  const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -24,6 +24,10 @@ export default function Cotizar() {
       return;
     }
 
+     if (!escala || !color || !armado || !alisado || !boquilla) {
+    alert("Por favor completá todas las opciones que dicen 'Seleccionar...'. Si no estás seguro de alguna, elegí la opción que más se acerque o dejá un comentario aclaratorio.");
+    return;
+    }
     setEnviando(true);
 
     try {
@@ -202,20 +206,22 @@ return (
             Selecciona la escala deseada para tu maqueta o pieza. Si no
             encuentras la escala que necesitas, utiliza la opción "Otra escala".
           </p>
-          <select
-            value={escala}
-            onChange={(e) => setEscala(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          >
-            <option>1:50</option>
-            <option>1:75</option>
-            <option>1:100</option>
-            <option>1:200</option>
-            <option>1:250</option>
-            <option>1:500</option>
-            <option>1:1000</option>
-            <option>Otra escala</option>
-          </select>
+         <select
+  value={escala}
+  onChange={(e) => setEscala(e.target.value)}
+  className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+>
+  <option value="">Seleccionar escala</option>
+  <option>1:50</option>
+  <option>1:75</option>
+  <option>1:100</option>
+  <option>1:200</option>
+  <option>1:250</option>
+  <option>1:500</option>
+  <option>1:1000</option>
+  <option>Otra escala</option>
+</select>
+
           <input
             value={escalaPersonalizada}
             onChange={(e) => setEscalaPersonalizada(e.target.value)}
@@ -236,6 +242,8 @@ return (
             onChange={(e) => setColor(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
+           
+            <option value="">Seleccionar color</option>
             <option>Blanco</option>
             <option>Negro</option>
             <option>Rojo</option>
@@ -262,6 +270,7 @@ return (
             onChange={(e) => setArmado(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
+              <option value="">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
           </select>
@@ -282,6 +291,7 @@ return (
             onChange={(e) => setAlisado(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
+              <option value="">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
             <option>Quiero presupuesto con y sin este servicio</option>
@@ -302,6 +312,7 @@ return (
             onChange={(e) => setBoquilla(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
+              <option value="">Seleccionar boquilla</option>
             <option>0.2 mm — Máximo detalle</option>
             <option>0.4 mm — Mejor equilibrio</option>
           </select>
