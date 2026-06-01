@@ -16,9 +16,9 @@ export default function Home() {
             KINT
             </h1>
 
-          <p className="mt-2 text-4xl font-light tracking-[0.35em] text-[var(--text-muted)]">
+          <p className="mt-2 ml-3 text-4xl font-light tracking-[0.35em] text-[var(--text-muted)]">
             3D
-          </p>
+            </p>
         </div>
 
         <div className="mb-8 h-[2px] w-20 bg-red-600" />
