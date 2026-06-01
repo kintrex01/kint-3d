@@ -10,9 +10,7 @@ export default function Home() {
 
       <section className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <div className="mb-8">
-          <p className="mb-3 text-sm font-semibold tracking-[0.55em] text-[var(--text-muted)]">
-            KINT
-          </p>
+          
 
           <h1 className="text-7xl font-black tracking-[0.35em] sm:text-8xl">
             KINT
