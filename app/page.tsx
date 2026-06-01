@@ -29,9 +29,15 @@ export default function Home() {
             </button>
           </Link>
 
-          <button className="rounded-2xl border border-[var(--border-color)] px-7 py-4 transition">
-            Ver proyectos
-          </button>
+          <a
+  href="https://www.instagram.com/kint.3d/"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <button className="rounded-2xl border border-[var(--border-color)] px-7 py-4 transition hover:scale-105">
+    Ver trabajos realizados
+  </button>
+</a>
         </div>
       </section>
     </main>

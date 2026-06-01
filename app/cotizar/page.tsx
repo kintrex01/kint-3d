@@ -1,65 +1,212 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 export default function Cotizar() {
+  const [nombre, setNombre] = useState("");
+  const [fechaEntrega, setFechaEntrega] = useState("");
+  const [escala, setEscala] = useState("1:50");
+  const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
+  const [color, setColor] = useState("Blanco");
+  const [armado, setArmado] = useState("Sí, quiero incluir este servicio");
+  const [alisado, setAlisado] = useState("Sí, quiero incluir este servicio");
+  const [boquilla, setBoquilla] = useState("0.2 mm — Máximo detalle");
+  const [comentarios, setComentarios] = useState("");
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [enviado, setEnviado] = useState(false);
+  const [numeroPedido, setNumeroPedido] = useState("");
+
+  async function enviarPedido() {
+    if (!nombre.trim()) {
+      alert("Por favor, escribí tu nombre o apodo.");
+      return;
+    }
+
+    setEnviando(true);
+
+    try {
+      const escalaFinal =
+        escala === "Otra escala" ? escalaPersonalizada : escala;
+
+      const formData = new FormData();
+
+      formData.append("nombre", nombre);
+      formData.append("fechaEntrega", fechaEntrega);
+      formData.append("escala", escalaFinal);
+      formData.append("color", color);
+      formData.append("armado", armado);
+      formData.append("alisado", alisado);
+      formData.append("boquilla", boquilla);
+      formData.append("comentarios", comentarios);
+
+      if (archivo) {
+        formData.append("archivo", archivo);
+      }
+
+      const response = await fetch("/api/pedidos", {
+        method: "POST",
+        body: formData,
+      });
+
+      
+      const data = await response.json();
+
+if (!response.ok) {
+  throw new Error(data.error || "Error al enviar el pedido");
+}
+      setNombre("");
+setFechaEntrega("");
+setEscala("1:50");
+setEscalaPersonalizada("");
+setColor("Blanco");
+setArmado("Sí, quiero incluir este servicio");
+setAlisado("Sí, quiero incluir este servicio");
+setBoquilla("0.2 mm — Máximo detalle");
+setComentarios("");
+setArchivo(null);
+
+setNumeroPedido(data.pedido || "");
+setEnviado(true);
+
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Hubo un error al enviar el pedido."
+      );
+    }
+
+    setEnviando(false);
+}
+
+if (enviado) {
   return (
-    <main className="min-h-screen bg-zinc-100 px-6 py-20">
-      <div className="mx-auto mb-6 max-w-4xl">
-  <Link href="/">
-    <button className="flex items-center gap-2 rounded-xl px-2 py-2 text-sm font-semibold transition hover:opacity-70">
-      ← Inicio
-    </button>
-  </Link>
+    <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
+      <div className="fixed left-8 top-8 z-50">
+        <Link href="/">
+          <button className="flex items-center gap-1 text-2xl font-bold text-[var(--text-main)] transition hover:opacity-70">
+            <span className="relative -top-1 text-6xl leading-none">‹</span>
+            <span>Inicio</span>
+          </button>
+        </Link>
+      </div>
+
+      <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[var(--border-color)] text-4xl font-bold">
+          ✓
+        </div>
+
+        <h1 className="mb-4 text-4xl font-bold text-[var(--text-main)]">
+          Tu pedido fue enviado
+        </h1>
+        <div className="mb-6">
+  <p className="text-sm uppercase tracking-widest text-[var(--text-muted)]">
+    Número de pedido
+  </p>
+
+  <p className="mt-2 text-3xl font-bold text-[var(--text-main)]">
+    {numeroPedido}
+  </p>
 </div>
-      <div className="mx-auto max-w-4xl rounded-3xl bg-white p-10 shadow-xl">
-        <h1 className="mb-8 text-4xl font-bold text-black">
+
+        <p className="mb-8 max-w-xl text-lg text-[var(--text-muted)]">
+          Recibimos tu solicitud correctamente. Pronto recibirás
+          actualizaciones sobre el estado de tu pedido.
+        </p>
+
+        <Link href="/">
+          <button className="rounded-2xl bg-black px-8 py-4 text-lg font-semibold text-white transition hover:opacity-90">
+            Volver al inicio
+          </button>
+        </Link>
+      </section>
+    </main>
+  );
+}
+
+return (
+    <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
+      <div className="fixed left-8 top-8 z-50">
+        <Link href="/">
+          <button className="flex items-center gap-1 text-2xl font-bold text-[var(--text-main)] transition hover:opacity-70">
+            <span className="relative -top-1 text-6xl leading-none">‹</span>
+            <span>Inicio</span>
+          </button>
+        </Link>
+      </div>
+
+      <div className="mx-auto max-w-4xl rounded-3xl bg-[var(--card-bg)] p-10 shadow-xl">
+        <h1 className="mb-8 text-4xl font-bold text-[var(--text-main)]">
           Configurar impresión 3D
         </h1>
 
-        {/* Nombre */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Nombre o Apodo
           </label>
-
           <input
-            className="w-full rounded-xl border border-zinc-500 p-4 text-black"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
             placeholder="Tu nombre"
           />
         </div>
 
-        {/* Archivo 3D */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Archivo 3D
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Subí el modelo que deseas imprimir.
-  Se aceptan archivos STL y SketchUp (.SKP).
-</p>
-
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Subí el modelo que deseas imprimir. Se aceptan archivos STL y
+            SketchUp (.SKP).
+          </p>
           <input
             type="file"
             accept=".stl,.skp"
-            className="w-full rounded-xl border border-zinc-500 p-4 text-black"
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                setArchivo(e.target.files[0]);
+              }
+            }}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           />
-
-          <p className="mt-2 text-sm text-zinc-600">
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
             Formatos aceptados: STL y SketchUp (.SKP).
           </p>
         </div>
 
-        {/* Escala */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
+            Fecha de entrega
+          </label>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Indicá para cuándo necesitás la pieza. Si no tenés una fecha exacta,
+            podés dejar este campo vacío.
+          </p>
+          <input
+            type="date"
+            value={fechaEntrega}
+            onChange={(e) => setFechaEntrega(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          />
+        </div>
+
+        <div className="mb-6">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Escala de impresión
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Selecciona la escala deseada para tu maqueta o pieza.
-  Si no encuentras la escala que necesitas,
-  utiliza la opción "Otra escala".
-</p>
-
-          <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Selecciona la escala deseada para tu maqueta o pieza. Si no
+            encuentras la escala que necesitas, utiliza la opción "Otra escala".
+          </p>
+          <select
+            value={escala}
+            onChange={(e) => setEscala(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          >
             <option>1:50</option>
             <option>1:75</option>
             <option>1:100</option>
@@ -69,23 +216,26 @@ export default function Cotizar() {
             <option>1:1000</option>
             <option>Otra escala</option>
           </select>
-
           <input
-            className="mt-3 w-full rounded-xl border border-zinc-500 p-4 text-black"
+            value={escalaPersonalizada}
+            onChange={(e) => setEscalaPersonalizada(e.target.value)}
+            className="mt-3 w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
             placeholder="Si elegiste otra escala, escribila acá. Ej: 1:125"
           />
         </div>
 
-        {/* Color */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Color de impresión
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Selecciona el color principal para tus piezas impresas.
-</p>
-
-          <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Selecciona el color principal para tus piezas impresas.
+          </p>
+          <select
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          >
             <option>Blanco</option>
             <option>Negro</option>
             <option>Rojo</option>
@@ -97,178 +247,139 @@ export default function Cotizar() {
           </select>
         </div>
 
-       {/* Armado */}
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-black">
-    Armado de piezas
-  </label>
-
-  <p className="mb-3 text-sm text-zinc-600">
-    Incluye el pegado de piezas y la remoción de soportes.
-    Nos encargamos de entregar el producto completamente
-    terminado y ensamblado.
-    Este servicio tiene un costo aproximado entre $150 y $250
-    según el tamaño y la cantidad de piezas.
-  </p>
-
-  <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
-    <option>Sí, quiero incluir este servicio</option>
-    <option>No requiero este servicio</option>
-  </select>
-</div>
-
-        {/* Alisado */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
+            Armado de piezas
+          </label>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Incluye el pegado de piezas y la remoción de soportes. Nos
+            encargamos de entregar el producto completamente terminado y
+            ensamblado. Este servicio tiene un costo aproximado entre $150 y
+            $250 según el tamaño y la cantidad de piezas.
+          </p>
+          <select
+            value={armado}
+            onChange={(e) => setArmado(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          >
+            <option>Sí, quiero incluir este servicio</option>
+            <option>No requiero este servicio</option>
+          </select>
+        </div>
+
+        <div className="mb-6">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Alisado
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Este proceso suaviza las superficies superiores de la pieza
-  para obtener un mejor acabado visual.
-  Requiere más tiempo de impresión y postprocesado,
-  por lo que incrementa el costo final.
-  Si se utiliza boquilla de 0.2 mm la diferencia suele ser mínima.
-</p>
-
-          <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Este proceso suaviza las superficies superiores de la pieza para
+            obtener un mejor acabado visual. Requiere más tiempo de impresión y
+            postprocesado, por lo que incrementa el costo final. Si se utiliza
+            boquilla de 0.2 mm la diferencia suele ser mínima.
+          </p>
+          <select
+            value={alisado}
+            onChange={(e) => setAlisado(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          >
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
             <option>Quiero presupuesto con y sin este servicio</option>
           </select>
         </div>
 
-        {/* Boquilla */}
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Boquilla
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Un mayor diámetro aumenta la velocidad de impresión,
-  pero reduce el nivel de detalle.
-  Un diámetro menor produce impresiones más lentas
-  pero con mucha más precisión.
-</p>
-
-          <select className="w-full rounded-xl border border-zinc-500 p-4 text-black">
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Un mayor diámetro aumenta la velocidad de impresión, pero reduce el
+            nivel de detalle. Un diámetro menor produce impresiones más lentas
+            pero con mucha más precisión.
+          </p>
+          <select
+            value={boquilla}
+            onChange={(e) => setBoquilla(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          >
             <option>0.2 mm — Máximo detalle</option>
             <option>0.4 mm — Mejor equilibrio</option>
           </select>
         </div>
 
-        {/* Calidad */}
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
-            Calidad / Económico
-          </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Utiliza este control para indicar qué priorizas.
-  Hacia "Calidad" obtendrás un mejor acabado.
-  Hacia "Económico" se optimiza el presupuesto reduciendo
-  la calidad final de la pieza.
-</p>
-
-          <div className="flex items-center justify-between text-sm font-medium text-zinc-700">
-            <span>Económico</span>
-            <span>Calidad</span>
-          </div>
-
-          <input type="range" min="1" max="5" className="w-full" />
-        </div>
-
-        {/* Fecha */}
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-black">
-            ¿Para cuándo necesitas la pieza?
-          </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Completa esta opción únicamente si necesitas la pieza
-  para una fecha u hora específica.
-</p>
-
-          <input
-            type="datetime-local"
-            className="w-full rounded-xl border border-zinc-500 p-4 text-black"
-          />
-        </div>
-
-        {/* Comentarios */}
         <div className="mb-8">
-          <label className="mb-2 block font-semibold text-black">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Comentarios
           </label>
-          <p className="mb-3 text-sm text-zinc-600">
-  Ejemplo: "Necesito que los pilares salgan unidos a las vigas"
-  o "Quiero la pieza más pequeña roja y la más grande verde".
-</p>
-
           <textarea
-            className="w-full rounded-xl border border-zinc-500 p-4 text-black"
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
             rows={5}
             placeholder="Escribe detalles importantes..."
           />
         </div>
 
-{/* Presupuesto */}
-<div className="mb-8 rounded-2xl border border-zinc-300 bg-zinc-50 p-6">
-  <h2 className="mb-4 text-lg font-bold text-black">
+<div className="mb-8 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
+  <h2 className="mb-4 text-lg font-bold text-[var(--text-main)]">
     Presupuesto
   </h2>
 
-  <p className="mb-6 text-sm text-zinc-700">
-    Para armar el precio final de tu pieza, sumamos todo lo que
-    entra en juego antes, durante y después de que nos des el visto
-    bueno para arrancar.
+  <p className="mb-6 text-sm text-[var(--text-muted)]">
+    Para armar el precio final de tu pieza, sumamos todo lo que entra en
+    juego antes, durante y después de que nos des el visto bueno para
+    arrancar.
   </p>
 
-  <h3 className="mb-4 text-base font-semibold text-black">
+  <h3 className="mb-4 text-base font-semibold text-[var(--text-main)]">
     ¿Qué estás pagando?
   </h3>
 
-  <div className="space-y-3 text-sm text-zinc-700">
+  <div className="space-y-3 text-sm text-[var(--text-muted)]">
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Hora de uso de la impresora:
       </strong>
       <p>Las horas dedicadas exclusivamente a imprimir la pieza.</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Tipo de material:
       </strong>
       <p>Tipo de filamento utilizado (PLA, PLA+, PETG).</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Cantidad de material:
       </strong>
       <p>Peso en gramos del filamento consumido.</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Correcciones menores:
       </strong>
       <p>Ajuste de detalles mínimos en el modelo.</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Fondo de emergencia:
       </strong>
       <p>Costo extra por fallas de impresión o diseño.</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Mano de obra:
       </strong>
       <p>Solo aplica si aceptas el servicio de armado.</p>
     </div>
 
     <div>
-      <strong className="text-black">
+      <strong className="text-[var(--text-main)]">
         • Alisado:
       </strong>
       <p>Solo aplica si aceptas el servicio de alisado.</p>
@@ -276,8 +387,12 @@ export default function Cotizar() {
   </div>
 </div>
 
-        <button className="w-full rounded-2xl bg-black py-4 text-lg font-semibold text-white transition hover:opacity-90">
-          Enviar Cotización
+        <button
+          onClick={enviarPedido}
+          disabled={enviando}
+          className="w-full rounded-2xl bg-black py-4 text-lg font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+        >
+          {enviando ? "Enviando..." : "Enviar Cotización"}
         </button>
       </div>
     </main>
