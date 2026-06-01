@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     const emailResult = await resend.emails.send({
       from: "Kint 3D <onboarding@resend.dev>",
-      to: "al.vlas.lop@gmail.com",
+      to: "alecap12345@gmail.com",
       subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
       html: `
         <h2>Nuevo pedido recibido</h2>
