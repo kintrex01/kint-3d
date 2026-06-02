@@ -62,7 +62,7 @@ try {
 
     const emailResult = await resend.emails.send({
       from: "Kint 3D <onboarding@resend.dev>",
-      to: "alecap12345@gmail.com",
+      to: "kint3d.uy@gmail.com",
       subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
       html: `
         <h2>Nuevo pedido recibido</h2>
