@@ -66,7 +66,7 @@ export default function ResenasInicio() {
 
           {resena.insignia && (
   <div className="mt-4 flex justify-center">
-    <span className="border border-red-600 px-4 py-2 text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+    <span className="rounded-full border border-red-600 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-red-600">
       {resena.insignia}
     </span>
   </div>
