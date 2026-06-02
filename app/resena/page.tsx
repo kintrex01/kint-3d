@@ -1,10 +1,11 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { useState } from "react";
 import Link from "next/link";
 
-export default function ResenaPage() {
+function ResenaContent() {
   const searchParams = useSearchParams();
   const pedido = searchParams.get("pedido") || "";
 
@@ -54,6 +55,8 @@ export default function ResenaPage() {
 
     setEnviando(false);
   }
+
+  
 
   if (enviado) {
     return (
@@ -151,27 +154,10 @@ export default function ResenaPage() {
     </main>
   );
 }
-export async function GET() {
-  try {
-    const response = await fetch(
-      `${process.env.GOOGLE_APPS_SCRIPT_URL}?tipo=resenas`
-    );
-
-    const text = await response.text();
-    const data = JSON.parse(text);
-
-    if (!data.ok) {
-      throw new Error(data.error || "Error al obtener reseñas.");
-    }
-
-    return Response.json(data);
-  } catch (error: any) {
-    return Response.json(
-      {
-        ok: false,
-        error: error?.message || "Error al obtener reseñas.",
-      },
-      { status: 500 }
-    );
-  }
+export default function ResenaPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <ResenaContent />
+    </Suspense>
+  );
 }
