@@ -65,18 +65,20 @@ try {
       to: "kint3d.uy@gmail.com",
       subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
       html: `
-        <h2>Nuevo pedido recibido</h2>
-        <p><strong>N° Pedido:</strong> ${data.pedido}</p>
-        <p><strong>Nombre:</strong> ${payload.nombre}</p>
-        <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
-        <p><strong>Escala:</strong> ${payload.escala}</p>
-        <p><strong>Color:</strong> ${payload.color}</p>
-        <p><strong>Armado:</strong> ${payload.armado}</p>
-        <p><strong>Alisado:</strong> ${payload.alisado}</p>
-        <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
-        <p><strong>Archivo:</strong> ${archivoNombre || "Sin archivo"}</p>
-        <p><strong>Comentarios:</strong></p>
-        <p>${payload.comentarios || "Sin comentarios"}</p>
+  <h2>Nuevo pedido recibido</h2>
+  <p><strong>N° Pedido:</strong> ${data.pedido}</p>
+  <p><strong>Nombre:</strong> ${payload.nombre}</p>
+  <p><strong>Email cliente:</strong> ${payload.email}</p>
+  <p><strong>WhatsApp:</strong> ${payload.telefono}</p>
+  <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
+  <p><strong>Escala:</strong> ${payload.escala}</p>
+  <p><strong>Color:</strong> ${payload.color}</p>
+  <p><strong>Armado:</strong> ${payload.armado}</p>
+  <p><strong>Alisado:</strong> ${payload.alisado}</p>
+  <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
+  <p><strong>Archivo:</strong> ${archivoNombre || "Sin archivo"}</p>
+  <p><strong>Comentarios:</strong></p>
+  <p>${payload.comentarios || "Sin comentarios"}</p>
       `,
     });
 
