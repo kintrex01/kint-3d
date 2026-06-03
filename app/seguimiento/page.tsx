@@ -82,14 +82,14 @@ useEffect(() => {
             value={pedido}
             onChange={(e) => setPedido(e.target.value.toUpperCase())}
             placeholder="Ej: KNT-0026"
-            className="w-full border border-[var(--border-color)] bg-transparent px-6 py-5 text-center text-xl font-bold uppercase tracking-[0.25em] outline-none transition focus:border-red-600"
+            className="w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold uppercase tracking-[0.12em] outline-none transition focus:border-red-600"
           />
 
 <input
   value={codigo}
   onChange={(e) => setCodigo(e.target.value.toUpperCase())}
   placeholder="Código de seguimiento"
-  className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-5 text-center text-xl font-bold uppercase tracking-[0.25em] outline-none transition focus:border-red-600"
+  className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold uppercase tracking-[0.12em] outline-none transition focus:border-red-600"
 />
 
           <button
