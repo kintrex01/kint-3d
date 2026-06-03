@@ -66,7 +66,15 @@ export default function Cotizar() {
       });
 
       
-      const data = await response.json();
+      const text = await response.text();
+
+let data;
+
+try {
+  data = JSON.parse(text);
+} catch {
+  throw new Error(text || "El servidor no devolvió una respuesta válida.");
+}
 
 if (!response.ok) {
   throw new Error(data.error || "Error al enviar el pedido");
@@ -183,6 +191,7 @@ return (
           </p>
           <input
             type="file"
+            multiple
             accept=".stl,.skp"
             onChange={(e) => {
               if (e.target.files?.[0]) {
