@@ -56,21 +56,14 @@ export default function ResenasInicio() {
             "{resena.comentario}"
           </p>
 
-          <p className="text-xs font-bold uppercase tracking-[0.25em]">
-            ✓ Cliente verificado
-          </p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-main)]">
+  ✓ Cliente verificado
+  {resena.insignia ? ` · ${resena.insignia}` : ""}
+</p>
 
-          <p className="mt-2 text-xs text-[var(--text-muted)]">
-            Pedido: {resena.pedido}
-          </p>
-
-          {resena.insignia && (
-  <div className="mt-4 flex justify-center">
-    <span className="rounded-full border border-red-600 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-red-600">
-      {resena.insignia}
-    </span>
-  </div>
-)}
+<p className="mt-2 text-xs text-[var(--text-muted)]">
+  Pedido: {resena.pedido}
+</p>
         </div>
       ))}
     </div>

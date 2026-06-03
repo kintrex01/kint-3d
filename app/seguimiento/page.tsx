@@ -1,14 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function Seguimiento() {
+function SeguimientoContent() {
   const [pedido, setPedido] = useState("");
+  const [codigo, setCodigo] = useState("");
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
   const [error, setError] = useState("");
+  
+  const searchParams = useSearchParams();
 
+useEffect(() => {
+  const pedidoUrl = searchParams.get("pedido") || "";
+  const codigoUrl = searchParams.get("codigo") || "";
+
+  if (pedidoUrl) setPedido(pedidoUrl.toUpperCase());
+  if (codigoUrl) setCodigo(codigoUrl.toUpperCase());
+
+}, [searchParams]);
   async function consultarPedido() {
     setError("");
     setResultado(null);
@@ -17,13 +29,18 @@ export default function Seguimiento() {
       setError("Ingresá tu número de pedido.");
       return;
     }
+    
+    if (!codigo.trim()) {
+  setError("Ingresá tu código de seguimiento.");
+  return;
+}
 
     setCargando(true);
 
     try {
       const response = await fetch(
-        `/api/seguimiento?pedido=${encodeURIComponent(pedido)}`
-      );
+  `/api/seguimiento?pedido=${encodeURIComponent(pedido)}&codigo=${encodeURIComponent(codigo)}`
+);
 
       const data = await response.json();
 
@@ -67,6 +84,13 @@ export default function Seguimiento() {
             placeholder="Ej: KNT-0026"
             className="w-full border border-[var(--border-color)] bg-transparent px-6 py-5 text-center text-xl font-bold uppercase tracking-[0.25em] outline-none transition focus:border-red-600"
           />
+
+<input
+  value={codigo}
+  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
+  placeholder="Código de seguimiento"
+  className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-5 text-center text-xl font-bold uppercase tracking-[0.25em] outline-none transition focus:border-red-600"
+/>
 
           <button
             onClick={consultarPedido}
@@ -157,5 +181,12 @@ export default function Seguimiento() {
         )}
       </section>
     </main>
+  );
+}
+export default function Seguimiento() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <SeguimientoContent />
+    </Suspense>
   );
 }
