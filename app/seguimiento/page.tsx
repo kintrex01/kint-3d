@@ -222,8 +222,13 @@ async function subirArchivoAdicional() {
 {["Recibido", "Presupuestado"].includes(resultado.estado) && (
   <div className="mt-10 border-t border-[var(--border-color)] pt-8">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-      Archivos adicionales
+      Archivos adicionales  
     </p>
+    
+<p className="mb-5 text-xs leading-6 tracking-[0.12em] text-[var(--text-muted)]">
+  Se aceptan archivos STL o SKP. Para evitar errores, enviá los archivos de a uno
+  si son pesados. Tamaño máximo recomendado: 50 MB por archivo.
+</p>
 
     <label
   onDragOver={(e) => e.preventDefault()}
@@ -266,7 +271,7 @@ async function subirArchivoAdicional() {
       disabled={subiendoArchivo}
       className="mt-5 w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
     >
-      {subiendoArchivo ? "Subiendo..." : "Subir archivo"}
+      {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
     </button>
 
     {mensajeArchivo && (

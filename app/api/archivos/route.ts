@@ -1,42 +1,80 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
 
-    const pedido = String(formData.get("pedido") || "");
-    const codigo = String(formData.get("codigo") || "");
+    const pedido = String(formData.get("pedido") || "").trim();
+    const codigo = String(formData.get("codigo") || "").trim();
     const archivos = formData.getAll("archivos") as File[];
 
     if (!pedido) {
-      return Response.json({ ok: false, error: "Falta el número de pedido." }, { status: 400 });
+      throw new Error("Falta el número de pedido.");
     }
 
     if (!codigo) {
-      return Response.json({ ok: false, error: "Falta el código de seguimiento." }, { status: 400 });
+      throw new Error("Falta el código de seguimiento.");
     }
 
     if (!archivos.length) {
-      return Response.json({ ok: false, error: "Seleccioná al menos un archivo." }, { status: 400 });
+      throw new Error("Seleccioná al menos un archivo.");
     }
 
-    const archivosPayload = await Promise.all(
-      archivos.map(async (archivo) => {
-        const buffer = Buffer.from(await archivo.arrayBuffer());
+    const archivosSubidos = [];
 
-        return {
-          archivoBase64: buffer.toString("base64"),
-          archivoNombre: archivo.name,
-          archivoTipo: archivo.type || "application/octet-stream",
-        };
-      })
-    );
+    for (const archivo of archivos) {
+      if (archivo.size > 50 * 1024 * 1024) {
+        throw new Error(`El archivo ${archivo.name} supera los 50 MB.`);
+      }
+
+      const extension = archivo.name.split(".").pop()?.toLowerCase();
+
+      if (extension !== "stl" && extension !== "skp") {
+        throw new Error("Solo se permiten archivos STL o SKP.");
+      }
+
+      const buffer = Buffer.from(await archivo.arrayBuffer());
+
+      const nombreSeguro = archivo.name
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9._-]/g, "");
+
+      const ruta = `${pedido}/${Date.now()}-${nombreSeguro}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("kint-archivos")
+        .upload(ruta, buffer, {
+          contentType: archivo.type || "application/octet-stream",
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      const { data } = supabase.storage
+        .from("kint-archivos")
+        .getPublicUrl(ruta);
+
+      archivosSubidos.push({
+        nombreArchivo: archivo.name,
+        link: data.publicUrl,
+        idDrive: ruta,
+      });
+    }
 
     const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
       method: "POST",
       body: JSON.stringify({
-        tipo: "archivo_adicional",
+        tipo: "archivo_adicional_link",
         pedido,
         codigo,
-        archivos: archivosPayload,
+        archivos: archivosSubidos,
       }),
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
@@ -45,27 +83,19 @@ export async function POST(request: Request) {
 
     const text = await response.text();
 
-    console.log("RESPUESTA APPS SCRIPT ARCHIVOS:", text);
-
-    if (!text) {
+    if (!text || !text.trim()) {
       throw new Error("Apps Script devolvió una respuesta vacía.");
     }
 
-    let data;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Apps Script no devolvió JSON válido: " + text.slice(0, 300));
-    }
+    const data = JSON.parse(text);
 
     if (!data.ok) {
-      throw new Error(data.error || "No se pudieron subir los archivos.");
+      throw new Error(data.error || "No se pudo registrar el archivo.");
     }
 
     return Response.json({
       ok: true,
-      archivos: data.archivos || [],
+      archivos: archivosSubidos,
     });
   } catch (error: any) {
     return Response.json(
