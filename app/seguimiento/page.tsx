@@ -66,16 +66,16 @@ useEffect(() => {
         </Link>
       </div>
 
-      <section className="mx-auto flex min-h-[75vh] max-w-3xl flex-col items-center justify-center text-center">
-        <h1 className="text-5xl font-black uppercase tracking-[0.25em] sm:text-6xl">
-          Seguimiento
-        </h1>
+      <section className="mx-auto flex max-w-3xl flex-col items-center text-center pt-24 pb-16">
+        <h1 className="text-3xl font-black uppercase tracking-[0.18em] sm:text-6xl">
+  Seguimiento
+</h1>
 
         <div className="my-8 h-[2px] w-20 bg-red-600" />
 
-        <p className="mb-10 max-w-xl text-sm uppercase leading-8 tracking-[0.25em] text-[var(--text-muted)]">
-          Ingresá tu número de pedido para consultar el estado actual.
-        </p>
+        <p className="mb-8 max-w-xl text-xs uppercase leading-7 tracking-[0.18em] text-[var(--text-muted)]">
+  Ingresá tu pedido y código de seguimiento.
+</p>
 
         <div className="w-full max-w-xl">
           <input
