@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 import { useState } from "react";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
@@ -33,79 +39,120 @@ export default function Cotizar() {
   }
 
   if (!escala || !color || !armado || !alisado || !boquilla) {
-  alert("Por favor completá todas las opciones que dicen 'Seleccionar...'.");
-  return;
-}
-    setEnviando(true);
+    alert("Por favor completá todas las opciones que dicen 'Seleccionar...'.");
+    return;
+  }
 
-    try {
-      const escalaFinal =
-        escala === "Otra escala" ? escalaPersonalizada : escala;
+  setEnviando(true);
 
-      const formData = new FormData();
+  try {
+    const escalaFinal =
+      escala === "Otra escala" ? escalaPersonalizada : escala;
 
-      formData.append("nombre", nombre);
-      formData.append("email", email);
-      formData.append("telefono", telefono);
-      formData.append("fechaEntrega", fechaEntrega);
-      formData.append("escala", escalaFinal);
-      formData.append("color", color);
-      formData.append("armado", armado);
-      formData.append("alisado", alisado);
-      formData.append("boquilla", boquilla);
-      formData.append("comentarios", comentarios);
-      formData.append("codigoDescuento", codigoDescuento);
+    let archivoNombre = "";
+    let archivoLink = "";
+    let archivoId = "";
 
-      if (archivo) {
-        formData.append("archivo", archivo);
-      }
-
-      const response = await fetch("/api/pedidos", {
+    if (archivo) {
+      const firmaResponse = await fetch("/api/archivos-firma", {
         method: "POST",
-        body: formData,
+        body: JSON.stringify({
+          pedido: "cotizacion-temp",
+          archivos: [
+            {
+              nombre: archivo.name,
+              size: archivo.size,
+            },
+          ],
+        }),
       });
 
-      
-      const text = await response.text();
+      const firmaData = await firmaResponse.json();
 
-let data;
+      if (!firmaData.ok) {
+        throw new Error(firmaData.error || "No se pudo preparar el archivo.");
+      }
 
-try {
-  data = JSON.parse(text);
-} catch {
-  throw new Error(text || "El servidor no devolvió una respuesta válida.");
-}
+      const firmado = firmaData.archivos[0];
 
-if (!response.ok) {
-  throw new Error(data.error || "Error al enviar el pedido");
-}
-      setNombre("");
-      setEmail("");
-setTelefono("");
-setFechaEntrega("");
-setEscala("1:50");
-setEscalaPersonalizada("");
-setColor("Blanco");
-setArmado("Sí, quiero incluir este servicio");
-setAlisado("Sí, quiero incluir este servicio");
-setBoquilla("0.2 mm — Máximo detalle");
-setComentarios("");
-setCodigoDescuento("");
-setArchivo(null);
+      const { error: uploadError } = await supabase.storage
+        .from("kint-archivos")
+        .uploadToSignedUrl(firmado.ruta, firmado.token, archivo);
 
-setNumeroPedido(data.pedido || "");
-setEnviado(true);
+      if (uploadError) {
+        throw new Error(
+          `No se pudo subir ${archivo.name}: ${uploadError.message}`
+        );
+      }
 
-    } catch (error) {
-      console.error(error);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Hubo un error al enviar el pedido."
-      );
+      archivoNombre = firmado.nombreArchivo;
+      archivoLink = firmado.link;
+      archivoId = firmado.ruta;
     }
 
-    setEnviando(false);
+    const response = await fetch("/api/pedidos", {
+      method: "POST",
+      body: JSON.stringify({
+        nombre,
+        email,
+        telefono,
+        fechaEntrega,
+        escala: escalaFinal,
+        color,
+        armado,
+        alisado,
+        boquilla,
+        comentarios,
+        codigoDescuento,
+        archivoNombre,
+        archivoLink,
+        archivoId,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const text = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(text || "El servidor no devolvió una respuesta válida.");
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || "Error al enviar el pedido");
+    }
+
+    setNombre("");
+    setEmail("");
+    setTelefono("");
+    setFechaEntrega("");
+    setEscala("1:50");
+    setEscalaPersonalizada("");
+    setColor("Blanco");
+    setArmado("Sí, quiero incluir este servicio");
+    setAlisado("Sí, quiero incluir este servicio");
+    setBoquilla("0.2 mm — Máximo detalle");
+    setComentarios("");
+    setCodigoDescuento("");
+    setArchivo(null);
+
+    setNumeroPedido(data.pedido || "");
+    setEnviado(true);
+  } catch (error) {
+    console.error(error);
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Hubo un error al enviar el pedido."
+    );
+  }
+
+  setEnviando(false);
 }
 
 if (enviado) {
