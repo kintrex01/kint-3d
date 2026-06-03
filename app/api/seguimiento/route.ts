@@ -26,6 +26,11 @@ export async function GET(request: Request) {
     );
 
     const text = await response.text();
+
+    if (!text || !text.trim()) {
+      throw new Error("Apps Script devolvió una respuesta vacía.");
+    }
+
     const data = JSON.parse(text);
 
     return Response.json(data);

@@ -10,6 +10,9 @@ function SeguimientoContent() {
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
   const [error, setError] = useState("");
+  const [archivosExtra, setArchivosExtra] = useState<File[]>([]);
+const [subiendoArchivo, setSubiendoArchivo] = useState(false);
+const [mensajeArchivo, setMensajeArchivo] = useState("");
   
   const searchParams = useSearchParams();
 
@@ -55,7 +58,44 @@ useEffect(() => {
 
     setCargando(false);
   }
+async function subirArchivoAdicional() {
+  setMensajeArchivo("");
+  setError("");
 
+  if (!archivosExtra.length) {
+  setError("Seleccioná al menos un archivo.");
+  return;
+}
+
+  const formData = new FormData();
+  formData.append("pedido", pedido);
+  formData.append("codigo", codigo);
+  archivosExtra.forEach((archivo) => {
+  formData.append("archivos", archivo);
+});
+
+  setSubiendoArchivo(true);
+
+  try {
+    const response = await fetch("/api/archivos", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "No se pudo subir el archivo.");
+    }
+
+    setMensajeArchivo("Archivo enviado correctamente.");
+    setArchivosExtra([]);
+  } catch (error: any) {
+    setError(error.message || "Error al subir archivo.");
+  }
+
+  setSubiendoArchivo(false);
+}
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
       <div className="fixed left-8 top-8 z-50">
@@ -173,10 +213,70 @@ useEffect(() => {
           <p key={index} className="text-sm font-semibold">
             {item}
           </p>
+          
         ))}
     </div>
   </div>
 )}
+
+{["Recibido", "Presupuestado"].includes(resultado.estado) && (
+  <div className="mt-10 border-t border-[var(--border-color)] pt-8">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Archivos adicionales
+    </p>
+
+    <label
+  onDragOver={(e) => e.preventDefault()}
+  onDrop={(e) => {
+    e.preventDefault();
+    setArchivosExtra(Array.from(e.dataTransfer.files));
+  }}
+  className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600"
+>
+  <input
+    type="file"
+    multiple
+    onChange={(e) =>
+      setArchivosExtra(Array.from(e.target.files || []))
+    }
+    className="hidden"
+  />
+
+  <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+    Seleccionar archivos
+  </span>
+
+  <span className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+    o arrastralos acá
+  </span>
+</label>
+
+{archivosExtra.length > 0 && (
+  <div className="mt-4 space-y-2">
+    {archivosExtra.map((archivo, index) => (
+      <p key={index} className="text-xs text-[var(--text-muted)]">
+        {archivo.name}
+      </p>
+    ))}
+  </div>
+)}
+
+    <button
+      onClick={subirArchivoAdicional}
+      disabled={subiendoArchivo}
+      className="mt-5 w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+    >
+      {subiendoArchivo ? "Subiendo..." : "Subir archivo"}
+    </button>
+
+    {mensajeArchivo && (
+      <p className="mt-4 text-sm font-semibold text-red-600">
+        {mensajeArchivo}
+      </p>
+    )}
+  </div>
+)}
+
           </div>
         )}
       </section>
