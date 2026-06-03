@@ -63,29 +63,70 @@ async function subirArchivoAdicional() {
   setError("");
 
   if (!archivosExtra.length) {
-  setError("Seleccioná al menos un archivo.");
-  return;
-}
-
-  const formData = new FormData();
-  formData.append("pedido", pedido);
-  formData.append("codigo", codigo);
-  archivosExtra.forEach((archivo) => {
-  formData.append("archivos", archivo);
-});
+    setError("Seleccioná al menos un archivo.");
+    return;
+  }
 
   setSubiendoArchivo(true);
 
   try {
-    const response = await fetch("/api/archivos", {
+    const firmaResponse = await fetch("/api/archivos-firma", {
       method: "POST",
-      body: formData,
+      body: JSON.stringify({
+        pedido,
+        archivos: archivosExtra.map((archivo) => ({
+          nombre: archivo.name,
+          size: archivo.size,
+        })),
+      }),
     });
 
-    const data = await response.json();
+    const firmaData = await firmaResponse.json();
 
-    if (!data.ok) {
-      throw new Error(data.error || "No se pudo subir el archivo.");
+    if (!firmaData.ok) {
+      throw new Error(firmaData.error || "No se pudo preparar la subida.");
+    }
+
+    for (let i = 0; i < archivosExtra.length; i++) {
+      const archivo = archivosExtra[i];
+      const firmado = firmaData.archivos[i];
+
+      const uploadResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/sign/kint-archivos/${firmado.ruta}?token=${firmado.token}`,
+        {
+          method: "PUT",
+          body: archivo,
+          headers: {
+            "Content-Type": archivo.type || "application/octet-stream",
+          },
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        throw new Error(`No se pudo subir ${archivo.name}.`);
+      }
+    }
+
+    const registroResponse = await fetch("/api/archivos", {
+      method: "POST",
+      body: JSON.stringify({
+        pedido,
+        codigo,
+        archivos: firmaData.archivos.map((archivo: any) => ({
+          nombreArchivo: archivo.nombreArchivo,
+          link: archivo.link,
+          idDrive: archivo.ruta,
+        })),
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const registroData = await registroResponse.json();
+
+    if (!registroData.ok) {
+      throw new Error(registroData.error || "No se pudieron registrar los archivos.");
     }
 
     setMensajeArchivo("Archivo enviado correctamente.");
