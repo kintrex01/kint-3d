@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 function SeguimientoContent() {
   const [pedido, setPedido] = useState("");
@@ -91,21 +97,13 @@ async function subirArchivoAdicional() {
       const archivo = archivosExtra[i];
       const firmado = firmaData.archivos[i];
 
-      const uploadResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/upload/sign/kint-archivos/${firmado.ruta}?token=${firmado.token}`,
-        {
-          method: "PUT",
-          body: archivo,
-          headers: {
-            "Content-Type": archivo.type || "application/octet-stream",
-          },
-        }
-      );
+      const { error: uploadError } = await supabase.storage
+  .from("kint-archivos")
+  .uploadToSignedUrl(firmado.ruta, firmado.token, archivo);
 
-      if (!uploadResponse.ok) {
-        throw new Error(`No se pudo subir ${archivo.name}.`);
-      }
-    }
+if (uploadError) {
+  throw new Error(`No se pudo subir ${archivo.name}: ${uploadError.message}`);
+}}
 
     const registroResponse = await fetch("/api/archivos", {
       method: "POST",

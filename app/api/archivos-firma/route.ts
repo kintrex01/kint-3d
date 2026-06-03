@@ -38,13 +38,12 @@ export async function POST(request: Request) {
         .from("kint-archivos")
         .getPublicUrl(ruta).data.publicUrl;
 
-      console.log("RUTA:", ruta);
-console.log("DATA:", data);
 
 firmados.push({
   nombreArchivo: archivo.nombre,
   ruta,
   token: data.token,
+  signedUrl: data.signedUrl,
   link: publicUrl,
 });
     }
