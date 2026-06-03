@@ -236,7 +236,7 @@ async function subirArchivoAdicional() {
     e.preventDefault();
     setArchivosExtra(Array.from(e.dataTransfer.files));
   }}
-  className="flex cursor-pointer flex-col items-center justify-center border border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600"
+  className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--border-color)] px-6 py-14 text-center transition hover:border-red-600"
 >
   <input
     type="file"
