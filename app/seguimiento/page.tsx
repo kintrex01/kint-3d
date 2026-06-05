@@ -201,76 +201,128 @@ if (uploadError) {
         Estado
       </p>
 
-      {(() => {
-        const estados = [
-          "Recibido",
-          "Presupuestado",
-          "Método de pago seleccionado",
-          "Pago confirmado",
-          "En impresión",
-          "Terminado",
-          "Entregado",
-        ];
+{(() => {
+  const estados = [
+    "Recibido",
+    "Presupuestado",
+    "Método de pago seleccionado",
+    "Pago confirmado",
+    "En impresión",
+    "Terminado",
+    "Entregado",
+  ];
 
-        const estadoActual = estados.indexOf(resultado.estado);
+  const nombresMobile = [
+    "Recibido",
+    "Presupuestado",
+    "Pago",
+    "Confirmado",
+    "Impresión",
+    "Terminado",
+    "Entregado",
+  ];
 
-        return (
-          <div className="w-full pb-2">
-            <div className="grid grid-cols-7 items-start">
-              {estados.map((estado, index) => {
-                const activo = index <= estadoActual;
-                const esEntregado = estado === "Entregado" && activo;
+  const estadoActual = estados.indexOf(resultado.estado);
 
-                return (
-                  <div key={estado} className="flex min-w-0 flex-col items-center">
-                    <div className="flex w-full items-center">
-                      <div
-                        className={`h-[2px] flex-1 ${
-                          index === 0
-                            ? "bg-transparent"
-                            : activo
-                            ? "bg-red-600"
-                            : "bg-[var(--border-color)]"
-                        }`}
-                      />
+  return (
+    <>
+      <div className="hidden w-full pb-2 sm:block">
+        <div className="grid grid-cols-7 items-start">
+          {estados.map((estado, index) => {
+            const activo = index <= estadoActual;
+            const esEntregado = estado === "Entregado" && activo;
 
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-black ${
-                          esEntregado
-                            ? "border-green-600 bg-green-600 text-white"
-                            : activo
-                            ? "border-red-600 bg-red-600 text-white"
-                            : "border-[var(--border-color)] text-[var(--text-muted)]"
-                        }`}
-                      >
-                        {esEntregado ? "✓" : index + 1}
-                      </div>
+            return (
+              <div key={estado} className="flex min-w-0 flex-col items-center">
+                <div className="flex w-full items-center">
+                  <div
+                    className={`h-[2px] flex-1 ${
+                      index === 0
+                        ? "bg-transparent"
+                        : activo
+                        ? "bg-red-600"
+                        : "bg-[var(--border-color)]"
+                    }`}
+                  />
 
-                      <div
-                        className={`h-[2px] flex-1 ${
-                          index === estados.length - 1
-                            ? "bg-transparent"
-                            : index < estadoActual
-                            ? "bg-red-600"
-                            : "bg-[var(--border-color)]"
-                        }`}
-                      />
-                    </div>
-
-                    <p
-                      className={`mt-3 max-w-[90px] text-center text-[9px] font-bold uppercase leading-4 tracking-[0.12em] ${
-                        activo ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
-                      }`}
-                    >
-                      {estado}
-                    </p>
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-black ${
+                      esEntregado
+                        ? "border-green-600 bg-green-600 text-white"
+                        : activo
+                        ? "border-red-600 bg-red-600 text-white"
+                        : "border-[var(--border-color)] text-[var(--text-muted)]"
+                    }`}
+                  >
+                    {esEntregado ? "✓" : index + 1}
                   </div>
-                );
-              })}
+
+                  <div
+                    className={`h-[2px] flex-1 ${
+                      index === estados.length - 1
+                        ? "bg-transparent"
+                        : index < estadoActual
+                        ? "bg-red-600"
+                        : "bg-[var(--border-color)]"
+                    }`}
+                  />
+                </div>
+
+                <p
+                  className={`mt-3 max-w-[90px] text-center text-[9px] font-bold uppercase leading-4 tracking-[0.12em] ${
+                    activo
+                      ? "text-[var(--text-main)]"
+                      : "text-[var(--text-muted)]"
+                  }`}
+                >
+                  {estado}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-3 sm:hidden">
+        {estados.map((estado, index) => {
+          const activo = index <= estadoActual;
+
+          return (
+            <div
+              key={estado}
+              className={`flex items-center gap-3 border px-4 py-3 ${
+                activo
+                  ? "border-red-600 bg-red-50"
+                  : "border-[var(--border-color)]"
+              }`}
+            >
+              <span
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${
+                  activo
+                    ? "bg-red-600 text-white"
+                    : "bg-transparent text-[var(--text-muted)]"
+                }`}
+              >
+                {estado === "Entregado" && activo ? "✓" : index + 1}
+              </span>
+
+              <span
+                className={`text-xs font-bold uppercase tracking-[0.18em] ${
+                  activo
+                    ? "text-[var(--text-main)]"
+                    : "text-[var(--text-muted)]"
+                }`}
+              >
+                {nombresMobile[index]}
+              </span>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })}
+      </div>
+    </>
+  );
+})()}
+
     </div>
 
     <div className="mb-12 border-t border-[var(--border-color)] pt-8">
