@@ -325,180 +325,108 @@ if (uploadError) {
 
     </div>
 
-    <div className="mb-12 border-t border-[var(--border-color)] pt-8">
-      <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-        Pago
-      </p>
-
-      <div className="mb-8">
-  {resultado.precioOriginal && resultado.descuento && resultado.descuento !== "" && (
-    <div className="mb-6 space-y-4">
-      <div>
-        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Precio original
-        </p>
-        <p className="text-xl font-bold line-through text-[var(--text-muted)]">
-          ${resultado.precioOriginal}
-        </p>
-      </div>
-
-      <div>
-        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Código aplicado
-        </p>
-        <p className="text-lg font-bold italic text-red-600">
-  {resultado.codigoDescuento || "Código aplicado"}
-</p>
-
-<p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-  Descuento aplicado: {resultado.descuento}
-</p>
-      </div>
-
-      <div className="h-px w-full bg-[var(--border-color)]" />
-    </div>
-  )}
-
-  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-    Total a pagar
+<div className="mb-12 border-t border-[var(--border-color)] pt-8">
+  <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+    Pago
   </p>
 
-  <p className="text-4xl font-black text-red-600">
-    {resultado.precio && resultado.precio !== "Pendiente"
-      ? `$${resultado.precio}`
-      : "Pendiente"}
-  </p>
-</div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <button
-          type="button"
-          className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-            Transferencia
+  <div className="mb-8">
+    {resultado.precioOriginal && resultado.precioOriginal !== resultado.precio && (
+      <div className="mb-6 space-y-4">
+        <div>
+          <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Precio original
           </p>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-            Ver datos bancarios y subir comprobante.
+          <p className="text-xl font-bold line-through text-[var(--text-muted)]">
+            ${resultado.precioOriginal}
           </p>
-        </button>
-
-        <button
-          type="button"
-          className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
-        >
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-            Efectivo
-          </p>
-          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-            Coordinar pago al momento de la entrega o retiro.
-          </p>
-        </button>
-      </div>
-
-      <div className="mt-8 border border-[var(--border-color)] p-6">
-        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Método seleccionado
-        </p>
-
-        <p className="mb-6 text-xl font-bold">
-          Sin seleccionar
-        </p>
-
-        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Estado
-        </p>
-
-        <p className="mb-6 text-lg font-bold text-red-600">
-          Pendiente
-        </p>
-
-        <button
-          type="button"
-          className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
-        >
-          Confirmar método de pago
-        </button>
-      </div>
-    </div>
-
-    {["Recibido", "Presupuestado"].includes(resultado.estado) && (
-      <div className="mb-12 border-t border-[var(--border-color)] pt-8">
-        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-          Archivos
-        </p>
-
-        <p className="mb-5 text-xs leading-6 tracking-[0.12em] text-[var(--text-muted)]">
-          Podés agregar archivos adicionales o reemplazar una versión mientras el pedido
-          esté en una etapa temprana. Al pasar a impresión, los archivos quedarán bloqueados.
-        </p>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              setArchivosExtra(Array.from(e.dataTransfer.files));
-            }}
-            className="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[var(--border-color)] px-6 py-12 text-center transition hover:border-red-600"
-          >
-            <input
-              type="file"
-              multiple
-              onChange={(e) =>
-                setArchivosExtra(Array.from(e.target.files || []))
-              }
-              className="hidden"
-            />
-
-            <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-              Agregar archivo
-            </span>
-
-            <span className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-              STL o SKP
-            </span>
-          </label>
-
-          <button
-            type="button"
-            className="border-2 border-dashed border-[var(--border-color)] px-6 py-12 text-center transition hover:border-red-600"
-          >
-            <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-              Reemplazar archivo
-            </span>
-
-            <span className="mt-3 block text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-              Próximamente
-            </span>
-          </button>
         </div>
 
-        {archivosExtra.length > 0 && (
-          <div className="mt-5 space-y-2">
-            {archivosExtra.map((archivo, index) => (
-              <p key={index} className="text-xs text-[var(--text-muted)]">
-                {archivo.name}
-              </p>
-            ))}
+        {resultado.codigoDescuento && (
+          <div>
+            <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+              Código aplicado
+            </p>
+            <p className="text-lg font-bold italic text-red-600">
+              {resultado.codigoDescuento}
+            </p>
           </div>
         )}
 
-        <button
-          onClick={subirArchivoAdicional}
-          disabled={subiendoArchivo}
-          className="mt-5 w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
-        >
-          {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
-        </button>
-
-        {mensajeArchivo && (
-          <p className="mt-4 text-sm font-semibold text-red-600">
-            {mensajeArchivo}
+        {resultado.descuento && (
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Descuento aplicado: {Number(resultado.descuento) <= 1
+              ? `${Number(resultado.descuento) * 100}%`
+              : `${resultado.descuento}%`}
           </p>
         )}
+
+        <div className="h-px w-full bg-[var(--border-color)]" />
       </div>
     )}
+
+    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Total a pagar
+    </p>
+
+    <p className="text-4xl font-black text-red-600">
+      {resultado.precio && resultado.precio !== "Pendiente"
+        ? `$${resultado.precio}`
+        : "Pendiente"}
+    </p>
+  </div>
+
+  <div className="grid gap-4 sm:grid-cols-2">
+    <button
+      type="button"
+      className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+        Transferencia
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+        Ver datos bancarios y subir comprobante.
+      </p>
+    </button>
+
+    <button
+      type="button"
+      className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+        Efectivo
+      </p>
+      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+        Coordinar pago al momento de la entrega o retiro.
+      </p>
+    </button>
+  </div>
+
+  <div className="mt-8 border border-[var(--border-color)] p-6">
+    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Método seleccionado
+    </p>
+
+    <p className="mb-6 text-xl font-bold">
+      {resultado.metodoPago || "Sin seleccionar"}
+    </p>
+
+    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Estado
+    </p>
+
+    <p className="mb-6 text-lg font-bold text-red-600">
+      {resultado.estadoPago || "Pendiente"}
+    </p>
+
+    <button
+      type="button"
+      className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
+    >
+      Confirmar método de pago
+    </button>
+  </div>
+</div>
 
     {!["Recibido", "Presupuestado"].includes(resultado.estado) && (
       <div className="mb-12 border-t border-[var(--border-color)] pt-8">
