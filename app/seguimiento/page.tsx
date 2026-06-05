@@ -448,9 +448,9 @@ async function confirmarMetodoPago() {
     </p>
 
     <p className="text-sm leading-7">
-      Banco: A completar<br />
-      Titular: A completar<br />
-      Cuenta: A completar<br />
+      Banco: ITAU<br />
+      Titular: Alexander López<br />
+      Cuenta: 9454754<br />
       Concepto: {resultado.pedido}
     </p>
   </div>
