@@ -186,143 +186,278 @@ if (uploadError) {
           </p>
         )}
 
-        {resultado && (
-          <div className="mt-12 w-full max-w-xl border border-[var(--border-color)] p-8 text-left">
-            <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-              Número de pedido
-            </p>
-            <p className="mb-6 text-3xl font-black">{resultado.pedido}</p>
+{resultado && (
+  <div className="mt-12 w-full max-w-4xl border border-[var(--border-color)] px-6 py-10 text-left sm:px-10">
+    <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Número de pedido
+    </p>
 
-            <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-              Estado
-            </p>
-            <p className="mb-6 text-2xl font-bold text-red-600">
-              {resultado.estado || "Sin estado"}
-            </p>
-            {resultado.estado && (
-  <div className="mb-8 mt-4">
-    {["Recibido", "Presupuestado", "En impresión", "Terminado", "Entregado"].map(
-      (estado, index) => {
-        const estados = ["Recibido", "Presupuestado", "En impresión", "Terminado", "Entregado"];
+    <p className="mb-10 text-3xl font-black tracking-[0.08em] sm:text-4xl">
+      {resultado.pedido}
+    </p>
+
+    <div className="mb-12">
+      <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+        Estado
+      </p>
+
+      {(() => {
+        const estados = [
+          "Recibido",
+          "Presupuestado",
+          "Método de pago seleccionado",
+          "Pago confirmado",
+          "En impresión",
+          "Terminado",
+          "Entregado",
+        ];
+
         const estadoActual = estados.indexOf(resultado.estado);
-        const activo = index <= estadoActual;
 
         return (
-          <div key={estado} className="mb-4 flex items-center gap-4">
-            <div
-              className={`h-4 w-4 rounded-full border ${
-                activo
-                  ? "border-red-600 bg-red-600"
-                  : "border-[var(--border-color)]"
-              }`}
-            />
+          <div className="w-full pb-2">
+            <div className="grid grid-cols-7 items-start">
+              {estados.map((estado, index) => {
+                const activo = index <= estadoActual;
+                const esEntregado = estado === "Entregado" && activo;
 
-            <div
-              className={`text-xs font-bold uppercase tracking-[0.25em] ${
-                activo ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
-              }`}
-            >
-              {estado}
+                return (
+                  <div key={estado} className="flex min-w-0 flex-col items-center">
+                    <div className="flex w-full items-center">
+                      <div
+                        className={`h-[2px] flex-1 ${
+                          index === 0
+                            ? "bg-transparent"
+                            : activo
+                            ? "bg-red-600"
+                            : "bg-[var(--border-color)]"
+                        }`}
+                      />
+
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-black ${
+                          esEntregado
+                            ? "border-green-600 bg-green-600 text-white"
+                            : activo
+                            ? "border-red-600 bg-red-600 text-white"
+                            : "border-[var(--border-color)] text-[var(--text-muted)]"
+                        }`}
+                      >
+                        {esEntregado ? "✓" : index + 1}
+                      </div>
+
+                      <div
+                        className={`h-[2px] flex-1 ${
+                          index === estados.length - 1
+                            ? "bg-transparent"
+                            : index < estadoActual
+                            ? "bg-red-600"
+                            : "bg-[var(--border-color)]"
+                        }`}
+                      />
+                    </div>
+
+                    <p
+                      className={`mt-3 max-w-[90px] text-center text-[9px] font-bold uppercase leading-4 tracking-[0.12em] ${
+                        activo ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
+                      }`}
+                    >
+                      {estado}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </div>
         );
-      }
-    )}
-  </div>
-)}
-
-            <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-              Precio
-            </p>
-            <p className="text-2xl font-bold text-red-600">
-              {resultado.precio && resultado.precio !== "Pendiente"
-              ? `$${resultado.precio}`
-              : "Pendiente"}
-              </p>
-              {resultado.historial && (
-  <div className="mt-10">
-    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-      Historial
-    </p>
-
-    <div className="space-y-3">
-      {String(resultado.historial)
-        .split("\n")
-        .map((item, index) => (
-          <p key={index} className="text-sm font-semibold">
-            {item}
-          </p>
-          
-        ))}
+      })()}
     </div>
-  </div>
-)}
 
-{["Recibido", "Presupuestado"].includes(resultado.estado) && (
-  <div className="mt-10 border-t border-[var(--border-color)] pt-8">
-    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-      Archivos adicionales  
-    </p>
-    
-<p className="mb-5 text-xs leading-6 tracking-[0.12em] text-[var(--text-muted)]">
-  Se aceptan archivos STL o SKP. Para evitar errores, enviá los archivos de a uno
-  si son pesados. Tamaño máximo recomendado: 50 MB por archivo.
-</p>
-
-    <label
-  onDragOver={(e) => e.preventDefault()}
-  onDrop={(e) => {
-    e.preventDefault();
-    setArchivosExtra(Array.from(e.dataTransfer.files));
-  }}
-  className="flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--border-color)] px-6 py-14 text-center transition hover:border-red-600"
->
-  <input
-    type="file"
-    multiple
-    onChange={(e) =>
-      setArchivosExtra(Array.from(e.target.files || []))
-    }
-    className="hidden"
-  />
-
-  <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-    Seleccionar archivos
-  </span>
-
-  <span className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-    o arrastralos acá
-  </span>
-</label>
-
-{archivosExtra.length > 0 && (
-  <div className="mt-4 space-y-2">
-    {archivosExtra.map((archivo, index) => (
-      <p key={index} className="text-xs text-[var(--text-muted)]">
-        {archivo.name}
+    <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+      <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+        Pago
       </p>
-    ))}
-  </div>
-)}
 
-    <button
-      onClick={subirArchivoAdicional}
-      disabled={subiendoArchivo}
-      className="mt-5 w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
-    >
-      {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
-    </button>
+      <div className="mb-8">
+        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Total a pagar
+        </p>
 
-    {mensajeArchivo && (
-      <p className="mt-4 text-sm font-semibold text-red-600">
-        {mensajeArchivo}
-      </p>
-    )}
-  </div>
-)}
+        <p className="text-4xl font-black text-red-600">
+          {resultado.precio && resultado.precio !== "Pendiente"
+            ? `$${resultado.precio}`
+            : "Pendiente"}
+        </p>
 
+        {resultado.precio && resultado.precio !== "Pendiente" && (
+          <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            El precio final puede incluir descuentos aplicados.
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <button
+          type="button"
+          className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+            Transferencia
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+            Ver datos bancarios y subir comprobante.
+          </p>
+        </button>
+
+        <button
+          type="button"
+          className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
+        >
+          <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+            Efectivo
+          </p>
+          <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+            Coordinar pago al momento de la entrega o retiro.
+          </p>
+        </button>
+      </div>
+
+      <div className="mt-8 border border-[var(--border-color)] p-6">
+        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Método seleccionado
+        </p>
+
+        <p className="mb-6 text-xl font-bold">
+          Sin seleccionar
+        </p>
+
+        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Estado
+        </p>
+
+        <p className="mb-6 text-lg font-bold text-red-600">
+          Pendiente
+        </p>
+
+        <button
+          type="button"
+          className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
+        >
+          Confirmar método de pago
+        </button>
+      </div>
+    </div>
+
+    {["Recibido", "Presupuestado"].includes(resultado.estado) && (
+      <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          Archivos
+        </p>
+
+        <p className="mb-5 text-xs leading-6 tracking-[0.12em] text-[var(--text-muted)]">
+          Podés agregar archivos adicionales o reemplazar una versión mientras el pedido
+          esté en una etapa temprana. Al pasar a impresión, los archivos quedarán bloqueados.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              setArchivosExtra(Array.from(e.dataTransfer.files));
+            }}
+            className="flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-[var(--border-color)] px-6 py-12 text-center transition hover:border-red-600"
+          >
+            <input
+              type="file"
+              multiple
+              onChange={(e) =>
+                setArchivosExtra(Array.from(e.target.files || []))
+              }
+              className="hidden"
+            />
+
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+              Agregar archivo
+            </span>
+
+            <span className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              STL o SKP
+            </span>
+          </label>
+
+          <button
+            type="button"
+            className="border-2 border-dashed border-[var(--border-color)] px-6 py-12 text-center transition hover:border-red-600"
+          >
+            <span className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+              Reemplazar archivo
+            </span>
+
+            <span className="mt-3 block text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Próximamente
+            </span>
+          </button>
+        </div>
+
+        {archivosExtra.length > 0 && (
+          <div className="mt-5 space-y-2">
+            {archivosExtra.map((archivo, index) => (
+              <p key={index} className="text-xs text-[var(--text-muted)]">
+                {archivo.name}
+              </p>
+            ))}
           </div>
         )}
+
+        <button
+          onClick={subirArchivoAdicional}
+          disabled={subiendoArchivo}
+          className="mt-5 w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+        >
+          {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
+        </button>
+
+        {mensajeArchivo && (
+          <p className="mt-4 text-sm font-semibold text-red-600">
+            {mensajeArchivo}
+          </p>
+        )}
+      </div>
+    )}
+
+    {!["Recibido", "Presupuestado"].includes(resultado.estado) && (
+      <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          Archivos
+        </p>
+
+        <p className="text-sm font-semibold text-[var(--text-muted)]">
+          Los archivos ya no pueden modificarse porque el pedido se encuentra en una etapa avanzada.
+        </p>
+      </div>
+    )}
+
+    {resultado.historial && (
+      <div className="border-t border-[var(--border-color)] pt-8">
+        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          Historial
+        </p>
+
+        <div className="space-y-3">
+          {String(resultado.historial)
+            .split("\n")
+            .map((item, index) => (
+              <p key={index} className="text-sm font-semibold">
+                {item}
+              </p>
+            ))}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+
       </section>
     </main>
   );
