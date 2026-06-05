@@ -19,6 +19,8 @@ function SeguimientoContent() {
   const [archivosExtra, setArchivosExtra] = useState<File[]>([]);
 const [subiendoArchivo, setSubiendoArchivo] = useState(false);
 const [mensajeArchivo, setMensajeArchivo] = useState("");
+const [metodoSeleccionado, setMetodoSeleccionado] = useState("");
+const [guardandoMetodo, setGuardandoMetodo] = useState(false);
   
   const searchParams = useSearchParams();
 
@@ -135,6 +137,43 @@ if (uploadError) {
 
   setSubiendoArchivo(false);
 }
+
+async function confirmarMetodoPago() {
+  if (!metodoSeleccionado) {
+    setError("Seleccioná un método de pago.");
+    return;
+  }
+
+  setGuardandoMetodo(true);
+  setError("");
+
+  try {
+    const response = await fetch("/api/pago-metodo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pedido,
+        codigo,
+        metodo: metodoSeleccionado,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "No se pudo guardar el método.");
+    }
+
+    await consultarPedido();
+  } catch (error: any) {
+    setError(error.message || "Error al guardar método.");
+  }
+
+  setGuardandoMetodo(false);
+}
+
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
       <div className="fixed left-8 top-8 z-50">
@@ -354,12 +393,13 @@ if (uploadError) {
         )}
 
         {resultado.descuento && (
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            Descuento aplicado: {Number(resultado.descuento) <= 1
-              ? `${Number(resultado.descuento) * 100}%`
-              : `${resultado.descuento}%`}
-          </p>
-        )}
+  <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+    Descuento aplicado:{" "}
+    {Number(resultado.descuento) < 1
+      ? `${Number(resultado.descuento) * 100}%`
+      : `${resultado.descuento}%`}
+  </p>
+)}
 
         <div className="h-px w-full bg-[var(--border-color)]" />
       </div>
@@ -377,55 +417,73 @@ if (uploadError) {
   </div>
 
   <div className="grid gap-4 sm:grid-cols-2">
+  {["Transferencia", "Efectivo"].map((metodo) => (
     <button
+      key={metodo}
       type="button"
-      className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
+      onClick={() => setMetodoSeleccionado(metodo)}
+      className={`border px-5 py-5 text-left transition ${
+        metodoSeleccionado === metodo
+          ? "border-red-600 bg-red-50"
+          : "border-[var(--border-color)] hover:border-red-600"
+      }`}
     >
       <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-        Transferencia
+        {metodo}
       </p>
+
       <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-        Ver datos bancarios y subir comprobante.
+        {metodo === "Transferencia"
+          ? "Ver datos bancarios y subir comprobante."
+          : "Coordinar pago al momento de la entrega o retiro."}
       </p>
     </button>
+  ))}
+</div>
 
-    <button
-      type="button"
-      className="border border-[var(--border-color)] px-5 py-5 text-left transition hover:border-red-600"
-    >
-      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-        Efectivo
-      </p>
-      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-        Coordinar pago al momento de la entrega o retiro.
-      </p>
-    </button>
+{metodoSeleccionado === "Transferencia" && (
+  <div className="mt-6 border border-[var(--border-color)] p-6">
+    <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Datos bancarios
+    </p>
+
+    <p className="text-sm leading-7">
+      Banco: A completar<br />
+      Titular: A completar<br />
+      Cuenta: A completar<br />
+      Concepto: {resultado.pedido}
+    </p>
   </div>
+)}
 
-  <div className="mt-8 border border-[var(--border-color)] p-6">
-    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-      Método seleccionado
-    </p>
+<div className="mt-8 border border-[var(--border-color)] p-6">
+  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+    Método seleccionado
+  </p>
 
-    <p className="mb-6 text-xl font-bold">
-      {resultado.metodoPago || "Sin seleccionar"}
-    </p>
+  <p className="mb-6 text-xl font-bold">
+    {metodoSeleccionado || resultado.metodoPago || "Sin seleccionar"}
+  </p>
 
-    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-      Estado
-    </p>
+  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+    Estado
+  </p>
 
-    <p className="mb-6 text-lg font-bold text-red-600">
-      {resultado.estadoPago || "Pendiente"}
-    </p>
+  <p className="mb-6 text-lg font-bold text-red-600">
+    {resultado.estadoPago || "Pendiente"}
+  </p>
 
-    <button
-      type="button"
-      className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
-    >
-      Confirmar método de pago
-    </button>
-  </div>
+  <button
+    type="button"
+    onClick={confirmarMetodoPago}
+    disabled={guardandoMetodo}
+    className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+  >
+    {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
+  </button>
+</div>
+  
+
 </div>
 
     {!["Recibido", "Presupuestado"].includes(resultado.estado) && (
