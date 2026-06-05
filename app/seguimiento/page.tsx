@@ -331,22 +331,44 @@ if (uploadError) {
       </p>
 
       <div className="mb-8">
-        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Total a pagar
+  {resultado.precioOriginal && resultado.descuento && resultado.descuento !== "" && (
+    <div className="mb-6 space-y-4">
+      <div>
+        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Precio original
         </p>
-
-        <p className="text-4xl font-black text-red-600">
-          {resultado.precio && resultado.precio !== "Pendiente"
-            ? `$${resultado.precio}`
-            : "Pendiente"}
+        <p className="text-xl font-bold line-through text-[var(--text-muted)]">
+          ${resultado.precioOriginal}
         </p>
-
-        {resultado.precio && resultado.precio !== "Pendiente" && (
-          <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
-            El precio final puede incluir descuentos aplicados.
-          </p>
-        )}
       </div>
+
+      <div>
+        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Código aplicado
+        </p>
+        <p className="text-lg font-bold italic text-red-600">
+  {resultado.codigoDescuento || "Código aplicado"}
+</p>
+
+<p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+  Descuento aplicado: {resultado.descuento}
+</p>
+      </div>
+
+      <div className="h-px w-full bg-[var(--border-color)]" />
+    </div>
+  )}
+
+  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+    Total a pagar
+  </p>
+
+  <p className="text-4xl font-black text-red-600">
+    {resultado.precio && resultado.precio !== "Pendiente"
+      ? `$${resultado.precio}`
+      : "Pendiente"}
+  </p>
+</div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <button
