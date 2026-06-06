@@ -9,6 +9,9 @@ export async function POST(request: Request) {
         pedido: body.pedido,
         codigo: body.codigo,
         metodo: body.metodo,
+        modalidad: body.modalidad,
+        importe: body.importe,
+        saldoPendiente: body.saldoPendiente,
       }),
     });
 

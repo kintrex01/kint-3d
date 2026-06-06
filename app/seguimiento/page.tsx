@@ -468,20 +468,7 @@ async function confirmarMetodoPago() {
       </div>
     </div>
 
-    {modalidadPago && (
-      <div className="border border-[var(--border-color)] p-6">
-        <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Datos bancarios
-        </p>
-
-        <p className="text-sm leading-7">
-          Banco: ITAU<br />
-          Titular: Alexander López<br />
-          Cuenta: 9454754<br />
-          Concepto: {resultado.pedido}
-        </p>
-      </div>
-    )}
+    
   </div>
 )}
 
