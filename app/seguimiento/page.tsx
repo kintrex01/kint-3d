@@ -186,6 +186,55 @@ async function confirmarMetodoPago() {
   setGuardandoMetodo(false);
 }
 
+async function subirComprobante() {
+  setMensajeArchivo("");
+  setError("");
+
+  if (!archivosExtra.length) {
+    setError("Seleccioná un comprobante.");
+    return;
+  }
+
+  const archivo = archivosExtra[0];
+  setSubiendoArchivo(true);
+
+  try {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(archivo);
+    });
+
+    const response = await fetch("/api/comprobante", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pedido,
+        codigo,
+        archivoBase64: base64,
+        archivoNombre: archivo.name,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "No se pudo subir el comprobante.");
+    }
+
+    setMensajeArchivo("Comprobante enviado correctamente.");
+    setArchivosExtra([]);
+    await consultarPedido();
+  } catch (error: any) {
+    setError(error.message || "Error al subir comprobante.");
+  }
+
+  setSubiendoArchivo(false);
+}
+
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
       <div className="fixed left-8 top-8 z-50">
@@ -514,7 +563,7 @@ async function confirmarMetodoPago() {
 {archivosExtra.length > 0 && (
   <button
     type="button"
-    onClick={subirArchivoAdicional}
+    onClick={subirComprobante}
     disabled={subiendoArchivo}
     className="mt-6 border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
   >
