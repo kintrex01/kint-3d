@@ -645,12 +645,28 @@ async function subirComprobante() {
       Si olvidaste adjuntar algún archivo o necesitás enviar una versión corregida, podés subirla acá.
     </p>
 
-    <input
-      type="file"
-      multiple
-      onChange={(e) => setArchivosExtra(Array.from(e.target.files || []))}
-      className="mb-5 block w-full text-sm"
-    />
+    <label className="mb-5 block cursor-pointer border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600">
+  <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+    Subir archivos
+  </p>
+
+  <p className="mt-3 text-sm text-[var(--text-muted)]">
+    Arrastrá tus archivos acá o tocá para seleccionarlos.
+  </p>
+
+  {archivosExtra.length > 0 && (
+    <p className="mt-4 text-sm font-semibold">
+      {archivosExtra.length} archivo(s) seleccionado(s)
+    </p>
+  )}
+
+  <input
+    type="file"
+    multiple
+    className="hidden"
+    onChange={(e) => setArchivosExtra(Array.from(e.target.files || []))}
+  />
+</label>
 
     <button
       onClick={subirArchivoAdicional}
