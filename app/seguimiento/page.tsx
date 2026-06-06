@@ -633,17 +633,48 @@ async function subirComprobante() {
 
 </div>
 
-    {!["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) && (
-      <div className="mb-12 border-t border-[var(--border-color)] pt-8">
-        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-          Archivos
-        </p>
+    {["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) ? (
+  <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Archivos adicionales
+    </p>
 
-        <p className="text-sm font-semibold text-[var(--text-muted)]">
-          Los archivos ya no pueden modificarse porque el pedido se encuentra en una etapa avanzada.
-        </p>
-      </div>
+    <p className="mb-6 text-sm leading-6 text-[var(--text-muted)]">
+      Si olvidaste adjuntar algún archivo o necesitás enviar una versión corregida, podés subirla acá.
+    </p>
+
+    <input
+      type="file"
+      multiple
+      onChange={(e) => setArchivosExtra(Array.from(e.target.files || []))}
+      className="mb-5 block w-full text-sm"
+    />
+
+    <button
+      onClick={subirArchivoAdicional}
+      disabled={subiendoArchivo}
+      className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+    >
+      {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
+    </button>
+
+    {mensajeArchivo && (
+      <p className="mt-4 text-sm font-semibold text-green-600">
+        {mensajeArchivo}
+      </p>
     )}
+  </div>
+) : (
+  <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Archivos
+    </p>
+
+    <p className="text-sm font-semibold text-[var(--text-muted)]">
+      Los archivos ya no pueden modificarse porque el pedido se encuentra en una etapa avanzada.
+    </p>
+  </div>
+)}
 
     {resultado.historial && (
       <div className="border-t border-[var(--border-color)] pt-8">
