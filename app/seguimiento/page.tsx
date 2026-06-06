@@ -495,12 +495,38 @@ async function confirmarMetodoPago() {
         JPG, PNG o PDF
       </p>
 
-      <button
-        type="button"
-        className="mt-6 border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
-      >
-        Seleccionar archivo
-      </button>
+      <label className="mt-6 inline-block cursor-pointer border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+  Seleccionar archivo
+
+  <input
+    type="file"
+    accept=".jpg,.jpeg,.png,.pdf"
+    className="hidden"
+    onChange={(e) => {
+      const archivo = e.target.files?.[0];
+      if (archivo) {
+        setArchivosExtra([archivo]);
+      }
+    }}
+  />
+</label>
+
+{archivosExtra.length > 0 && (
+  <button
+    type="button"
+    onClick={subirArchivoAdicional}
+    disabled={subiendoArchivo}
+    className="mt-6 border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+  >
+    {subiendoArchivo ? "Enviando..." : "Enviar comprobante"}
+  </button>
+)}
+
+{mensajeArchivo && (
+  <p className="mt-4 text-sm font-semibold text-green-600">
+    {mensajeArchivo}
+  </p>
+)}
     </div>
   </div>
 )}
@@ -540,7 +566,7 @@ async function confirmarMetodoPago() {
 
 </div>
 
-    {!["Recibido", "Presupuestado"].includes(resultado.estado) && (
+    {!["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) && (
       <div className="mb-12 border-t border-[var(--border-color)] pt-8">
         <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
           Archivos
