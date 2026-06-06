@@ -21,6 +21,7 @@ const [subiendoArchivo, setSubiendoArchivo] = useState(false);
 const [mensajeArchivo, setMensajeArchivo] = useState("");
 const [metodoSeleccionado, setMetodoSeleccionado] = useState("");
 const [guardandoMetodo, setGuardandoMetodo] = useState(false);
+const [modalidadPago, setModalidadPago] = useState("");
   
   const searchParams = useSearchParams();
 
@@ -139,13 +140,21 @@ if (uploadError) {
 }
 
 async function confirmarMetodoPago() {
-  if (!metodoSeleccionado) {
-    setError("Seleccioná un método de pago.");
+  if (!modalidadPago) {
+    setError("Seleccioná si querés pagar seña o total.");
     return;
   }
 
   setGuardandoMetodo(true);
   setError("");
+
+  const precioFinal = Number(resultado.precio) || 0;
+  const importe =
+    modalidadPago === "Seña 20%"
+      ? Math.round(precioFinal * 0.2)
+      : precioFinal;
+
+  const saldoPendiente = precioFinal - importe;
 
   try {
     const response = await fetch("/api/pago-metodo", {
@@ -156,19 +165,22 @@ async function confirmarMetodoPago() {
       body: JSON.stringify({
         pedido,
         codigo,
-        metodo: metodoSeleccionado,
+        metodo: "Transferencia",
+        modalidad: modalidadPago,
+        importe,
+        saldoPendiente,
       }),
     });
 
     const data = await response.json();
 
     if (!data.ok) {
-      throw new Error(data.error || "No se pudo guardar el método.");
+      throw new Error(data.error || "No se pudo guardar el pago.");
     }
 
     await consultarPedido();
   } catch (error: any) {
-    setError(error.message || "Error al guardar método.");
+    setError(error.message || "Error al guardar pago.");
   }
 
   setGuardandoMetodo(false);
@@ -418,29 +430,58 @@ async function confirmarMetodoPago() {
 
 {(!resultado.metodoPago ||
   resultado.metodoPago === "Sin seleccionar") && (
-  <div className="grid gap-4 sm:grid-cols-2">
-    {["Transferencia", "Efectivo"].map((metodo) => (
-      <button
-        key={metodo}
-        type="button"
-        onClick={() => setMetodoSeleccionado(metodo)}
-        className={`border px-5 py-5 text-left transition ${
-          metodoSeleccionado === metodo
-            ? "border-red-600 bg-red-50"
-            : "border-[var(--border-color)] hover:border-red-600"
-        }`}
-      >
-        <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-          {metodo}
+  <div className="space-y-6">
+    <div>
+      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        ¿Cómo querés continuar?
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {["Seña 20%", "Pago total"].map((opcion) => {
+          const precioFinal = Number(resultado.precio) || 0;
+          const importe =
+            opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
+          const saldo = precioFinal - importe;
+
+          return (
+            <button
+              key={opcion}
+              type="button"
+              onClick={() => setModalidadPago(opcion)}
+              className={`border px-5 py-5 text-left transition ${
+                modalidadPago === opcion
+                  ? "border-red-600 bg-red-50"
+                  : "border-[var(--border-color)] hover:border-red-600"
+              }`}
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+                {opcion}
+              </p>
+
+              <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
+                Transferir ahora: ${importe}<br />
+                Saldo pendiente: ${saldo}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+
+    {modalidadPago && (
+      <div className="border border-[var(--border-color)] p-6">
+        <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Datos bancarios
         </p>
 
-        <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-          {metodo === "Transferencia"
-            ? "Ver datos bancarios y subir comprobante."
-            : "Coordinar pago al momento de la entrega o retiro."}
+        <p className="text-sm leading-7">
+          Banco: ITAU<br />
+          Titular: Alexander López<br />
+          Cuenta: 9454754<br />
+          Concepto: {resultado.pedido}
         </p>
-      </button>
-    ))}
+      </div>
+    )}
   </div>
 )}
 
