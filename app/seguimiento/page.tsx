@@ -416,32 +416,36 @@ async function confirmarMetodoPago() {
     </p>
   </div>
 
+{(!resultado.metodoPago ||
+  resultado.metodoPago === "Sin seleccionar") && (
   <div className="grid gap-4 sm:grid-cols-2">
-  {["Transferencia", "Efectivo"].map((metodo) => (
-    <button
-      key={metodo}
-      type="button"
-      onClick={() => setMetodoSeleccionado(metodo)}
-      className={`border px-5 py-5 text-left transition ${
-        metodoSeleccionado === metodo
-          ? "border-red-600 bg-red-50"
-          : "border-[var(--border-color)] hover:border-red-600"
-      }`}
-    >
-      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-        {metodo}
-      </p>
+    {["Transferencia", "Efectivo"].map((metodo) => (
+      <button
+        key={metodo}
+        type="button"
+        onClick={() => setMetodoSeleccionado(metodo)}
+        className={`border px-5 py-5 text-left transition ${
+          metodoSeleccionado === metodo
+            ? "border-red-600 bg-red-50"
+            : "border-[var(--border-color)] hover:border-red-600"
+        }`}
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+          {metodo}
+        </p>
 
-      <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-        {metodo === "Transferencia"
-          ? "Ver datos bancarios y subir comprobante."
-          : "Coordinar pago al momento de la entrega o retiro."}
-      </p>
-    </button>
-  ))}
-</div>
+        <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+          {metodo === "Transferencia"
+            ? "Ver datos bancarios y subir comprobante."
+            : "Coordinar pago al momento de la entrega o retiro."}
+        </p>
+      </button>
+    ))}
+  </div>
+)}
 
-{resultado.metodoPago === "Transferencia" && (
+{resultado.metodoPago === "Transferencia" &&
+ resultado.estadoPago !== "Pago confirmado" && (
   <div className="mt-6 border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
       Datos bancarios
@@ -490,14 +494,19 @@ async function confirmarMetodoPago() {
     {resultado.estadoPago || "Pendiente"}
   </p>
 
-  <button
-    type="button"
-    onClick={confirmarMetodoPago}
-    disabled={guardandoMetodo}
-    className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
-  >
-    {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
-  </button>
+  {(!resultado.metodoPago ||
+  resultado.metodoPago === "Sin seleccionar") && (
+
+<button
+  type="button"
+  onClick={confirmarMetodoPago}
+  disabled={guardandoMetodo}
+  className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+>
+  {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
+</button>
+
+)}
 </div>
   
 
