@@ -441,18 +441,35 @@ async function confirmarMetodoPago() {
   ))}
 </div>
 
-{metodoSeleccionado === "Transferencia" && (
+{resultado.metodoPago === "Transferencia" && (
   <div className="mt-6 border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
       Datos bancarios
     </p>
 
-    <p className="text-sm leading-7">
+    <p className="mb-6 text-sm leading-7">
       Banco: ITAU<br />
       Titular: Alexander López<br />
       Cuenta: 9454754<br />
       Concepto: {resultado.pedido}
     </p>
+
+    <div className="border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+        Subir comprobante
+      </p>
+
+      <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+        JPG, PNG o PDF
+      </p>
+
+      <button
+        type="button"
+        className="mt-6 border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
+      >
+        Seleccionar archivo
+      </button>
+    </div>
   </div>
 )}
 
