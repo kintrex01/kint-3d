@@ -425,6 +425,8 @@ async function subirComprobante() {
 
     </div>
 
+{resultado.estado !== "Recibido" && (
+
 <div className="mb-12 border-t border-[var(--border-color)] pt-8">
   <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
     Pago
@@ -630,8 +632,8 @@ async function subirComprobante() {
 )}
 </div>
   
-
 </div>
+)}
 
     {["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) ? (
   <div className="mb-12 border-t border-[var(--border-color)] pt-8">
