@@ -522,7 +522,8 @@ async function subirComprobante() {
 )}
 
 {resultado.metodoPago === "Transferencia" &&
- resultado.estadoPago !== "Pago confirmado" && (
+ !resultado.comprobante &&
+ resultado.estadoPago !== "Pago realizado correctamente" && (
   <div className="mt-6 border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
       Datos bancarios
@@ -588,6 +589,23 @@ async function subirComprobante() {
   <p className="mb-6 text-xl font-bold">
     {metodoSeleccionado || resultado.metodoPago || "Sin seleccionar"}
   </p>
+
+{resultado.modalidad && (
+  <div className="mb-6 border-t border-[var(--border-color)] pt-6">
+    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Modalidad
+    </p>
+
+    <p className="mb-4 text-lg font-bold">
+      {resultado.modalidad}
+    </p>
+
+    <p className="text-sm leading-7 text-[var(--text-muted)]">
+      Importe transferido: ${resultado.importe || 0}<br />
+      Saldo pendiente: ${resultado.saldoPendiente || 0}
+    </p>
+  </div>
+)}
 
   <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
     Estado
