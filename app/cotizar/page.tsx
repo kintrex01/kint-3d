@@ -554,7 +554,7 @@ return (
   </p>
 
   <a
-    href="https://wa.me/5989454754"
+    href="https://wa.me/59892023382"
     target="_blank"
     className="inline-block rounded-2xl bg-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:opacity-90"
   >
