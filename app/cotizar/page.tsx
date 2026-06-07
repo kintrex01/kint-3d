@@ -131,12 +131,12 @@ export default function Cotizar() {
     setEmail("");
     setTelefono("");
     setFechaEntrega("");
-    setEscala("1:50");
+    setEscala("");
     setEscalaPersonalizada("");
     setColor([]);
-    setArmado("Sí, quiero incluir este servicio");
-    setAlisado("Sí, quiero incluir este servicio");
-    setBoquilla("0.2 mm — Máximo detalle");
+    setArmado("");
+    setAlisado("");
+    setBoquilla("");
     setComentarios("");
     setCodigoDescuento("");
     setArchivo(null);
@@ -158,13 +158,13 @@ export default function Cotizar() {
 if (enviado) {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
-      <div className="fixed left-8 top-8 z-50">
-        <Link href="/">
-          <button className="flex items-center gap-1 text-2xl font-bold text-[var(--text-main)] transition hover:opacity-70">
-            <span className="relative -top-1 text-6xl leading-none">‹</span>
-            <span>Inicio</span>
-          </button>
-        </Link>
+      <div className="fixed left-6 right-6 top-6 z-50 flex items-center justify-between">
+  <Link href="/">
+    <button className="flex items-center gap-1 text-3xl font-bold text-[var(--text-main)] transition hover:text-red-600">
+      <span className="text-5xl leading-none">‹</span>
+      <span>Inicio</span>
+    </button>
+  </Link>
       </div>
 
       <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center text-center">
@@ -315,9 +315,11 @@ return (
          <select
   value={escala}
   onChange={(e) => setEscala(e.target.value)}
-  className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+    escala === "" ? "text-red-600" : "text-black"
+  }`}
 >
-  <option value="" className="text-red-600">
+   <option value="">
     Seleccionar escala
   </option>
   <option>1:50</option>
@@ -386,10 +388,12 @@ return (
             $250 según el tamaño y la cantidad de piezas.
           </p>
           <select
-            value={armado}
-            onChange={(e) => setArmado(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          >
+  value={armado}
+  onChange={(e) => setArmado(e.target.value)}
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+    armado === "" ? "text-red-600" : "text-black"
+  }`}
+>
               <option value=""className="text-red-600">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
@@ -407,10 +411,12 @@ return (
             boquilla de 0.2 mm la diferencia suele ser mínima.
           </p>
           <select
-            value={alisado}
-            onChange={(e) => setAlisado(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          >
+  value={alisado}
+  onChange={(e) => setAlisado(e.target.value)}
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+    alisado === "" ? "text-red-600" : "text-black"
+  }`}
+>
               <option value=""className="text-red-600">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
@@ -428,10 +434,12 @@ return (
             pero con mucha más precisión.
           </p>
           <select
-            value={boquilla}
-            onChange={(e) => setBoquilla(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          >
+  value={boquilla}
+  onChange={(e) => setBoquilla(e.target.value)}
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+    boquilla === "" ? "text-red-600" : "text-black"
+  }`}
+>
               <option value="" className="text-red-600">
                 Seleccionar boquilla
               </option>
@@ -553,6 +561,7 @@ return (
     Escribir por WhatsApp
   </a>
 </div>
+
 
         <button
           onClick={enviarPedido}
