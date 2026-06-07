@@ -287,7 +287,7 @@ async function subirComprobante() {
         )}
 
 {resultado && (
-  <div className="mt-12 w-full max-w-4xl border border-[var(--border-color)] px-6 py-10 text-left sm:px-10">
+  <div className="mt-12 w-full max-w-4xl rounded-3xl border border-[var(--border-color)] px-6 py-10 text-left sm:px-10">
     <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Número de pedido
     </p>
@@ -425,218 +425,217 @@ async function subirComprobante() {
 
     </div>
 
-{resultado.estado !== "Recibido" && (
+{[
+  "Presupuestado",
+  "Método de pago seleccionado",
+  "Pago confirmado",
+  "En impresión",
+  "Terminado",
+  "Entregado",
+].includes(resultado.estado) && (
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+    <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Pago
+    </p>
 
-<div className="mb-12 border-t border-[var(--border-color)] pt-8">
-  <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-    Pago
-  </p>
-
-  <div className="mb-8">
-    {resultado.precioOriginal && resultado.precioOriginal !== resultado.precio && (
-      <div className="mb-6 space-y-4">
-        <div>
-          <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-            Precio original
-          </p>
-          <p className="text-xl font-bold line-through text-[var(--text-muted)]">
-            ${resultado.precioOriginal}
-          </p>
-        </div>
-
-        {resultado.codigoDescuento && (
+    <div className="mb-8">
+      {resultado.precioOriginal && resultado.precioOriginal !== resultado.precio && (
+        <div className="mb-6 space-y-4">
           <div>
             <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-              Código aplicado
+              Precio original
             </p>
-            <p className="text-lg font-bold italic text-red-600">
-              {resultado.codigoDescuento}
+            <p className="text-xl font-bold line-through text-[var(--text-muted)]">
+              ${resultado.precioOriginal}
             </p>
           </div>
-        )}
 
-        {resultado.descuento && (
-  <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-    Descuento aplicado:{" "}
-    {Number(resultado.descuento) < 1
-      ? `${Number(resultado.descuento) * 100}%`
-      : `${resultado.descuento}%`}
-  </p>
-)}
+          {resultado.codigoDescuento && (
+            <div>
+              <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+                Código aplicado
+              </p>
+              <p className="text-lg font-bold italic text-red-600">
+                {resultado.codigoDescuento}
+              </p>
+            </div>
+          )}
 
-        <div className="h-px w-full bg-[var(--border-color)]" />
+          {resultado.descuento && (
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Descuento aplicado:{" "}
+              {Number(resultado.descuento) < 1
+                ? `${Number(resultado.descuento) * 100}%`
+                : `${resultado.descuento}%`}
+            </p>
+          )}
+
+          <div className="h-px w-full bg-[var(--border-color)]" />
+        </div>
+      )}
+
+      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Total a pagar
+      </p>
+
+      <p className="text-4xl font-black text-red-600">
+        {resultado.precio && resultado.precio !== "Pendiente"
+          ? `$${resultado.precio}`
+          : "Pendiente"}
+      </p>
+    </div>
+
+    {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
+      <div className="space-y-6">
+        <div>
+          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            ¿Cómo querés continuar?
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {["Seña 20%", "Pago total"].map((opcion) => {
+              const precioFinal = Number(resultado.precio) || 0;
+              const importe =
+                opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
+              const saldo = precioFinal - importe;
+
+              return (
+                <button
+                  key={opcion}
+                  type="button"
+                  onClick={() => setModalidadPago(opcion)}
+                  className={`rounded-2xl border px-5 py-5 text-left transition ${
+                    modalidadPago === opcion
+                      ? "border-red-600 bg-[#fff1f1]"
+                      : "border-[var(--border-color)] hover:border-red-600"
+                  }`}
+                >
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+                    {opcion}
+                  </p>
+
+                  <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
+                    Transferir ahora: ${importe}<br />
+                    Saldo pendiente: ${saldo}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     )}
 
-    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-      Total a pagar
-    </p>
+    {resultado.metodoPago === "Transferencia" &&
+      !resultado.comprobante &&
+      resultado.estadoPago !== "Pago realizado correctamente" && (
+        <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
+          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Datos bancarios
+          </p>
 
-    <p className="text-4xl font-black text-red-600">
-      {resultado.precio && resultado.precio !== "Pendiente"
-        ? `$${resultado.precio}`
-        : "Pendiente"}
-    </p>
-  </div>
+          <p className="mb-6 text-sm leading-7">
+            Banco: ITAU<br />
+            Titular: Alexander López<br />
+            Cuenta: 9454754<br />
+            Concepto: {resultado.pedido}
+          </p>
 
-{(!resultado.metodoPago ||
-  resultado.metodoPago === "Sin seleccionar") && (
-  <div className="space-y-6">
-    <div>
-      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        ¿Cómo querés continuar?
-      </p>
+          <div className="rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+              Subir comprobante
+            </p>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {["Seña 20%", "Pago total"].map((opcion) => {
-          const precioFinal = Number(resultado.precio) || 0;
-          const importe =
-            opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
-          const saldo = precioFinal - importe;
+            <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              JPG, PNG o PDF
+            </p>
 
-          return (
-            <button
-              key={opcion}
-              type="button"
-              onClick={() => setModalidadPago(opcion)}
-              className={`border px-5 py-5 text-left transition ${
-                modalidadPago === opcion
-                  ? "border-red-600 bg-red-50"
-                  : "border-[var(--border-color)] hover:border-red-600"
-              }`}
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-                {opcion}
+            <label className="mt-6 inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+              Seleccionar archivo
+
+              <input
+                type="file"
+                accept=".jpg,.jpeg,.png,.pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const archivo = e.target.files?.[0];
+                  if (archivo) {
+                    setArchivosExtra([archivo]);
+                  }
+                }}
+              />
+            </label>
+
+            {archivosExtra.length > 0 && (
+              <button
+                type="button"
+                onClick={subirComprobante}
+                disabled={subiendoArchivo}
+                className="mt-6 rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+              >
+                {subiendoArchivo ? "Enviando..." : "Enviar comprobante"}
+              </button>
+            )}
+
+            {mensajeArchivo && (
+              <p className="mt-4 text-sm font-semibold text-green-600">
+                {mensajeArchivo}
               </p>
+            )}
+          </div>
+        </div>
+      )}
 
-              <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-                Transferir ahora: ${importe}<br />
-                Saldo pendiente: ${saldo}
-              </p>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-
-    
-  </div>
-)}
-
-{resultado.metodoPago === "Transferencia" &&
- !resultado.comprobante &&
- resultado.estadoPago !== "Pago realizado correctamente" && (
-  <div className="mt-6 border border-[var(--border-color)] p-6">
-    <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-      Datos bancarios
-    </p>
-
-    <p className="mb-6 text-sm leading-7">
-      Banco: ITAU<br />
-      Titular: Alexander López<br />
-      Cuenta: 9454754<br />
-      Concepto: {resultado.pedido}
-    </p>
-
-    <div className="border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
-      <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-        Subir comprobante
+    <div className="mt-8 rounded-2xl border border-[var(--border-color)] p-6">
+      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Método seleccionado
       </p>
 
-      <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-        JPG, PNG o PDF
+      <p className="mb-6 text-xl font-bold">
+        {metodoSeleccionado || resultado.metodoPago || "Sin seleccionar"}
       </p>
 
-      <label className="mt-6 inline-block cursor-pointer border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
-  Seleccionar archivo
+      {resultado.modalidad && (
+        <div className="mb-6 border-t border-[var(--border-color)] pt-6">
+          <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Modalidad
+          </p>
 
-  <input
-    type="file"
-    accept=".jpg,.jpeg,.png,.pdf"
-    className="hidden"
-    onChange={(e) => {
-      const archivo = e.target.files?.[0];
-      if (archivo) {
-        setArchivosExtra([archivo]);
-      }
-    }}
-  />
-</label>
+          <p className="mb-4 text-lg font-bold">
+            {resultado.modalidad}
+          </p>
 
-{archivosExtra.length > 0 && (
-  <button
-    type="button"
-    onClick={subirComprobante}
-    disabled={subiendoArchivo}
-    className="mt-6 border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
-  >
-    {subiendoArchivo ? "Enviando..." : "Enviar comprobante"}
-  </button>
-)}
+          <p className="text-sm leading-7 text-[var(--text-muted)]">
+            Importe transferido: ${resultado.importe || 0}<br />
+            Saldo pendiente: ${resultado.saldoPendiente || 0}
+          </p>
+        </div>
+      )}
 
-{mensajeArchivo && (
-  <p className="mt-4 text-sm font-semibold text-green-600">
-    {mensajeArchivo}
-  </p>
-)}
+      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Estado
+      </p>
+
+      <p className="mb-6 text-lg font-bold text-red-600">
+        {resultado.estadoPago || "Pendiente"}
+      </p>
+
+      {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
+        <button
+          type="button"
+          onClick={confirmarMetodoPago}
+          disabled={guardandoMetodo}
+          className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+        >
+          {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
+        </button>
+      )}
     </div>
   </div>
-)}
-
-<div className="mt-8 border border-[var(--border-color)] p-6">
-  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-    Método seleccionado
-  </p>
-
-  <p className="mb-6 text-xl font-bold">
-    {metodoSeleccionado || resultado.metodoPago || "Sin seleccionar"}
-  </p>
-
-{resultado.modalidad && (
-  <div className="mb-6 border-t border-[var(--border-color)] pt-6">
-    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-      Modalidad
-    </p>
-
-    <p className="mb-4 text-lg font-bold">
-      {resultado.modalidad}
-    </p>
-
-    <p className="text-sm leading-7 text-[var(--text-muted)]">
-      Importe transferido: ${resultado.importe || 0}<br />
-      Saldo pendiente: ${resultado.saldoPendiente || 0}
-    </p>
-  </div>
-)}
-
-  <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-    Estado
-  </p>
-
-  <p className="mb-6 text-lg font-bold text-red-600">
-    {resultado.estadoPago || "Pendiente"}
-  </p>
-
-  {(!resultado.metodoPago ||
-  resultado.metodoPago === "Sin seleccionar") && (
-
-<button
-  type="button"
-  onClick={confirmarMetodoPago}
-  disabled={guardandoMetodo}
-  className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
->
-  {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
-</button>
-
-)}
-</div>
-  
-</div>
 )}
 
     {["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) ? (
-  <div className="mb-12 border-t border-[var(--border-color)] pt-8">
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Archivos adicionales
     </p>
@@ -645,7 +644,7 @@ async function subirComprobante() {
       Si olvidaste adjuntar algún archivo o necesitás enviar una versión corregida, podés subirla acá.
     </p>
 
-    <label className="mb-5 block cursor-pointer border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600">
+    <label className="mb-5 block cursor-pointer rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600">
   <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
     Subir archivos
   </p>
@@ -671,7 +670,7 @@ async function subirComprobante() {
     <button
       onClick={subirArchivoAdicional}
       disabled={subiendoArchivo}
-      className="w-full border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
     >
       {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
     </button>
