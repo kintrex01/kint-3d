@@ -688,6 +688,8 @@ async function subirComprobanteSaldo() {
       {resultado.modalidad === "Seña 20%" &&
   Number(resultado.saldoPendiente) > 0 &&
   resultado.estado !== "Entregado" &&
+  resultado.estadoPago !== "Seña realizada correctamente" &&
+  resultado.estadoPago !== "Pago realizado correctamente" &&
   !resultado.comprobanteSaldo && (
     <div className="mt-6 border-t border-[var(--border-color)] pt-6">
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
