@@ -24,6 +24,8 @@ const [guardandoMetodo, setGuardandoMetodo] = useState(false);
 const [modalidadPago, setModalidadPago] = useState("");
 const [mostrarSaldo, setMostrarSaldo] = useState(false);
 const [modoOscuro, setModoOscuro] = useState(false);
+const [codigoDescuentoInput, setCodigoDescuentoInput] = useState("");
+const [aplicandoDescuento, setAplicandoDescuento] = useState(false);
   
   const searchParams = useSearchParams();
 
@@ -153,6 +155,43 @@ if (uploadError) {
   }
 
   setSubiendoArchivo(false);
+}
+
+async function aplicarCodigoDescuento() {
+  if (!codigoDescuentoInput.trim()) {
+    setError("Ingresá un código de descuento.");
+    return;
+  }
+
+  setAplicandoDescuento(true);
+  setError("");
+
+  try {
+    const response = await fetch("/api/descuento", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pedido,
+        codigo,
+        codigoDescuento: codigoDescuentoInput.trim().toUpperCase(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "No se pudo aplicar el código.");
+    }
+
+    setCodigoDescuentoInput("");
+    await consultarPedido();
+  } catch (error: any) {
+    setError(error.message || "Error al aplicar descuento.");
+  }
+
+  setAplicandoDescuento(false);
 }
 
 async function confirmarMetodoPago() {
@@ -800,6 +839,33 @@ async function subirComprobanteSaldo() {
         </button>
       )}
     </div>
+  </div>
+)}
+{resultado.estado === "Recibido" && !resultado.codigoDescuento && (
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Código de descuento
+    </p>
+
+    <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
+      Si tenés un código de descuento, podés aplicarlo mientras el pedido esté en estado Recibido.
+    </p>
+
+    <input
+      value={codigoDescuentoInput}
+      onChange={(e) => setCodigoDescuentoInput(e.target.value.toUpperCase())}
+      placeholder="Ej: KINT10"
+      className="mb-4 w-full rounded-2xl border border-[var(--border-color)] bg-transparent px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] outline-none transition focus:border-red-600"
+    />
+
+    <button
+      type="button"
+      onClick={aplicarCodigoDescuento}
+      disabled={aplicandoDescuento}
+      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+    >
+      {aplicandoDescuento ? "Aplicando..." : "Aplicar código"}
+    </button>
   </div>
 )}
 
