@@ -506,7 +506,7 @@ async function subirComprobante() {
                   onClick={() => setModalidadPago(opcion)}
                   className={`rounded-2xl border px-5 py-5 text-left transition ${
                     modalidadPago === opcion
-                      ? "border-red-600 bg-[#fff1f1]"
+                      ? "border-red-600 bg-[#ffe5e5]"
                       : "border-[var(--border-color)] hover:border-red-600"
                   }`}
                 >
