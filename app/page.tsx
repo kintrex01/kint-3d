@@ -13,7 +13,7 @@ export default function Home() {
         <div className="mb-8">
           
 
-          <h1 className="translate-x-6 text-6xl font-black uppercase tracking-[0.25em]">
+          <h1 className="translate-x-4 text-6xl font-black uppercase tracking-[0.25em]">
             KINT
             </h1>
 
@@ -154,7 +154,7 @@ export default function Home() {
   href="https://wa.me/59892023382"
   target="_blank"
   rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition hover:scale-110"
+  className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition hover:scale-110"
   aria-label="WhatsApp"
 >
   <svg
