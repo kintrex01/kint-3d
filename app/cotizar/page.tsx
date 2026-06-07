@@ -16,7 +16,7 @@ export default function Cotizar() {
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
-  const [color, setColor] = useState("");
+  const [color, setColor] = useState<string[]>([]);
   const [armado, setArmado] = useState("");
   const [alisado, setAlisado] = useState("");
   const [boquilla, setBoquilla] = useState("");
@@ -38,7 +38,7 @@ export default function Cotizar() {
     return;
   }
 
-  if (!escala || !color || !armado || !alisado || !boquilla) {
+  if (!escala || color.length === 0 || !armado || !alisado || !boquilla) {
     alert("Por favor completá todas las opciones que dicen 'Seleccionar...'.");
     return;
   }
@@ -98,7 +98,7 @@ export default function Cotizar() {
         telefono,
         fechaEntrega,
         escala: escalaFinal,
-        color,
+        color: color.join(", "),
         armado,
         alisado,
         boquilla,
@@ -133,7 +133,7 @@ export default function Cotizar() {
     setFechaEntrega("");
     setEscala("1:50");
     setEscalaPersonalizada("");
-    setColor("Blanco");
+    setColor([]);
     setArmado("Sí, quiero incluir este servicio");
     setAlisado("Sí, quiero incluir este servicio");
     setBoquilla("0.2 mm — Máximo detalle");
@@ -317,7 +317,9 @@ return (
   onChange={(e) => setEscala(e.target.value)}
   className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
 >
-  <option value="">Seleccionar escala</option>
+  <option value="" className="text-red-600">
+    Seleccionar escala
+  </option>
   <option>1:50</option>
   <option>1:75</option>
   <option>1:100</option>
@@ -337,29 +339,41 @@ return (
         </div>
 
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Color de impresión
-          </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Selecciona el color principal para tus piezas impresas.
-          </p>
-          <select
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          >
-           
-            <option value="">Seleccionar color</option>
-            <option>Blanco</option>
-            <option>Negro</option>
-            <option>Rojo</option>
-            <option>Amarillo</option>
-            <option>Naranja</option>
-            <option>Azul</option>
-            <option>Verde</option>
-            <option>Cristal</option>
-          </select>
-        </div>
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Color de impresión <span className="text-red-600">*</span>
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Podés elegir uno o varios colores.
+  </p>
+
+  <div className="grid gap-3 sm:grid-cols-2">
+    {["Blanco", "Negro", "Rojo", "Amarillo", "Naranja", "Azul", "Verde", "Cristal"].map((opcion) => (
+      <label
+        key={opcion}
+        className={`cursor-pointer rounded-xl border p-4 font-semibold transition ${
+          color.includes(opcion)
+            ? "border-red-600 bg-[#ffe5e5] text-red-600"
+            : "border-[var(--border-color)] bg-white text-black hover:border-red-600"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={color.includes(opcion)}
+          onChange={() => {
+            setColor((actual) =>
+              actual.includes(opcion)
+                ? actual.filter((item) => item !== opcion)
+                : [...actual, opcion]
+            );
+          }}
+          className="mr-3"
+        />
+        {opcion}
+      </label>
+    ))}
+  </div>
+</div>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -376,7 +390,7 @@ return (
             onChange={(e) => setArmado(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
-              <option value="">Seleccionar opción</option>
+              <option value=""className="text-red-600">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
           </select>
@@ -397,7 +411,7 @@ return (
             onChange={(e) => setAlisado(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
-              <option value="">Seleccionar opción</option>
+              <option value=""className="text-red-600">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
             <option>Quiero presupuesto con y sin este servicio</option>
@@ -418,7 +432,9 @@ return (
             onChange={(e) => setBoquilla(e.target.value)}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           >
-              <option value="">Seleccionar boquilla</option>
+              <option value="" className="text-red-600">
+                Seleccionar boquilla
+              </option>
             <option>0.2 mm — Máximo detalle</option>
             <option>0.4 mm — Mejor equilibrio</option>
           </select>
@@ -518,6 +534,24 @@ return (
       <p>Solo aplica si aceptas el servicio de alisado.</p>
     </div>
   </div>
+</div>
+
+<div className="mb-8 rounded-2xl border border-red-600 bg-[#ffe5e5] p-6">
+  <h2 className="mb-3 text-lg font-bold text-red-600">
+    ¿Tenés una consulta o pedido especial?
+  </h2>
+
+  <p className="mb-5 text-sm leading-6 text-[var(--text-main)]">
+    Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
+  </p>
+
+  <a
+    href="https://wa.me/5989454754"
+    target="_blank"
+    className="inline-block rounded-2xl bg-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:opacity-90"
+  >
+    Escribir por WhatsApp
+  </a>
 </div>
 
         <button
