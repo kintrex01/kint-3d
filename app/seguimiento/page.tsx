@@ -580,7 +580,7 @@ async function subirComprobanteSaldo() {
                   onClick={() => setModalidadPago(opcion)}
                   className={`rounded-2xl border px-5 py-5 text-left transition ${
                     modalidadPago === opcion
-                      ? "border-red-600 bg-[#ffe5e5]"
+                      ? "border-red-600 bg-[#ffe5e5] text-black"
                       : "border-[var(--border-color)] hover:border-red-600"
                   }`}
                 >
@@ -590,7 +590,7 @@ async function subirComprobanteSaldo() {
 
                   <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
                     Transferir ahora: ${importe}<br />
-                    Saldo pendiente: ${saldo}
+                    Resta pagar: ${saldo}
                   </p>
                 </button>
               );
@@ -602,6 +602,8 @@ async function subirComprobanteSaldo() {
 
     {resultado.metodoPago === "Transferencia" &&
       !resultado.comprobante &&
+      resultado.estadoPago !== "Esperando validación" &&
+      resultado.estadoPago !== "Seña realizada correctamente" &&
       resultado.estadoPago !== "Pago realizado correctamente" && (
         <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
           <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
@@ -681,7 +683,7 @@ async function subirComprobanteSaldo() {
 
           <p className="text-sm leading-7 text-[var(--text-muted)]">
   Importe transferido: ${resultado.importe || 0}<br />
-  Saldo pendiente: ${resultado.saldoPendiente || 0}
+  Resta pagar: ${resultado.saldoPendiente || 0}
 </p>
         </div>
       )}
@@ -689,12 +691,11 @@ async function subirComprobanteSaldo() {
       {resultado.modalidad === "Seña 20%" &&
   Number(resultado.saldoPendiente) > 0 &&
   resultado.estado !== "Entregado" &&
-  resultado.estadoPago !== "Seña realizada correctamente" &&
-  resultado.estadoPago !== "Pago realizado correctamente" &&
+  resultado.estadoPago === "Seña realizada correctamente" &&
   !resultado.comprobanteSaldo && (
     <div className="mt-6 border-t border-[var(--border-color)] pt-6">
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Saldo pendiente
+        Resta pagar
       </p>
 
       <p className="mb-6 text-3xl font-black text-red-600">

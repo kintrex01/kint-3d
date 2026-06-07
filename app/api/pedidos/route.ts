@@ -30,7 +30,12 @@ export async function POST(request: Request) {
 
     const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
       method: "POST",
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+  ...payload,
+  archivoNombre: "",
+  archivoLink: "",
+  archivoId: "",
+}),
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
       },
