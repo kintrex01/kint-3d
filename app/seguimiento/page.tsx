@@ -235,6 +235,55 @@ async function subirComprobante() {
   setSubiendoArchivo(false);
 }
 
+async function subirComprobanteSaldo() {
+  setMensajeArchivo("");
+  setError("");
+
+  if (!archivosExtra.length) {
+    setError("Seleccioná un comprobante del saldo.");
+    return;
+  }
+
+  const archivo = archivosExtra[0];
+  setSubiendoArchivo(true);
+
+  try {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(archivo);
+    });
+
+    const response = await fetch("/api/comprobante-saldo", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pedido,
+        codigo,
+        archivoBase64: base64,
+        archivoNombre: archivo.name,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(data.error || "No se pudo subir el comprobante del saldo.");
+    }
+
+    setMensajeArchivo("Comprobante del saldo enviado correctamente.");
+    setArchivosExtra([]);
+    await consultarPedido();
+  } catch (error: any) {
+    setError(error.message || "Error al subir comprobante del saldo.");
+  }
+
+  setSubiendoArchivo(false);
+}
+
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
       <div className="fixed left-8 top-8 z-50">
@@ -606,11 +655,59 @@ async function subirComprobante() {
           </p>
 
           <p className="text-sm leading-7 text-[var(--text-muted)]">
-            Importe transferido: ${resultado.importe || 0}<br />
-            Saldo pendiente: ${resultado.saldoPendiente || 0}
-          </p>
+  Importe transferido: ${resultado.importe || 0}<br />
+  Saldo pendiente: ${resultado.saldoPendiente || 0}
+</p>
         </div>
       )}
+
+      {resultado.modalidad === "Seña 20%" &&
+  Number(resultado.saldoPendiente) > 0 &&
+  resultado.estado !== "Entregado" && (
+    <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
+      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Pagar saldo pendiente
+      </p>
+
+      <p className="mb-5 text-3xl font-black text-red-600">
+        ${resultado.saldoPendiente}
+      </p>
+
+      <p className="mb-6 text-sm leading-7">
+        Banco: ITAU<br />
+        Titular: Alexander López<br />
+        Cuenta: 9454754<br />
+        Concepto: {resultado.pedido} - Saldo
+      </p>
+
+      <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+        Seleccionar comprobante
+
+        <input
+          type="file"
+          accept=".jpg,.jpeg,.png,.pdf"
+          className="hidden"
+          onChange={(e) => {
+            const archivo = e.target.files?.[0];
+            if (archivo) {
+              setArchivosExtra([archivo]);
+            }
+          }}
+        />
+      </label>
+
+      {archivosExtra.length > 0 && (
+        <button
+          type="button"
+          onClick={subirComprobanteSaldo}
+          disabled={subiendoArchivo}
+          className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+        >
+          {subiendoArchivo ? "Enviando..." : "Enviar comprobante del saldo"}
+        </button>
+      )}
+    </div>
+  )}
 
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
         Estado
