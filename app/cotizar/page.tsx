@@ -384,8 +384,8 @@ return (
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Incluye el pegado de piezas y la remoción de soportes. Nos
             encargamos de entregar el producto completamente terminado y
-            ensamblado. Este servicio tiene un costo aproximado entre $150 y
-            $250 según el tamaño y la cantidad de piezas.
+            ensamblado. Este servicio tiene un costo aproximado entre $150 a
+            $300 según el tamaño y la cantidad de piezas.
           </p>
           <select
   value={armado}
@@ -397,30 +397,6 @@ return (
               <option value=""className="text-red-600">Seleccionar opción</option>
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
-          </select>
-        </div>
-
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Alisado
-          </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Este proceso suaviza las superficies superiores de la pieza para
-            obtener un mejor acabado visual. Requiere más tiempo de impresión y
-            postprocesado, por lo que incrementa el costo final. Si se utiliza
-            boquilla de 0.2 mm la diferencia suele ser mínima.
-          </p>
-          <select
-  value={alisado}
-  onChange={(e) => setAlisado(e.target.value)}
-  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-    alisado === "" ? "text-red-600" : "text-black"
-  }`}
->
-              <option value=""className="text-red-600">Seleccionar opción</option>
-            <option>Sí, quiero incluir este servicio</option>
-            <option>No requiero este servicio</option>
-            <option>Quiero presupuesto con y sin este servicio</option>
           </select>
         </div>
 
@@ -447,6 +423,32 @@ return (
             <option>0.4 mm — Mejor equilibrio</option>
           </select>
         </div>
+
+<div className="mb-6">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
+            Alisado
+          </label>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Este proceso suaviza las superficies superiores de la pieza para
+            obtener un mejor acabado visual. Requiere más tiempo de impresión y
+            postprocesado, por lo que incrementa el costo final. Si se utiliza
+            boquilla de 0.2 mm la diferencia suele ser mínima.
+          </p>
+          <select
+  value={alisado}
+  onChange={(e) => setAlisado(e.target.value)}
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+    alisado === "" ? "text-red-600" : "text-black"
+  }`}
+>
+              <option value=""className="text-red-600">Seleccionar opción</option>
+            <option>Sí, quiero incluir este servicio</option>
+            <option>No requiero este servicio</option>
+            <option>Quiero presupuesto con y sin este servicio</option>
+          </select>
+        </div>
+
+
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Código de descuento
