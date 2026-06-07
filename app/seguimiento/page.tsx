@@ -689,7 +689,7 @@ async function subirComprobanteSaldo() {
   Number(resultado.saldoPendiente) > 0 &&
   resultado.estado !== "Entregado" &&
   !resultado.comprobanteSaldo && (
-    <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
+    <div className="mt-6 border-t border-[var(--border-color)] pt-6">
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
         Saldo pendiente
       </p>
@@ -707,12 +707,8 @@ async function subirComprobanteSaldo() {
           Pagar presupuesto restante
         </button>
       ) : (
-        <div className="rounded-2xl border border-[var(--border-color)] p-6">
-          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-            Datos bancarios
-          </p>
-
-          <p className="mb-6 text-sm leading-7">
+        <div className="space-y-6">
+          <p className="text-sm leading-7">
             Banco: ITAU<br />
             Titular: Alexander López<br />
             Cuenta: 9454754<br />
@@ -740,7 +736,7 @@ async function subirComprobanteSaldo() {
               type="button"
               onClick={subirComprobanteSaldo}
               disabled={subiendoArchivo}
-              className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+              className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
             >
               {subiendoArchivo ? "Enviando..." : "Enviar comprobante del saldo"}
             </button>
@@ -814,10 +810,13 @@ async function subirComprobanteSaldo() {
     </button>
 
     {mensajeArchivo && (
-      <p className="mt-4 text-sm font-semibold text-green-600">
-        {mensajeArchivo}
-      </p>
-    )}
+  <div className="mt-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center">
+    <p className="text-3xl font-black text-green-600">✓</p>
+    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+      {mensajeArchivo}
+    </p>
+  </div>
+)}
   </div>
 ) : (
   <div className="mb-12 border-t border-[var(--border-color)] pt-8">
