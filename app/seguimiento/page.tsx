@@ -750,9 +750,19 @@ async function subirComprobanteSaldo() {
         Estado
       </p>
 
-      <p className="mb-6 text-lg font-bold text-red-600">
-        {resultado.estadoPago || "Pendiente"}
-      </p>
+      {resultado.estadoPago === "Pago realizado correctamente" ||
+resultado.estadoPago === "Seña realizada correctamente" ? (
+  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center">
+    <p className="text-3xl font-black text-green-600">✓</p>
+    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+      {resultado.estadoPago}
+    </p>
+  </div>
+) : (
+  <p className="mb-6 text-lg font-bold text-red-600">
+    {resultado.estadoPago || "Pendiente"}
+  </p>
+)}
 
       {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
         <button
