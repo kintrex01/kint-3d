@@ -304,8 +304,9 @@ async function subirComprobanteSaldo() {
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
       <div className="fixed left-6 right-6 top-6 z-50 flex items-center justify-between">
   <Link href="/">
-    <button className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-xs font-bold uppercase tracking-[0.25em] transition hover:border-red-600 hover:text-red-600">
-      ‹ Inicio
+    <button className="flex items-center gap-1 text-3xl font-bold text-[var(--text-main)] transition hover:text-red-600">
+      <span className="text-5xl leading-none">‹</span>
+      <span>Inicio</span>
     </button>
   </Link>
 

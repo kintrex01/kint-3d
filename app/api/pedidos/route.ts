@@ -1,4 +1,10 @@
+import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
@@ -43,6 +49,50 @@ export async function POST(request: Request) {
       throw new Error(data.error || "Error en Apps Script");
     }
 
+    let archivoNombreFinal = payload.archivoNombre;
+    let archivoLinkFinal = payload.archivoLink;
+    let archivoIdFinal = payload.archivoId;
+
+    if (payload.archivoId && data.pedido) {
+      const nombreArchivo = payload.archivoId.split("/").pop() || payload.archivoNombre;
+      const rutaNueva = `${data.pedido}/${nombreArchivo}`;
+
+      const { error: moveError } = await supabase.storage
+        .from("kint-archivos")
+        .move(payload.archivoId, rutaNueva);
+
+      if (moveError) {
+        throw new Error("Pedido creado, pero no se pudo mover el archivo: " + moveError.message);
+      }
+
+      archivoIdFinal = rutaNueva;
+
+      archivoLinkFinal = supabase.storage
+        .from("kint-archivos")
+        .getPublicUrl(rutaNueva).data.publicUrl;
+    }
+
+    if (payload.archivoId && data.pedido) {
+      await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
+        method: "POST",
+        body: JSON.stringify({
+          tipo: "archivo_adicional_link",
+          pedido: data.pedido,
+          codigo: data.codigoSeguimiento,
+          archivos: [
+            {
+              nombreArchivo: archivoNombreFinal,
+              link: archivoLinkFinal,
+              idDrive: archivoIdFinal,
+            },
+          ],
+        }),
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+      });
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     await resend.emails.send({
@@ -61,7 +111,7 @@ export async function POST(request: Request) {
         <p><strong>Armado:</strong> ${payload.armado}</p>
         <p><strong>Alisado:</strong> ${payload.alisado}</p>
         <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
-        <p><strong>Archivo:</strong> ${payload.archivoNombre || "Sin archivo"}</p>
+        <p><strong>Archivo:</strong> ${archivoNombreFinal || "Sin archivo"}</p>
         <p><strong>Comentarios:</strong></p>
         <p>${payload.comentarios || "Sin comentarios"}</p>
       `,
