@@ -691,7 +691,8 @@ async function subirComprobanteSaldo() {
       {resultado.modalidad === "Seña 20%" &&
   Number(resultado.saldoPendiente) > 0 &&
   resultado.estado !== "Entregado" &&
-  resultado.estadoPago === "Seña realizada correctamente" &&
+  resultado.pagoConfirmado === "Sí" &&
+  resultado.saldoConfirmado !== "Sí" &&
   !resultado.comprobanteSaldo && (
     <div className="mt-6 border-t border-[var(--border-color)] pt-6">
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
@@ -754,9 +755,29 @@ async function subirComprobanteSaldo() {
         Estado
       </p>
 
-      {resultado.estadoPago === "Pago realizado correctamente" ||
-resultado.estadoPago === "Seña realizada correctamente" ? (
-  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center">
+      {resultado.saldoConfirmado === "Sí" ? (
+  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+    <p className="text-3xl font-black text-green-600">✓</p>
+    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+      Pago completado correctamente
+    </p>
+    <p className="mt-3 text-sm font-semibold">
+      Total pagado: ${resultado.precio}
+    </p>
+  </div>
+) : resultado.comprobanteSaldo ? (
+  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+    <p className="text-3xl font-black text-green-600">✓</p>
+    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+      Comprobante enviado correctamente
+    </p>
+    <p className="mt-3 text-sm font-semibold">
+      Esperando confirmación.
+    </p>
+  </div>
+) : resultado.estadoPago === "Pago realizado correctamente" ||
+  resultado.estadoPago === "Seña realizada correctamente" ? (
+  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
     <p className="text-3xl font-black text-green-600">✓</p>
     <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
       {resultado.estadoPago}
