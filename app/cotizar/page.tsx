@@ -22,7 +22,7 @@ export default function Cotizar() {
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
-  const [archivo, setArchivo] = useState<File | null>(null);
+  const [archivos, setArchivos] = useState<File[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
@@ -49,46 +49,51 @@ export default function Cotizar() {
     const escalaFinal =
       escala === "Otra escala" ? escalaPersonalizada : escala;
 
-    let archivoNombre = "";
-    let archivoLink = "";
-    let archivoId = "";
+    const archivosOriginales = [];
 
-    if (archivo) {
-      const firmaResponse = await fetch("/api/archivos-firma", {
-        method: "POST",
-        body: JSON.stringify({
-          pedido: "cotizacion-temp",
-          archivos: [
-            {
-              nombre: archivo.name,
-              size: archivo.size,
-            },
-          ],
-        }),
-      });
+if (archivos.length > 0) {
+  const firmaResponse = await fetch("/api/archivos-firma", {
+    method: "POST",
+    body: JSON.stringify({
+      pedido: "cotizacion-temp",
+      archivos: archivos.map((archivo) => ({
+        nombre: archivo.name,
+        size: archivo.size,
+      })),
+    }),
+  });
 
-      const firmaData = await firmaResponse.json();
+  const firmaData = await firmaResponse.json();
 
-      if (!firmaData.ok) {
-        throw new Error(firmaData.error || "No se pudo preparar el archivo.");
-      }
+  if (!firmaData.ok) {
+    throw new Error(firmaData.error || "No se pudo preparar el archivo.");
+  }
 
-      const firmado = firmaData.archivos[0];
+  for (let i = 0; i < archivos.length; i++) {
+    const archivo = archivos[i];
+    const firmado = firmaData.archivos[i];
 
-      const { error: uploadError } = await supabase.storage
-        .from("kint-archivos")
-        .uploadToSignedUrl(firmado.ruta, firmado.token, archivo);
+    const { error: uploadError } = await supabase.storage
+      .from("kint-archivos")
+      .uploadToSignedUrl(
+        firmado.ruta,
+        firmado.token,
+        archivo
+      );
 
-      if (uploadError) {
-        throw new Error(
-          `No se pudo subir ${archivo.name}: ${uploadError.message}`
-        );
-      }
-
-      archivoNombre = firmado.nombreArchivo;
-      archivoLink = firmado.link;
-      archivoId = firmado.ruta;
+    if (uploadError) {
+      throw new Error(
+        `No se pudo subir ${archivo.name}: ${uploadError.message}`
+      );
     }
+
+    archivosOriginales.push({
+      nombreArchivo: firmado.nombreArchivo,
+      link: firmado.link,
+      idDrive: firmado.ruta,
+    });
+  }
+}
 
     const response = await fetch("/api/pedidos", {
       method: "POST",
@@ -104,9 +109,7 @@ export default function Cotizar() {
         boquilla,
         comentarios,
         codigoDescuento,
-        archivoNombre,
-        archivoLink,
-        archivoId,
+        archivosOriginales,
       }),
       headers: {
         "Content-Type": "application/json",
@@ -139,7 +142,7 @@ export default function Cotizar() {
     setBoquilla("");
     setComentarios("");
     setCodigoDescuento("");
-    setArchivo(null);
+    setArchivos([]);
 
     setNumeroPedido(data.pedido || "");
     setEnviado(true);
@@ -241,10 +244,10 @@ return (
             multiple
             accept=".stl,.skp"
             onChange={(e) => {
-              if (e.target.files?.[0]) {
-                setArchivo(e.target.files[0]);
-              }
-            }}
+  if (e.target.files) {
+    setArchivos(Array.from(e.target.files));
+  }
+}}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           />
           <p className="mt-2 text-sm text-[var(--text-muted)]">

@@ -26,6 +26,9 @@ export async function POST(request: Request) {
       archivoNombre: String(body.archivoNombre || ""),
       archivoLink: String(body.archivoLink || ""),
       archivoId: String(body.archivoId || ""),
+      archivosOriginales: Array.isArray(body.archivosOriginales)
+  ? body.archivosOriginales
+  : [],
     };
 
     const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
@@ -54,49 +57,67 @@ export async function POST(request: Request) {
       throw new Error(data.error || "Error en Apps Script");
     }
 
-    let archivoNombreFinal = payload.archivoNombre;
-    let archivoLinkFinal = payload.archivoLink;
-    let archivoIdFinal = payload.archivoId;
-
-    if (payload.archivoId && data.pedido) {
-      const nombreArchivo = payload.archivoId.split("/").pop() || payload.archivoNombre;
-      const rutaNueva = `${data.pedido}/${nombreArchivo}`;
-
-      const { error: moveError } = await supabase.storage
-        .from("kint-archivos")
-        .move(payload.archivoId, rutaNueva);
-
-      if (moveError) {
-        throw new Error("Pedido creado, pero no se pudo mover el archivo: " + moveError.message);
-      }
-
-      archivoIdFinal = rutaNueva;
-
-      archivoLinkFinal = supabase.storage
-        .from("kint-archivos")
-        .getPublicUrl(rutaNueva).data.publicUrl;
-    }
-
-    if (payload.archivoId && data.pedido) {
-      await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
-        method: "POST",
-        body: JSON.stringify({
-          tipo: "archivo_adicional_link",
-          pedido: data.pedido,
-          codigo: data.codigoSeguimiento,
-          archivos: [
-            {
-              nombreArchivo: archivoNombreFinal,
-              link: archivoLinkFinal,
-              idDrive: archivoIdFinal,
-            },
-          ],
-        }),
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
+    const archivosOriginales =
+  payload.archivosOriginales.length > 0
+    ? payload.archivosOriginales
+    : payload.archivoId
+    ? [
+        {
+          nombreArchivo: payload.archivoNombre,
+          link: payload.archivoLink,
+          idDrive: payload.archivoId,
         },
-      });
-    }
+      ]
+    : [];
+
+const archivosRegistrados = [];
+
+for (const archivo of archivosOriginales) {
+  const archivoId = String(archivo.idDrive || "");
+  const archivoNombre = String(archivo.nombreArchivo || "");
+
+  if (!archivoId || !data.pedido) continue;
+
+  const nombreFinal = archivoId.split("/").pop() || archivoNombre;
+  const rutaNueva = `${data.pedido}/${nombreFinal}`;
+
+  const { error: moveError } = await supabase.storage
+    .from("kint-archivos")
+    .move(archivoId, rutaNueva);
+
+  if (moveError) {
+    throw new Error(
+      "Pedido creado, pero no se pudo mover archivo: " +
+        moveError.message
+    );
+  }
+
+  const linkNuevo = supabase.storage
+    .from("kint-archivos")
+    .getPublicUrl(rutaNueva).data.publicUrl;
+
+  archivosRegistrados.push({
+    tipo: "Original",
+    nombreArchivo: archivoNombre,
+    link: linkNuevo,
+    idDrive: rutaNueva,
+  });
+}
+
+if (archivosRegistrados.length > 0) {
+  await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
+    method: "POST",
+    body: JSON.stringify({
+      tipo: "archivo_adicional_link",
+      pedido: data.pedido,
+      codigo: data.codigoSeguimiento,
+      archivos: archivosRegistrados,
+    }),
+    headers: {
+      "Content-Type": "text/plain;charset=utf-8",
+    },
+  });
+}
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -116,7 +137,7 @@ export async function POST(request: Request) {
         <p><strong>Armado:</strong> ${payload.armado}</p>
         <p><strong>Alisado:</strong> ${payload.alisado}</p>
         <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
-        <p><strong>Archivo:</strong> ${archivoNombreFinal || "Sin archivo"}</p>
+        <p><strong>Archivo:</strong> ${archivosRegistrados.map(a => a.nombreArchivo).join(", ")}</p>
         <p><strong>Comentarios:</strong></p>
         <p>${payload.comentarios || "Sin comentarios"}</p>
       `,
