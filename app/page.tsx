@@ -13,7 +13,7 @@ export default function Home() {
         <div className="mb-8">
           
 
-          <h1 className="translate-x-4 text-6xl font-black uppercase tracking-[0.25em]">
+          <h1 className="translate-x-3 text-6xl font-black uppercase tracking-[0.25em]">
             KINT
             </h1>
 
