@@ -22,6 +22,8 @@ const [mensajeArchivo, setMensajeArchivo] = useState("");
 const [metodoSeleccionado, setMetodoSeleccionado] = useState("");
 const [guardandoMetodo, setGuardandoMetodo] = useState(false);
 const [modalidadPago, setModalidadPago] = useState("");
+const [mostrarSaldo, setMostrarSaldo] = useState(false);
+const [modoOscuro, setModoOscuro] = useState(false);
   
   const searchParams = useSearchParams();
 
@@ -33,6 +35,20 @@ useEffect(() => {
   if (codigoUrl) setCodigo(codigoUrl.toUpperCase());
 
 }, [searchParams]);
+
+function cambiarTema() {
+  const nuevoModo = !modoOscuro;
+  setModoOscuro(nuevoModo);
+
+  if (nuevoModo) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("tema", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("tema", "light");
+  }
+}
+
   async function consultarPedido() {
     setError("");
     setResultado(null);
@@ -286,13 +302,21 @@ async function subirComprobanteSaldo() {
 
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
-      <div className="fixed left-8 top-8 z-50">
-        <Link href="/">
-          <button className="text-sm font-bold uppercase tracking-[0.3em] hover:text-red-600">
-            ‹ Inicio
-          </button>
-        </Link>
-      </div>
+      <div className="fixed left-6 right-6 top-6 z-50 flex items-center justify-between">
+  <Link href="/">
+    <button className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-xs font-bold uppercase tracking-[0.25em] transition hover:border-red-600 hover:text-red-600">
+      ‹ Inicio
+    </button>
+  </Link>
+
+  <button
+    type="button"
+    onClick={cambiarTema}
+    className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-xs font-bold uppercase tracking-[0.25em] transition hover:border-red-600 hover:text-red-600"
+  >
+    {modoOscuro ? "Modo claro" : "Modo noche"}
+  </button>
+</div>
 
       <section className="mx-auto flex max-w-3xl flex-col items-center text-center pt-24 pb-16">
         <h1 className="text-3xl font-black uppercase tracking-[0.18em] sm:text-6xl">
@@ -663,48 +687,65 @@ async function subirComprobanteSaldo() {
 
       {resultado.modalidad === "Seña 20%" &&
   Number(resultado.saldoPendiente) > 0 &&
-  resultado.estado !== "Entregado" && (
+  resultado.estado !== "Entregado" &&
+  !resultado.comprobanteSaldo && (
     <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Pagar saldo pendiente
+        Saldo pendiente
       </p>
 
-      <p className="mb-5 text-3xl font-black text-red-600">
+      <p className="mb-6 text-3xl font-black text-red-600">
         ${resultado.saldoPendiente}
       </p>
 
-      <p className="mb-6 text-sm leading-7">
-        Banco: ITAU<br />
-        Titular: Alexander López<br />
-        Cuenta: 9454754<br />
-        Concepto: {resultado.pedido} - Saldo
-      </p>
-
-      <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
-        Seleccionar comprobante
-
-        <input
-          type="file"
-          accept=".jpg,.jpeg,.png,.pdf"
-          className="hidden"
-          onChange={(e) => {
-            const archivo = e.target.files?.[0];
-            if (archivo) {
-              setArchivosExtra([archivo]);
-            }
-          }}
-        />
-      </label>
-
-      {archivosExtra.length > 0 && (
+      {!mostrarSaldo ? (
         <button
           type="button"
-          onClick={subirComprobanteSaldo}
-          disabled={subiendoArchivo}
-          className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+          onClick={() => setMostrarSaldo(true)}
+          className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
         >
-          {subiendoArchivo ? "Enviando..." : "Enviar comprobante del saldo"}
+          Pagar presupuesto restante
         </button>
+      ) : (
+        <div className="rounded-2xl border border-[var(--border-color)] p-6">
+          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Datos bancarios
+          </p>
+
+          <p className="mb-6 text-sm leading-7">
+            Banco: ITAU<br />
+            Titular: Alexander López<br />
+            Cuenta: 9454754<br />
+            Concepto: {resultado.pedido} - Saldo
+          </p>
+
+          <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+            Seleccionar comprobante
+
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const archivo = e.target.files?.[0];
+                if (archivo) {
+                  setArchivosExtra([archivo]);
+                }
+              }}
+            />
+          </label>
+
+          {archivosExtra.length > 0 && (
+            <button
+              type="button"
+              onClick={subirComprobanteSaldo}
+              disabled={subiendoArchivo}
+              className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+            >
+              {subiendoArchivo ? "Enviando..." : "Enviar comprobante del saldo"}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )}
