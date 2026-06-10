@@ -222,6 +222,19 @@ return (
           Configurar impresión 3D
         </h1>
 
+        <div className="mb-8 rounded-2xl border border-[var(--border-color)] p-5">
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    ¿Tenés dudas sobre formatos, escalas, tiempos de entrega o cómo preparar tu modelo?
+  </p>
+
+  <Link
+    href="/#preguntas"
+    className="inline-flex rounded-xl bg-red-600 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-black"
+  >
+    Ver preguntas frecuentes
+  </Link>
+</div>
+
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Nombre o Apodo
@@ -271,9 +284,15 @@ return (
     Mi archivo pesa más de 50 MB. Quiero enviar la solicitud ahora y mandar el archivo por WhatsApp.
   </span>
 </label>
-          <p className="mt-2 text-sm text-[var(--text-muted)]">
-            Formatos aceptados: STL y SketchUp (.SKP).
-          </p>
+          <div className="mt-3 rounded-xl border border-red-600 bg-red-600/10 p-4">
+  <p className="text-sm font-bold text-red-500">
+    📩 IMPORTANTE: Toda la comunicación de tu pedido se realizará a través de este correo electrónico.
+  </p>
+
+  <p className="mt-2 text-sm text-[var(--text-muted)]">
+    Aquí recibirás el presupuesto, actualizaciones del pedido y la notificación cuando tu impresión esté terminada.
+  </p>
+</div>
         </div>
 
 <div className="mb-6">
