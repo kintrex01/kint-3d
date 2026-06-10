@@ -240,7 +240,7 @@ return (
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
-            Si tu archivo pesa más, marcá la opción de abajo y luego envialo por WhatsApp.
+            Si tu archivo pesa más, marcá la opción de abajo, llena el formulario pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
           </p>
           <input
             type="file"
