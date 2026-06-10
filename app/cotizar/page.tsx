@@ -570,16 +570,6 @@ return (
   </div>
 </div>
 
-<div className="mb-3 text-lg font-bold text-red-600">
-    ¿Tenés una consulta o pedido especial?
-
-  <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
-    Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
-  </p>
-
- 
-
-
         <button
           onClick={enviarPedido}
           disabled={enviando}
@@ -588,6 +578,13 @@ return (
           {enviando ? "Enviando..." : "Enviar Cotización"}
         </button>
       </div>
+
+<div className="mb-3 text-lg font-bold text-red-600">
+    ¿Tenés una consulta o pedido especial?
+
+  <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
+    Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
+  </p>
 
  <a
     href="https://wa.me/59892023382"
