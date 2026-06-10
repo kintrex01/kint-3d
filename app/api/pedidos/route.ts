@@ -138,6 +138,11 @@ if (archivosRegistrados.length > 0) {
         <p><strong>Alisado:</strong> ${payload.alisado}</p>
         <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
         <p><strong>Archivo:</strong> ${archivosRegistrados.map(a => a.nombreArchivo).join(", ")}</p>
+        <p><strong>Archivo pesado:</strong> ${
+  body.archivoPesadoWhatsapp
+    ? "Sí, el cliente lo enviará por WhatsApp"
+    : "No"
+}</p>
         <p><strong>Comentarios:</strong></p>
         <p>${payload.comentarios || "Sin comentarios"}</p>
       `,

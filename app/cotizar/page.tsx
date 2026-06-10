@@ -240,7 +240,7 @@ return (
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
-            Si tu archivo pesa más, marcá la opción de abajo, llena el formulario pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
+            Si tu archivo pesa más, marcá la opción de abajo, llena el formulario y pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
           </p>
           <input
             type="file"
@@ -579,24 +579,27 @@ return (
     Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
   </p>
 
-  <a
-    href="https://wa.me/59892023382"
-    target="_blank"
-    className="inline-block rounded-2xl bg-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:opacity-90"
-  >
-    Escribir por WhatsApp
-  </a>
-</div>
+ 
 
 
         <button
           onClick={enviarPedido}
           disabled={enviando}
-          className="w-full rounded-2xl bg-black py-4 text-lg font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          className="w-full rounded-2xl bg-red-600 px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-black disabled:opacity-50"
         >
           {enviando ? "Enviando..." : "Enviar Cotización"}
         </button>
       </div>
+
+ <a
+    href="https://wa.me/59892023382"
+    target="_blank"
+    className="rounded-2xl bg-black px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-red-600"
+  >
+    Escribir por WhatsApp
+  </a>
+</div>
+
     </main>
   );
 }
