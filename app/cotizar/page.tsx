@@ -23,6 +23,7 @@ export default function Cotizar() {
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
   const [archivos, setArchivos] = useState<File[]>([]);
+  const [archivoPesadoWhatsapp, setArchivoPesadoWhatsapp] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
@@ -110,6 +111,7 @@ if (archivos.length > 0) {
         comentarios,
         codigoDescuento,
         archivosOriginales,
+        archivoPesadoWhatsapp,
       }),
       headers: {
         "Content-Type": "application/json",
@@ -143,6 +145,7 @@ if (archivos.length > 0) {
     setComentarios("");
     setCodigoDescuento("");
     setArchivos([]);
+    setArchivoPesadoWhatsapp(false);
 
     setNumeroPedido(data.pedido || "");
     setEnviado(true);
@@ -236,13 +239,14 @@ return (
             Archivo 3D
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Subí el modelo que deseas imprimir. Se aceptan archivos STL y
-            SketchUp (.SKP).
+            Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
+            Si tu archivo pesa más, marcá la opción de abajo y luego envialo por WhatsApp.
           </p>
           <input
             type="file"
             multiple
             accept=".stl,.skp"
+            disabled={archivoPesadoWhatsapp}
             onChange={(e) => {
   if (e.target.files) {
     setArchivos(Array.from(e.target.files));
@@ -250,6 +254,23 @@ return (
 }}
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           />
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
+  <input
+    type="checkbox"
+    checked={archivoPesadoWhatsapp}
+    onChange={(e) => {
+      setArchivoPesadoWhatsapp(e.target.checked);
+      if (e.target.checked) {
+        setArchivos([]);
+      }
+    }}
+    className="mt-1"
+  />
+
+  <span>
+    Mi archivo pesa más de 50 MB. Quiero enviar la solicitud ahora y mandar el archivo por WhatsApp.
+  </span>
+</label>
           <p className="mt-2 text-sm text-[var(--text-muted)]">
             Formatos aceptados: STL y SketchUp (.SKP).
           </p>
