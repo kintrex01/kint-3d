@@ -570,14 +570,7 @@ return (
   </div>
 </div>
 
-<div className="mb-8 rounded-2xl border border-red-600 bg-[#ffe5e5] p-6 dark:bg-transparent">
-  <h2 className="mb-3 text-lg font-bold text-red-600">
-    ¿Tenés una consulta o pedido especial?
-  </h2>
 
-  <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
-    Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
-  </p>
 
  
 
@@ -590,7 +583,14 @@ return (
           {enviando ? "Enviando..." : "Enviar Cotización"}
         </button>
       </div>
+<div className="mb-8 rounded-2xl border border-red-600 bg-[#ffe5e5] p-6 dark:bg-transparent">
+  <h2 className="mb-3 text-lg font-bold text-red-600">
+    ¿Tenés una consulta o pedido especial?
+  </h2>
 
+  <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
+    Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
+  </p>
  <a
     href="https://wa.me/59892023382"
     target="_blank"
