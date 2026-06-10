@@ -579,17 +579,20 @@ return (
         </button>
       </div>
 
-<div className="mb-3 text-lg font-bold text-red-600">
+<div className="mt-10 text-center">
+  <h3 className="mb-3 text-lg font-bold text-red-600">
     ¿Tenés una consulta o pedido especial?
+  </h3>
 
   <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
     Si necesitás explicar algo antes de cotizar, podés escribirnos por WhatsApp.
   </p>
 
- <a
+  <a
     href="https://wa.me/59892023382"
     target="_blank"
-    className="rounded-2xl bg-black px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-red-600"
+    rel="noopener noreferrer"
+    className="inline-flex rounded-2xl bg-zinc-800 px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-black"
   >
     Escribir por WhatsApp
   </a>
