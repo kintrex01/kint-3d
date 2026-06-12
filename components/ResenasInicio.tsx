@@ -48,6 +48,7 @@ export default function ResenasInicio() {
       {resenas.map((resena, index) => {
         const id = `${resena.pedido}-${index}`;
         const tieneFoto = Boolean(resena.fotoProyecto);
+        console.log("RESEÑA", resena);
         const estaAbierta = abierta === id;
 
         return (
