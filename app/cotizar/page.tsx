@@ -256,18 +256,33 @@ return (
             Si tu archivo pesa más, marcá la opción de abajo, llena el formulario y pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
           
           </p>
-          <input
-            type="file"
-            multiple
-            accept=".stl,.skp"
-            disabled={archivoPesadoWhatsapp}
-            onChange={(e) => {
-  if (e.target.files) {
-    setArchivos(Array.from(e.target.files));
-  }
-}}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          />
+
+{archivos.length > 0 && (
+  <div className="mt-3 rounded-xl border border-[var(--border-color)] p-4">
+    <p className="mb-2 font-semibold">
+      Archivos seleccionados:
+    </p>
+
+    {archivos.map((archivo, index) => (
+      <p key={index} className="text-sm text-[var(--text-muted)]">
+        • {archivo.name}
+      </p>
+    ))}
+  </div>
+)}
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-color)] p-8 text-center transition hover:border-red-600">
+  <span className="mb-2 text-3xl">📁</span>
+
+  <span className="font-semibold text-[var(--text-main)]">
+    Arrastrá tus archivos STL o SKP
+  </span>
+
+  <span className="mt-2 text-sm text-[var(--text-muted)]">
+    o hacé clic aquí para seleccionarlos
+  </span>
+
+</label>
+
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
   <input
     type="checkbox"
