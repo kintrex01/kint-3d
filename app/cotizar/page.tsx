@@ -254,6 +254,53 @@ return (
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
             Si tu archivo pesa más, marcá la opción de abajo, llena el formulario y pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
+          
+          <details className="mb-4 rounded-xl border border-[var(--border-color)] p-4">
+  <summary className="cursor-pointer font-semibold text-[var(--text-main)]">
+    📏 Consejos para una impresión exitosa
+  </summary>
+
+  <div className="mt-4 space-y-3 text-sm text-[var(--text-muted)]">
+    <p>✓ Mínimo imprimible: 0,2 mm</p>
+
+    <p>✓ Escala 1:500</p>
+
+    <div>
+      <strong className="text-[var(--text-main)]">
+        • Muros finos, vallas y barandas:
+      </strong>
+      <p>- Espesor mínimo: 10 cm</p>
+      <p>- Espesor recomendado: 12–13 cm</p>
+    </div>
+
+    <div>
+      <strong className="text-[var(--text-main)]">
+        • Pilares:
+      </strong>
+      <p>- Espesor mínimo: 13 cm</p>
+      <p>- Espesor recomendado: 20 cm o más</p>
+    </div>
+
+    <div>
+      <strong className="text-[var(--text-main)]">
+        📦 Volumen máximo de impresión:
+      </strong>
+      <p>18 × 18 × 18 cm</p>
+    </div>
+
+    <div>
+      <strong className="text-[var(--text-main)]">
+        📏 Espesor mínimo imprimible:
+      </strong>
+      <p>• Boquilla 0,2 mm → 0,2 mm</p>
+      <p>• Boquilla 0,4 mm → 0,4 mm</p>
+    </div>
+
+    <p className="font-semibold text-red-500">
+      ⚠️ Los elementos más finos pueden resultar frágiles o no imprimirse correctamente.
+    </p>
+  </div>
+</details>
           </p>
           <input
             type="file"
