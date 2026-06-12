@@ -1,13 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import ThemeToggle from "../components/ThemeToggle";
 import ResenasInicio from "../components/ResenasInicio";
 
 export default function Home() {
+
+  const [modoOscuro, setModoOscuro] = useState(false);
+
+useEffect(() => {
+  const temaGuardado = localStorage.getItem("tema");
+
+  if (temaGuardado === "dark") {
+    setModoOscuro(true);
+    document.documentElement.classList.add("dark");
+  }
+}, []);
+
+function cambiarTema() {
+  const nuevoModo = !modoOscuro;
+
+  setModoOscuro(nuevoModo);
+
+  if (nuevoModo) {
+    document.documentElement.classList.add("dark");
+    localStorage.setItem("tema", "dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+    localStorage.setItem("tema", "light");
+  }
+}
+
   return (
     <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-main)] transition">
-      <div className="absolute right-6 top-6 z-50">
-        <ThemeToggle />
-      </div>
+
+<div className="fixed right-6 top-6 z-50">
+  <button
+    type="button"
+    onClick={cambiarTema}
+    className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-sm font-bold transition hover:border-red-600 hover:text-red-600"
+  >
+    {modoOscuro ? "☀️ Modo claro" : "🌙 Modo noche"}
+  </button>
+</div>
 
       <section className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
         <div className="mb-8">
