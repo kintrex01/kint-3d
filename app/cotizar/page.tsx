@@ -255,7 +255,38 @@ return (
             Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
             Si tu archivo pesa más, marcá la opción de abajo, llena el formulario y pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
           
-          <details className="mb-4 rounded-xl border border-[var(--border-color)] p-4">
+          </p>
+          <input
+            type="file"
+            multiple
+            accept=".stl,.skp"
+            disabled={archivoPesadoWhatsapp}
+            onChange={(e) => {
+  if (e.target.files) {
+    setArchivos(Array.from(e.target.files));
+  }
+}}
+            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          />
+          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
+  <input
+    type="checkbox"
+    checked={archivoPesadoWhatsapp}
+    onChange={(e) => {
+      setArchivoPesadoWhatsapp(e.target.checked);
+      if (e.target.checked) {
+        setArchivos([]);
+      }
+    }}
+    className="mt-1"
+  />
+
+  <span>
+    Mi archivo pesa más de 50 MB. Quiero enviar la solicitud ahora y mandar el archivo por WhatsApp.
+  </span>
+</label>
+
+<details className="mb-4 rounded-xl border border-[var(--border-color)] p-4">
   <summary className="cursor-pointer font-semibold text-[var(--text-main)]">
     📏 Consejos para una impresión exitosa
   </summary>
@@ -301,36 +332,7 @@ return (
     </p>
   </div>
 </details>
-          </p>
-          <input
-            type="file"
-            multiple
-            accept=".stl,.skp"
-            disabled={archivoPesadoWhatsapp}
-            onChange={(e) => {
-  if (e.target.files) {
-    setArchivos(Array.from(e.target.files));
-  }
-}}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          />
-          <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
-  <input
-    type="checkbox"
-    checked={archivoPesadoWhatsapp}
-    onChange={(e) => {
-      setArchivoPesadoWhatsapp(e.target.checked);
-      if (e.target.checked) {
-        setArchivos([]);
-      }
-    }}
-    className="mt-1"
-  />
 
-  <span>
-    Mi archivo pesa más de 50 MB. Quiero enviar la solicitud ahora y mandar el archivo por WhatsApp.
-  </span>
-</label>
           <div className="mt-3 rounded-xl border border-red-600 bg-red-600/10 p-4">
   <p className="text-sm font-bold text-red-500">
     📩 IMPORTANTE: Toda la comunicación de tu pedido se realizará a través de este correo electrónico.
