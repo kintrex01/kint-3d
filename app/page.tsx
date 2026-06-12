@@ -28,36 +28,38 @@ export default function Home() {
           Impresión 3D para arquitectura, prototipado y diseño.
         </p>
 
-        <div className="mt-12 flex flex-col gap-4 sm:flex-row">
-          <Link href="/cotizar">
-            <button className="min-w-64 border border-red-600 px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] text-red-600 transition hover:bg-red-600 hover:text-white">
-              Cotizar ahora
-            </button>
-          </Link>
+        <div className="mt-12 flex w-full max-w-5xl flex-col items-center gap-5">
+  <Link href="/cotizar" className="w-full max-w-3xl">
+    <button className="w-full rounded-2xl border border-red-600 bg-red-600 px-12 py-6 text-sm font-black uppercase tracking-[0.45em] text-white transition hover:bg-transparent hover:text-red-600">
+      Cotizar ahora
+    </button>
+  </Link>
 
-          <Link href="/seguimiento">
-  <button className="min-w-64 border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
-    Consultar pedido
-  </button>
-</Link>
+  <div className="grid w-full max-w-5xl gap-4 sm:grid-cols-3">
+    <Link href="/seguimiento">
+      <button className="w-full rounded-2xl border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
+        Consultar pedido
+      </button>
+    </Link>
 
-<a
-  href="#preguntas"
-  className="border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] transition hover:border-red-600 hover:text-red-600"
->
-  Preguntas frecuentes
-</a>
+    <a
+      href="#preguntas"
+      className="w-full rounded-2xl border border-[var(--border-color)] px-10 py-5 text-center text-sm font-bold uppercase tracking-[0.25em] transition hover:border-red-600 hover:text-red-600"
+    >
+      Preguntas frecuentes
+    </a>
 
-          <a
-            href="https://www.instagram.com/kint.3d/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <button className="min-w-64 border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
-              Ver trabajos
-            </button>
-          </a>
-        </div>
+    <a
+      href="https://www.instagram.com/kint.3d/"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <button className="w-full rounded-2xl border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
+        Ver trabajos
+      </button>
+    </a>
+  </div>
+</div>
 
         <div className="mt-20 flex flex-col items-center gap-2 text-[var(--text-muted)]">
           <div className="h-9 w-5 rounded-full border border-[var(--border-color)]" />
