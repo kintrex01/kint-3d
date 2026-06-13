@@ -257,6 +257,35 @@ return (
           
           </p>
 
+          <div
+  onClick={() => document.getElementById("archivo-3d-input")?.click()}
+  className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-color)] p-8 text-center transition hover:border-red-600"
+>
+  <span className="mb-2 text-3xl">📁</span>
+
+  <span className="font-semibold text-[var(--text-main)]">
+    Arrastrá tus archivos STL o SKP
+  </span>
+
+  <span className="mt-2 text-sm text-[var(--text-muted)]">
+    o hacé clic aquí para seleccionarlos
+  </span>
+</div>
+
+<input
+  id="archivo-3d-input"
+  type="file"
+  multiple
+  accept=".stl,.skp"
+  disabled={archivoPesadoWhatsapp}
+  onChange={(e) => {
+    if (e.target.files) {
+      setArchivos(Array.from(e.target.files));
+    }
+  }}
+  className="hidden"
+/>
+
 {archivos.length > 0 && (
   <div className="mt-3 rounded-xl border border-[var(--border-color)] p-4">
     <p className="mb-2 font-semibold">
@@ -270,18 +299,6 @@ return (
     ))}
   </div>
 )}
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-color)] p-8 text-center transition hover:border-red-600">
-  <span className="mb-2 text-3xl">📁</span>
-
-  <span className="font-semibold text-[var(--text-main)]">
-    Arrastrá tus archivos STL o SKP
-  </span>
-
-  <span className="mt-2 text-sm text-[var(--text-muted)]">
-    o hacé clic aquí para seleccionarlos
-  </span>
-
-</label>
 
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
   <input
@@ -528,6 +545,7 @@ return (
               </option>
             <option>0.2 mm — Máximo detalle</option>
             <option>0.4 mm — Mejor equilibrio</option>
+            <option>Que Kint 3D decida</option>
           </select>
         </div>
 
@@ -552,6 +570,7 @@ return (
             <option>Sí, quiero incluir este servicio</option>
             <option>No requiero este servicio</option>
             <option>Quiero presupuesto con y sin este servicio</option>
+            <option>Que Kint 3D decida</option>
           </select>
         </div>
 
