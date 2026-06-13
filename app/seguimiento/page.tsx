@@ -600,9 +600,9 @@ async function subirComprobanteSaldo() {
           .map((presupuesto: any, index: number) => (
             <div
               key={index}
-              className="rounded-xl border border-green-600 bg-green-50 p-4 text-black"
+              className="rounded-xl border border-[var(--border-color)] p-4"
             >
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-700">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
                 Presupuesto elegido
               </p>
 
@@ -614,7 +614,7 @@ async function subirComprobanteSaldo() {
                 {presupuesto.descripcion}
               </p>
 
-              <p className="mt-3 text-2xl font-black text-green-700">
+              <p className="mt-3 text-lg font-bold text-[var(--text-muted)]">
                 ${presupuesto.precio}
               </p>
             </div>
