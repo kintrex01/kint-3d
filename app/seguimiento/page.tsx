@@ -932,22 +932,29 @@ async function subirComprobanteSaldo() {
 )}
 
     {resultado.historial && (
-      <div className="border-t border-[var(--border-color)] pt-8">
-        <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-          Historial
-        </p>
+  <div className="border-t border-[var(--border-color)] pt-8">
+    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+      Historial
+    </p>
 
-        <div className="space-y-3">
-          {String(resultado.historial)
-            .split("\n")
-            .map((item, index) => (
-              <p key={index} className="text-sm font-semibold">
-                {item}
-              </p>
-            ))}
-        </div>
-      </div>
-    )}
+    <div className="space-y-4">
+      {String(resultado.historial)
+        .split("\n")
+        .filter(Boolean)
+        .reverse()
+        .map((item, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-[var(--border-color)] px-4 py-3"
+          >
+            <p className="text-sm font-semibold">
+              {item}
+            </p>
+          </div>
+        ))}
+    </div>
+  </div>
+)}
   </div>
 )}
 
