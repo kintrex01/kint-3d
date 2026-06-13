@@ -634,9 +634,25 @@ async function subirComprobanteSaldo() {
                 {presupuesto.descripcion}
               </p>
 
-              <p className="mt-3 text-xl font-black text-red-600">
-                ${presupuesto.precio}
-              </p>
+              {presupuesto.descuento > 0 ? (
+  <div className="mt-3">
+    <p className="text-sm font-bold line-through text-[var(--text-muted)]">
+      ${presupuesto.precioOriginal}
+    </p>
+
+    <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+      {resultado.codigoDescuento} aplicado · {presupuesto.descuento}% OFF
+    </p>
+
+    <p className="mt-2 text-xl font-black text-red-600">
+      ${presupuesto.precio}
+    </p>
+  </div>
+) : (
+  <p className="mt-3 text-xl font-black text-red-600">
+    ${presupuesto.precio}
+  </p>
+)}
 
               <button
                 type="button"
