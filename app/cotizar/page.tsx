@@ -314,7 +314,7 @@ return (
   />
 
   <span>
-    Mi archivo pesa más de 50 MB. Quiero enviar la solicitud ahora y mandar el archivo por WhatsApp.
+    Mi archivo supera los 50 MB. Enviaré el archivo por WhatsApp luego de completar la solicitud.
   </span>
 </label>
 
