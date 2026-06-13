@@ -7,6 +7,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         tipo: "seleccionar_presupuesto",
         pedido: body.pedido,
+        codigo: body.codigo,
         opcion: body.opcion,
       }),
       headers: {

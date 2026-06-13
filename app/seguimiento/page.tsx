@@ -648,6 +648,7 @@ async function subirComprobanteSaldo() {
                     },
                     body: JSON.stringify({
                       pedido: resultado.pedido,
+                      codigo,
                       opcion: presupuesto.opcion,
                     }),
                   });
