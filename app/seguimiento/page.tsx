@@ -552,7 +552,11 @@ async function subirComprobanteSaldo() {
     </p>
 
     <div className="mb-8">
-      {resultado.precioOriginal && resultado.precioOriginal !== resultado.precio && (
+      {resultado.precioOriginal &&
+  resultado.precioOriginal !== resultado.precio &&
+  (!resultado.presupuestos ||
+    resultado.presupuestos.length === 0 ||
+    resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
         <div className="mb-6 space-y-4">
           <div>
             <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
@@ -634,14 +638,14 @@ async function subirComprobanteSaldo() {
                 {presupuesto.descripcion}
               </p>
 
-              {presupuesto.descuento > 0 ? (
+              {Number(presupuesto.descuento || resultado.descuento || 0) > 0 ? (
   <div className="mt-3">
     <p className="text-sm font-bold line-through text-[var(--text-muted)]">
-      ${presupuesto.precioOriginal}
+      ${presupuesto.precioOriginal || presupuesto.precio}
     </p>
 
     <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-      {resultado.codigoDescuento} aplicado · {presupuesto.descuento}% OFF
+      {resultado.codigoDescuento} aplicado · {presupuesto.descuento || resultado.descuento}% OFF
     </p>
 
     <p className="mt-2 text-xl font-black text-red-600">
