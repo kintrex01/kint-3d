@@ -594,60 +594,86 @@ async function subirComprobanteSaldo() {
         Opciones de presupuesto
       </p>
 
-      <div className="space-y-4">
-        {resultado.presupuestos.map((presupuesto: any, index: number) => (
-          <div
-            key={index}
-            className="rounded-xl border border-[var(--border-color)] p-4"
-          >
-            <p className="font-bold">
-              {presupuesto.opcion}
-            </p>
+      {resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí") ? (
+        resultado.presupuestos
+          .filter((p: any) => String(p.seleccionado).toLowerCase() === "sí")
+          .map((presupuesto: any, index: number) => (
+            <div
+              key={index}
+              className="rounded-xl border border-green-600 bg-green-50 p-4 text-black"
+            >
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-700">
+                Presupuesto elegido
+              </p>
 
-            <p className="mt-2 text-sm text-[var(--text-muted)]">
-              {presupuesto.descripcion}
-            </p>
+              <p className="mt-3 font-bold">
+                {presupuesto.opcion}
+              </p>
 
-            <p className="mt-3 text-xl font-black text-red-600">
-              ${presupuesto.precio}
-            </p>
+              <p className="mt-2 text-sm">
+                {presupuesto.descripcion}
+              </p>
 
-            <button
-  type="button"
-  onClick={async () => {
-    const response = await fetch(
-      "/api/seleccionar-presupuesto",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pedido: resultado.pedido,
-          opcion: presupuesto.opcion,
-        }),
-      }
-    );
+              <p className="mt-3 text-2xl font-black text-green-700">
+                ${presupuesto.precio}
+              </p>
+            </div>
+          ))
+      ) : (
+        <div className="space-y-4">
+          {resultado.presupuestos.map((presupuesto: any, index: number) => (
+            <div
+              key={index}
+              className="rounded-xl border border-[var(--border-color)] p-4"
+            >
+              <p className="font-bold">
+                {presupuesto.opcion}
+              </p>
 
-    const data = await response.json();
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
+                {presupuesto.descripcion}
+              </p>
 
-    if (data.ok) {
-      window.location.reload();
-    } else {
-      alert(data.error || "Error al seleccionar presupuesto.");
-    }
-  }}
-  className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white"
->
-  Elegir presupuesto
-</button>
-          </div>
-        ))}
-      </div>
+              <p className="mt-3 text-xl font-black text-red-600">
+                ${presupuesto.precio}
+              </p>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const response = await fetch("/api/seleccionar-presupuesto", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      pedido: resultado.pedido,
+                      opcion: presupuesto.opcion,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (data.ok) {
+                    window.location.reload();
+                  } else {
+                    alert(data.error || "Error al seleccionar presupuesto.");
+                  }
+                }}
+                className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white"
+              >
+                Elegir presupuesto
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
 )}
 
-      {(!resultado.presupuestos || resultado.presupuestos.length === 0) && (
+{(!resultado.presupuestos ||
+  resultado.presupuestos.length === 0 ||
+  resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
   <>
     <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
       Total a pagar
@@ -660,48 +686,51 @@ async function subirComprobanteSaldo() {
     </p>
   </>
 )}
-    </div>
+</div>
 
-    {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
-      <div className="space-y-6">
-        <div>
-          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-            ¿Cómo querés continuar?
-          </p>
+{(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") &&
+  (!resultado.presupuestos ||
+    resultado.presupuestos.length === 0 ||
+    resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
+    <div className="space-y-6">
+      <div>
+        <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          ¿Cómo querés continuar?
+        </p>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            {["Seña 20%", "Pago total"].map((opcion) => {
-              const precioFinal = Number(resultado.precio) || 0;
-              const importe =
-                opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
-              const saldo = precioFinal - importe;
+        <div className="grid gap-4 sm:grid-cols-2">
+          {["Seña 20%", "Pago total"].map((opcion) => {
+            const precioFinal = Number(resultado.precio) || 0;
+            const importe =
+              opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
+            const saldo = precioFinal - importe;
 
-              return (
-                <button
-                  key={opcion}
-                  type="button"
-                  onClick={() => setModalidadPago(opcion)}
-                  className={`rounded-2xl border px-5 py-5 text-left transition ${
-                    modalidadPago === opcion
-                      ? "border-red-600 bg-[#ffe5e5] text-black"
-                      : "border-[var(--border-color)] hover:border-red-600"
-                  }`}
-                >
-                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-                    {opcion}
-                  </p>
+            return (
+              <button
+                key={opcion}
+                type="button"
+                onClick={() => setModalidadPago(opcion)}
+                className={`rounded-2xl border px-5 py-5 text-left transition ${
+                  modalidadPago === opcion
+                    ? "border-red-600 bg-[#ffe5e5] text-black"
+                    : "border-[var(--border-color)] hover:border-red-600"
+                }`}
+              >
+                <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+                  {opcion}
+                </p>
 
-                  <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-                    Transferir ahora: ${importe}<br />
-                    Resta pagar: ${saldo}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+                <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
+                  Transferir ahora: ${importe}<br />
+                  Resta pagar: ${saldo}
+                </p>
+              </button>
+            );
+          })}
         </div>
       </div>
-    )}
+    </div>
+)}
 
     {resultado.metodoPago === "Transferencia" &&
       !resultado.comprobante &&
