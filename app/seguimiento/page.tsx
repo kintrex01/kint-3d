@@ -587,6 +587,36 @@ async function subirComprobanteSaldo() {
         </div>
       )}
 
+{resultado.estado === "Presupuestado" &&
+  resultado.presupuestos?.length > 0 && (
+    <div className="mb-8 rounded-2xl border border-[var(--border-color)] p-5">
+      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Opciones de presupuesto
+      </p>
+
+      <div className="space-y-4">
+        {resultado.presupuestos.map((presupuesto: any, index: number) => (
+          <div
+            key={index}
+            className="rounded-xl border border-[var(--border-color)] p-4"
+          >
+            <p className="font-bold">
+              {presupuesto.opcion}
+            </p>
+
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              {presupuesto.descripcion}
+            </p>
+
+            <p className="mt-3 text-xl font-black text-red-600">
+              ${presupuesto.precio}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+)}
+
       <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
         Total a pagar
       </p>
