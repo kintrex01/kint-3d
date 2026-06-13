@@ -611,21 +611,55 @@ async function subirComprobanteSaldo() {
             <p className="mt-3 text-xl font-black text-red-600">
               ${presupuesto.precio}
             </p>
+
+            <button
+  type="button"
+  onClick={async () => {
+    const response = await fetch(
+      "/api/seleccionar-presupuesto",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pedido: resultado.pedido,
+          opcion: presupuesto.opcion,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.ok) {
+      window.location.reload();
+    } else {
+      alert(data.error || "Error al seleccionar presupuesto.");
+    }
+  }}
+  className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white"
+>
+  Elegir presupuesto
+</button>
           </div>
         ))}
       </div>
     </div>
 )}
 
-      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Total a pagar
-      </p>
+      {(!resultado.presupuestos || resultado.presupuestos.length === 0) && (
+  <>
+    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      Total a pagar
+    </p>
 
-      <p className="text-4xl font-black text-red-600">
-        {resultado.precio && resultado.precio !== "Pendiente"
-          ? `$${resultado.precio}`
-          : "Pendiente"}
-      </p>
+    <p className="text-4xl font-black text-red-600">
+      {resultado.precio && resultado.precio !== "Pendiente"
+        ? `$${resultado.precio}`
+        : "Pendiente"}
+    </p>
+  </>
+)}
     </div>
 
     {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
