@@ -222,14 +222,14 @@ return (
           Configurar impresión 3D
         </h1>
 
-        <div className="mb-8 rounded-2xl border border-[var(--border-color)] p-5">
-  <p className="mb-3 text-sm text-[var(--text-muted)]">
-    ¿Tenés dudas sobre formatos, escalas, tiempos de entrega o cómo preparar tu modelo?
+        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-5 sm:flex-row sm:items-center sm:justify-between">
+  <p className="text-sm leading-6 text-[var(--text-muted)]">
+    ¿Tenés dudas sobre formatos, escalas o tiempos de entrega?
   </p>
 
   <Link
     href="/#preguntas"
-    className="inline-flex rounded-xl bg-red-600 px-6 py-3 text-xs font-bold uppercase tracking-[0.25em] text-white transition hover:bg-black"
+    className="inline-flex justify-center rounded-xl border border-[var(--border-color)] px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] transition hover:border-red-600 hover:text-red-600"
   >
     Ver preguntas frecuentes
   </Link>
