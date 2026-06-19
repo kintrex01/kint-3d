@@ -331,3 +331,20 @@ html:not(.dark) .kint-services-card {
   font-size: 14px;
   line-height: 1.9;
 }
+
+@media (max-width: 768px) {
+  .kint-service-title {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+
+  .kint-service-text {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .kint-service-icon svg {
+    width: 46px;
+    height: 46px;
+  }
+}
