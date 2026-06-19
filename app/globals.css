@@ -299,7 +299,7 @@ html:not(.dark) .kint-services-card {
   }
 
   .kint-services-section {
-  margin-top: -120px;
+  margin-top: 20px;
   padding: 0 24px 140px;
   position: relative;
   z-index: 20;
