@@ -348,3 +348,30 @@ html:not(.dark) .kint-services-card {
     height: 46px;
   }
 }
+
+@media (max-width: 768px) {
+  .kint-services-section {
+    margin-top: -260px;
+    padding: 0 18px 90px;
+  }
+
+  .kint-services-card {
+    border-radius: 22px;
+    padding: 28px 12px !important;
+  }
+
+  .kint-service-icon svg {
+    width: 34px;
+    height: 34px;
+  }
+
+  .kint-service-title {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .kint-service-text {
+    font-size: 10px;
+    line-height: 1.55;
+  }
+}

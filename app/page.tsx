@@ -99,17 +99,17 @@ export default function Home() {
   </div>
 </section>
 
-      <section className="kint-section-bg px-6 py-24">
+      <section className="kint-services-section">
   <div className="mx-auto max-w-6xl">
-    <div className="rounded-[28px] border border-[var(--border-color)] bg-[var(--card-bg)] px-10 py-12 shadow-[var(--shadow-main)] backdrop-blur-xl">
-      <div className="grid grid-cols-2 gap-8 md:grid-cols-4 md:divide-x md:divide-[var(--border-color)]">
+    <div className="kint-services-card px-10 py-12">
+      <div className="grid grid-cols-4 divide-x divide-[var(--border-color)]">
         {[
           ["printer", "Tecnología", "Impresión 3D de alta precisión."],
           ["cube", "Diseño", "Transformamos ideas en piezas reales."],
           ["layers", "Personalizado", "Soluciones a medida para cada proyecto."],
           ["clock", "Rápido", "Tiempos de entrega optimizados."],
         ].map(([icono, titulo, texto]) => (
-          <div key={titulo} className="px-4 text-center">
+          <div key={titulo} className="px-2 text-center md:px-4">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
   <Layers3 size={64} strokeWidth={1.5} />
