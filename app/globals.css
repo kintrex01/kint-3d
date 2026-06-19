@@ -221,6 +221,7 @@ html:not(.dark) .kint-soft-btn span {
 
 /* SERVICIOS */
 
+/* PC */
 .kint-services-section {
   margin-top: -360px;
   padding: 0 24px 140px;
@@ -293,9 +294,9 @@ html:not(.dark) .kint-services-card {
   }
 
   .kint-services-section {
-    margin-top: -80px;
-    padding: 0 14px 80px;
-  }
+  margin-top: 90px;
+  padding: 0 14px 80px;
+}
 
   .kint-services-card {
     width: 100%;
