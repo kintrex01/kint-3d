@@ -112,7 +112,7 @@ export default function Home() {
           <div key={titulo} className="px-4 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
-  <Printer size={64} strokeWidth={1.5} />
+  <Layers3 size={64} strokeWidth={1.5} />
 )}
 
 {icono === "cube" && (
