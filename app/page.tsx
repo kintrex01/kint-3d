@@ -7,7 +7,8 @@ import {
   Box,
   Layers3,
   TimerReset,
-  Settings2,
+  SlidersHorizontal,
+  Printer,
 } from "lucide-react";
 
 export default function Home() {
@@ -102,7 +103,7 @@ export default function Home() {
       <section className="kint-section-bg px-6 py-24">
   <div className="mx-auto max-w-6xl">
     <div className="rounded-[28px] border border-[var(--border-color)] bg-[var(--card-bg)] px-10 py-12 shadow-[var(--shadow-main)] backdrop-blur-xl">
-      <div className="grid gap-10 md:grid-cols-4 md:divide-x md:divide-[var(--border-color)]">
+      <div className="grid grid-cols-2 gap-8 md:grid-cols-4 md:divide-x md:divide-[var(--border-color)]">
         {[
           ["printer", "Tecnología", "Impresión 3D de alta precisión."],
           ["cube", "Diseño", "Transformamos ideas en piezas reales."],
@@ -112,7 +113,7 @@ export default function Home() {
           <div key={titulo} className="px-6 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
-  <Layers3 size={64} strokeWidth={1.5} />
+  <Printer size={64} strokeWidth={1.5} />
 )}
 
 {icono === "cube" && (
@@ -120,7 +121,7 @@ export default function Home() {
 )}
 
 {icono === "layers" && (
-  <Settings2 size={64} strokeWidth={1.5} />
+  <SlidersHorizontal size={64} strokeWidth={1.5} />
 )}
 
 {icono === "clock" && (
@@ -280,19 +281,25 @@ export default function Home() {
   respuesta:
     "No. Revisamos tu archivo y te enviamos un presupuesto sin costo y sin compromiso.",
 },
-      ].map((item) => (
-        <div
+           ].map((item) => (
+        <details
           key={item.pregunta}
-          className="rounded-2xl border border-[var(--border-color)] p-6"
+          className="group rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-main)] backdrop-blur-xl transition"
         >
-          <h3 className="mb-3 text-lg font-bold text-red-600">
-            {item.pregunta}
-          </h3>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-left">
+            <span className="text-base font-bold text-red-600 md:text-lg">
+              {item.pregunta}
+            </span>
 
-          <p className="text-sm leading-7 text-[var(--text-muted)]">
+            <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
+              +
+            </span>
+          </summary>
+
+          <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
             {item.respuesta}
           </p>
-        </div>
+        </details>
       ))}
     </div>
   </div>
