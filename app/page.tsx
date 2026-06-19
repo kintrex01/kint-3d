@@ -17,7 +17,7 @@ export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[var(--page-bg)] text-[var(--text-main)] transition">
 
- <header className="absolute left-0 top-0 z-50 w-full px-6 py-6">
+ <header className="absolute left-0 top-0 z-50 w-full px-2 py-6">
   <div className="mx-auto flex max-w-[1180px] items-center justify-between">
     <Link href="/" className="sr-only">
       Kint 3D
@@ -25,18 +25,11 @@ export default function Home() {
 
     <div className="opacity-0">KINT 3D</div>
 
-    <div className="flex items-center gap-6">
-      <ThemeToggle />
+    <div className="flex items-center">
+  <ThemeToggle />
+</div>
 
-      <button
-        type="button"
-        className="h-12 w-12 opacity-0"
-        aria-label="Menú"
-      >
-        ≡
-      </button>
-    </div>
-  </div>
+</div>
 </header>
 
 <section className="relative min-h-screen overflow-hidden px-8 pt-12">
