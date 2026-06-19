@@ -11,6 +11,8 @@
   --blue-border: #1f4f91;
   --border-color: rgba(31, 79, 145, 0.35);
   --shadow-main: 0 24px 70px rgba(29, 79, 154, 0.16);
+  --button-light: rgba(255, 255, 255, 0.72);
+  --shadow-soft: 0 18px 45px rgba(29, 79, 154, 0.14);
 }
 
 .dark {
@@ -24,6 +26,12 @@
   --blue-border: #2f7fd0;
   --border-color: rgba(93, 156, 219, 0.42);
   --shadow-main: 0 24px 80px rgba(0, 0, 0, 0.45);
+  --button-light: rgba(2, 17, 29, 0.38);
+  --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.35);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -33,23 +41,6 @@ body {
   font-family: "Inter", "Montserrat", Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
-
-html {
-  scroll-behavior: smooth;
-}
-
-:root {
-  --button-light: rgba(255, 255, 255, 0.72);
-  --shadow-soft: 0 18px 45px rgba(29, 79, 154, 0.14);
-}
-
-.dark {
-  --button-light: rgba(2, 17, 29, 0.38);
-  --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.35);
-}
-
-
-
 
 .social-btn {
   display: flex;
@@ -72,28 +63,12 @@ html {
   transform: scale(1.08);
 }
 
-@media (max-width: 768px) {
-  header {
-    padding: 24px 18px !important;
-  }
-
-  header a {
-    font-size: 22px !important;
-  }
-
-  section {
-    padding-left: 28px !important;
-    padding-right: 28px !important;
-  }
-
-  
-}
+/* HERO */
 
 .kint-hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
-
   background-image: url("/fondos/kint-claro-pc.png");
   background-size: cover;
   background-position: center center;
@@ -102,27 +77,20 @@ html {
 
 .dark .kint-hero-bg {
   background-image: url("/fondos/kint-oscuro-pc.png");
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-}
-
-@media (max-width: 768px) {
-  .kint-hero-bg {
-    background-image: url("/fondos/kint-claro-movil.png");
-    background-size: cover;
-    background-position: center top;
-  }
-
-  .dark .kint-hero-bg {
-    background-image: url("/fondos/kint-oscuro-movil.png");
-  }
 }
 
 .kint-hero-content {
   position: relative;
   z-index: 10;
 }
+
+.kint-logo-font {
+  font-family: var(--font-montserrat);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+/* BOTONES */
 
 .kint-main-btn,
 .kint-outline-btn,
@@ -134,29 +102,19 @@ html {
   justify-content: space-between;
   border-radius: 13px;
   padding: 0 22px 0 38px;
-
   font-family: "Montserrat", sans-serif;
   font-size: 12px;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-
   backdrop-filter: blur(18px);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .kint-main-btn {
-  background: linear-gradient(
-    180deg,
-    #2e5fbe 0%,
-    #2452ab 60%,
-    #1d4695 100%
-  );
-
+  background: linear-gradient(180deg, #2e5fbe 0%, #2452ab 60%, #1d4695 100%);
   border: 1px solid rgba(140, 190, 255, 0.55);
-
   color: #ffffff;
-
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.08),
     0 6px 18px rgba(0,77,180,0.10);
@@ -199,10 +157,11 @@ html {
   transform: translateX(3px);
 }
 
-.kint-logo-font {
-  font-family: var(--font-montserrat);
-  font-weight: 600;
-  letter-spacing: 0.16em;
+/* MODO CLARO */
+
+html:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --text-muted: #12315c;
 }
 
 html:not(.dark) .kint-main-btn {
@@ -217,6 +176,7 @@ html:not(.dark) .kint-outline-btn {
   border: 1px solid rgba(31, 79, 145, 0.65);
   color: #1f4f9f;
   box-shadow: 0 14px 34px rgba(31, 79, 145, 0.16);
+  font-weight: 600;
 }
 
 html:not(.dark) .kint-soft-btn {
@@ -224,13 +184,6 @@ html:not(.dark) .kint-soft-btn {
   border: 1px solid rgba(31, 79, 145, 0.34);
   color: #06152f;
   box-shadow: 0 14px 34px rgba(31, 79, 145, 0.16);
-}
-
-html:not(.dark) .kint-soft-btn {
-  font-weight: 600;
-}
-
-html:not(.dark) .kint-outline-btn {
   font-weight: 600;
 }
 
@@ -243,16 +196,18 @@ html:not(.dark) .kint-soft-btn span {
   color: #1f4f9f;
 }
 
-html:not(.dark) {
-  --card-bg: rgba(255, 255, 255, 0.86);
-  --text-muted: #12315c;
+/* SECCIONES */
+
+.kint-section-bg {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid rgba(31, 79, 145, 0.12);
 }
 
-.dark {
-  --card-bg: rgba(2, 17, 29, 0.78);
+.kint-section-bg > * {
+  position: relative;
+  z-index: 1;
 }
-
-
 
 .dark .kint-section-bg {
   background:
@@ -261,28 +216,10 @@ html:not(.dark) {
       rgba(2, 11, 18, 0.96) 0%,
       rgba(2, 11, 18, 1) 100%
     );
-  border-top: 1px solid rgba(143, 199, 232, 0.16);
-}
-
-/* Fondo suave para todas las secciones después del hero */
-
-.kint-section-bg {
-  position: relative;
-  overflow: hidden;
-}
-
-.kint-section-bg > * {
-  position: relative;
-  z-index: 1;
-}
-
-.kint-section-bg {
-  border-top: 1px solid rgba(31, 79, 145, 0.12);
-}
-
-.dark .kint-section-bg {
   border-top: 1px solid rgba(143, 199, 232, 0.12);
 }
+
+/* SERVICIOS */
 
 .kint-services-section {
   margin-top: -360px;
@@ -299,12 +236,9 @@ html:not(.dark) {
   background: rgba(2, 14, 28, 0.62);
   backdrop-filter: blur(22px);
   box-shadow:
-    0 28px 80px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    box-shadow:
-  0 0 0 1px rgba(47,127,208,.15),
-  0 20px 80px rgba(0,0,0,.35),
-  inset 0 1px 0 rgba(255,255,255,.05);
+    0 0 0 1px rgba(47,127,208,.15),
+    0 20px 80px rgba(0,0,0,.35),
+    inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 html:not(.dark) .kint-services-card {
@@ -332,9 +266,34 @@ html:not(.dark) .kint-services-card {
   line-height: 1.9;
 }
 
+/* MOBILE */
+
 @media (max-width: 768px) {
+  header {
+    padding: 24px 18px !important;
+  }
+
+  header a {
+    font-size: 22px !important;
+  }
+
+  section {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+  }
+
+  .kint-hero-bg {
+    background-image: url("/fondos/kint-claro-movil.png");
+    background-size: cover;
+    background-position: center top;
+  }
+
+  .dark .kint-hero-bg {
+    background-image: url("/fondos/kint-oscuro-movil.png");
+  }
+
   .kint-services-section {
-    margin-top: -245px;
+    margin-top: -80px;
     padding: 0 14px 80px;
   }
 
@@ -349,7 +308,7 @@ html:not(.dark) .kint-services-card {
   }
 
   .kint-service-icon {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .kint-service-icon svg {
@@ -360,8 +319,8 @@ html:not(.dark) .kint-services-card {
   .kint-service-title {
     font-size: 8px;
     line-height: 1.2;
-    letter-spacing: 0.04em;
-    margin-bottom: 10px;
+    letter-spacing: 0.035em;
+    margin-bottom: 9px;
     white-space: nowrap;
   }
 
