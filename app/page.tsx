@@ -15,7 +15,7 @@ export default function Home() {
 
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[var(--page-bg)] text-[var(--text-main)] transition">
+    <main className="relative min-h-screen overflow-hidden text-[var(--text-main)] transition">
 
  <header className="absolute left-0 top-0 z-50 w-full px-2 py-6">
   <div className="mx-auto flex max-w-[1180px] items-center justify-between">
@@ -32,7 +32,7 @@ export default function Home() {
 </div>
 </header>
 
-<section className="relative min-h-screen overflow-hidden px-8 pt-12">
+<section className="relative min-h-[1250px] overflow-hidden px-8 pt-12">
   <div className="kint-hero-bg" />
 
   <div className="relative z-20 mx-auto grid min-h-screen max-w-[1180px] grid-cols-[620px_1fr] items-start">
@@ -90,7 +90,6 @@ export default function Home() {
       </div>
     </div>
   </div>
-</section>
 
       <section className="kint-services-section">
   <div className="mx-auto max-w-6xl">
@@ -133,6 +132,7 @@ export default function Home() {
       </div>
     </div>
   </div>
+</section>
 </section>
 
       <section className="px-6 py-24">

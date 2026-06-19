@@ -71,8 +71,9 @@ body {
   z-index: 0;
   background-image: url("/fondos/kint-claro-pc.png");
   background-size: cover;
-  background-position: center center;
+  background-position: center top;
   background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 .dark .kint-hero-bg {
@@ -218,12 +219,7 @@ html:not(.dark) .kint-soft-btn span {
 }
 
 .dark .kint-section-bg {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(2, 11, 18, 0.96) 0%,
-      rgba(2, 11, 18, 1) 100%
-    );
+  background: transparent;
   border-top: 1px solid rgba(143, 199, 232, 0.12);
 }
 
@@ -231,10 +227,11 @@ html:not(.dark) .kint-soft-btn span {
 
 /* PC */
 .kint-services-section {
-  margin-top: +100px;
-  padding: 0 24px 140px;
+  margin-top: -40px;
+  padding: 90px 24px 220px;
   position: relative;
   z-index: 20;
+  background: transparent;
 }
 
 .kint-services-card {
@@ -302,8 +299,11 @@ html:not(.dark) .kint-services-card {
   }
 
   .kint-services-section {
-  margin-top: 90px;
-  padding: 0 14px 80px;
+  margin-top: -120px;
+  padding: 0 24px 140px;
+  position: relative;
+  z-index: 20;
+  overflow: hidden;
 }
 
   .kint-services-card {
