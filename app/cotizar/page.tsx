@@ -473,37 +473,87 @@ return (
     Podés elegir uno o varios colores.
   </p>
 
-  <div className="grid gap-3 sm:grid-cols-2">
-    {["Blanco", "Negro", "Rojo", "Amarillo", "Naranja", "Azul", "Verde", "Cristal"].map((opcion) => (
-      <label
-        key={opcion}
-        className={`cursor-pointer rounded-xl border p-4 font-semibold transition ${
-          color.includes(opcion)
-            ? "border-red-600 bg-[#ffe5e5] text-red-600"
-            : "border-[var(--border-color)] bg-white text-black hover:border-red-600"
-        }`}
-      >
-        <input
-          type="checkbox"
-          checked={color.includes(opcion)}
-          onChange={() => {
-            setColor((actual) =>
-              actual.includes(opcion)
-                ? actual.filter((item) => item !== opcion)
-                : [...actual, opcion]
-            );
-          }}
-          className="mr-3"
-        />
-        {opcion}
-      </label>
-    ))}
-  </div>
+ <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+
+  {[
+    { nombre: "Amarillo", img: "/colores/Amarillo.png" },
+    { nombre: "Blanco", img: "/colores/Blanco.png" },
+    { nombre: "Cristal", img: "/colores/Cristal.png" },
+    { nombre: "Negro", img: "/colores/Negro.png" },
+    { nombre: "Ocre", img: "/colores/Ocre.png" },
+    { nombre: "Oro", img: "/colores/Oro.png" },
+    { nombre: "Rojo", img: "/colores/Rojo.png" },
+    { nombre: "Verde Bosque", img: "/colores/Verde Bosque.png" },
+    { nombre: "Verde", img: "/colores/Verde.png" },
+    { nombre: "Violeta", img: "/colores/Violeta.png" },
+  ].map((item) => (
+    <button
+      key={item.nombre}
+      type="button"
+      onClick={() => {
+        setColor((actual) =>
+          actual.includes(item.nombre)
+            ? actual.filter((c) => c !== item.nombre)
+            : [...actual, item.nombre]
+        );
+      }}
+      className={`rounded-2xl border p-3 transition ${
+        color.includes(item.nombre)
+          ? "border-red-600 ring-2 ring-red-600"
+          : "border-[var(--border-color)] hover:border-red-600"
+      }`}
+    >
+
+      <p className="mt-2 text-center text-sm font-semibold">
+        {item.nombre}
+      </p>
+    </button>
+  ))}
 </div>
 
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Armado de piezas
+<details className="mt-6 rounded-xl border border-[var(--border-color)] p-4">
+  <summary className="cursor-pointer font-semibold text-[var(--text-main)]">
+    ▼ Ver colores disponibles
+  </summary>
+
+  <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+
+    {[
+      { nombre: "Amarillo", img: "/colores/Amarillo.png" },
+      { nombre: "Blanco", img: "/colores/Blanco.png" },
+      { nombre: "Cristal", img: "/colores/Cristal.png" },
+      { nombre: "Negro", img: "/colores/Negro.png" },
+      { nombre: "Ocre", img: "/colores/Ocre.png" },
+      { nombre: "Oro", img: "/colores/Oro.png" },
+      { nombre: "Rojo", img: "/colores/Rojo.png" },
+      { nombre: "Verde Bosque", img: "/colores/Verde Bosque.png" },
+      { nombre: "Verde", img: "/colores/Verde.png" },
+      { nombre: "Violeta", img: "/colores/Violeta.png" },
+    ].map((item) => (
+      <div
+        key={item.nombre}
+        className="rounded-xl border border-[var(--border-color)] p-3 text-center"
+      >
+        <img
+          src={item.img}
+          alt={item.nombre}
+          className="mx-auto h-24 w-24 object-contain"
+        />
+
+        <p className="mt-2 text-sm font-semibold">
+          {item.nombre}
+        </p>
+      </div>
+    ))}
+
+  </div>
+</details>
+
+</div>
+
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Armado de piezas
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Incluye el pegado de piezas y la remoción de soportes. Nos
