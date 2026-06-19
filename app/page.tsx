@@ -109,8 +109,8 @@ export default function Home() {
           ["layers", "Personalizado", "Soluciones a medida para cada proyecto."],
           ["clock", "Rápido", "Tiempos de entrega optimizados."],
         ].map(([icono, titulo, texto]) => (
-          <div key={titulo} className="px-2 text-center md:px-4">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
+          <div key={titulo} className="px-1 text-center md:px-4">
+            <div className="kint-service-icon mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
   <Layers3 size={64} strokeWidth={1.5} />
 )}
@@ -128,11 +128,11 @@ export default function Home() {
 )}
 </div>
 
-            <h3 className="mb-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--blue-main)]">
+            <h3 className="kint-service-title mb-5">
               {titulo}
             </h3>
 
-            <p className="text-sm leading-7 text-[var(--text-muted)]">
+            <p className="kint-service-text">
               {texto}
             </p>
           </div>
