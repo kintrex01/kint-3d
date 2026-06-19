@@ -1,152 +1,146 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import ResenasInicio from "../components/ResenasInicio";
+import ThemeToggle from "../components/ThemeToggle";
+import {
+  Box,
+  Layers3,
+  TimerReset,
+  Settings2,
+} from "lucide-react";
 
 export default function Home() {
 
-  const [modoOscuro, setModoOscuro] = useState(false);
 
-useEffect(() => {
-  const temaGuardado = localStorage.getItem("tema");
-
-  if (temaGuardado === "dark") {
-    setModoOscuro(true);
-    document.documentElement.classList.add("dark");
-  }
-}, []);
-
-function cambiarTema() {
-  const nuevoModo = !modoOscuro;
-
-  setModoOscuro(nuevoModo);
-
-  if (nuevoModo) {
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("tema", "dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("tema", "light");
-  }
-}
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] text-[var(--text-main)] transition">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--page-bg)] text-[var(--text-main)] transition">
 
-<div className="fixed right-6 top-6 z-50">
-  <button
-    type="button"
-    onClick={cambiarTema}
-    className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-sm font-bold transition hover:border-red-600 hover:text-red-600"
-  >
-    {modoOscuro ? "☀️ Modo claro" : "🌙 Modo noche"}
-  </button>
-</div>
+ <header className="absolute left-0 top-0 z-50 w-full px-6 py-6">
+  <div className="mx-auto flex max-w-[1180px] items-center justify-between">
+    <Link href="/" className="sr-only">
+      Kint 3D
+    </Link>
 
-      <section className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        <div className="mb-8">
-          
+    <div className="opacity-0">KINT 3D</div>
 
-          <h1 className="translate-x-3 text-6xl font-black uppercase tracking-[0.25em]">
-            KINT
-            </h1>
+    <div className="flex items-center gap-6">
+      <ThemeToggle />
 
-          <p className="mt-2 ml-3 text-4xl font-light tracking-[0.35em] text-[var(--text-muted)]">
-            3D
-            </p>
-        </div>
-
-        <div className="mb-8 h-[2px] w-20 bg-red-600" />
-
-        <p className="max-w-2xl text-sm font-medium uppercase leading-8 tracking-[0.35em] text-[var(--text-main)] sm:text-base">
-          Impresión 3D para arquitectura, prototipado y diseño.
-        </p>
-
-        <div className="mt-12 flex w-full max-w-4xl flex-col items-center gap-4">
-
-  <Link href="/cotizar" className="w-full">
-    <button className="w-full rounded-2xl border border-red-600 bg-red-600 px-12 py-6 text-sm font-black uppercase tracking-[0.45em] text-white transition hover:bg-transparent hover:text-red-600">
-      Cotizar ahora
-    </button>
-  </Link>
-
-  <Link href="/seguimiento" className="w-full">
-    <button className="w-full rounded-2xl border border-red-600 px-12 py-5 text-sm font-black uppercase tracking-[0.35em] text-red-600 transition hover:bg-red-600 hover:text-white">
-      Consultar pedido
-    </button>
-  </Link>
-
-  <div className="grid w-full gap-4 sm:grid-cols-2">
-
-    <a
-      href="https://www.instagram.com/kint.3d/"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <button className="w-full rounded-2xl border border-[var(--border-color)] px-10 py-5 text-sm font-bold uppercase tracking-[0.25em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600">
-        Ver trabajos
+      <button
+        type="button"
+        className="h-12 w-12 opacity-0"
+        aria-label="Menú"
+      >
+        ≡
       </button>
-    </a>
-
-    <a
-      href="#preguntas"
-      className="w-full rounded-2xl border border-[var(--border-color)] px-10 py-5 text-center text-sm font-bold uppercase tracking-[0.25em] transition hover:border-red-600 hover:text-red-600"
-    >
-      Preguntas frecuentes
-    </a>
-
+    </div>
   </div>
+</header>
 
+<section className="relative min-h-screen overflow-hidden px-8 pt-12">
+  <div className="kint-hero-bg" />
+
+  <div className="relative z-20 mx-auto grid min-h-screen max-w-[1180px] grid-cols-[620px_1fr] items-start">
+    <div className="pt-0 scale-[1.08] origin-top-left">
+
+      <h1 className="kint-logo-font text-[74px] uppercase leading-none text-[var(--text-main)]">
+  KINT
+</h1>
+
+<div className="mt-5 flex items-center gap-6">
+  <span className="kint-logo-font text-[60px] leading-none text-[var(--blue-main)]">
+    3
+  </span>
+
+  <span className="kint-logo-font text-[60px] leading-none text-[var(--blue-soft)]">
+    D
+  </span>
 </div>
 
-        <div className="mt-20 flex flex-col items-center gap-2 text-[var(--text-muted)]">
-          <div className="h-9 w-5 rounded-full border border-[var(--border-color)]" />
-          <span className="text-xl leading-none">⌄</span>
-        </div>
-      </section>
+      <div className="mt-5 flex w-[380px] items-center">
+        <div className="h-[4px] w-[170px] rounded-full bg-[var(--blue-main)]" />
+        <div className="h-[4px] w-[180px] rounded-full bg-[var(--blue-soft)]" />
+        <div className="h-4 w-4 rounded-full bg-[var(--blue-soft)]" />
+      </div>
 
-      <section className="border-t border-[var(--border-color)] px-6 py-24">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
-            Nuestros servicios
-          </p>
+      <p className="mt-12 max-w-[285px] text-[18px] font-light uppercase leading-[2] tracking-[0.24em] text-[var(--text-main)]">
+        Impresión <span className="text-[var(--blue-main)]">3D</span> para arquitectura, diseño y piezas a medida.
+      </p>
 
-          <div className="mx-auto mb-16 h-[2px] w-12 bg-red-600" />
+      <div className="mt-12 flex w-[285px] flex-col gap-5">
+        <Link href="/cotizar">
+          <button className="kint-main-btn">
+            Cotizar ahora <span>→</span>
+          </button>
+        </Link>
 
-          <div className="grid gap-12 md:grid-cols-3">
-            <div className="px-8">
-              <h2 className="mb-5 text-sm font-black uppercase tracking-[0.35em]">
-                Arquitectura
-              </h2>
-              <div className="mx-auto mb-5 h-[2px] w-10 bg-red-600" />
-              <p className="text-sm leading-7 text-[var(--text-muted)]">
-                Maquetas y modelos arquitectónicos con máximo detalle.
-              </p>
-            </div>
+        <Link href="/seguimiento">
+          <button className="kint-outline-btn">
+            Consultar pedido <span>→</span>
+          </button>
+        </Link>
 
-            <div className="px-8 md:border-x md:border-[var(--border-color)]">
-              <h2 className="mb-5 text-sm font-black uppercase tracking-[0.35em]">
-                Prototipado
-              </h2>
-              <div className="mx-auto mb-5 h-[2px] w-10 bg-red-600" />
-              <p className="text-sm leading-7 text-[var(--text-muted)]">
-                Prototipos funcionales para validar ideas y proyectos.
-              </p>
-            </div>
+        <a
+          href="https://www.instagram.com/kint.3d/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="kint-soft-btn"
+        >
+          Ver trabajos <span>→</span>
+        </a>
 
-            <div className="px-8">
-              <h2 className="mb-5 text-sm font-black uppercase tracking-[0.35em]">
-                Personalizados
-              </h2>
-              <div className="mx-auto mb-5 h-[2px] w-10 bg-red-600" />
-              <p className="text-sm leading-7 text-[var(--text-muted)]">
-                Piezas y proyectos a medida según tus necesidades.
-              </p>
-            </div>
+        <a href="#preguntas" className="kint-soft-btn">
+          Preguntas frecuentes <span>→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+      <section className="kint-section-bg px-6 py-24">
+  <div className="mx-auto max-w-6xl">
+    <div className="rounded-[28px] border border-[var(--border-color)] bg-[var(--card-bg)] px-10 py-12 shadow-[var(--shadow-main)] backdrop-blur-xl">
+      <div className="grid gap-10 md:grid-cols-4 md:divide-x md:divide-[var(--border-color)]">
+        {[
+          ["printer", "Tecnología", "Impresión 3D de alta precisión."],
+          ["cube", "Diseño", "Transformamos ideas en piezas reales."],
+          ["layers", "Personalizado", "Soluciones a medida para cada proyecto."],
+          ["clock", "Rápido", "Tiempos de entrega optimizados."],
+        ].map(([icono, titulo, texto]) => (
+          <div key={titulo} className="px-6 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
+             {icono === "printer" && (
+  <Layers3 size={64} strokeWidth={1.5} />
+)}
+
+{icono === "cube" && (
+  <Box size={64} strokeWidth={1.5} />
+)}
+
+{icono === "layers" && (
+  <Settings2 size={64} strokeWidth={1.5} />
+)}
+
+{icono === "clock" && (
+  <TimerReset size={64} strokeWidth={1.5} />
+)}
+</div>
+
+            <h3 className="mb-5 text-sm font-bold uppercase tracking-[0.12em] text-[var(--blue-main)]">
+              {titulo}
+            </h3>
+
+            <p className="text-sm leading-7 text-[var(--text-muted)]">
+              {texto}
+            </p>
           </div>
-        </div>
-      </section>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
 
       <section className="px-6 py-24">
         <div className="mx-auto max-w-6xl text-center">
@@ -321,7 +315,7 @@ function cambiarTema() {
   href="https://wa.me/59892023382"
   target="_blank"
   rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition hover:scale-110"
+  className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-[var(--blue-soft)] bg-[var(--blue-main)] text-white shadow-[0_18px_45px_rgba(47,127,208,0.45)] transition hover:scale-110"
   aria-label="WhatsApp"
 >
   <svg

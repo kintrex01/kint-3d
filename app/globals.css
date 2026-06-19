@@ -1,24 +1,333 @@
 @import "tailwindcss";
 
 :root {
-  --page-bg: #ffffff;
-  --card-bg: #ffffff;
-  --text-main: #000000;
-  --text-muted: #52525b;
-  --border-color: #d4d4d8;
+  --page-bg: #f7fbff;
+  --card-bg: rgba(255, 255, 255, 0.82);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --text-main: #06152f;
+  --text-muted: #12315c;
+  --blue-main: #1d4f9a;
+  --blue-soft: #8fc7e8;
+  --blue-border: #1f4f91;
+  --border-color: rgba(31, 79, 145, 0.35);
+  --shadow-main: 0 24px 70px rgba(29, 79, 154, 0.16);
 }
 
 .dark {
-  --page-bg: #09090b;
-  --card-bg: #18181b;
+  --page-bg: #020b12;
+  --card-bg: rgba(2, 17, 29, 0.78);
+  --glass-bg: rgba(2, 17, 29, 0.55);
   --text-main: #ffffff;
-  --text-muted: #d4d4d8;
-  --border-color: #52525b;
+  --text-muted: #dbeafe;
+  --blue-main: #1976d2;
+  --blue-soft: #9ed8ff;
+  --blue-border: #2f7fd0;
+  --border-color: rgba(93, 156, 219, 0.42);
+  --shadow-main: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
 body {
+  margin: 0;
   background: var(--page-bg);
   color: var(--text-main);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", "Montserrat", Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --button-light: rgba(255, 255, 255, 0.72);
+  --shadow-soft: 0 18px 45px rgba(29, 79, 154, 0.14);
+}
+
+.dark {
+  --button-light: rgba(2, 17, 29, 0.38);
+  --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.35);
+}
+
+
+
+
+.social-btn {
+  display: flex;
+  height: 64px;
+  width: 64px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  border: 1px solid var(--blue-border);
+  background: var(--button-light);
+  color: var(--text-main);
+  font-weight: 900;
+  font-size: 28px;
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(16px);
+  transition: transform .2s ease;
+}
+
+.social-btn:hover {
+  transform: scale(1.08);
+}
+
+@media (max-width: 768px) {
+  header {
+    padding: 24px 18px !important;
+  }
+
+  header a {
+    font-size: 22px !important;
+  }
+
+  section {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+  }
+
+  
+}
+
+.kint-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+
+  background-image: url("/fondos/kint-claro-pc.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.dark .kint-hero-bg {
+  background-image: url("/fondos/kint-oscuro-pc.png");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+@media (max-width: 768px) {
+  .kint-hero-bg {
+    background-image: url("/fondos/kint-claro-movil.png");
+    background-size: cover;
+    background-position: center top;
+  }
+
+  .dark .kint-hero-bg {
+    background-image: url("/fondos/kint-oscuro-movil.png");
+  }
+}
+
+.kint-hero-content {
+  position: relative;
+  z-index: 10;
+}
+
+.kint-main-btn,
+.kint-outline-btn,
+.kint-soft-btn {
+  width: 100%;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 13px;
+  padding: 0 22px 0 38px;
+
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+
+  backdrop-filter: blur(18px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kint-main-btn {
+  background: linear-gradient(
+    180deg,
+    #2e5fbe 0%,
+    #2452ab 60%,
+    #1d4695 100%
+  );
+
+  border: 1px solid rgba(140, 190, 255, 0.55);
+
+  color: #ffffff;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 6px 18px rgba(0,77,180,0.10);
+}
+
+.kint-outline-btn {
+  background: rgba(2, 14, 28, 0.34);
+  border: 1px solid rgba(47, 147, 255, 0.9);
+  color: #2f93ff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.kint-soft-btn {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(143, 199, 232, 0.28);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 10px 24px rgba(0, 0, 0, 0.16);
+}
+
+.kint-main-btn span,
+.kint-outline-btn span,
+.kint-soft-btn span {
+  font-size: 24px;
+  font-weight: 300;
+  letter-spacing: 0;
+  color: #2f93ff;
+}
+
+.kint-main-btn span {
+  color: #ffffff;
+}
+
+.kint-main-btn:hover,
+.kint-outline-btn:hover,
+.kint-soft-btn:hover {
+  transform: translateX(3px);
+}
+
+.kint-logo-font {
+  font-family: var(--font-montserrat);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+html:not(.dark) .kint-main-btn {
+  background: #1f4f9f;
+  border: 1px solid rgba(31, 79, 145, 0.55);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(31, 79, 145, 0.18);
+}
+
+html:not(.dark) .kint-outline-btn {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(31, 79, 145, 0.65);
+  color: #1f4f9f;
+  box-shadow: 0 14px 34px rgba(31, 79, 145, 0.16);
+}
+
+html:not(.dark) .kint-soft-btn {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 79, 145, 0.34);
+  color: #06152f;
+  box-shadow: 0 14px 34px rgba(31, 79, 145, 0.16);
+}
+
+html:not(.dark) .kint-soft-btn {
+  font-weight: 600;
+}
+
+html:not(.dark) .kint-outline-btn {
+  font-weight: 600;
+}
+
+html:not(.dark) .kint-main-btn span {
+  color: #ffffff;
+}
+
+html:not(.dark) .kint-outline-btn span,
+html:not(.dark) .kint-soft-btn span {
+  color: #1f4f9f;
+}
+
+html:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --text-muted: #12315c;
+}
+
+.dark {
+  --card-bg: rgba(2, 17, 29, 0.78);
+}
+
+
+
+.dark .kint-section-bg {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(2, 11, 18, 0.96) 0%,
+      rgba(2, 11, 18, 1) 100%
+    );
+  border-top: 1px solid rgba(143, 199, 232, 0.16);
+}
+
+/* Fondo suave para todas las secciones después del hero */
+
+.kint-section-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.kint-section-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.kint-section-bg {
+  border-top: 1px solid rgba(31, 79, 145, 0.12);
+}
+
+.dark .kint-section-bg {
+  border-top: 1px solid rgba(143, 199, 232, 0.12);
+}
+
+.kint-services-section {
+  margin-top: -360px;
+  padding: 0 24px 140px;
+  position: relative;
+  z-index: 20;
+}
+
+.kint-services-card {
+  max-width: 1080px;
+  margin: 0 auto;
+  border-radius: 28px;
+  border: 1px solid rgba(143, 199, 232, 0.28);
+  background: rgba(2, 14, 28, 0.62);
+  backdrop-filter: blur(22px);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    box-shadow:
+  0 0 0 1px rgba(47,127,208,.15),
+  0 20px 80px rgba(0,0,0,.35),
+  inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+html:not(.dark) .kint-services-card {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(31, 79, 145, 0.18);
+  box-shadow: 0 28px 80px rgba(31, 79, 145, 0.12);
+}
+
+.kint-service-icon svg {
+  width: 54px;
+  height: 54px;
+}
+
+.kint-service-title {
+  color: var(--blue-main);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.kint-service-text {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.9;
 }
