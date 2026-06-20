@@ -32,10 +32,10 @@ export default function Home() {
 </div>
 </header>
 
-<section className="relative min-h-[1250px] overflow-hidden px-8 pt-12">
+<section className="relative overflow-hidden px-8 pt-12">
   <div className="kint-hero-bg" />
 
-  <div className="relative z-20 mx-auto grid min-h-screen max-w-[1180px] grid-cols-[620px_1fr] items-start">
+  <div className="relative z-20 mx-auto grid min-h-[650px] max-w-[1180px] grid-cols-[760px_1fr] items-start">
     <div className="pt-0 scale-[1.08] origin-top-left">
 
       <h1 className="kint-logo-font text-[74px] uppercase leading-none text-[var(--text-main)]">
@@ -62,38 +62,66 @@ export default function Home() {
         Impresión <span className="text-[var(--blue-main)]">3D</span> para arquitectura, diseño y piezas a medida.
       </p>
 
-      <div className="mt-12 flex w-[285px] flex-col gap-5">
-        <Link href="/cotizar">
-          <button className="kint-main-btn">
-            Cotizar ahora <span>→</span>
-          </button>
-        </Link>
-
-        <Link href="/seguimiento">
-          <button className="kint-outline-btn">
-            Consultar pedido <span>→</span>
-          </button>
-        </Link>
-
-        <a
-          href="https://www.instagram.com/kint.3d/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="kint-soft-btn"
-        >
-          Ver trabajos <span>→</span>
-        </a>
-
-        <a href="#preguntas" className="kint-soft-btn">
-          Preguntas frecuentes <span>→</span>
-        </a>
-      </div>
-    </div>
+      <div className="mt-8 flex w-[680px] items-center gap-8 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-main)]">
+  <div className="flex items-center gap-3">
+    <Layers3 size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    Arquitectura
   </div>
 
+  <div className="h-10 w-px bg-[var(--border-color)]" />
+
+  <div className="flex items-center gap-3">
+    <Box size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    Prototipos
+  </div>
+
+  <div className="h-10 w-px bg-[var(--border-color)]" />
+
+  <div className="flex items-center gap-3">
+    <SlidersHorizontal size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    Piezas funcionales
+  </div>
+
+  <div className="h-10 w-px bg-[var(--border-color)]" />
+
+  <div className="flex items-center gap-3">
+    <TimerReset size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    Diseño personalizado
+  </div>
+</div>
+
+<div className="mt-9 grid w-[680px] grid-cols-2 gap-5">
+  <Link href="/cotizar">
+    <button className="kint-main-btn">
+      Cotizar ahora <span>→</span>
+    </button>
+  </Link>
+
+  <Link href="/seguimiento">
+    <button className="kint-outline-btn">
+      Consultar pedido <span>→</span>
+    </button>
+  </Link>
+
+
+
+  <a
+    href="https://www.instagram.com/kint.3d/"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="kint-soft-btn"
+  >
+    Ver trabajos <span>→</span>
+  </a>
+
+  <a href="#preguntas" className="kint-soft-btn">
+    Preguntas frecuentes <span>→</span>
+  </a>
+</div>
+
       <section className="kint-services-section">
-  <div className="mx-auto max-w-6xl">
-    <div className="kint-services-card px-10 py-12">
+  <div className="w-[600px]">
+    <div className="kint-services-card px-0 py-0">
       <div className="grid grid-cols-4 divide-x divide-[var(--border-color)]">
         {[
           ["printer", "Tecnología", "Impresión 3D de alta precisión."],
@@ -104,19 +132,19 @@ export default function Home() {
           <div key={titulo} className="px-1 text-center md:px-4">
             <div className="kint-service-icon mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
-  <Layers3 size={64} strokeWidth={1.5} />
+  <Layers3 size={50} strokeWidth={1.5} />
 )}
 
 {icono === "cube" && (
-  <Box size={64} strokeWidth={1.5} />
+  <Box size={50} strokeWidth={1.5} />
 )}
 
 {icono === "layers" && (
-  <SlidersHorizontal size={64} strokeWidth={1.5} />
+  <SlidersHorizontal size={50} strokeWidth={1.5} />
 )}
 
 {icono === "clock" && (
-  <TimerReset size={64} strokeWidth={1.5} />
+  <TimerReset size={50} strokeWidth={1.5} />
 )}
 </div>
 
@@ -133,9 +161,11 @@ export default function Home() {
     </div>
   </div>
 </section>
-</section>
 
-      <section className="px-6 py-24">
+    </div>
+  </div>
+
+      <section className="relative z-20 px-6 pt-40 pb-24 bg-transparent">
         <div className="mx-auto max-w-6xl text-center">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
             Cómo trabajamos
@@ -171,7 +201,10 @@ export default function Home() {
                 Iniciar cotización
               </button>
             </Link>
-          </div>
+                    </div>
+        </div>
+      </section>
+</section>
 
 <section id="preguntas" className="border-t border-[var(--border-color)] px-6 py-24">
   <div className="mx-auto max-w-5xl">
@@ -297,8 +330,6 @@ export default function Home() {
   </div>
 </section>
 
-        </div>
-      </section>
       <section className="border-t border-[var(--border-color)] px-6 py-24">
   <div className="mx-auto max-w-6xl text-center">
     <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">

@@ -227,49 +227,53 @@ html:not(.dark) .kint-soft-btn span {
 
 /* PC */
 .kint-services-section {
-  margin-top: -40px;
-  padding: 90px 24px 220px;
+  margin-top: 95px;
+  padding: 0 0 70px;
   position: relative;
   z-index: 20;
   background: transparent;
 }
 
 .kint-services-card {
-  max-width: 1080px;
-  margin: 0 auto;
-  border-radius: 28px;
+  width: 600px;
+  margin-left: 0;
+
+  border-radius: 24px;
   border: 1px solid rgba(143, 199, 232, 0.28);
+
   background: rgba(2, 14, 28, 0.62);
   backdrop-filter: blur(22px);
+
   box-shadow:
     0 0 0 1px rgba(47,127,208,.15),
     0 20px 80px rgba(0,0,0,.35),
     inset 0 1px 0 rgba(255,255,255,.05);
+
+  padding: 16px 8px;
 }
 
 html:not(.dark) .kint-services-card {
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(31, 79, 145, 0.18);
-  box-shadow: 0 28px 80px rgba(31, 79, 145, 0.12);
+  background: rgba(255,255,255,.82);
+  border: 1px solid rgba(31,79,145,.18);
+  box-shadow: 0 28px 80px rgba(31,79,145,.12);
 }
 
 .kint-service-icon svg {
-  width: 54px;
-  height: 54px;
+  width: 30px;
+  height: 30px;
 }
 
 .kint-service-title {
   color: var(--blue-main);
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .kint-service-text {
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.9;
+  font-size: 10px;
+  line-height: 1.5;
 }
 
 /* MOBILE */
