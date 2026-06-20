@@ -35,8 +35,8 @@ export default function Home() {
 <section className="relative overflow-hidden px-8 pt-12">
   <div className="kint-hero-bg" />
 
-  <div className="relative z-20 mx-auto grid min-h-[650px] max-w-[1180px] grid-cols-[760px_1fr] items-start">
-    <div className="pt-0 scale-[1.08] origin-top-left">
+  <div className="relative z-20 mx-auto grid min-h-[650px] w-full max-w-[1180px] grid-cols-1 items-start md:grid-cols-[760px_1fr]">
+    <div className="pt-0 origin-top-left md:scale-[1.08]">
 
       <h1 className="kint-logo-font text-[74px] uppercase leading-none text-[var(--text-main)]">
   KINT
@@ -62,27 +62,27 @@ export default function Home() {
         Impresión <span className="text-[var(--blue-main)]">3D</span> para arquitectura, diseño y piezas a medida.
       </p>
 
-      <div className="mt-8 flex w-[680px] items-center gap-8 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-main)]">
+      <div className="mt-8 grid w-full grid-cols-2 gap-6 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-main)] md:flex md:w-[680px] md:items-center md:gap-8">
   <div className="flex items-center gap-3">
     <Layers3 size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
     Arquitectura
   </div>
 
-  <div className="h-10 w-px bg-[var(--border-color)]" />
+  <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
     <Box size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
     Prototipos
   </div>
 
-  <div className="h-10 w-px bg-[var(--border-color)]" />
+  <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
     <SlidersHorizontal size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
     Piezas funcionales
   </div>
 
-  <div className="h-10 w-px bg-[var(--border-color)]" />
+  <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
     <TimerReset size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
@@ -90,7 +90,7 @@ export default function Home() {
   </div>
 </div>
 
-<div className="mt-9 grid w-[680px] grid-cols-2 gap-5">
+<div className="mt-9 grid w-full grid-cols-1 gap-5 md:w-[680px] md:grid-cols-2">
   <Link href="/cotizar">
     <button className="kint-main-btn">
       Cotizar ahora <span>→</span>
