@@ -323,3 +323,15 @@ html:not(.dark) .kint-services-card {
     line-height: 1.45;
   }
 }
+
+@media (max-width: 768px) {
+  .kint-hero-bg {
+    background-image: url("/fondos/kint-claro-movil.png") !important;
+    background-size: cover;
+    background-position: center top;
+  }
+
+  .dark .kint-hero-bg {
+    background-image: url("/fondos/kint-oscuro-movil.png") !important;
+  }
+}
