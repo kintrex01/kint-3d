@@ -670,6 +670,7 @@ async function subirComprobanteSaldo() {
                       pedido: resultado.pedido,
                       codigo,
                       opcion: presupuesto.opcion,
+                      descripcion: presupuesto.descripcion,
                     }),
                   });
 
