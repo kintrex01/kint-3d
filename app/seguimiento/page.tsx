@@ -667,11 +667,12 @@ async function subirComprobanteSaldo() {
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      pedido: resultado.pedido,
-                      codigo,
-                      opcion: presupuesto.opcion,
-                      descripcion: presupuesto.descripcion,
-                    }),
+  pedido: resultado.pedido,
+  codigo,
+  opcion: presupuesto.opcion,
+  descripcion: presupuesto.descripcion,
+  precio: presupuesto.precioOriginal || presupuesto.precio,
+}),
                   });
 
                   const data = await response.json();
