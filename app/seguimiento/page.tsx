@@ -661,6 +661,17 @@ async function subirComprobanteSaldo() {
               <button
                 type="button"
                 onClick={async () => {
+
+console.log("PRESUPUESTO ENVIADO:");
+console.log({
+  pedido: resultado.pedido,
+  codigo,
+  opcion: presupuesto.opcion,
+  descripcion: presupuesto.descripcion,
+  precioOriginal: presupuesto.precioOriginal,
+  precio: presupuesto.precio,
+});
+
                   const response = await fetch("/api/seleccionar-presupuesto", {
                     method: "POST",
                     headers: {
