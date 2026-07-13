@@ -680,9 +680,7 @@ console.log({
                     body: JSON.stringify({
   pedido: resultado.pedido,
   codigo,
-  opcion: presupuesto.opcion,
-  descripcion: presupuesto.descripcion,
-  precio: presupuesto.precioOriginal || presupuesto.precio,
+  index,
 }),
                   });
 
