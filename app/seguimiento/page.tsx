@@ -666,6 +666,7 @@ console.log("PRESUPUESTO ENVIADO:");
 console.log({
   pedido: resultado.pedido,
   codigo,
+  index,
   opcion: presupuesto.opcion,
   descripcion: presupuesto.descripcion,
   precioOriginal: presupuesto.precioOriginal,

@@ -5,11 +5,11 @@ export async function POST(request: Request) {
     const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
       method: "POST",
       body: JSON.stringify({
-        tipo: "seleccionar_presupuesto",
-        pedido: body.pedido,
-        codigo: body.codigo,
-        opcion: body.opcion,
-      }),
+  tipo: "seleccionar_presupuesto",
+  pedido: body.pedido,
+  codigo: body.codigo,
+  index: body.index,
+}),
       headers: {
         "Content-Type": "text/plain;charset=utf-8",
       },
