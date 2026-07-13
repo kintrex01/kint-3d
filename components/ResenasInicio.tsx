@@ -1,16 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Resena = {
+  fecha?: string;
   pedido: string;
   nombre: string;
   estrellas: number;
   comentario: string;
   insignia: string;
   fotoProyecto?: string;
+  fotos?: string[];
   likes: number;
 };
+
+type OrdenResenas =
+  | "recientes"
+  | "antiguas"
+  | "mas-likes"
+  | "menos-likes"
+  | "con-foto"
+  | "sin-foto";
 
 const CLAVE_DISPOSITIVO = "kint3d_dispositivo_resenas";
 const CLAVE_LIKES = "kint3d_resenas_con_like";
@@ -61,14 +71,60 @@ function obtenerLikesGuardados() {
   }
 }
 
+function obtenerTiempo(fecha?: string) {
+  if (!fecha) {
+    return 0;
+  }
+
+  const tiempo = new Date(fecha).getTime();
+
+  return Number.isNaN(tiempo) ? 0 : tiempo;
+}
+
+function obtenerIdDrive(enlace?: string) {
+  const texto = String(enlace || "").trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  const porArchivo = texto.match(
+    /\/file\/d\/([a-zA-Z0-9_-]+)/
+  );
+
+  if (porArchivo?.[1]) {
+    return porArchivo[1];
+  }
+
+  const porParametro = texto.match(
+    /[?&]id=([a-zA-Z0-9_-]+)/
+  );
+
+  if (porParametro?.[1]) {
+    return porParametro[1];
+  }
+
+  const porDirecto = texto.match(
+    /\/d\/([a-zA-Z0-9_-]+)/
+  );
+
+  return porDirecto?.[1] || "";
+}
+
 export default function ResenasInicio() {
   const [resenas, setResenas] = useState<Resena[]>([]);
   const [loading, setLoading] = useState(true);
   const [abierta, setAbierta] = useState<string | null>(null);
   const [resenaDestacada, setResenaDestacada] = useState<string | null>(null);
   const [likesPropios, setLikesPropios] = useState<Set<string>>(new Set());
-  const [procesandoLike, setProcesandoLike] = useState<string | null>(null);
+  const [procesandoLike, setProcesandoLike] = useState<Set<string>>(new Set());
   const [errorLike, setErrorLike] = useState<string | null>(null);
+  const [orden, setOrden] = useState<OrdenResenas>("recientes");
+  const [galeriaAbierta, setGaleriaAbierta] = useState<{
+    pedido: string;
+    fotos: string[];
+    indice: number;
+  } | null>(null);
 
   useEffect(() => {
     setLikesPropios(obtenerLikesGuardados());
@@ -128,18 +184,156 @@ export default function ResenasInicio() {
         behavior: "smooth",
         block: "center",
       });
-    }, 300);
+    }, 250);
+
+    const temporizador = window.setTimeout(() => {
+      setResenaDestacada(null);
+    }, 4000);
+
+    return () => window.clearTimeout(temporizador);
   }, [loading, resenas]);
 
-  async function cambiarLike(pedido: string) {
-    if (!pedido || procesandoLike) {
+  useEffect(() => {
+    if (!galeriaAbierta) {
       return;
     }
 
+    function manejarTeclado(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        setGaleriaAbierta(null);
+      }
+
+      if (evento.key === "ArrowRight") {
+        setGaleriaAbierta((actual) => {
+          if (!actual || actual.fotos.length <= 1) {
+            return actual;
+          }
+
+          return {
+            ...actual,
+            indice: (actual.indice + 1) % actual.fotos.length,
+          };
+        });
+      }
+
+      if (evento.key === "ArrowLeft") {
+        setGaleriaAbierta((actual) => {
+          if (!actual || actual.fotos.length <= 1) {
+            return actual;
+          }
+
+          return {
+            ...actual,
+            indice:
+              (actual.indice - 1 + actual.fotos.length) %
+              actual.fotos.length,
+          };
+        });
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", manejarTeclado);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", manejarTeclado);
+    };
+  }, [galeriaAbierta]);
+
+  const resenasOrdenadas = useMemo(() => {
+    const copia = [...resenas];
+
+    switch (orden) {
+      case "antiguas":
+        return copia.sort(
+          (a, b) => obtenerTiempo(a.fecha) - obtenerTiempo(b.fecha)
+        );
+
+      case "mas-likes":
+        return copia.sort(
+          (a, b) => Number(b.likes || 0) - Number(a.likes || 0)
+        );
+
+      case "menos-likes":
+        return copia.sort(
+          (a, b) => Number(a.likes || 0) - Number(b.likes || 0)
+        );
+
+      case "con-foto":
+        return copia.sort(
+          (a, b) =>
+            Number(Boolean(b.fotoProyecto)) -
+            Number(Boolean(a.fotoProyecto))
+        );
+
+      case "sin-foto":
+        return copia.sort(
+          (a, b) =>
+            Number(Boolean(a.fotoProyecto)) -
+            Number(Boolean(b.fotoProyecto))
+        );
+
+      case "recientes":
+      default:
+        return copia.sort(
+          (a, b) => obtenerTiempo(b.fecha) - obtenerTiempo(a.fecha)
+        );
+    }
+  }, [resenas, orden]);
+
+  async function cambiarLike(pedido: string) {
     const pedidoNormalizado = pedido.trim().toUpperCase();
 
+    if (!pedidoNormalizado || procesandoLike.has(pedidoNormalizado)) {
+      return;
+    }
+
     setErrorLike(null);
-    setProcesandoLike(pedidoNormalizado);
+
+    const yaTeniaLike = likesPropios.has(pedidoNormalizado);
+    const cambioLikes = yaTeniaLike ? -1 : 1;
+
+    setProcesandoLike((actuales) => {
+      const nuevos = new Set(actuales);
+      nuevos.add(pedidoNormalizado);
+      return nuevos;
+    });
+
+    // Cambio visual inmediato
+    setResenas((actuales) =>
+      actuales.map((resena) => {
+        const pedidoActual = String(resena.pedido || "")
+          .trim()
+          .toUpperCase();
+
+        if (pedidoActual !== pedidoNormalizado) {
+          return resena;
+        }
+
+        return {
+          ...resena,
+          likes: Math.max(0, Number(resena.likes || 0) + cambioLikes),
+        };
+      })
+    );
+
+    setLikesPropios((actuales) => {
+      const nuevos = new Set(actuales);
+
+      if (yaTeniaLike) {
+        nuevos.delete(pedidoNormalizado);
+      } else {
+        nuevos.add(pedidoNormalizado);
+      }
+
+      localStorage.setItem(
+        CLAVE_LIKES,
+        JSON.stringify(Array.from(nuevos))
+      );
+
+      return nuevos;
+    });
 
     try {
       const dispositivo = obtenerDispositivo();
@@ -164,6 +358,7 @@ export default function ResenasInicio() {
         );
       }
 
+      // Confirmamos el valor verdadero de Sheets
       setResenas((actuales) =>
         actuales.map((resena) => {
           const pedidoActual = String(resena.pedido || "")
@@ -198,6 +393,41 @@ export default function ResenasInicio() {
         return nuevos;
       });
     } catch (error) {
+      // Si falla, deshacemos el cambio visual
+      setResenas((actuales) =>
+        actuales.map((resena) => {
+          const pedidoActual = String(resena.pedido || "")
+            .trim()
+            .toUpperCase();
+
+          if (pedidoActual !== pedidoNormalizado) {
+            return resena;
+          }
+
+          return {
+            ...resena,
+            likes: Math.max(0, Number(resena.likes || 0) - cambioLikes),
+          };
+        })
+      );
+
+      setLikesPropios((actuales) => {
+        const nuevos = new Set(actuales);
+
+        if (yaTeniaLike) {
+          nuevos.add(pedidoNormalizado);
+        } else {
+          nuevos.delete(pedidoNormalizado);
+        }
+
+        localStorage.setItem(
+          CLAVE_LIKES,
+          JSON.stringify(Array.from(nuevos))
+        );
+
+        return nuevos;
+      });
+
       const mensaje =
         error instanceof Error
           ? error.message
@@ -205,7 +435,11 @@ export default function ResenasInicio() {
 
       setErrorLike(mensaje);
     } finally {
-      setProcesandoLike(null);
+      setProcesandoLike((actuales) => {
+        const nuevos = new Set(actuales);
+        nuevos.delete(pedidoNormalizado);
+        return nuevos;
+      });
     }
   }
 
@@ -227,24 +461,62 @@ export default function ResenasInicio() {
 
   return (
     <div>
+      <div className="mb-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+          {resenas.length} experiencias verificadas
+        </p>
+
+        <label className="flex items-center gap-3">
+          <span className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Ordenar
+          </span>
+
+          <select
+            value={orden}
+            onChange={(evento) =>
+              setOrden(evento.target.value as OrdenResenas)
+            }
+            className="rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-3 text-xs font-bold uppercase tracking-[0.12em] text-[var(--text-main)] outline-none transition focus:border-red-600"
+          >
+            <option value="recientes">Más recientes</option>
+            <option value="antiguas">Más antiguas</option>
+            <option value="mas-likes">Más likes</option>
+            <option value="menos-likes">Menos likes</option>
+            <option value="con-foto">Con foto primero</option>
+            <option value="sin-foto">Sin foto primero</option>
+          </select>
+        </label>
+      </div>
+
       {errorLike && (
         <p className="mb-6 text-center text-sm font-bold text-red-600">
           {errorLike}
         </p>
       )}
 
-      <div className="grid gap-8 md:grid-cols-2">
-        {resenas.map((resena, index) => {
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        {resenasOrdenadas.map((resena, index) => {
           const pedido =
             String(resena.pedido || "").trim().toUpperCase() ||
             `pedido-${index}`;
 
           const idProyecto = `${pedido}-proyecto`;
-          const tieneFoto = Boolean(resena.fotoProyecto);
+
+          const enlacesFotos = Array.isArray(resena.fotos)
+            ? resena.fotos.filter(Boolean)
+            : resena.fotoProyecto
+              ? [resena.fotoProyecto]
+              : [];
+
+          const fotosProyecto = enlacesFotos
+            .map((enlace) => obtenerIdDrive(enlace))
+            .filter(Boolean);
+
+          const tieneFoto = fotosProyecto.length > 0;
           const estaAbierta = abierta === idProyecto;
           const estaDestacada = resenaDestacada === pedido;
           const tieneLike = likesPropios.has(pedido);
-          const estaProcesando = procesandoLike === pedido;
+          const estaProcesando = procesandoLike.has(pedido);
 
           const estrellas = Math.max(
             0,
@@ -256,104 +528,143 @@ export default function ResenasInicio() {
               id={`resena-${pedido}`}
               key={pedido}
               className={[
-                "scroll-mt-28 rounded-2xl border p-8 transition duration-500",
+                "scroll-mt-28 overflow-hidden rounded-3xl border bg-[var(--card-bg)] text-left shadow-[var(--shadow-soft)] backdrop-blur-xl transition-all duration-500",
                 estaDestacada
-                  ? "border-red-600 bg-red-600/5 shadow-[0_0_0_3px_rgba(220,38,38,0.15)]"
-                  : "border-[var(--border-color)]",
+                  ? "border-red-600 shadow-[0_0_0_3px_rgba(220,38,38,0.15)]"
+                  : "border-[var(--border-color)] hover:-translate-y-1 hover:border-red-600/50",
               ].join(" ")}
             >
-              {estaDestacada && (
-                <p className="mb-5 text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-                  Tu reseña
-                </p>
-              )}
-
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-lg font-bold text-[var(--text-main)]">
-                    {resena.nombre || "Cliente de Kint 3D"}
+              <div className="p-6 sm:p-7">
+                {estaDestacada && (
+                  <p className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+                    Tu reseña
                   </p>
+                )}
 
-                  <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    ✓ Cliente verificado
-                    {resena.insignia ? ` · ${resena.insignia}` : ""}
-                  </p>
+                <div className="flex items-start justify-between gap-5">
+                  <div>
+                    <h3 className="text-lg font-black text-[var(--text-main)]">
+                      {resena.nombre || "Cliente de Kint 3D"}
+                    </h3>
+
+                    <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      ✓ Cliente verificado
+                      {resena.insignia ? ` · ${resena.insignia}` : ""}
+                    </p>
+                  </div>
+
+                  <span className="shrink-0 rounded-full border border-[var(--border-color)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+                    {pedido}
+                  </span>
                 </div>
 
-                <p className="shrink-0 text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                  {pedido}
-                </p>
-              </div>
-
-              <p
-                className="mb-4 text-2xl text-red-600"
-                aria-label={`${estrellas} de 5 estrellas`}
-              >
-                {"★".repeat(estrellas)}
-
-                <span className="text-[var(--border-color)]">
-                  {"★".repeat(5 - estrellas)}
-                </span>
-              </p>
-
-              <p className="mb-6 whitespace-pre-line text-sm italic leading-7 text-[var(--text-muted)]">
-                “{resena.comentario}”
-              </p>
-
-              <div className="flex items-center justify-between gap-4 border-t border-[var(--border-color)] pt-5">
-                <p className="text-xs text-[var(--text-muted)]">
-                  Pedido: {pedido}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => cambiarLike(pedido)}
-                  disabled={estaProcesando}
-                  aria-label={
-                    tieneLike
-                      ? "Quitar Me gusta"
-                      : "Dar Me gusta a esta reseña"
-                  }
-                  className={[
-                    "flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
-                    tieneLike
-                      ? "border-red-600 bg-red-600 text-white"
-                      : "border-[var(--border-color)] text-[var(--text-muted)] hover:border-red-600 hover:text-red-600",
-                    estaProcesando
-                      ? "cursor-wait opacity-50"
-                      : "cursor-pointer",
-                  ].join(" ")}
+                <div
+                  className="mt-6 flex gap-1 text-2xl"
+                  aria-label={`${estrellas} de 5 estrellas`}
                 >
-                  <span aria-hidden="true">
-                    {tieneLike ? "♥" : "♡"}
-                  </span>
+                  {Array.from({ length: 5 }).map((_, indice) => (
+                    <span
+                      key={indice}
+                      className={
+                        indice < estrellas
+                          ? "text-red-600"
+                          : "text-[var(--border-color)]"
+                      }
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
 
-                  <span>{Number(resena.likes || 0)}</span>
-                </button>
+                <blockquote className="mt-5 text-base italic leading-7 text-[var(--text-muted)]">
+                  “{resena.comentario}”
+                </blockquote>
+
+                <div className="mt-7 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => cambiarLike(pedido)}
+                    disabled={estaProcesando}
+                    aria-label={
+                      tieneLike
+                        ? "Quitar Me gusta"
+                        : "Dar Me gusta a esta reseña"
+                    }
+                    className={[
+                      "flex min-w-16 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition",
+                      tieneLike
+                        ? "border-red-600 bg-red-600 text-white"
+                        : "border-[var(--border-color)] text-[var(--text-muted)] hover:border-red-600 hover:text-red-600",
+                      estaProcesando ? "opacity-70" : "",
+                    ].join(" ")}
+                  >
+                    <span aria-hidden="true">
+                      {tieneLike ? "♥" : "♡"}
+                    </span>
+
+                    <span>{Number(resena.likes || 0)}</span>
+                  </button>
+                </div>
               </div>
 
               {tieneFoto && (
-                <div className="mt-6 border-t border-[var(--border-color)] pt-5">
+                <div className="mt-2">
                   <button
                     type="button"
                     onClick={() =>
                       setAbierta(estaAbierta ? null : idProyecto)
                     }
-                    className="text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:opacity-70"
+                    className="flex w-full items-center justify-between px-6 py-4 text-xs font-bold uppercase tracking-[0.22em] text-red-600 transition hover:bg-red-600/5 sm:px-7"
                   >
-                    {estaAbierta
-                      ? "Ocultar proyecto ▲"
-                      : "Ver proyecto ▼"}
+                    <span>
+                      {estaAbierta
+                        ? "Ocultar proyecto"
+                        : "Ver proyecto"}
+                    </span>
+
+                    <span
+                      className={[
+                        "transition-transform duration-300",
+                        estaAbierta ? "rotate-180" : "",
+                      ].join(" ")}
+                    >
+                      ▼
+                    </span>
                   </button>
 
                   {estaAbierta && (
-                    <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--border-color)]">
-                      <img
-                        src={resena.fotoProyecto}
-                        alt={`Proyecto correspondiente al pedido ${pedido}`}
-                        loading="lazy"
-                        className="h-auto w-full object-cover"
-                      />
+                    <div className="p-4 pt-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setGaleriaAbierta({
+                            pedido,
+                            fotos: fotosProyecto,
+                            indice: 0,
+                          })
+                        }
+                        className="group relative block w-full overflow-hidden rounded-2xl bg-black/10"
+                        aria-label={`Abrir fotos del proyecto ${pedido}`}
+                      >
+                        <img
+                          src={`/api/imagen-drive?id=${encodeURIComponent(
+                            fotosProyecto[0]
+                          )}`}
+                          alt={`Proyecto correspondiente al pedido ${pedido}`}
+                          loading="lazy"
+                          className="mx-auto max-h-[360px] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
+                        />
+
+                        <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
+                          Ver completa
+                        </span>
+
+                        {fotosProyecto.length > 1 && (
+                          <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                            {fotosProyecto.length} fotos
+                          </span>
+                        )}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -362,6 +673,100 @@ export default function ResenasInicio() {
           );
         })}
       </div>
+
+      {galeriaAbierta && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Galería del pedido ${galeriaAbierta.pedido}`}
+          onClick={() => setGaleriaAbierta(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setGaleriaAbierta(null)}
+            className="absolute right-5 top-5 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-white/30 bg-black/60 text-2xl text-white transition hover:bg-white hover:text-black"
+            aria-label="Cerrar imagen"
+          >
+            ×
+          </button>
+
+          {galeriaAbierta.fotos.length > 1 && (
+            <button
+              type="button"
+              onClick={(evento) => {
+                evento.stopPropagation();
+
+                setGaleriaAbierta((actual) => {
+                  if (!actual) {
+                    return actual;
+                  }
+
+                  return {
+                    ...actual,
+                    indice:
+                      (actual.indice - 1 + actual.fotos.length) %
+                      actual.fotos.length,
+                  };
+                });
+              }}
+              className="absolute left-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/60 text-3xl text-white transition hover:bg-white hover:text-black sm:left-6"
+              aria-label="Foto anterior"
+            >
+              ‹
+            </button>
+          )}
+
+          <div
+            className="flex max-h-[92vh] max-w-[92vw] flex-col items-center"
+            onClick={(evento) => evento.stopPropagation()}
+          >
+            <img
+              src={`/api/imagen-drive?id=${encodeURIComponent(
+                galeriaAbierta.fotos[galeriaAbierta.indice]
+              )}`}
+              alt={`Foto ${galeriaAbierta.indice + 1} del pedido ${
+                galeriaAbierta.pedido
+              }`}
+              className="max-h-[84vh] max-w-[92vw] object-contain"
+            />
+
+            <div className="mt-3 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-white/80">
+              <span>{galeriaAbierta.pedido}</span>
+
+              {galeriaAbierta.fotos.length > 1 && (
+                <span>
+                  {galeriaAbierta.indice + 1} / {galeriaAbierta.fotos.length}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {galeriaAbierta.fotos.length > 1 && (
+            <button
+              type="button"
+              onClick={(evento) => {
+                evento.stopPropagation();
+
+                setGaleriaAbierta((actual) => {
+                  if (!actual) {
+                    return actual;
+                  }
+
+                  return {
+                    ...actual,
+                    indice: (actual.indice + 1) % actual.fotos.length,
+                  };
+                });
+              }}
+              className="absolute right-3 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/30 bg-black/60 text-3xl text-white transition hover:bg-white hover:text-black sm:right-6"
+              aria-label="Foto siguiente"
+            >
+              ›
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

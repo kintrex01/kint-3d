@@ -330,7 +330,10 @@ export default function Home() {
   </div>
 </section>
 
-      <section className="border-t border-[var(--border-color)] px-6 py-24">
+      <section
+  id="resenas"
+  className="border-t border-[var(--border-color)] px-6 py-24"
+>
   <div className="mx-auto max-w-6xl text-center">
     <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
       Reseñas verificadas

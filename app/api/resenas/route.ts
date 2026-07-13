@@ -95,11 +95,28 @@ export async function POST(request: Request) {
       });
     }
 
-    const pedido = String(data.pedido || "").trim();
-    const codigo = String(data.codigo || "").trim();
+    const pedido = String(data.pedido || "")
+      .trim()
+      .toUpperCase();
+
+    const codigo = String(data.codigo || "")
+      .trim()
+      .toUpperCase();
+
     const estrellas = Number(data.estrellas || 0);
     const comentario = String(data.comentario || "").trim();
+
+    const autorizarPublicacion = Boolean(
+      data.autorizarPublicacion
+    );
+
     const mostrarProyecto = Boolean(data.mostrarProyecto);
+
+    const fotos = Array.isArray(data.fotos)
+      ? data.fotos
+          .map((foto: unknown) => String(foto || "").trim())
+          .filter(Boolean)
+      : [];
 
     if (!pedido) {
       return Response.json(
@@ -141,6 +158,38 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!autorizarPublicacion) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Tenés que autorizar la publicación de la reseña.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (fotos.length > 3) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Podés subir un máximo de 3 imágenes.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (fotos.length > 0 && !mostrarProyecto) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Para publicar imágenes, tenés que autorizar que el proyecto sea mostrado.",
+        },
+        { status: 400 }
+      );
+    }
+
     const response = await fetch(
       process.env.GOOGLE_APPS_SCRIPT_URL!,
       {
@@ -154,7 +203,9 @@ export async function POST(request: Request) {
           codigo,
           estrellas,
           comentario,
+          autorizarPublicacion,
           mostrarProyecto,
+          fotos,
         }),
       }
     );
