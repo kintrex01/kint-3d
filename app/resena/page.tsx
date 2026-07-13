@@ -301,6 +301,10 @@ function ResenaContent() {
             Tu reseña fue publicada correctamente.
           </p>
 
+          <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
+  Podrás editarla durante las próximas 48 horas.
+</p>
+
           <Link
             href={`/?resena=${encodeURIComponent(
               pedido
@@ -381,6 +385,17 @@ function ResenaContent() {
         <p className="mt-3 text-right text-xs text-[var(--text-muted)]">
           {comentario.length}/1000
         </p>
+
+        <div className="mt-6 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-4 text-left">
+  <p className="text-sm font-bold text-[var(--text-main)]">
+    Podrás editar tu reseña durante 2 días
+  </p>
+
+  <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
+    Después de publicarla tendrás 48 horas para cambiar la
+    calificación, el comentario, las fotos o las autorizaciones.
+  </p>
+</div>
 
         <div className="mt-10 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 text-left">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">

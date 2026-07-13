@@ -111,6 +111,27 @@ function obtenerIdDrive(enlace?: string) {
   return porDirecto?.[1] || "";
 }
 
+
+function obtenerSrcFoto(enlace?: string) {
+  const texto = String(enlace || "").trim();
+
+  if (!texto) {
+    return "";
+  }
+
+  const idDrive = obtenerIdDrive(texto);
+
+  if (idDrive) {
+    return `/api/imagen-drive?id=${encodeURIComponent(idDrive)}`;
+  }
+
+  if (texto.startsWith("https://") || texto.startsWith("http://")) {
+    return texto;
+  }
+
+  return "";
+}
+
 export default function ResenasInicio() {
   const [resenas, setResenas] = useState<Resena[]>([]);
   const [loading, setLoading] = useState(true);
@@ -503,14 +524,14 @@ export default function ResenasInicio() {
           const idProyecto = `${pedido}-proyecto`;
 
           const enlacesFotos = Array.isArray(resena.fotos)
-            ? resena.fotos.filter(Boolean)
-            : resena.fotoProyecto
-              ? [resena.fotoProyecto]
-              : [];
+  ? resena.fotos.filter(Boolean)
+  : resena.fotoProyecto
+    ? [resena.fotoProyecto]
+    : [];
 
-          const fotosProyecto = enlacesFotos
-            .map((enlace) => obtenerIdDrive(enlace))
-            .filter(Boolean);
+const fotosProyecto = enlacesFotos
+  .map((enlace) => obtenerSrcFoto(enlace))
+  .filter(Boolean);
 
           const tieneFoto = fotosProyecto.length > 0;
           const estaAbierta = abierta === idProyecto;
@@ -634,6 +655,47 @@ export default function ResenasInicio() {
 
                   {estaAbierta && (
                     <div className="p-4 pt-2">
+                      <div
+                        className={[
+                          "grid gap-3",
+                          fotosProyecto.length === 1
+                            ? "grid-cols-1"
+                            : "grid-cols-2 sm:grid-cols-3",
+                        ].join(" ")}
+                      >
+                        {fotosProyecto.map((foto, indiceFoto) => (
+                          <button
+                            key={`${foto}-${indiceFoto}`}
+                            type="button"
+                            onClick={() =>
+                              setGaleriaAbierta({
+                                pedido,
+                                fotos: fotosProyecto,
+                                indice: indiceFoto,
+                              })
+                            }
+                            className="group relative overflow-hidden rounded-2xl bg-black/10"
+                            aria-label={`Abrir foto ${indiceFoto + 1} del proyecto ${pedido}`}
+                          >
+                            <img
+                              src={foto}
+                              alt={`Foto ${indiceFoto + 1} del proyecto ${pedido}`}
+                              loading="lazy"
+                              className={[
+                                "w-full transition duration-300 group-hover:scale-[1.03]",
+                                fotosProyecto.length === 1
+                                  ? "max-h-[380px] object-contain"
+                                  : "aspect-square object-cover",
+                              ].join(" ")}
+                            />
+
+                            <span className="absolute bottom-2 right-2 rounded-full bg-black/75 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white">
+                              {indiceFoto + 1} / {fotosProyecto.length}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+
                       <button
                         type="button"
                         onClick={() =>
@@ -643,27 +705,9 @@ export default function ResenasInicio() {
                             indice: 0,
                           })
                         }
-                        className="group relative block w-full overflow-hidden rounded-2xl bg-black/10"
-                        aria-label={`Abrir fotos del proyecto ${pedido}`}
+                        className="mt-4 w-full rounded-xl border border-[var(--border-color)] px-4 py-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)] transition hover:border-red-600 hover:text-red-600"
                       >
-                        <img
-                          src={`/api/imagen-drive?id=${encodeURIComponent(
-                            fotosProyecto[0]
-                          )}`}
-                          alt={`Proyecto correspondiente al pedido ${pedido}`}
-                          loading="lazy"
-                          className="mx-auto max-h-[360px] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
-                        />
-
-                        <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white">
-                          Ver completa
-                        </span>
-
-                        {fotosProyecto.length > 1 && (
-                          <span className="absolute left-3 top-3 rounded-full bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                            {fotosProyecto.length} fotos
-                          </span>
-                        )}
+                        Ver galería completa
                       </button>
                     </div>
                   )}
@@ -722,9 +766,7 @@ export default function ResenasInicio() {
             onClick={(evento) => evento.stopPropagation()}
           >
             <img
-              src={`/api/imagen-drive?id=${encodeURIComponent(
-                galeriaAbierta.fotos[galeriaAbierta.indice]
-              )}`}
+              src={galeriaAbierta.fotos[galeriaAbierta.indice]}
               alt={`Foto ${galeriaAbierta.indice + 1} del pedido ${
                 galeriaAbierta.pedido
               }`}
