@@ -1,13 +1,14 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 function ResenaContent() {
   const searchParams = useSearchParams();
+
   const pedido = searchParams.get("pedido") || "";
+  const codigo = searchParams.get("codigo") || "";
 
   const [estrellas, setEstrellas] = useState(5);
   const [comentario, setComentario] = useState("");
@@ -24,6 +25,11 @@ function ResenaContent() {
       return;
     }
 
+    if (!codigo) {
+      setError("El enlace de la reseña no es válido.");
+      return;
+    }
+
     if (!comentario.trim()) {
       setError("Escribí un comentario.");
       return;
@@ -34,10 +40,14 @@ function ResenaContent() {
     try {
       const response = await fetch("/api/resenas", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           pedido,
+          codigo,
           estrellas,
-          comentario,
+          comentario: comentario.trim(),
           mostrarProyecto,
         }),
       });
@@ -49,14 +59,17 @@ function ResenaContent() {
       }
 
       setEnviado(true);
-    } catch (error: any) {
-      setError(error.message || "Error al enviar la reseña.");
+    } catch (error: unknown) {
+      const mensaje =
+        error instanceof Error
+          ? error.message
+          : "Error al enviar la reseña.";
+
+      setError(mensaje);
+    } finally {
+      setEnviando(false);
     }
-
-    setEnviando(false);
   }
-
-  
 
   if (enviado) {
     return (
@@ -72,10 +85,11 @@ function ResenaContent() {
             Tu reseña fue enviada correctamente.
           </p>
 
-          <Link href="/">
-            <button className="mt-10 border border-red-600 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
-              Volver al inicio
-            </button>
+          <Link
+            href="/"
+            className="mt-10 inline-block border border-red-600 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
+          >
+            Volver al inicio
           </Link>
         </section>
       </main>
@@ -109,11 +123,17 @@ function ResenaContent() {
           </p>
 
           <div className="flex justify-center gap-2 text-4xl">
-            {[1, 2, 3, 4, 5].map((n) => (
+            {[1, 2, 3, 4, 5].map((numero) => (
               <button
-                key={n}
-                onClick={() => setEstrellas(n)}
-                className={n <= estrellas ? "text-red-600" : "text-[var(--text-muted)]"}
+                key={numero}
+                type="button"
+                onClick={() => setEstrellas(numero)}
+                aria-label={`Calificar con ${numero} estrellas`}
+                className={
+                  numero <= estrellas
+                    ? "text-red-600"
+                    : "text-[var(--text-muted)]"
+                }
               >
                 ★
               </button>
@@ -125,7 +145,8 @@ function ResenaContent() {
           value={comentario}
           onChange={(e) => setComentario(e.target.value)}
           placeholder="Escribí tu reseña..."
-          className="min-h-40 w-full border border-[var(--border-color)] bg-transparent p-5 text-sm outline-none transition focus:border-red-600"
+          maxLength={1000}
+          className="min-h-40 w-full resize-y border border-[var(--border-color)] bg-transparent p-5 text-sm outline-none transition focus:border-red-600"
         />
 
         <label className="mt-6 flex cursor-pointer items-center justify-center gap-3 text-sm text-[var(--text-muted)]">
@@ -144,9 +165,10 @@ function ResenaContent() {
         )}
 
         <button
+          type="button"
           onClick={enviarResena}
-          disabled={enviando}
-          className="mt-10 w-full border border-red-600 bg-red-600 px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] text-white transition hover:bg-transparent hover:text-red-600 disabled:opacity-50"
+          disabled={enviando || !pedido || !codigo}
+          className="mt-10 w-full border border-red-600 bg-red-600 px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] text-white transition hover:bg-transparent hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {enviando ? "Enviando..." : "Enviar reseña"}
         </button>
@@ -154,6 +176,7 @@ function ResenaContent() {
     </main>
   );
 }
+
 export default function ResenaPage() {
   return (
     <Suspense fallback={<div>Cargando...</div>}>
