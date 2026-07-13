@@ -9,7 +9,6 @@ type Resena = {
   comentario: string;
   insignia: string;
   fotoProyecto?: string;
-  idResena: string;
   likes: number;
 };
 
@@ -32,6 +31,7 @@ function obtenerDispositivo() {
   }
 
   const nuevo = generarIdentificadorDispositivo();
+
   localStorage.setItem(CLAVE_DISPOSITIVO, nuevo);
 
   return nuevo;
@@ -52,7 +52,9 @@ function obtenerLikesGuardados() {
     }
 
     return new Set(
-      lista.map((id) => String(id).trim().toUpperCase()).filter(Boolean)
+      lista
+        .map((pedido) => String(pedido).trim().toUpperCase())
+        .filter(Boolean)
     );
   } catch {
     return new Set<string>();
@@ -98,27 +100,29 @@ export default function ResenasInicio() {
     }
 
     const parametros = new URLSearchParams(window.location.search);
-    const idBuscado = parametros.get("resena");
+    const pedidoBuscado = parametros.get("resena");
 
-    if (!idBuscado) {
+    if (!pedidoBuscado) {
       return;
     }
 
-    const idNormalizado = idBuscado.trim().toUpperCase();
+    const pedidoNormalizado = pedidoBuscado.trim().toUpperCase();
 
     const existe = resenas.some(
       (resena) =>
-        String(resena.idResena || "").trim().toUpperCase() === idNormalizado
+        String(resena.pedido || "").trim().toUpperCase() === pedidoNormalizado
     );
 
     if (!existe) {
       return;
     }
 
-    setResenaDestacada(idNormalizado);
+    setResenaDestacada(pedidoNormalizado);
 
     window.setTimeout(() => {
-      const elemento = document.getElementById(`resena-${idNormalizado}`);
+      const elemento = document.getElementById(
+        `resena-${pedidoNormalizado}`
+      );
 
       elemento?.scrollIntoView({
         behavior: "smooth",
@@ -127,13 +131,15 @@ export default function ResenasInicio() {
     }, 300);
   }, [loading, resenas]);
 
-  async function cambiarLike(idResena: string) {
-    if (!idResena || procesandoLike) {
+  async function cambiarLike(pedido: string) {
+    if (!pedido || procesandoLike) {
       return;
     }
 
+    const pedidoNormalizado = pedido.trim().toUpperCase();
+
     setErrorLike(null);
-    setProcesandoLike(idResena);
+    setProcesandoLike(pedidoNormalizado);
 
     try {
       const dispositivo = obtenerDispositivo();
@@ -145,7 +151,7 @@ export default function ResenasInicio() {
         },
         body: JSON.stringify({
           tipo: "like_resena",
-          idResena,
+          pedido: pedidoNormalizado,
           dispositivo,
         }),
       });
@@ -160,11 +166,11 @@ export default function ResenasInicio() {
 
       setResenas((actuales) =>
         actuales.map((resena) => {
-          const idActual = String(resena.idResena || "")
+          const pedidoActual = String(resena.pedido || "")
             .trim()
             .toUpperCase();
 
-          if (idActual !== idResena) {
+          if (pedidoActual !== pedidoNormalizado) {
             return resena;
           }
 
@@ -179,9 +185,9 @@ export default function ResenasInicio() {
         const nuevos = new Set(actuales);
 
         if (data.tieneLike) {
-          nuevos.add(idResena);
+          nuevos.add(pedidoNormalizado);
         } else {
-          nuevos.delete(idResena);
+          nuevos.delete(pedidoNormalizado);
         }
 
         localStorage.setItem(
@@ -229,16 +235,16 @@ export default function ResenasInicio() {
 
       <div className="grid gap-8 md:grid-cols-2">
         {resenas.map((resena, index) => {
-          const idResena =
-            String(resena.idResena || "").trim().toUpperCase() ||
-            `${resena.pedido}-${index}`;
+          const pedido =
+            String(resena.pedido || "").trim().toUpperCase() ||
+            `pedido-${index}`;
 
-          const idProyecto = `${idResena}-proyecto`;
+          const idProyecto = `${pedido}-proyecto`;
           const tieneFoto = Boolean(resena.fotoProyecto);
           const estaAbierta = abierta === idProyecto;
-          const estaDestacada = resenaDestacada === idResena;
-          const tieneLike = likesPropios.has(idResena);
-          const estaProcesando = procesandoLike === idResena;
+          const estaDestacada = resenaDestacada === pedido;
+          const tieneLike = likesPropios.has(pedido);
+          const estaProcesando = procesandoLike === pedido;
 
           const estrellas = Math.max(
             0,
@@ -247,8 +253,8 @@ export default function ResenasInicio() {
 
           return (
             <article
-              id={`resena-${idResena}`}
-              key={idResena}
+              id={`resena-${pedido}`}
+              key={pedido}
               className={[
                 "scroll-mt-28 rounded-2xl border p-8 transition duration-500",
                 estaDestacada
@@ -275,7 +281,7 @@ export default function ResenasInicio() {
                 </div>
 
                 <p className="shrink-0 text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-                  {idResena}
+                  {pedido}
                 </p>
               </div>
 
@@ -296,12 +302,12 @@ export default function ResenasInicio() {
 
               <div className="flex items-center justify-between gap-4 border-t border-[var(--border-color)] pt-5">
                 <p className="text-xs text-[var(--text-muted)]">
-                  Pedido: {resena.pedido}
+                  Pedido: {pedido}
                 </p>
 
                 <button
                   type="button"
-                  onClick={() => cambiarLike(idResena)}
+                  onClick={() => cambiarLike(pedido)}
                   disabled={estaProcesando}
                   aria-label={
                     tieneLike
@@ -344,7 +350,7 @@ export default function ResenasInicio() {
                     <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--border-color)]">
                       <img
                         src={resena.fotoProyecto}
-                        alt={`Proyecto correspondiente al pedido ${resena.pedido}`}
+                        alt={`Proyecto correspondiente al pedido ${pedido}`}
                         loading="lazy"
                         className="h-auto w-full object-cover"
                       />

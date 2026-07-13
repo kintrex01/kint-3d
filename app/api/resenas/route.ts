@@ -37,17 +37,17 @@ export async function POST(request: Request) {
     const tipo = String(data.tipo || "resena").trim();
 
     if (tipo === "like_resena") {
-      const idResena = String(data.idResena || "")
+      const pedido = String(data.pedido || "")
         .trim()
         .toUpperCase();
 
       const dispositivo = String(data.dispositivo || "").trim();
 
-      if (!idResena) {
+      if (!pedido) {
         return Response.json(
           {
             ok: false,
-            error: "Falta el ID de la reseña.",
+            error: "Falta el número de pedido.",
           },
           { status: 400 }
         );
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           },
           body: JSON.stringify({
             tipo: "like_resena",
-            idResena,
+            pedido,
             dispositivo,
           }),
         }
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
 
       return Response.json({
         ok: true,
-        idResena: result.idResena,
+        pedido: result.pedido,
         likes: result.likes,
         tieneLike: result.tieneLike,
       });
@@ -170,7 +170,7 @@ export async function POST(request: Request) {
 
     return Response.json({
       ok: true,
-      idResena: result.idResena,
+      pedido,
       codigoEdicion: result.codigoEdicion,
       fechaLimiteEdicion: result.fechaLimiteEdicion,
     });
