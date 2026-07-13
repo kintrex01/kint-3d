@@ -34,6 +34,66 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    const tipo = String(data.tipo || "resena").trim();
+
+    if (tipo === "like_resena") {
+      const idResena = String(data.idResena || "")
+        .trim()
+        .toUpperCase();
+
+      const dispositivo = String(data.dispositivo || "").trim();
+
+      if (!idResena) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Falta el ID de la reseña.",
+          },
+          { status: 400 }
+        );
+      }
+
+      if (!dispositivo) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Falta identificar el dispositivo.",
+          },
+          { status: 400 }
+        );
+      }
+
+      const response = await fetch(
+        process.env.GOOGLE_APPS_SCRIPT_URL!,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify({
+            tipo: "like_resena",
+            idResena,
+            dispositivo,
+          }),
+        }
+      );
+
+      const text = await response.text();
+      const result = JSON.parse(text);
+
+      if (!result.ok) {
+        throw new Error(
+          result.error || "No se pudo actualizar el like."
+        );
+      }
+
+      return Response.json({
+        ok: true,
+        idResena: result.idResena,
+        likes: result.likes,
+        tieneLike: result.tieneLike,
+      });
+    }
 
     const pedido = String(data.pedido || "").trim();
     const codigo = String(data.codigo || "").trim();
@@ -81,26 +141,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
-      method: "POST",
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-      body: JSON.stringify({
-        tipo: "resena",
-        pedido,
-        codigo,
-        estrellas,
-        comentario,
-        mostrarProyecto,
-      }),
-    });
+    const response = await fetch(
+      process.env.GOOGLE_APPS_SCRIPT_URL!,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/plain;charset=utf-8",
+        },
+        body: JSON.stringify({
+          tipo: "resena",
+          pedido,
+          codigo,
+          estrellas,
+          comentario,
+          mostrarProyecto,
+        }),
+      }
+    );
 
     const text = await response.text();
     const result = JSON.parse(text);
 
     if (!result.ok) {
-      throw new Error(result.error || "Error al guardar la reseña.");
+      throw new Error(
+        result.error || "Error al guardar la reseña."
+      );
     }
 
     return Response.json({
@@ -113,7 +178,7 @@ export async function POST(request: Request) {
     const mensaje =
       error instanceof Error
         ? error.message
-        : "Error al enviar la reseña.";
+        : "Error al procesar la solicitud.";
 
     return Response.json(
       {
