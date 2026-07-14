@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       boquilla: String(body.boquilla || ""),
       comentarios: String(body.comentarios || ""),
       codigoDescuento: String(body.codigoDescuento || ""),
+      pedidoPrioritario: Boolean(body.pedidoPrioritario),
 
       archivoNombre: String(body.archivoNombre || ""),
       archivoLink: String(body.archivoLink || ""),
@@ -137,6 +138,14 @@ if (archivosRegistrados.length > 0) {
         <p><strong>Armado:</strong> ${payload.armado}</p>
         <p><strong>Alisado:</strong> ${payload.alisado}</p>
         <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
+        <p>
+  <strong>Pedido prioritario:</strong>
+  ${
+    payload.pedidoPrioritario
+      ? "Sí — aplicar recargo del 20%"
+      : "No"
+  }
+</p>
         <p><strong>Archivo:</strong> ${archivosRegistrados.map(a => a.nombreArchivo).join(", ")}</p>
         <p><strong>Archivo pesado:</strong> ${
   body.archivoPesadoWhatsapp

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import ResenasInicio from "../components/ResenasInicio";
 import ThemeToggle from "../components/ThemeToggle";
+import EstadisticasInicio from "../components/EstadisticasInicio";
 import {
   Box,
   Layers3,
@@ -17,23 +18,20 @@ export default function Home() {
   return (
     <main className="relative min-h-screen overflow-hidden text-[var(--text-main)] transition">
 
- <header className="absolute left-0 top-0 z-50 w-full px-2 py-6">
-  <div className="mx-auto flex max-w-[1180px] items-center justify-between">
-    <Link href="/" className="sr-only">
-      Kint 3D
-    </Link>
+ <header className="fixed right-5 top-5 z-50 md:right-8 md:top-6">
+  <Link href="/" className="sr-only">
+    Kint 3D
+  </Link>
 
-    <div className="opacity-0">KINT 3D</div>
-
-    <div className="flex items-center">
   <ThemeToggle />
-</div>
-
-</div>
 </header>
 
 <section className="relative overflow-hidden px-8 pt-12">
   <div className="kint-hero-bg" />
+
+  <div className="absolute right-8 top-24 z-30 hidden xl:block">
+  <EstadisticasInicio />
+</div>
 
   <div className="relative z-20 mx-auto grid min-h-[650px] w-full max-w-[1180px] grid-cols-1 items-start md:grid-cols-[760px_1fr]">
     <div className="pt-0 origin-top-left md:scale-[1.08]">
@@ -164,6 +162,10 @@ export default function Home() {
 
     </div>
   </div>
+
+  <div className="relative z-20 -mt-4 flex justify-center px-6 xl:hidden">
+  <EstadisticasInicio />
+</div>
 
       <section className="relative z-20 px-6 pt-40 pb-24 bg-transparent">
         <div className="mx-auto max-w-6xl text-center">

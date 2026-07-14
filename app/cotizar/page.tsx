@@ -2,12 +2,23 @@
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+type OpcionConfiguracion = {
+  valor: string | number;
+  comentario: string;
+};
+
+type Configuracion = Record<
+  string,
+  OpcionConfiguracion
+>;
 
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
@@ -22,13 +33,143 @@ export default function Cotizar() {
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
+  const [pedidoPrioritario, setPedidoPrioritario] =
+  useState(false);
   const [archivos, setArchivos] = useState<File[]>([]);
   const [archivoPesadoWhatsapp, setArchivoPesadoWhatsapp] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
 
+  const [configuracion, setConfiguracion] =
+  useState<Configuracion>({});
+
+const [cargandoConfiguracion, setCargandoConfiguracion] =
+  useState(true);
+
+const [errorConfiguracion, setErrorConfiguracion] =
+  useState("");
+
+  const [avisoSemiAbierto, setAvisoSemiAbierto] =
+  useState(true);
+
+useEffect(() => {
+  async function cargarConfiguracion() {
+    try {
+      const response = await fetch("/api/configuracion", {
+        cache: "no-store",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(
+          data.error ||
+            "No se pudo cargar la configuración."
+        );
+      }
+
+      setConfiguracion(data.configuracion || {});
+    } catch (error) {
+      console.error(error);
+
+      setErrorConfiguracion(
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar la configuración."
+      );
+    } finally {
+      setCargandoConfiguracion(false);
+    }
+  }
+
+  cargarConfiguracion();
+}, []);
+
+
+const estadoAceptarPedidos = String(
+  configuracion.aceptar_pedidos?.valor || ""
+)
+  .trim()
+  .toLowerCase();
+
+const aceptarPedidos =
+  estadoAceptarPedidos === "habilitada";
+
+const pedidosEnModoSemi =
+  estadoAceptarPedidos === "semi";
+
+const pedidosDeshabilitados =
+  estadoAceptarPedidos === "deshabilitada";
+
+const pedidoUrgenteHabilitado =
+  String(
+    configuracion.pedido_urgente?.valor || ""
+  ).toLowerCase() === "habilitada";
+
+const pedidoUrgenteValor = Number(
+  configuracion.pedido_urgente_valor?.valor || 0
+);
+
+const pedidoUrgenteCupos = Number(
+  configuracion.pedido_urgente_cupos?.valor || 0
+);
+
+const pedidoUrgenteComentario =
+  configuracion.pedido_urgente?.comentario ||
+  "Tu pedido tendrá prioridad en la cola de producción. El recargo se aplicará al presupuesto final y está sujeto a disponibilidad.";
+
+const pedidoUrgenteDisponible =
+  pedidoUrgenteHabilitado &&
+  pedidoUrgenteCupos > 0;
+
+  const mensajePedidosDeshabilitados =
+  configuracion.aceptar_pedidos?.comentario ||
+  `Cotizaciones no disponibles
+
+En este momento no estamos aceptando nuevos pedidos.`;
+
+const lineasMensajePedidos =
+  mensajePedidosDeshabilitados.split(/\r?\n/);
+
+const tituloPedidosDeshabilitados =
+  lineasMensajePedidos[0] ||
+  "Cotizaciones no disponibles";
+
+const detallePedidosDeshabilitados =
+  lineasMensajePedidos.slice(1).join("\n").trim();
+
+  useEffect(() => {
+  if (!pedidoUrgenteDisponible) {
+    setPedidoPrioritario(false);
+  }
+}, [pedidoUrgenteDisponible]);
+
   async function enviarPedido() {
+
+if (cargandoConfiguracion) {
+  alert(
+    "Esperá un momento mientras cargamos la configuración."
+  );
+  return;
+}
+
+if (errorConfiguracion) {
+  alert(
+    "No pudimos verificar si estamos aceptando pedidos. Recargá la página."
+  );
+  return;
+}
+
+if (pedidosDeshabilitados) {
+  alert(
+    configuracion.aceptar_pedidos?.comentario ||
+      "En este momento no estamos aceptando nuevos pedidos."
+  );
+  return;
+}
+
+
   if (!nombre.trim()) {
     alert("Por favor, escribí tu nombre o apodo.");
     return;
@@ -110,6 +251,7 @@ if (archivos.length > 0) {
         boquilla,
         comentarios,
         codigoDescuento,
+        pedidoPrioritario,
         archivosOriginales,
         archivoPesadoWhatsapp,
       }),
@@ -144,6 +286,7 @@ if (archivos.length > 0) {
     setBoquilla("");
     setComentarios("");
     setCodigoDescuento("");
+    setPedidoPrioritario(false);
     setArchivos([]);
     setArchivoPesadoWhatsapp(false);
 
@@ -159,6 +302,74 @@ if (archivos.length > 0) {
   }
 
   setEnviando(false);
+}
+
+if (cargandoConfiguracion) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] px-6 text-[var(--text-main)]">
+      <p className="text-lg font-semibold">
+        Cargando...
+      </p>
+    </main>
+  );
+}
+
+if (errorConfiguracion) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[var(--page-bg)] px-6 text-[var(--text-main)]">
+      <div className="max-w-xl rounded-3xl border border-red-600 bg-red-600/10 p-8 text-center">
+        <h1 className="mb-3 text-2xl font-bold text-red-600">
+          No pudimos cargar la página
+        </h1>
+
+        <p className="text-[var(--text-muted)]">
+          Recargá la página dentro de unos momentos.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+if (pedidosDeshabilitados) {
+  return (
+    <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)]">
+      <div className="fixed left-8 top-8">
+        <Link href="/">
+          <button className="flex items-center gap-1 text-2xl font-bold transition hover:opacity-70">
+            <span className="relative -top-1 text-6xl leading-none">
+              ‹
+            </span>
+
+            <span>Inicio</span>
+          </button>
+        </Link>
+      </div>
+
+      <section className="mx-auto flex min-h-[75vh] max-w-3xl items-center justify-center">
+        <div className="w-full rounded-3xl border border-red-600 bg-[var(--card-bg)] p-10 text-center shadow-xl">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-600/10 text-3xl">
+            !
+          </div>
+
+          <h1 className="mb-4 text-3xl font-bold text-red-600">
+  {tituloPedidosDeshabilitados}
+</h1>
+
+          {detallePedidosDeshabilitados && (
+  <p className="whitespace-pre-wrap text-lg leading-8 text-[var(--text-muted)]">
+    {detallePedidosDeshabilitados}
+  </p>
+)}
+
+          <Link href="/">
+            <button className="mt-8 rounded-2xl bg-red-600 px-8 py-4 font-bold text-white transition hover:bg-black">
+              Volver al inicio
+            </button>
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
 }
 
 if (enviado) {
@@ -208,6 +419,71 @@ if (enviado) {
 
 return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
+
+      <div className="fixed right-6 top-6 z-[1000]">
+  <ThemeToggle />
+</div>
+
+{pedidosEnModoSemi && avisoSemiAbierto && (
+  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/45 px-5 py-8 backdrop-blur-xl">
+    
+    {/* Brillos suaves del fondo */}
+    <div className="pointer-events-none absolute left-[10%] top-[15%] h-60 w-60 rounded-full bg-blue-500/15 blur-[110px]" />
+    <div className="pointer-events-none absolute bottom-[12%] right-[12%] h-64 w-64 rounded-full bg-cyan-400/10 blur-[120px]" />
+
+    <div className="relative flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-blue-400/25 bg-[var(--card-bg)] px-7 py-10 text-center shadow-[0_25px_80px_rgba(0,70,180,0.22)] backdrop-blur-2xl sm:px-12 sm:py-12">
+
+      {/* Luz interior */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-blue-500/10 to-transparent" />
+
+      {/* Ícono */}
+      <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 shadow-[0_0_35px_rgba(47,147,255,0.16)]">
+        <span className="text-2xl font-light text-[var(--blue-soft)]">
+          !
+        </span>
+      </div>
+
+      <p className="relative mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--blue-soft)]">
+        Información importante
+      </p>
+
+      <h2 className="relative mb-5 max-w-2xl text-3xl font-semibold tracking-tight text-[var(--text-main)] sm:text-4xl">
+        Antes de continuar
+      </h2>
+
+      <div className="relative h-px w-20 bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
+
+      <p className="relative mt-6 max-w-2xl whitespace-pre-wrap text-base leading-7 text-[var(--text-muted)] sm:text-lg sm:leading-8">
+        {configuracion.aceptar_pedidos?.comentario ||
+          "Estamos trabajando con algunas limitaciones, pero podés continuar con tu cotización."}
+      </p>
+
+      <div className="relative mt-8 flex w-full max-w-xl flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => setAvisoSemiAbierto(false)}
+          className="flex-1 rounded-2xl border border-blue-400/40 bg-gradient-to-r from-[#2e5fbe] via-[#2452ab] to-[#1d4695] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_30px_rgba(29,79,154,0.22)] transition hover:-translate-y-0.5 hover:brightness-110"
+        >
+          Continuar
+        </button>
+
+        <Link href="/" className="flex-1">
+          <button
+            type="button"
+            className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--glass-bg)] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-main)] transition hover:-translate-y-0.5 hover:border-blue-400/70 hover:text-[var(--blue-soft)]"
+          >
+            Volver al inicio
+          </button>
+        </Link>
+      </div>
+
+      <p className="relative mt-5 text-xs leading-5 text-[var(--text-muted)] opacity-70">
+        Podés continuar normalmente después de leer este aviso.
+      </p>
+    </div>
+  </div>
+)}
+
       <div className="fixed left-8 top-8 z-50">
         <Link href="/">
           <button className="flex items-center gap-1 text-2xl font-bold text-[var(--text-main)] transition hover:opacity-70">
@@ -427,6 +703,70 @@ return (
             className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
           />
         </div>
+
+{pedidoUrgenteHabilitado && (
+  <div
+    className={`mb-6 rounded-2xl border p-5 transition ${
+      pedidoPrioritario
+        ? "border-red-600 bg-red-600/10"
+        : "border-[var(--border-color)] bg-[var(--page-bg)]"
+    } ${
+      !pedidoUrgenteDisponible
+        ? "opacity-60"
+        : ""
+    }`}
+  >
+    <label
+      className={`flex items-start gap-4 ${
+        pedidoUrgenteDisponible
+          ? "cursor-pointer"
+          : "cursor-not-allowed"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={pedidoPrioritario}
+        disabled={!pedidoUrgenteDisponible}
+        onChange={(e) =>
+          setPedidoPrioritario(e.target.checked)
+        }
+        className="mt-1 h-5 w-5 accent-red-600"
+      />
+
+      <span>
+        <span className="block font-bold text-[var(--text-main)]">
+          Pedido urgente
+
+          {pedidoUrgenteValor > 0 && (
+            <span className="ml-2 text-red-600">
+              +{pedidoUrgenteValor}%
+            </span>
+          )}
+        </span>
+
+        <span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
+          {pedidoUrgenteComentario}
+        </span>
+
+        {pedidoUrgenteDisponible ? (
+          <span className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">
+            Cupos disponibles: {pedidoUrgenteCupos}
+          </span>
+        ) : (
+          <span className="mt-3 block text-sm font-bold text-red-600">
+            No hay cupos urgentes disponibles en este momento.
+          </span>
+        )}
+
+        {pedidoPrioritario && (
+          <span className="mt-3 block text-sm font-bold text-red-600">
+            ✓ Pedido urgente seleccionado
+          </span>
+        )}
+      </span>
+    </label>
+  </div>
+)}
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
