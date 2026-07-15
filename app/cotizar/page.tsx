@@ -999,13 +999,35 @@ return (
               <option value="" className="text-red-600">
                 Seleccionar boquilla
               </option>
-            {boquilla02Habilitada && (
-  <option>0.2 mm — Máximo detalle</option>
-)}
+            <option
+  disabled={!boquilla02Habilitada}
+  className={
+    boquilla02Habilitada
+      ? "text-black"
+      : "text-gray-400"
+  }
+>
+  0.2 mm — Máximo detalle
+  {!boquilla02Habilitada &&
+  configuracion.boquilla_0_2?.comentario
+    ? ` — ${configuracion.boquilla_0_2.comentario}`
+    : ""}
+</option>
 
-{boquilla04Habilitada && (
-  <option>0.4 mm — Mejor equilibrio</option>
-)}
+<option
+  disabled={!boquilla04Habilitada}
+  className={
+    boquilla04Habilitada
+      ? "text-black"
+      : "text-gray-400"
+  }
+>
+  0.4 mm — Mejor equilibrio
+  {!boquilla04Habilitada &&
+  configuracion.boquilla_0_4?.comentario
+    ? ` — ${configuracion.boquilla_0_4.comentario}`
+    : ""}
+</option>
 
 <option>Que Kint 3D decida</option>
           </select>
