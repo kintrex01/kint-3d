@@ -123,6 +123,21 @@ const pedidoUrgenteDisponible =
   pedidoUrgenteHabilitado &&
   pedidoUrgenteCupos > 0;
 
+  const armadoHabilitado =
+  String(configuracion.armado?.valor || "")
+    .trim()
+    .toLowerCase() === "habilitada";
+
+const boquilla02Habilitada =
+  String(configuracion.boquilla_0_2?.valor || "")
+    .trim()
+    .toLowerCase() === "habilitada";
+
+const boquilla04Habilitada =
+  String(configuracion.boquilla_0_4?.valor || "")
+    .trim()
+    .toLowerCase() === "habilitada";
+
   const mensajePedidosDeshabilitados =
   configuracion.aceptar_pedidos?.comentario ||
   `Cotizaciones no disponibles
@@ -144,6 +159,32 @@ const detallePedidosDeshabilitados =
     setPedidoPrioritario(false);
   }
 }, [pedidoUrgenteDisponible]);
+
+useEffect(() => {
+  if (!armadoHabilitado) {
+    setArmado("No requiero este servicio");
+  }
+}, [armadoHabilitado]);
+
+useEffect(() => {
+  if (
+    boquilla.includes("0.2") &&
+    !boquilla02Habilitada
+  ) {
+    setBoquilla("");
+  }
+
+  if (
+    boquilla.includes("0.4") &&
+    !boquilla04Habilitada
+  ) {
+    setBoquilla("");
+  }
+}, [
+  boquilla,
+  boquilla02Habilitada,
+  boquilla04Habilitada,
+]);
 
   async function enviarPedido() {
 
@@ -894,25 +935,50 @@ return (
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Armado de piezas
-          </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Incluye el pegado de piezas y la remoción de soportes. Nos
-            encargamos de entregar el producto completamente terminado y
-            ensamblado. Este servicio tiene un costo aproximado entre $150 a
-            $300 según el tamaño y la cantidad de piezas.
-          </p>
-          <select
-  value={armado}
-  onChange={(e) => setArmado(e.target.value)}
-  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-    armado === "" ? "text-red-600" : "text-black"
-  }`}
->
-              <option value=""className="text-red-600">Seleccionar opción</option>
-            <option>Sí, quiero incluir este servicio</option>
-            <option>No requiero este servicio</option>
-          </select>
-        </div>
+  </label>
+
+  {armadoHabilitado ? (
+    <>
+      <p className="mb-3 text-sm text-[var(--text-muted)]">
+        Incluye el pegado de piezas y la remoción de soportes.
+        Nos encargamos de entregar el producto completamente
+        terminado y ensamblado.
+      </p>
+
+      <select
+        value={armado}
+        onChange={(e) => setArmado(e.target.value)}
+        className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+          armado === "" ? "text-red-600" : "text-black"
+        }`}
+      >
+        <option value="" className="text-red-600">
+          Seleccionar opción
+        </option>
+
+        <option>
+          Sí, quiero incluir este servicio
+        </option>
+
+        <option>
+          No requiero este servicio
+        </option>
+      </select>
+    </>
+  ) : (
+    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] p-4">
+      <p className="font-semibold text-[var(--text-muted)]">
+        Servicio de armado no disponible
+      </p>
+
+      {configuracion.armado?.comentario && (
+        <p className="mt-2 text-sm text-[var(--text-muted)]">
+          {configuracion.armado.comentario}
+        </p>
+      )}
+    </div>
+  )}
+</div>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -933,9 +999,15 @@ return (
               <option value="" className="text-red-600">
                 Seleccionar boquilla
               </option>
-            <option>0.2 mm — Máximo detalle</option>
-            <option>0.4 mm — Mejor equilibrio</option>
-            <option>Que Kint 3D decida</option>
+            {boquilla02Habilitada && (
+  <option>0.2 mm — Máximo detalle</option>
+)}
+
+{boquilla04Habilitada && (
+  <option>0.4 mm — Mejor equilibrio</option>
+)}
+
+<option>Que Kint 3D decida</option>
           </select>
         </div>
 
