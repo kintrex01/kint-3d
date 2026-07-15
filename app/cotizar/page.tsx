@@ -128,6 +128,11 @@ const pedidoUrgenteDisponible =
     .trim()
     .toLowerCase() === "habilitada";
 
+    const alisadoHabilitado =
+  String(configuracion.alisado?.valor || "")
+    .trim()
+    .toLowerCase() === "habilitada";
+
 const boquilla02Habilitada =
   String(configuracion.boquilla_0_2?.valor || "")
     .trim()
@@ -161,10 +166,10 @@ const detallePedidosDeshabilitados =
 }, [pedidoUrgenteDisponible]);
 
 useEffect(() => {
-  if (!armadoHabilitado) {
-    setArmado("No requiero este servicio");
+  if (!alisadoHabilitado) {
+    setAlisado("No requiero este servicio");
   }
-}, [armadoHabilitado]);
+}, [alisadoHabilitado]);
 
 useEffect(() => {
   if (
@@ -937,47 +942,40 @@ return (
     Armado de piezas
   </label>
 
-  {armadoHabilitado ? (
-    <>
-      <p className="mb-3 text-sm text-[var(--text-muted)]">
-        Incluye el pegado de piezas y la remoción de soportes.
-        Nos encargamos de entregar el producto completamente
-        terminado y ensamblado.
-      </p>
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Incluye el pegado de piezas y la remoción de soportes.
+    Nos encargamos de entregar el producto completamente terminado
+    y ensamblado.
+  </p>
 
-      <select
-        value={armado}
-        onChange={(e) => setArmado(e.target.value)}
-        className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-          armado === "" ? "text-red-600" : "text-black"
-        }`}
-      >
-        <option value="" className="text-red-600">
-          Seleccionar opción
-        </option>
+  <select
+    value={armado}
+    onChange={(e) => setArmado(e.target.value)}
+    className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
+      armado === "" ? "text-red-600" : "text-black"
+    }`}
+  >
+    <option value="" className="text-red-600">
+      Seleccionar opción
+    </option>
 
-        <option>
-          Sí, quiero incluir este servicio
-        </option>
+    <option
+      disabled={!armadoHabilitado}
+      className={
+        armadoHabilitado
+          ? "text-black"
+          : "text-gray-400"
+      }
+    >
+      Sí, quiero incluir este servicio
+      {!armadoHabilitado &&
+      configuracion.armado?.comentario
+        ? ` — ${configuracion.armado.comentario}`
+        : ""}
+    </option>
 
-        <option>
-          No requiero este servicio
-        </option>
-      </select>
-    </>
-  ) : (
-    <div className="rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] p-4">
-      <p className="font-semibold text-[var(--text-muted)]">
-        Servicio de armado no disponible
-      </p>
-
-      {configuracion.armado?.comentario && (
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          {configuracion.armado.comentario}
-        </p>
-      )}
-    </div>
-  )}
+    <option>No requiero este servicio</option>
+  </select>
 </div>
 
         <div className="mb-6">
@@ -1051,10 +1049,44 @@ return (
   }`}
 >
               <option value=""className="text-red-600">Seleccionar opción</option>
-            <option>Sí, quiero incluir este servicio</option>
-            <option>No requiero este servicio</option>
-            <option>Quiero presupuesto con y sin este servicio</option>
-            <option>Que Kint 3D decida</option>
+            <option
+  disabled={!alisadoHabilitado}
+  className={
+    alisadoHabilitado
+      ? "text-black"
+      : "text-gray-400"
+  }
+>
+  Sí, quiero incluir este servicio
+  {!alisadoHabilitado &&
+  configuracion.alisado?.comentario
+    ? ` — ${configuracion.alisado.comentario}`
+    : ""}
+</option>
+
+<option>No requiero este servicio</option>
+
+<option
+  disabled={!alisadoHabilitado}
+  className={
+    alisadoHabilitado
+      ? "text-black"
+      : "text-gray-400"
+  }
+>
+  Quiero presupuesto con y sin este servicio
+</option>
+
+<option
+  disabled={!alisadoHabilitado}
+  className={
+    alisadoHabilitado
+      ? "text-black"
+      : "text-gray-400"
+  }
+>
+  Que Kint 3D decida
+</option>
           </select>
         </div>
 
