@@ -20,6 +20,54 @@ type Configuracion = Record<
   OpcionConfiguracion
 >;
 
+const COLORES_FILAMENTO = [
+  {
+    nombre: "Amarillo",
+    img: "/colores/Amarillo.png",
+    clave: "filamento_amarillo",
+  },
+  {
+    nombre: "Blanco",
+    img: "/colores/Blanco.png",
+    clave: "filamento_blanco",
+  },
+  {
+    nombre: "Cristal",
+    img: "/colores/Cristal.png",
+    clave: "filamento_cristal",
+  },
+  {
+    nombre: "Negro",
+    img: "/colores/Negro.png",
+    clave: "filamento_negro",
+  },
+  {
+    nombre: "Oro",
+    img: "/colores/Oro.png",
+    clave: "filamento_oro",
+  },
+  {
+    nombre: "Rojo",
+    img: "/colores/Rojo.png",
+    clave: "filamento_rojo",
+  },
+  {
+    nombre: "Verde Bosque",
+    img: "/colores/Verde Bosque.png",
+    clave: "filamento_verde_bosque",
+  },
+  {
+    nombre: "Verde",
+    img: "/colores/Verde.png",
+    clave: "filamento_verde",
+  },
+  {
+    nombre: "Violeta",
+    img: "/colores/Violeta.png",
+    clave: "filamento_violeta",
+  },
+] as const;
+
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -143,6 +191,33 @@ const boquilla04Habilitada =
     .trim()
     .toLowerCase() === "habilitada";
 
+    const filamentosConfigurados = COLORES_FILAMENTO.map(
+  (item) => {
+    const opcion = configuracion[item.clave];
+
+    const estado = String(opcion?.valor || "")
+      .trim()
+      .toLowerCase();
+
+    return {
+      ...item,
+
+      habilitado:
+  Boolean(opcion) &&
+  [
+    "habilitada",
+    "habilitado",
+    "sí",
+    "si",
+  ].includes(estado),
+
+      comentario: String(
+        opcion?.comentario || ""
+      ).trim(),
+    };
+  }
+);
+
   const mensajePedidosDeshabilitados =
   configuracion.aceptar_pedidos?.comentario ||
   `Cotizaciones no disponibles
@@ -197,6 +272,44 @@ useEffect(() => {
   boquilla04Habilitada,
 ]);
 
+useEffect(() => {
+  setColor((actual) => {
+    const coloresValidos = actual.filter(
+      (nombreSeleccionado) => {
+        const item = COLORES_FILAMENTO.find(
+          (filamento) =>
+            filamento.nombre === nombreSeleccionado
+        );
+
+        if (!item) {
+          return false;
+        }
+
+        const opcion = configuracion[item.clave];
+
+        if (!opcion) {
+          return false;
+        }
+
+        const estado = String(opcion.valor || "")
+          .trim()
+          .toLowerCase();
+
+        return [
+          "habilitada",
+          "habilitado",
+          "sí",
+          "si",
+        ].includes(estado);
+      }
+    );
+
+    return coloresValidos.length === actual.length
+      ? actual
+      : coloresValidos;
+  });
+}, [configuracion]);
+
   async function enviarPedido() {
 
 if (cargandoConfiguracion) {
@@ -231,6 +344,26 @@ if (pedidosDeshabilitados) {
     alert("Por favor, ingresá un correo electrónico.");
     return;
   }
+
+const coloresNoDisponibles = color.filter(
+  (nombreSeleccionado) => {
+    const item = filamentosConfigurados.find(
+      (filamento) =>
+        filamento.nombre === nombreSeleccionado
+    );
+
+    return !item?.habilitado;
+  }
+);
+
+if (coloresNoDisponibles.length > 0) {
+  alert(
+    `Estos colores ya no están disponibles: ${coloresNoDisponibles.join(
+      ", "
+    )}. Seleccioná otra opción.`
+  );
+  return;
+}
 
   const armadoValido =
   !armadoHabilitado || Boolean(armado);
@@ -885,23 +1018,14 @@ return (
   </p>
 
  <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-
-  {[
-    { nombre: "Amarillo", img: "/colores/Amarillo.png" },
-    { nombre: "Blanco", img: "/colores/Blanco.png" },
-    { nombre: "Cristal", img: "/colores/Cristal.png" },
-    { nombre: "Negro", img: "/colores/Negro.png" },
-    { nombre: "Ocre", img: "/colores/Ocre.png" },
-    { nombre: "Oro", img: "/colores/Oro.png" },
-    { nombre: "Rojo", img: "/colores/Rojo.png" },
-    { nombre: "Verde Bosque", img: "/colores/Verde Bosque.png" },
-    { nombre: "Verde", img: "/colores/Verde.png" },
-    { nombre: "Violeta", img: "/colores/Violeta.png" },
-  ].map((item) => (
+  {filamentosConfigurados.map((item) => (
     <button
       key={item.nombre}
       type="button"
+      disabled={!item.habilitado}
       onClick={() => {
+        if (!item.habilitado) return;
+
         setColor((actual) =>
           actual.includes(item.nombre)
             ? actual.filter((c) => c !== item.nombre)
@@ -909,15 +1033,30 @@ return (
         );
       }}
       className={`rounded-2xl border p-3 transition ${
-        color.includes(item.nombre)
+        !item.habilitado
+          ? "cursor-not-allowed border-gray-300 bg-gray-100 opacity-50"
+          : color.includes(item.nombre)
           ? "border-red-600 ring-2 ring-red-600"
           : "border-[var(--border-color)] hover:border-red-600"
       }`}
     >
+      <img
+        src={item.img}
+        alt={item.nombre}
+        className={`mx-auto h-24 w-24 object-contain ${
+          !item.habilitado ? "grayscale" : ""
+        }`}
+      />
 
       <p className="mt-2 text-center text-sm font-semibold">
         {item.nombre}
       </p>
+
+      {!item.habilitado && (
+        <p className="mt-2 text-center text-xs text-gray-500">
+          {item.comentario || "Color no disponible"}
+        </p>
+      )}
     </button>
   ))}
 </div>
@@ -927,37 +1066,36 @@ return (
     ▼ Ver colores disponibles
   </summary>
 
-  <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+<div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+  {filamentosConfigurados.map((item) => (
+    <div
+      key={item.nombre}
+      className={`rounded-xl border p-3 text-center ${
+        !item.habilitado
+          ? "border-gray-300 bg-gray-100 opacity-50"
+          : "border-[var(--border-color)]"
+      }`}
+    >
+      <img
+        src={item.img}
+        alt={item.nombre}
+        className={`mx-auto h-24 w-24 object-contain ${
+          !item.habilitado ? "grayscale" : ""
+        }`}
+      />
 
-    {[
-      { nombre: "Amarillo", img: "/colores/Amarillo.png" },
-      { nombre: "Blanco", img: "/colores/Blanco.png" },
-      { nombre: "Cristal", img: "/colores/Cristal.png" },
-      { nombre: "Negro", img: "/colores/Negro.png" },
-      { nombre: "Ocre", img: "/colores/Ocre.png" },
-      { nombre: "Oro", img: "/colores/Oro.png" },
-      { nombre: "Rojo", img: "/colores/Rojo.png" },
-      { nombre: "Verde Bosque", img: "/colores/Verde Bosque.png" },
-      { nombre: "Verde", img: "/colores/Verde.png" },
-      { nombre: "Violeta", img: "/colores/Violeta.png" },
-    ].map((item) => (
-      <div
-        key={item.nombre}
-        className="rounded-xl border border-[var(--border-color)] p-3 text-center"
-      >
-        <img
-          src={item.img}
-          alt={item.nombre}
-          className="mx-auto h-24 w-24 object-contain"
-        />
+      <p className="mt-2 text-sm font-semibold">
+        {item.nombre}
+      </p>
 
-        <p className="mt-2 text-sm font-semibold">
-          {item.nombre}
+      {!item.habilitado && (
+        <p className="mt-2 text-xs text-gray-500">
+          {item.comentario || "Color no disponible"}
         </p>
-      </div>
-    ))}
-
-  </div>
+      )}
+    </div>
+  ))}
+</div>
 </details>
 
 </div>
