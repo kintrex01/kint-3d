@@ -208,20 +208,26 @@ const boquilla04Habilitada =
       ...item,
 
       habilitado:
-  Boolean(opcion) &&
-  [
-    "habilitada",
-    "habilitado",
-    "sí",
-    "si",
-  ].includes(estado),
+        Boolean(opcion) &&
+        [
+          "habilitada",
+          "habilitado",
+          "sí",
+          "si",
+        ].includes(estado),
 
       comentario: String(
         opcion?.comentario || ""
       ).trim(),
     };
   }
-);
+).sort((a, b) => {
+  if (a.habilitado === b.habilitado) {
+    return 0;
+  }
+
+  return a.habilitado ? -1 : 1;
+});
 
   const mensajePedidosDeshabilitados =
   configuracion.aceptar_pedidos?.comentario ||
@@ -1022,7 +1028,7 @@ return (
     Podés elegir uno o varios colores.
   </p>
 
- <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+<div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
   {filamentosConfigurados.map((item) => (
     <button
       key={item.nombre}
@@ -1033,39 +1039,44 @@ return (
 
         setColor((actual) =>
           actual.includes(item.nombre)
-            ? actual.filter((c) => c !== item.nombre)
+            ? actual.filter(
+                (c) => c !== item.nombre
+              )
             : [...actual, item.nombre]
         );
       }}
       className={`rounded-2xl border p-3 transition ${
         !item.habilitado
-          ? "cursor-not-allowed border-gray-300 bg-gray-100 opacity-50"
+          ? "cursor-not-allowed border-[var(--border-color)] bg-[var(--page-bg)] opacity-[0.72]"
           : color.includes(item.nombre)
           ? "border-red-600 ring-2 ring-red-600"
           : "border-[var(--border-color)] hover:border-red-600"
       }`}
     >
-{item.img ? (
-  <img
-    src={item.img}
-    alt={item.nombre}
-    className={`mx-auto h-24 w-24 object-contain ${
-      !item.habilitado ? "grayscale" : ""
-    }`}
-  />
-) : (
-  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-sky-300 bg-sky-200 px-2 text-center text-xs font-bold text-sky-950">
-    Foto próximamente
-  </div>
-)}
+      {item.img ? (
+        <img
+          src={item.img}
+          alt={item.nombre}
+          className={`mx-auto h-24 w-24 object-contain ${
+            !item.habilitado
+              ? "grayscale-[35%] brightness-90"
+              : ""
+          }`}
+        />
+      ) : (
+        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-center text-[11px] font-medium text-[var(--text-muted)] opacity-70">
+          Próximamente
+        </div>
+      )}
 
       <p className="mt-2 text-center text-sm font-semibold">
         {item.nombre}
       </p>
 
       {!item.habilitado && (
-        <p className="mt-2 text-center text-xs text-gray-500">
-          {item.comentario || "Color no disponible"}
+        <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
+          {item.comentario ||
+            "Color no disponible"}
         </p>
       )}
     </button>
