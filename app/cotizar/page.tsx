@@ -32,6 +32,11 @@ const COLORES_FILAMENTO = [
     clave: "filamento_blanco",
   },
   {
+  nombre: "Celeste",
+  img: null,
+  clave: "filamento_celeste",
+},
+  {
     nombre: "Cristal",
     img: "/colores/Cristal.png",
     clave: "filamento_cristal",
@@ -1040,13 +1045,19 @@ return (
           : "border-[var(--border-color)] hover:border-red-600"
       }`}
     >
-      <img
-        src={item.img}
-        alt={item.nombre}
-        className={`mx-auto h-24 w-24 object-contain ${
-          !item.habilitado ? "grayscale" : ""
-        }`}
-      />
+{item.img ? (
+  <img
+    src={item.img}
+    alt={item.nombre}
+    className={`mx-auto h-24 w-24 object-contain ${
+      !item.habilitado ? "grayscale" : ""
+    }`}
+  />
+) : (
+  <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-sky-300 bg-sky-200 px-2 text-center text-xs font-bold text-sky-950">
+    Foto próximamente
+  </div>
+)}
 
       <p className="mt-2 text-center text-sm font-semibold">
         {item.nombre}
