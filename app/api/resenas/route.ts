@@ -88,11 +88,11 @@ export async function POST(request: Request) {
       }
 
       return Response.json({
-        ok: true,
-        pedido: result.pedido,
-        likes: result.likes,
-        tieneLike: result.tieneLike,
-      });
+  ok: true,
+  pedido: result.pedido,
+  likes: result.likes,
+  tieneLike: result.tieneLike,
+});
     }
 
     const pedido = String(data.pedido || "")
@@ -220,11 +220,16 @@ export async function POST(request: Request) {
     }
 
     return Response.json({
-      ok: true,
-      pedido,
-      codigoEdicion: result.codigoEdicion,
-      fechaLimiteEdicion: result.fechaLimiteEdicion,
-    });
+  ok: true,
+  pedido,
+  codigoEdicion: result.codigoEdicion,
+  fechaLimiteEdicion: result.fechaLimiteEdicion,
+  publicada: result.publicada === true,
+  mensaje:
+    result.mensaje ||
+    "Recibimos tu reseña correctamente.",
+});
+
   } catch (error: unknown) {
     const mensaje =
       error instanceof Error

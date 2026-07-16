@@ -59,7 +59,14 @@ function ResenaContent() {
   const [enviando, setEnviando] = useState(false);
   const [etapaEnvio, setEtapaEnvio] = useState("");
   const [enviado, setEnviado] = useState(false);
-  const [error, setError] = useState("");
+
+const [resenaPublicada, setResenaPublicada] =
+  useState(false);
+
+const [mensajeRespuesta, setMensajeRespuesta] =
+  useState("");
+
+const [error, setError] = useState("");
 
   useEffect(() => {
     const nuevasVistas = archivos.map((archivo) => ({
@@ -243,7 +250,7 @@ function ResenaContent() {
     try {
       const fotos = await subirImagenes();
 
-      setEtapaEnvio("Publicando reseña...");
+      setEtapaEnvio("Enviando reseña...");
 
       const response = await fetch("/api/resenas", {
         method: "POST",
@@ -264,12 +271,19 @@ function ResenaContent() {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(
-          data.error || "No se pudo enviar la reseña."
-        );
-      }
+  throw new Error(
+    data.error || "No se pudo enviar la reseña."
+  );
+}
 
-      setEnviado(true);
+setResenaPublicada(data.publicada === true);
+
+setMensajeRespuesta(
+  data.mensaje ||
+    "Recibimos tu reseña correctamente."
+);
+
+setEnviado(true);
     } catch (error: unknown) {
       const mensaje =
         error instanceof Error
@@ -298,21 +312,33 @@ function ResenaContent() {
           <div className="mx-auto my-8 h-[2px] w-20 bg-red-600" />
 
           <p className="text-sm uppercase leading-8 tracking-[0.25em] text-[var(--text-muted)]">
-            Tu reseña fue publicada correctamente.
-          </p>
-
-          <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
-  Podrás editarla durante las próximas 48 horas.
+  {mensajeRespuesta}
 </p>
 
-          <Link
-            href={`/?resena=${encodeURIComponent(
-              pedido
-            )}#resenas`}
-            className="mt-10 inline-block border border-red-600 bg-red-600 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-white transition hover:bg-transparent hover:text-red-600"
-          >
-            Ver mi reseña
-          </Link>
+          <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
+  Podrás editarla durante las próximas 24 horas.
+</p>
+
+          {resenaPublicada ? (
+  <Link
+    href={`/?resena=${encodeURIComponent(
+      pedido
+    )}#resenas`}
+    className="mt-10 inline-block border border-red-600 bg-red-600 px-8 py-4 text-sm font-bold uppercase tracking-[0.25em] text-white transition hover:bg-transparent hover:text-red-600"
+  >
+    Ver mi reseña
+  </Link>
+) : (
+  <div className="mx-auto mt-10 max-w-md rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-6 py-5">
+    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+      Pendiente de revisión
+    </p>
+
+    <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+      La reseña aparecerá públicamente cuando sea aprobada.
+    </p>
+  </div>
+)}
 
           <br />
 
@@ -388,12 +414,12 @@ function ResenaContent() {
 
         <div className="mt-6 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] px-5 py-4 text-left">
   <p className="text-sm font-bold text-[var(--text-main)]">
-    Podrás editar tu reseña durante 2 días
+    Podrás editar tu reseña durante 24 horas
   </p>
 
   <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
-    Después de publicarla tendrás 48 horas para cambiar la
-    calificación, el comentario, las fotos o las autorizaciones.
+    Después de enviarla tendrás 24 horas para cambiar la
+calificación, el comentario, las fotos o las autorizaciones.
   </p>
 </div>
 
