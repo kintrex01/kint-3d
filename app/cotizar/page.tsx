@@ -166,6 +166,12 @@ const detallePedidosDeshabilitados =
 }, [pedidoUrgenteDisponible]);
 
 useEffect(() => {
+  if (!armadoHabilitado) {
+    setArmado("No requiero este servicio");
+  }
+}, [armadoHabilitado]);
+
+useEffect(() => {
   if (!alisadoHabilitado) {
     setAlisado("No requiero este servicio");
   }
@@ -226,10 +232,24 @@ if (pedidosDeshabilitados) {
     return;
   }
 
-  if (!escala || color.length === 0 || !armado || !alisado || !boquilla) {
-    alert("Por favor completá todas las opciones que dicen 'Seleccionar...'.");
-    return;
-  }
+  const armadoValido =
+  !armadoHabilitado || Boolean(armado);
+
+const alisadoValido =
+  !alisadoHabilitado || Boolean(alisado);
+
+if (
+  !escala ||
+  color.length === 0 ||
+  !armadoValido ||
+  !alisadoValido ||
+  !boquilla
+) {
+  alert(
+    "Por favor completá todas las opciones que dicen 'Seleccionar...'."
+  );
+  return;
+}
 
   setEnviando(true);
 
@@ -292,8 +312,13 @@ if (archivos.length > 0) {
         fechaEntrega,
         escala: escalaFinal,
         color: color.join(", "),
-        armado,
-        alisado,
+        armado: armadoHabilitado
+  ? armado
+  : "No requiero este servicio",
+
+alisado: alisadoHabilitado
+  ? alisado
+  : "No requiero este servicio",
         boquilla,
         comentarios,
         codigoDescuento,
