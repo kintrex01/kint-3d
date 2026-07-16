@@ -1061,43 +1061,6 @@ return (
   ))}
 </div>
 
-<details className="mt-6 rounded-xl border border-[var(--border-color)] p-4">
-  <summary className="cursor-pointer font-semibold text-[var(--text-main)]">
-    ▼ Ver colores disponibles
-  </summary>
-
-<div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
-  {filamentosConfigurados.map((item) => (
-    <div
-      key={item.nombre}
-      className={`rounded-xl border p-3 text-center ${
-        !item.habilitado
-          ? "border-gray-300 bg-gray-100 opacity-50"
-          : "border-[var(--border-color)]"
-      }`}
-    >
-      <img
-        src={item.img}
-        alt={item.nombre}
-        className={`mx-auto h-24 w-24 object-contain ${
-          !item.habilitado ? "grayscale" : ""
-        }`}
-      />
-
-      <p className="mt-2 text-sm font-semibold">
-        {item.nombre}
-      </p>
-
-      {!item.habilitado && (
-        <p className="mt-2 text-xs text-gray-500">
-          {item.comentario || "Color no disponible"}
-        </p>
-      )}
-    </div>
-  ))}
-</div>
-</details>
-
 </div>
 
 <div className="mb-6">
