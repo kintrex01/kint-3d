@@ -103,9 +103,6 @@ const [cargandoConfiguracion, setCargandoConfiguracion] =
 const [errorConfiguracion, setErrorConfiguracion] =
   useState("");
 
-  const [avisoSemiAbierto, setAvisoSemiAbierto] =
-  useState(true);
-
 useEffect(() => {
   async function cargarConfiguracion() {
     try {
@@ -146,14 +143,9 @@ const estadoAceptarPedidos = String(
   .trim()
   .toLowerCase();
 
-const aceptarPedidos =
-  estadoAceptarPedidos === "habilitada";
-
-const pedidosEnModoSemi =
-  estadoAceptarPedidos === "semi";
-
 const pedidosDeshabilitados =
-  estadoAceptarPedidos === "deshabilitada";
+  estadoAceptarPedidos !== "habilitada" &&
+  estadoAceptarPedidos !== "habilitado";
 
 const pedidoUrgenteHabilitado =
   String(
@@ -639,65 +631,7 @@ return (
   <ThemeToggle />
 </div>
 
-{pedidosEnModoSemi && avisoSemiAbierto && (
-  <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-950/45 px-5 py-8 backdrop-blur-xl">
-    
-    {/* Brillos suaves del fondo */}
-    <div className="pointer-events-none absolute left-[10%] top-[15%] h-60 w-60 rounded-full bg-blue-500/15 blur-[110px]" />
-    <div className="pointer-events-none absolute bottom-[12%] right-[12%] h-64 w-64 rounded-full bg-cyan-400/10 blur-[120px]" />
 
-    <div className="relative flex w-full max-w-3xl flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-blue-400/25 bg-[var(--card-bg)] px-7 py-10 text-center shadow-[0_25px_80px_rgba(0,70,180,0.22)] backdrop-blur-2xl sm:px-12 sm:py-12">
-
-      {/* Luz interior */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-blue-500/10 to-transparent" />
-
-      {/* Ícono */}
-      <div className="relative mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-blue-400/30 bg-blue-500/10 shadow-[0_0_35px_rgba(47,147,255,0.16)]">
-        <span className="text-2xl font-light text-[var(--blue-soft)]">
-          !
-        </span>
-      </div>
-
-      <p className="relative mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-[var(--blue-soft)]">
-        Información importante
-      </p>
-
-      <h2 className="relative mb-5 max-w-2xl text-3xl font-semibold tracking-tight text-[var(--text-main)] sm:text-4xl">
-        Antes de continuar
-      </h2>
-
-      <div className="relative h-px w-20 bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
-
-      <p className="relative mt-6 max-w-2xl whitespace-pre-wrap text-base leading-7 text-[var(--text-muted)] sm:text-lg sm:leading-8">
-        {configuracion.aceptar_pedidos?.comentario ||
-          "Estamos trabajando con algunas limitaciones, pero podés continuar con tu cotización."}
-      </p>
-
-      <div className="relative mt-8 flex w-full max-w-xl flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={() => setAvisoSemiAbierto(false)}
-          className="flex-1 rounded-2xl border border-blue-400/40 bg-gradient-to-r from-[#2e5fbe] via-[#2452ab] to-[#1d4695] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-white shadow-[0_12px_30px_rgba(29,79,154,0.22)] transition hover:-translate-y-0.5 hover:brightness-110"
-        >
-          Continuar
-        </button>
-
-        <Link href="/" className="flex-1">
-          <button
-            type="button"
-            className="w-full rounded-2xl border border-[var(--border-color)] bg-[var(--glass-bg)] px-7 py-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-main)] transition hover:-translate-y-0.5 hover:border-blue-400/70 hover:text-[var(--blue-soft)]"
-          >
-            Volver al inicio
-          </button>
-        </Link>
-      </div>
-
-      <p className="relative mt-5 text-xs leading-5 text-[var(--text-muted)] opacity-70">
-        Podés continuar normalmente después de leer este aviso.
-      </p>
-    </div>
-  </div>
-)}
 
       <div className="fixed left-8 top-8 z-50">
         <Link href="/">
