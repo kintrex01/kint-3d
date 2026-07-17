@@ -54,7 +54,7 @@ export default function EstadisticasInicio() {
   }, []);
 
 return (
-  <div className="flex items-center gap-2">
+  <div className="flex max-w-full flex-wrap items-center justify-center gap-3">
     <div className="flex items-center gap-3 rounded-full border border-[var(--blue-border)] bg-[var(--glass-bg)] px-5 py-3 text-[var(--text-main)] shadow-sm backdrop-blur transition">
       <span className="text-xl font-black leading-none text-red-600">
         {cargando

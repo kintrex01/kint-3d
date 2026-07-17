@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
+import EstadoPagina from "../components/EstadoPagina";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -28,6 +29,8 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-full flex flex-col"
       >
+        <EstadoPagina />
+        
         {children}
       </body>
     </html>

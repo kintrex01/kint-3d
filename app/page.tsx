@@ -29,7 +29,7 @@ export default function Home() {
 <section className="relative overflow-hidden px-8 pt-12">
   <div className="kint-hero-bg" />
 
-  <div className="absolute right-8 top-24 z-30 hidden xl:block">
+  <div className="absolute right-8 top-24 z-30 hidden 2xl:block">
   <EstadisticasInicio />
 </div>
 
@@ -163,7 +163,7 @@ export default function Home() {
     </div>
   </div>
 
-  <div className="relative z-20 -mt-4 flex justify-center px-6 xl:hidden">
+  <div className="relative z-20 mb-10 mt-10 flex w-full justify-center px-6 2xl:hidden">
   <EstadisticasInicio />
 </div>
 
