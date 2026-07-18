@@ -1200,31 +1200,38 @@ return (
   </label>
 
   <details className="ml-7 mt-2">
-    <summary className="cursor-pointer text-xs font-semibold text-red-600">
-      Ver alcance de la autorización
-    </summary>
+  <summary className="cursor-pointer text-xs font-semibold text-red-600">
+    Ver alcance de la autorización
+  </summary>
 
-    <p className="mt-3 text-xs leading-6 text-[var(--text-muted)]">
-      Autorizo a Kint 3D a fotografiar y registrar mi proyecto, incluyendo la pieza impresa, el proceso de trabajo y capturas o representaciones del modelo enviado. Este material podrá utilizarse en portfolio, redes sociales, publicidad y contenido educativo. Mis datos personales no serán publicados.
-    </p>
-  </details>
-
-  <div className="ml-7 mt-4 border-t border-[var(--border-color)] pt-4">
+  <div className="mt-3">
     <p className="text-xs leading-6 text-[var(--text-muted)]">
-      Si el proyecto es confidencial o tiene
-      restricciones de publicación, informalo por
-      WhatsApp antes de aprobar el presupuesto.
+      Autorizo a Kint 3D a fotografiar y registrar mi proyecto,
+      incluyendo la pieza impresa, el proceso de trabajo y capturas
+      o representaciones del modelo enviado. Este material podrá
+      utilizarse en portfolio, redes sociales, publicidad y contenido
+      educativo. No se publicarán datos personales vinculados a estas
+      imágenes.
     </p>
 
-    <a
-      href="https://wa.me/59892023382?text=Hola%2C%20quiero%20informar%20que%20mi%20proyecto%20es%20confidencial%20y%20tiene%20restricciones%20para%20el%20uso%20o%20publicaci%C3%B3n%20de%20im%C3%A1genes."
-      target="_blank"
-      rel="noopener noreferrer"
-      className="mt-3 inline-flex text-xs font-bold text-red-600 underline underline-offset-4"
-    >
-      Avisar proyecto confidencial por WhatsApp
-    </a>
+    <div className="mt-4 border-t border-[var(--border-color)] pt-4">
+      <p className="text-xs leading-6 text-[var(--text-muted)]">
+        Si el proyecto es confidencial o tiene restricciones de
+        publicación, informalo por WhatsApp antes de aprobar el
+        presupuesto.
+      </p>
+
+      <a
+        href="https://wa.me/59892023382?text=Hola%2C%20quiero%20informar%20que%20mi%20proyecto%20es%20confidencial%20y%20tiene%20restricciones%20para%20el%20uso%20o%20publicaci%C3%B3n%20de%20im%C3%A1genes."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 inline-flex text-xs font-bold text-red-600 underline underline-offset-4"
+      >
+        Avisar proyecto confidencial por WhatsApp
+      </a>
+    </div>
   </div>
+</details>
 </div>
 
 
