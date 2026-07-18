@@ -907,13 +907,6 @@ return (
   {pedidoUrgenteComentario}
 </span>
 
-{pedidoUrgenteValor > 0 && (
-  <span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
-    El porcentaje corresponde a un recargo por prioridad;
-    no significa que el pedido se realice ese porcentaje más rápido.
-  </span>
-)}
-
         {pedidoUrgenteDisponible ? (
           <span className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">
             Cupos disponibles: {pedidoUrgenteCupos}
