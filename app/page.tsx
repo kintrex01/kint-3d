@@ -1,18 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ResenasInicio from "../components/ResenasInicio";
 import ThemeToggle from "../components/ThemeToggle";
 import EstadisticasInicio from "../components/EstadisticasInicio";
 import {
   Box,
+  ChevronDown,
   Layers3,
   TimerReset,
   SlidersHorizontal,
 } from "lucide-react";
 
 export default function Home() {
+  const [mostrarAccesoResenas, setMostrarAccesoResenas] =
+    useState(true);
 
+  useEffect(() => {
+    const seccionResenas =
+      document.getElementById("resenas");
+
+    if (!seccionResenas) {
+      return;
+    }
+
+    const observador = new IntersectionObserver(
+      ([entrada]) => {
+        setMostrarAccesoResenas(
+          !entrada.isIntersecting
+        );
+      },
+      {
+        threshold: 0.15,
+      }
+    );
+
+    observador.observe(seccionResenas);
+
+    return () => {
+      observador.disconnect();
+    };
+  }, []);
 
 
   return (
@@ -350,6 +379,29 @@ export default function Home() {
     <ResenasInicio />
   </div>
 </section>
+
+{mostrarAccesoResenas && (
+  <button
+    type="button"
+    onClick={() => {
+      document
+        .getElementById("resenas")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }}
+    className="fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-full border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--text-main)] shadow-[var(--shadow-main)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-red-600 hover:text-red-600"
+    aria-label="Ir a la sección de reseñas"
+  >
+    Reseñas
+    <ChevronDown
+      size={15}
+      strokeWidth={2}
+    />
+  </button>
+)}
+
 <a
   href="https://wa.me/59892023382"
   target="_blank"
