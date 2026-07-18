@@ -298,9 +298,9 @@ export default function CancelarPedidoPage() {
                 </h1>
 
                 <p className="mt-3 text-zinc-400">
-                  Esta acción elimina el pedido del sistema y
-                  no puede deshacerse.
-                </p>
+  Esta acción cancela el pedido, elimina sus datos
+  operativos y no puede deshacerse.
+</p>
 
                 <div className="mt-7 rounded-2xl border border-white/10 bg-black/30 p-5">
                   <div className="flex justify-between gap-4">
@@ -405,9 +405,9 @@ export default function CancelarPedidoPage() {
                 </button>
 
                 <p className="mt-4 text-center text-xs leading-5 text-zinc-500">
-                  El motivo y el comentario no se guardarán en
-                  el sistema.
-                </p>
+  El motivo y el comentario se guardarán únicamente
+  para analizar y mejorar el servicio.
+</p>
               </>
             )}
         </section>
