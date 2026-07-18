@@ -495,6 +495,95 @@ export default function TutorialPage() {
         </p>
       </section>
 
+<section className="relative z-10 mx-auto mt-24 max-w-6xl">
+  <div className="mb-12 text-center">
+    <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
+      Ejemplos reales
+    </p>
+
+    <h2 className="mt-4 text-3xl font-black">
+      Modelos enviados por nuestros clientes
+    </h2>
+
+    <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
+      Cada proyecto puede organizarse de una manera diferente según
+      su forma, sus niveles y los elementos que necesiten imprimirse.
+      Estos ejemplos muestran distintas formas reales de preparar un
+      archivo antes de enviarlo a Kint 3D.
+    </p>
+  </div>
+
+  <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+    <TutorialGallery
+      images={[
+        {
+          src: "/tutorial/ejemplo0.png",
+          alt: "Modelo arquitectónico enviado por un cliente de Kint 3D",
+          caption:
+            "Proyecto arquitectónico completo preparado para impresión 3D.",
+        },
+        {
+          src: "/tutorial/ejemplo1.png",
+          alt: "Modelo arquitectónico despiezado para impresión",
+          caption:
+            "Ejemplo de piezas y niveles separados para facilitar la revisión y la impresión.",
+        },
+        {
+          src: "/tutorial/ejemplo2.png",
+          alt: "Modelo organizado en distintas piezas",
+          caption:
+            "Modelo organizado en componentes independientes antes de imprimir.",
+        },
+        {
+          src: "/tutorial/ejemplo3.png",
+          alt: "Planta arquitectónica preparada para impresión 3D",
+          caption:
+            "Ejemplo de una planta arquitectónica limpia y organizada.",
+        },
+        {
+          src: "/tutorial/ejemplo4.png",
+          alt: "Conjunto de piezas arquitectónicas separadas",
+          caption:
+            "Piezas distribuidas y separadas para poder identificarlas correctamente.",
+        },
+        {
+          src: "/tutorial/ejemplo5.png",
+          alt: "Proyecto arquitectónico con varios niveles",
+          caption:
+            "Proyecto de varios niveles preparado como un conjunto de piezas.",
+        },
+        {
+          src: "/tutorial/ejemplo6.png",
+          alt: "Plano y modelo preparados para impresión",
+          caption:
+            "Ejemplo de documentación y geometría utilizada para preparar una impresión.",
+        },
+      ]}
+      imageClassName="max-h-[680px] w-full rounded-2xl object-contain"
+    />
+  </div>
+
+  <div className="mx-auto mt-8 max-w-5xl rounded-3xl border border-blue-500/30 bg-blue-500/5 p-7 text-center sm:p-9">
+    <p className="text-base font-black leading-8 text-[var(--text-main)]">
+      Gracias a quienes confiaron en Kint 3D
+    </p>
+
+    <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
+      Todos los modelos mostrados en esta sección corresponden a
+      proyectos reales de clientes que imprimieron con nosotros.
+      Gracias a su confianza podemos compartir estos ejemplos y ayudar
+      a otras personas a comprender cómo preparar y organizar sus
+      archivos antes de imprimir.
+    </p>
+
+    <p className="mx-auto mt-4 max-w-3xl text-xs leading-6 text-[var(--text-muted)]">
+      Las imágenes se muestran únicamente como ejemplos del proceso de
+      preparación. No se publican datos personales vinculados a los
+      proyectos.
+    </p>
+  </div>
+</section>
+
       <section className="relative z-10 mx-auto max-w-4xl py-24 text-center">
         <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
           Siguiente paso
