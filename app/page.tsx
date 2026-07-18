@@ -144,6 +144,13 @@ export default function Home() {
   <a href="#preguntas" className="kint-soft-btn">
     Preguntas frecuentes <span>→</span>
   </a>
+
+  <Link
+  href="/tutorial"
+  className="kint-soft-btn md:col-span-2"
+>
+  Preparar mi modelo <span>→</span>
+</Link>
 </div>
 
       <section className="kint-services-section">
