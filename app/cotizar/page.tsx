@@ -351,7 +351,7 @@ if (pedidosDeshabilitados) {
   }
   if (!aceptaUsoImagenes) {
   alert(
-    "Para enviar la cotización tenés que aceptar las condiciones del servicio y el uso de imágenes del proyecto."
+    "Para enviar la cotización tenés que autorizar el uso de imágenes del proyecto."
   );
   return;
 }
