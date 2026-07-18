@@ -1205,12 +1205,7 @@ return (
     </summary>
 
     <p className="mt-3 text-xs leading-6 text-[var(--text-muted)]">
-      Autorizo a Kint 3D a fotografiar, registrar y
-      utilizar imágenes de la impresión, del proceso
-      de trabajo y capturas o representaciones del
-      modelo enviado con fines de portfolio, redes
-      sociales, publicidad y contenido educativo.
-      No se publicarán mis datos personales.
+      Autorizo a Kint 3D a fotografiar y registrar mi proyecto, incluyendo la pieza impresa, el proceso de trabajo y capturas o representaciones del modelo enviado. Este material podrá utilizarse en portfolio, redes sociales, publicidad y contenido educativo. Mis datos personales no serán publicados.
     </p>
   </details>
 
