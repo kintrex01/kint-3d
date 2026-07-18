@@ -93,6 +93,8 @@ export default function Cotizar() {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
+  const [aceptaUsoImagenes, setAceptaUsoImagenes] =
+  useState(false);
 
   const [configuracion, setConfiguracion] =
   useState<Configuracion>({});
@@ -347,6 +349,12 @@ if (pedidosDeshabilitados) {
     alert("Por favor, ingresá un correo electrónico.");
     return;
   }
+  if (!aceptaUsoImagenes) {
+  alert(
+    "Para enviar la cotización tenés que aceptar las condiciones del servicio y el uso de imágenes del proyecto."
+  );
+  return;
+}
 
 const coloresNoDisponibles = color.filter(
   (nombreSeleccionado) => {
@@ -459,8 +467,9 @@ alisado: alisadoHabilitado
         comentarios,
         codigoDescuento,
         pedidoPrioritario,
-        archivosOriginales,
-        archivoPesadoWhatsapp,
+archivosOriginales,
+archivoPesadoWhatsapp,
+usoImagenesAutorizado: aceptaUsoImagenes,
       }),
       headers: {
         "Content-Type": "application/json",
@@ -496,6 +505,7 @@ alisado: alisadoHabilitado
     setPedidoPrioritario(false);
     setArchivos([]);
     setArchivoPesadoWhatsapp(false);
+    setAceptaUsoImagenes(false);
 
     setNumeroPedido(data.pedido || "");
     setEnviado(true);
@@ -1181,6 +1191,57 @@ return (
             placeholder="Escribe detalles importantes..."
           />
         </div>
+
+<div className="mb-8 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
+  <label className="flex cursor-pointer items-start gap-4">
+    <input
+      type="checkbox"
+      checked={aceptaUsoImagenes}
+      onChange={(e) =>
+        setAceptaUsoImagenes(e.target.checked)
+      }
+      className="mt-1 h-5 w-5 shrink-0 accent-red-600"
+    />
+
+    <span>
+      <span className="block font-bold text-[var(--text-main)]">
+        Acepto las condiciones del servicio y el uso
+        de imágenes del proyecto.
+      </span>
+
+      <span className="mt-3 block text-sm leading-7 text-[var(--text-muted)]">
+        Al contratar el servicio, autorizo a Kint 3D
+        a fotografiar, registrar y utilizar imágenes
+        de la impresión, del proceso de trabajo y
+        capturas o representaciones del modelo enviado
+        con fines de portfolio, redes sociales,
+        publicidad y contenido educativo o tutorial.
+        No se publicarán mis datos personales.
+      </span>
+    </span>
+  </label>
+
+  <div className="mt-6 border-t border-[var(--border-color)] pt-5">
+    <p className="text-sm font-semibold leading-6 text-[var(--text-main)]">
+      ¿Tu proyecto es confidencial?
+    </p>
+
+    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+      Si el proyecto es confidencial o tiene
+      restricciones de publicación, deberás informarlo
+      por WhatsApp antes de aprobar el presupuesto.
+    </p>
+
+    <a
+      href="https://wa.me/59892023382?text=Hola%2C%20quiero%20informar%20que%20mi%20proyecto%20es%20confidencial%20y%20tiene%20restricciones%20para%20el%20uso%20o%20publicaci%C3%B3n%20de%20im%C3%A1genes."
+      target="_blank"
+      rel="noopener noreferrer"
+      className="mt-4 inline-flex rounded-xl border border-red-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-red-600 transition hover:bg-red-600 hover:text-white"
+    >
+      Avisar proyecto confidencial por WhatsApp
+    </a>
+  </div>
+</div>
 
 <div className="mb-8 rounded-2xl border border-red-600 bg-red-600/10 p-5">
   <p className="font-bold text-red-600">

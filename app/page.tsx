@@ -179,7 +179,11 @@ export default function Home() {
             {[
               ["01", "Enviás tu archivo", "Subí tu archivo 3D y contanos tu idea."],
               ["02", "Revisamos tu modelo", "Analizamos el archivo, detectamos posibles problemas y preparamos el presupuesto."],
-              ["03", "Imprimimos", "Una vez aprobado, comenzamos la impresión."],
+              [
+  "03",
+  "Imprimimos",
+  "Una vez elegido el presupuesto y confirmado el pago de la seña mínima del 20% o el pago total, comenzamos la impresión.",
+],
               ["04", "Entregamos", "Te entregamos el modelo donde lo necesites."],
             ].map(([numero, titulo, texto]) => (
               <div key={numero}>
@@ -274,10 +278,10 @@ export default function Home() {
             "Depende del tamaño, nivel de detalle y cantidad de piezas. Si tenés una fecha límite, podés indicarla en el formulario y la tendremos en cuenta al presupuestar.",
         },
         {
-          pregunta: "¿Cómo funciona el pago?",
-          respuesta:
-            "Una vez aprobado el presupuesto, podés pagar una seña del 20% o el importe total. El resto puede abonarse más adelante si elegiste la opción de seña.",
-        },
+  pregunta: "¿Cómo funciona el pago?",
+  respuesta:
+    "Una vez elegido el presupuesto, podés pagar una seña del 20% o el importe total. Elegir un presupuesto no inicia la impresión: comenzamos únicamente después de confirmar el pago. Si elegís la seña, podés pagar el saldo más adelante desde la página de seguimiento, incluso cuando el pedido figure como Terminado.",
+},
         {
           pregunta: "¿Qué incluye el presupuesto?",
           respuesta:

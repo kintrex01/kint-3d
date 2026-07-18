@@ -23,6 +23,8 @@ export async function POST(request: Request) {
       comentarios: String(body.comentarios || ""),
       codigoDescuento: String(body.codigoDescuento || ""),
       pedidoPrioritario: Boolean(body.pedidoPrioritario),
+      usoImagenesAutorizado:
+  body.usoImagenesAutorizado === true,
 
       archivoNombre: String(body.archivoNombre || ""),
       archivoLink: String(body.archivoLink || ""),
@@ -32,6 +34,17 @@ export async function POST(request: Request) {
   : [],
     };
 
+if (!payload.usoImagenesAutorizado) {
+  return Response.json(
+    {
+      ok: false,
+      error:
+        "Tenés que aceptar las condiciones del servicio y el uso de imágenes del proyecto.",
+    },
+    { status: 400 }
+  );
+}
+    
     const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
       method: "POST",
       body: JSON.stringify({
@@ -142,9 +155,14 @@ if (archivosRegistrados.length > 0) {
   <strong>Pedido prioritario:</strong>
   ${
     payload.pedidoPrioritario
-      ? "Sí — aplicar recargo del 20%"
+      ? "Sí — aplicar recargo urgente configurado"
       : "No"
   }
+</p>
+
+<p>
+  <strong>Uso de imágenes autorizado:</strong>
+  ${payload.usoImagenesAutorizado ? "Sí" : "No"}
 </p>
         <p><strong>Archivo:</strong> ${archivosRegistrados.map(a => a.nombreArchivo).join(", ")}</p>
         <p><strong>Archivo pesado:</strong> ${
