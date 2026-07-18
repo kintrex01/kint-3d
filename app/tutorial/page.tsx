@@ -502,15 +502,16 @@ export default function TutorialPage() {
     </p>
 
     <h2 className="mt-4 text-3xl font-black">
-      Modelos enviados por nuestros clientes
+      Modelos reales enviados para cotizar
     </h2>
 
     <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
-      Cada proyecto puede organizarse de una manera diferente según
-      su forma, sus niveles y los elementos que necesiten imprimirse.
-      Estos ejemplos muestran distintas formas reales de preparar un
-      archivo antes de enviarlo a Kint 3D.
-    </p>
+  Todos los modelos e imágenes utilizados en esta página provienen
+  de archivos reales que distintas personas enviaron a Kint 3D para
+  solicitar una cotización. Los compartimos como ejemplos para mostrar
+  diferentes formas de preparar, dividir y organizar un proyecto antes
+  de imprimirlo.
+</p>
   </div>
 
   <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
@@ -565,22 +566,21 @@ export default function TutorialPage() {
 
   <div className="mx-auto mt-8 max-w-5xl rounded-3xl border border-blue-500/30 bg-blue-500/5 p-7 text-center sm:p-9">
     <p className="text-base font-black leading-8 text-[var(--text-main)]">
-      Gracias a quienes confiaron en Kint 3D
-    </p>
+  Gracias a todas las personas que compartieron sus proyectos
+</p>
 
-    <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
-      Todos los modelos mostrados en esta sección corresponden a
-      proyectos reales de clientes que imprimieron con nosotros.
-      Gracias a su confianza podemos compartir estos ejemplos y ayudar
-      a otras personas a comprender cómo preparar y organizar sus
-      archivos antes de imprimir.
-    </p>
+<p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
+  Todos los modelos mostrados en esta página fueron enviados a Kint 3D
+  por personas que solicitaron una cotización. Gracias a esos proyectos
+  reales podemos crear esta sección y utilizarlos como ejemplos para
+  ayudar a otras personas a preparar correctamente sus archivos.
+</p>
 
-    <p className="mx-auto mt-4 max-w-3xl text-xs leading-6 text-[var(--text-muted)]">
-      Las imágenes se muestran únicamente como ejemplos del proceso de
-      preparación. No se publican datos personales vinculados a los
-      proyectos.
-    </p>
+<p className="mx-auto mt-4 max-w-3xl text-xs leading-6 text-[var(--text-muted)]">
+  Las imágenes se utilizan únicamente como referencia educativa y
+  visual. No se publican nombres, correos, teléfonos ni otros datos
+  personales vinculados a los proyectos.
+</p>
   </div>
 </section>
 
