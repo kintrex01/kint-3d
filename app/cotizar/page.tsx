@@ -884,18 +884,27 @@ return (
 
       <span>
         <span className="block font-bold text-[var(--text-main)]">
-          Pedido urgente
+  Pedido urgente
 
-          {pedidoUrgenteValor > 0 && (
-            <span className="ml-2 text-red-600">
-              +{pedidoUrgenteValor}%
-            </span>
-          )}
-        </span>
+  {pedidoUrgenteValor > 0 && (
+    <span className="ml-2 text-red-600">
+      · +{pedidoUrgenteValor}% en el precio
+    </span>
+  )}
+</span>
 
-        <span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
-          {pedidoUrgenteComentario}
-        </span>
+<span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
+  {pedidoUrgenteComentario}
+</span>
+
+{pedidoUrgenteValor > 0 && (
+  <span className="mt-3 block rounded-xl border border-red-600/40 bg-red-600/5 p-4 text-sm leading-6 text-[var(--text-muted)]">
+    El {pedidoUrgenteValor}% corresponde a un
+    recargo por prioridad. No significa que el
+    pedido se realice un {pedidoUrgenteValor}% más
+    rápido. La prioridad está sujeta a disponibilidad.
+  </span>
+)}
 
         {pedidoUrgenteDisponible ? (
           <span className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">
@@ -1240,6 +1249,19 @@ return (
   </div>
 </div>
 
+<div className="mb-8 rounded-2xl border border-red-600 bg-red-600/10 p-5">
+  <p className="font-bold text-red-600">
+    Enviar esta solicitud no inicia la impresión.
+  </p>
+
+  <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
+    Primero revisaremos tu archivo y te enviaremos
+    una o más opciones de presupuesto. La impresión
+    comenzará únicamente después de que elijas una
+    opción y confirmemos el pago de la seña mínima
+    del 20% o el pago total.
+  </p>
+</div>
         <button
           onClick={enviarPedido}
           disabled={enviando}
