@@ -776,9 +776,10 @@ console.log({
           </p>
 
           <p className="mb-6 text-sm leading-7">
-            Banco: ITAU<br />
-            Titular: Alexander López<br />
-            Cuenta: 9454754<br />
+            Banco: BBVA<br />
+Tipo de cuenta: Cuenta corriente en pesos<br />
+Titular: Alexander López<br />
+Cuenta: 26557312<br />
             Concepto: {resultado.pedido}
           </p>
 
@@ -879,9 +880,10 @@ console.log({
       ) : (
         <div className="space-y-6">
           <p className="text-sm leading-7">
-            Banco: ITAU<br />
-            Titular: Alexander López<br />
-            Cuenta: 9454754<br />
+            Banco: BBVA<br />
+Tipo de cuenta: Cuenta corriente en pesos<br />
+Titular: Alexander López<br />
+Cuenta: 26557312<br />
             Concepto: {resultado.pedido} - Saldo
           </p>
 
