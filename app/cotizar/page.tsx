@@ -908,11 +908,9 @@ return (
 </span>
 
 {pedidoUrgenteValor > 0 && (
-  <span className="mt-3 block rounded-xl border border-red-600/40 bg-red-600/5 p-4 text-sm leading-6 text-[var(--text-muted)]">
-    El {pedidoUrgenteValor}% corresponde a un
-    recargo por prioridad. No significa que el
-    pedido se realice un {pedidoUrgenteValor}% más
-    rápido. La prioridad está sujeta a disponibilidad.
+  <span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
+    El porcentaje corresponde a un recargo por prioridad;
+    no significa que el pedido se realice ese porcentaje más rápido.
   </span>
 )}
 
@@ -1192,70 +1190,56 @@ return (
           />
         </div>
 
-<div className="mb-8 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
-  <label className="flex cursor-pointer items-start gap-4">
+<div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] p-4">
+  <label className="flex cursor-pointer items-start gap-3">
     <input
       type="checkbox"
       checked={aceptaUsoImagenes}
       onChange={(e) =>
         setAceptaUsoImagenes(e.target.checked)
       }
-      className="mt-1 h-5 w-5 shrink-0 accent-red-600"
+      className="mt-1 h-4 w-4 shrink-0 accent-red-600"
     />
 
-    <span>
-      <span className="block font-bold text-[var(--text-main)]">
-        Acepto las condiciones del servicio y el uso
-        de imágenes del proyecto.
-      </span>
-
-      <span className="mt-3 block text-sm leading-7 text-[var(--text-muted)]">
-        Al contratar el servicio, autorizo a Kint 3D
-        a fotografiar, registrar y utilizar imágenes
-        de la impresión, del proceso de trabajo y
-        capturas o representaciones del modelo enviado
-        con fines de portfolio, redes sociales,
-        publicidad y contenido educativo o tutorial.
-        No se publicarán mis datos personales.
-      </span>
+    <span className="text-sm font-semibold leading-6 text-[var(--text-main)]">
+      Autorizo el uso de imágenes del proyecto.
     </span>
   </label>
 
-  <div className="mt-6 border-t border-[var(--border-color)] pt-5">
-    <p className="text-sm font-semibold leading-6 text-[var(--text-main)]">
-      ¿Tu proyecto es confidencial?
-    </p>
+  <details className="ml-7 mt-2">
+    <summary className="cursor-pointer text-xs font-semibold text-red-600">
+      Ver alcance de la autorización
+    </summary>
 
-    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+    <p className="mt-3 text-xs leading-6 text-[var(--text-muted)]">
+      Autorizo a Kint 3D a fotografiar, registrar y
+      utilizar imágenes de la impresión, del proceso
+      de trabajo y capturas o representaciones del
+      modelo enviado con fines de portfolio, redes
+      sociales, publicidad y contenido educativo.
+      No se publicarán mis datos personales.
+    </p>
+  </details>
+
+  <div className="ml-7 mt-4 border-t border-[var(--border-color)] pt-4">
+    <p className="text-xs leading-6 text-[var(--text-muted)]">
       Si el proyecto es confidencial o tiene
-      restricciones de publicación, deberás informarlo
-      por WhatsApp antes de aprobar el presupuesto.
+      restricciones de publicación, informalo por
+      WhatsApp antes de aprobar el presupuesto.
     </p>
 
     <a
       href="https://wa.me/59892023382?text=Hola%2C%20quiero%20informar%20que%20mi%20proyecto%20es%20confidencial%20y%20tiene%20restricciones%20para%20el%20uso%20o%20publicaci%C3%B3n%20de%20im%C3%A1genes."
       target="_blank"
       rel="noopener noreferrer"
-      className="mt-4 inline-flex rounded-xl border border-red-600 px-5 py-3 text-xs font-bold uppercase tracking-[0.18em] text-red-600 transition hover:bg-red-600 hover:text-white"
+      className="mt-3 inline-flex text-xs font-bold text-red-600 underline underline-offset-4"
     >
       Avisar proyecto confidencial por WhatsApp
     </a>
   </div>
 </div>
 
-<div className="mb-8 rounded-2xl border border-red-600 bg-red-600/10 p-5">
-  <p className="font-bold text-red-600">
-    Enviar esta solicitud no inicia la impresión.
-  </p>
 
-  <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-    Primero revisaremos tu archivo y te enviaremos
-    una o más opciones de presupuesto. La impresión
-    comenzará únicamente después de que elijas una
-    opción y confirmemos el pago de la seña mínima
-    del 20% o el pago total.
-  </p>
-</div>
         <button
           onClick={enviarPedido}
           disabled={enviando}
