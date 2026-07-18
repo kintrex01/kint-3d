@@ -132,6 +132,26 @@ function obtenerSrcFoto(enlace?: string) {
   return "";
 }
 
+function obtenerClasesNivelCliente(nivel?: string) {
+  const nivelNormalizado = String(nivel || "")
+    .trim()
+    .toLowerCase();
+
+  if (nivelNormalizado === "cliente kint") {
+    return "border-red-600/50 bg-red-600/10 text-red-600";
+  }
+
+  if (nivelNormalizado === "cliente destacado") {
+    return "border-amber-500/50 bg-amber-500/10 text-amber-500";
+  }
+
+  if (nivelNormalizado === "cliente frecuente") {
+    return "border-blue-500/50 bg-blue-500/10 text-blue-500";
+  }
+
+  return "border-[var(--border-color)] bg-[var(--page-bg)] text-[var(--text-muted)]";
+}
+
 export default function ResenasInicio() {
   const [resenas, setResenas] = useState<Resena[]>([]);
   const [loading, setLoading] = useState(true);
@@ -568,10 +588,22 @@ const fotosProyecto = enlacesFotos
                       {resena.nombre || "Cliente de Kint 3D"}
                     </h3>
 
-                    <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                      ✓ Cliente verificado
-                      {resena.insignia ? ` · ${resena.insignia}` : ""}
-                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+  <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-500">
+    ✓ Compra verificada
+  </span>
+
+  {resena.insignia && (
+    <span
+      className={[
+        "inline-flex items-center rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em]",
+        obtenerClasesNivelCliente(resena.insignia),
+      ].join(" ")}
+    >
+      {resena.insignia}
+    </span>
+  )}
+</div>
                   </div>
 
                   <span className="shrink-0 rounded-full border border-[var(--border-color)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
