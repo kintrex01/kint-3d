@@ -1182,73 +1182,6 @@ return (
           />
         </div>
 
-<div className="mb-8 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
-  <h2 className="mb-4 text-lg font-bold text-[var(--text-main)]">
-    Presupuesto
-  </h2>
-
-  <p className="mb-6 text-sm text-[var(--text-muted)]">
-    Para armar el precio final de tu pieza, sumamos todo lo que entra en
-    juego antes, durante y después de que nos des el visto bueno para
-    arrancar.
-  </p>
-
-  <h3 className="mb-4 text-base font-semibold text-[var(--text-main)]">
-    ¿Qué estás pagando?
-  </h3>
-
-  <div className="space-y-3 text-sm text-[var(--text-muted)]">
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Hora de uso de la impresora:
-      </strong>
-      <p>Las horas dedicadas exclusivamente a imprimir la pieza.</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Tipo de material:
-      </strong>
-      <p>Tipo de filamento utilizado (PLA, PLA+, PETG).</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Cantidad de material:
-      </strong>
-      <p>Peso en gramos del filamento consumido.</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Correcciones menores:
-      </strong>
-      <p>Ajuste de detalles mínimos en el modelo.</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Fondo de emergencia:
-      </strong>
-      <p>Costo extra por fallas de impresión o diseño.</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Mano de obra:
-      </strong>
-      <p>Solo aplica si aceptas el servicio de armado.</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Alisado:
-      </strong>
-      <p>Solo aplica si aceptas el servicio de alisado.</p>
-    </div>
-  </div>
-</div>
-
 <div className="mb-8 rounded-2xl border border-red-600 bg-red-600/10 p-5">
   <p className="font-bold text-red-600">
     Enviar esta solicitud no inicia la impresión.
@@ -1269,6 +1202,116 @@ return (
         >
           {enviando ? "Enviando..." : "Enviar Cotización"}
         </button>
+
+        <details className="group mt-6 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
+  <summary className="flex cursor-pointer list-none items-center justify-between gap-5">
+    <div>
+      <p className="font-bold text-[var(--text-main)]">
+        ¿Cómo se calcula el presupuesto?
+      </p>
+
+      <p className="mt-2 text-sm text-[var(--text-muted)]">
+        Consultá qué elementos se tienen en cuenta para calcular el precio.
+      </p>
+    </div>
+
+    <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
+      +
+    </span>
+  </summary>
+
+  <div className="mt-6 border-t border-[var(--border-color)] pt-6">
+    <p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
+      Para calcular el precio final de tu pieza tenemos en cuenta
+      todo lo necesario antes, durante y después de la impresión.
+    </p>
+
+    <div className="space-y-5 text-sm text-[var(--text-muted)]">
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Hora de uso de la impresora
+        </strong>
+
+        <p className="mt-1">
+          Las horas dedicadas exclusivamente a imprimir la pieza.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Tipo de material
+        </strong>
+
+        <p className="mt-1">
+          Tipo de filamento utilizado, como PLA, PLA+ o PETG.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Cantidad de material
+        </strong>
+
+        <p className="mt-1">
+          Peso en gramos del filamento utilizado.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Preparación y correcciones menores
+        </strong>
+
+        <p className="mt-1">
+          Ajustes mínimos necesarios para preparar correctamente el modelo.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Posibles fallas de impresión
+        </strong>
+
+        <p className="mt-1">
+          Margen destinado a cubrir posibles fallas durante el proceso.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Armado de piezas
+        </strong>
+
+        <p className="mt-1">
+          Se incluye únicamente cuando seleccionás el servicio de armado.
+        </p>
+      </div>
+
+      <div>
+        <strong className="text-[var(--text-main)]">
+          • Alisado
+        </strong>
+
+        <p className="mt-1">
+          Se incluye únicamente cuando seleccionás este servicio.
+        </p>
+      </div>
+
+      {pedidoPrioritario && pedidoUrgenteValor > 0 && (
+        <div>
+          <strong className="text-red-600">
+            • Recargo por pedido urgente
+          </strong>
+
+          <p className="mt-1">
+            Se agrega un {pedidoUrgenteValor}% por prioridad
+            en la cola de producción.
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+</details>
       </div>
 
 <div className="mt-10 text-center">
