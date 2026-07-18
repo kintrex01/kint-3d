@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ThemeToggle from "../../components/ThemeToggle";
+import TutorialGallery from "../../components/TutorialGallery";
 
 const revisionFinal = [
   "Eliminá caras y líneas duplicadas.",
@@ -71,10 +72,12 @@ export default function TutorialPage() {
       <section className="relative z-10 mx-auto grid max-w-6xl gap-7 lg:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
           <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
-            <img
-              src="/tutorial/modelo-despiezado-pisos.png"
-              alt="Modelo arquitectónico separado por pisos"
-              className="max-h-[420px] w-full rounded-2xl object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/modelo-despiezado-pisos.png",
+                alt: "Modelo arquitectónico separado por pisos",
+              }]}
+              imageClassName="max-h-[420px] w-full rounded-2xl object-contain"
             />
           </div>
 
@@ -109,10 +112,12 @@ export default function TutorialPage() {
 
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
           <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
-            <img
-              src="/tutorial/modelo-unido.jpeg"
-              alt="Modelo arquitectónico unido en una sola pieza"
-              className="max-h-[420px] w-full rounded-2xl object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/modelo-unido.jpeg",
+                alt: "Modelo arquitectónico unido en una sola pieza",
+              }]}
+              imageClassName="max-h-[420px] w-full rounded-2xl object-contain"
             />
           </div>
 
@@ -164,10 +169,12 @@ export default function TutorialPage() {
 
         <div className="grid gap-7 lg:grid-cols-2">
           <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
-            <img
-              src="/tutorial/despiezado-piezas.png"
-              alt="Piezas arquitectónicas organizadas por tipo"
-              className="min-h-[280px] w-full rounded-2xl object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/despiezado-piezas.png",
+                alt: "Piezas arquitectónicas organizadas por tipo",
+              }]}
+              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
             />
 
             <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
@@ -177,10 +184,12 @@ export default function TutorialPage() {
           </figure>
 
           <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
-            <img
-              src="/tutorial/despiezado-unido.png"
-              alt="Niveles y componentes interiores separados junto al modelo completo"
-              className="min-h-[280px] w-full rounded-2xl object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/despiezado-unido.png",
+                alt: "Niveles y componentes interiores separados junto al modelo completo",
+              }]}
+              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
             />
 
             <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
@@ -230,10 +239,12 @@ export default function TutorialPage() {
 
         <div className="grid gap-7 lg:grid-cols-2">
           <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
-            <img
-              src="/tutorial/material.png"
-              alt="Ejemplo del color exterior blanco y el color interior gris azulado en SketchUp"
-              className="w-full object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/material.png",
+                alt: "Ejemplo del color exterior blanco y el color interior gris azulado en SketchUp",
+              }]}
+              imageClassName="w-full object-contain"
             />
 
             <div className="p-7 sm:p-8">
@@ -264,10 +275,12 @@ export default function TutorialPage() {
           </article>
 
           <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
-            <img
-              src="/tutorial/invertir-caras.png"
-              alt="Opción Invertir caras dentro del menú de SketchUp"
-              className="w-full object-contain"
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/invertir-caras.png",
+                alt: "Opción Invertir caras dentro del menú de SketchUp",
+              }]}
+              imageClassName="w-full object-contain"
             />
 
             <div className="p-7 sm:p-8">
@@ -317,10 +330,12 @@ export default function TutorialPage() {
 
           <div className="grid gap-4 md:grid-cols-3">
             <figure className="overflow-hidden rounded-2xl border border-red-600/30 bg-red-600/5 p-3">
-              <img
-                src="/tutorial/asi-no.png"
-                alt="Ejemplo incorrecto con una cara interior visible"
-                className="aspect-square w-full rounded-xl object-contain"
+              <TutorialGallery
+                images={[{
+                  src: "/tutorial/asi-no.png",
+                  alt: "Ejemplo incorrecto con una cara interior visible",
+                }]}
+                imageClassName="aspect-square w-full rounded-xl object-contain"
               />
 
               <figcaption className="px-2 pb-2 pt-4 text-center">
@@ -335,10 +350,12 @@ export default function TutorialPage() {
             </figure>
 
             <figure className="overflow-hidden rounded-2xl border border-red-600/30 bg-red-600/5 p-3">
-              <img
-                src="/tutorial/asi-no2.png"
-                alt="Ejemplo incorrecto con varias caras exteriores invertidas"
-                className="aspect-square w-full rounded-xl object-contain"
+              <TutorialGallery
+                images={[{
+                  src: "/tutorial/asi-no2.png",
+                  alt: "Ejemplo incorrecto con varias caras exteriores invertidas",
+                }]}
+                imageClassName="aspect-square w-full rounded-xl object-contain"
               />
 
               <figcaption className="px-2 pb-2 pt-4 text-center">
@@ -354,10 +371,12 @@ export default function TutorialPage() {
             </figure>
 
             <figure className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-              <img
-                src="/tutorial/asi-si.png"
-                alt="Ejemplo correcto con todas las caras exteriores blancas"
-                className="aspect-square w-full rounded-xl object-contain"
+              <TutorialGallery
+                images={[{
+                  src: "/tutorial/asi-si.png",
+                  alt: "Ejemplo correcto con todas las caras exteriores blancas",
+                }]}
+                imageClassName="aspect-square w-full rounded-xl object-contain"
               />
 
               <figcaption className="px-2 pb-2 pt-4 text-center">
@@ -374,17 +393,57 @@ export default function TutorialPage() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-3xl border border-blue-500/30 bg-blue-500/5 p-7 sm:p-9">
-          <h3 className="text-xl font-black">
-            Comprobación con un corte
-          </h3>
+        <div className="mt-8 overflow-hidden rounded-3xl border border-blue-500/30 bg-blue-500/5 p-7 sm:p-9">
+          <div className="grid items-center gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">
+                Paso 4
+              </span>
 
-          <p className="mt-4 leading-8 text-[var(--text-muted)]">
-            También podés comprobar el modelo usando un plano de
-            sección con el relleno de sección activado. El interior de
-            la pieza debería verse relleno de forma continua, sin
-            huecos inesperados ni superficies abiertas.
-          </p>
+              <h3 className="mt-3 text-xl font-black">
+                Comprobación con un corte
+              </h3>
+
+              <p className="mt-4 leading-8 text-[var(--text-muted)]">
+                Usá un plano de sección con el relleno activado. El
+                interior de la pieza debería verse relleno de forma
+                continua, sin huecos inesperados ni superficies
+                abiertas.
+              </p>
+
+              <p className="mt-4 text-sm leading-7 text-[var(--text-muted)]">
+                Pasá las imágenes con las flechas, como en una
+                publicación, o tocá la foto para verla en pantalla
+                completa.
+              </p>
+            </div>
+
+            <TutorialGallery
+              images={[
+                {
+                  src: "/tutorial/modelo.png",
+                  alt: "Modelo arquitectónico antes de realizar el corte",
+                  caption: "Modelo completo antes de revisar el interior.",
+                },
+                {
+                  src: "/tutorial/modelo-corte.png",
+                  alt: "Modelo arquitectónico con plano de corte y relleno visible",
+                  caption: "El corte permite comprobar si el volumen está correctamente cerrado.",
+                },
+                {
+                  src: "/tutorial/corte.png",
+                  alt: "Ejemplo frontal de un corte del modelo",
+                  caption: "El interior debe verse continuo y sin zonas abiertas.",
+                },
+                {
+                  src: "/tutorial/corte2.png",
+                  alt: "Segundo ejemplo lateral de un corte del modelo",
+                  caption: "Revisá el modelo desde distintos puntos para detectar errores.",
+                },
+              ]}
+              imageClassName="aspect-[4/3] w-full rounded-2xl bg-black/10 object-contain"
+            />
+          </div>
         </div>
       </section>
 
