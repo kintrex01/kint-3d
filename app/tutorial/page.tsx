@@ -150,6 +150,148 @@ export default function TutorialPage() {
         </article>
       </section>
 
+<section className="relative z-10 mx-auto mt-24 max-w-6xl">
+  <div className="mb-12 text-center">
+    <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
+      Impresión por capas
+    </p>
+
+    <h2 className="mt-4 text-3xl font-black">
+      ¿Cómo funciona una impresora 3D?
+    </h2>
+
+    <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
+      La impresora derrite filamento y lo deposita en capas muy finas.
+      Cada capa nueva se apoya sobre la capa anterior hasta formar la
+      pieza completa.
+    </p>
+  </div>
+
+  <div className="grid gap-7 lg:grid-cols-2">
+    <article className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-9">
+      <span className="inline-flex rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
+        Capa por capa
+      </span>
+
+      <h3 className="mt-5 text-2xl font-black">
+        La impresora necesita una base
+      </h3>
+
+      <p className="mt-5 leading-8 text-[var(--text-muted)]">
+        El material no puede colocarse libremente en el aire. Para
+        imprimir una nueva capa, normalmente tiene que existir otra
+        superficie debajo que pueda sostenerla.
+      </p>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        Por eso, los balcones, techos, losas, salientes y regiones
+        flotantes pueden resultar difíciles de imprimir cuando forman
+        parte de una única pieza.
+      </p>
+    </article>
+
+    <article className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-9">
+      <span className="inline-flex rounded-full border border-red-600/40 bg-red-600/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-600">
+        Voladizos
+      </span>
+
+      <h3 className="mt-5 text-2xl font-black">
+        ¿Qué pasa con las partes flotantes?
+      </h3>
+
+      <p className="mt-5 leading-8 text-[var(--text-muted)]">
+        Cuando una zona queda suspendida y no tiene material debajo,
+        es necesario agregar soportes temporales para sostenerla durante
+        la impresión.
+      </p>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        Después de imprimir, esos soportes deben retirarse y la
+        superficie puede necesitar limpieza o terminación adicional.
+      </p>
+    </article>
+  </div>
+
+  <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
+    <TutorialGallery
+      images={[
+        {
+          src: "/tutorial/modelo.png",
+          alt: "Modelo arquitectónico antes de analizar los voladizos",
+          caption:
+            "Modelo completo antes de revisar qué partes necesitan apoyo.",
+        },
+        {
+          src: "/tutorial/modelo-corte.png",
+          alt: "Modelo con zonas que pueden necesitar soportes",
+          caption:
+            "Las zonas inferiores o suspendidas pueden necesitar estructuras de soporte.",
+        },
+        {
+          src: "/tutorial/corte.png",
+          alt: "Corte de un modelo arquitectónico para impresión 3D",
+          caption:
+            "Un corte permite observar las losas, techos y regiones interiores.",
+        },
+        {
+          src: "/tutorial/corte2.png",
+          alt: "Modelo dividido para reducir regiones flotantes",
+          caption:
+            "Separar el proyecto permite apoyar mejor cada pieza sobre la cama de impresión.",
+        },
+      ]}
+      imageClassName="max-h-[620px] w-full rounded-2xl object-contain"
+    />
+  </div>
+
+  <div className="mt-8 grid gap-7 lg:grid-cols-2">
+    <article className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-7 sm:p-9">
+      <h3 className="text-xl font-black">
+        ¿Por qué conviene despiezar el modelo?
+      </h3>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        Al separar pisos, losas, cubiertas, fachadas y otras piezas,
+        podemos orientar cada componente de una forma más segura para
+        imprimirlo.
+      </p>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        Esto permite apoyar superficies planas sobre la cama, reducir
+        zonas flotantes y conseguir una terminación más limpia.
+      </p>
+    </article>
+
+    <article className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-7 sm:p-9">
+      <h3 className="text-xl font-black">
+        ¿Por qué los soportes pueden aumentar el precio?
+      </h3>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        Los soportes consumen filamento adicional y aumentan el tiempo
+        durante el cual la impresora permanece trabajando.
+      </p>
+
+      <p className="mt-4 leading-8 text-[var(--text-muted)]">
+        También requieren tiempo para retirarlos, limpiar la pieza y
+        corregir las superficies donde estuvieron apoyados.
+      </p>
+    </article>
+  </div>
+
+  <div className="mt-8 rounded-3xl border border-red-600/30 bg-red-600/5 p-7 text-center sm:p-9">
+    <p className="text-base font-black leading-8 text-[var(--text-main)]">
+      Un modelo bien despiezado puede necesitar menos soportes
+    </p>
+
+    <p className="mx-auto mt-4 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
+      Reducir soportes puede disminuir el consumo de material, el
+      tiempo de impresión, el trabajo de limpieza y el riesgo de que
+      una pieza falle durante el proceso.
+    </p>
+  </div>
+</section>
+
       <section className="relative z-10 mx-auto mt-24 max-w-6xl">
         <div className="mb-12 text-center">
           <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
@@ -516,50 +658,56 @@ export default function TutorialPage() {
 
   <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
     <TutorialGallery
-      images={[
-        {
-          src: "/tutorial/ejemplo0.png",
-          alt: "Modelo arquitectónico enviado por un cliente de Kint 3D",
-          caption:
-            "Proyecto arquitectónico completo preparado para impresión 3D.",
-        },
-        {
-          src: "/tutorial/ejemplo1.png",
-          alt: "Modelo arquitectónico despiezado para impresión",
-          caption:
-            "Ejemplo de piezas y niveles separados para facilitar la revisión y la impresión.",
-        },
-        {
-          src: "/tutorial/ejemplo2.png",
-          alt: "Modelo organizado en distintas piezas",
-          caption:
-            "Modelo organizado en componentes independientes antes de imprimir.",
-        },
-        {
-          src: "/tutorial/ejemplo3.png",
-          alt: "Planta arquitectónica preparada para impresión 3D",
-          caption:
-            "Ejemplo de una planta arquitectónica limpia y organizada.",
-        },
-        {
-          src: "/tutorial/ejemplo4.png",
-          alt: "Conjunto de piezas arquitectónicas separadas",
-          caption:
-            "Piezas distribuidas y separadas para poder identificarlas correctamente.",
-        },
-        {
-          src: "/tutorial/ejemplo5.png",
-          alt: "Proyecto arquitectónico con varios niveles",
-          caption:
-            "Proyecto de varios niveles preparado como un conjunto de piezas.",
-        },
-        {
-          src: "/tutorial/ejemplo6.png",
-          alt: "Plano y modelo preparados para impresión",
-          caption:
-            "Ejemplo de documentación y geometría utilizada para preparar una impresión.",
-        },
-      ]}
+     images={[
+  {
+    src: "/tutorial/ejemplo0.png",
+    alt: "Modelo real enviado a Kint 3D para solicitar una cotización",
+    caption:
+      "Ejemplo real de un proyecto arquitectónico enviado para cotizar.",
+  },
+  {
+    src: "/tutorial/ejemplo1.png",
+    alt: "Modelo arquitectónico despiezado antes de imprimir",
+    caption:
+      "Piezas y niveles separados para facilitar la preparación de la impresión.",
+  },
+  {
+    src: "/tutorial/ejemplo2.png",
+    alt: "Proyecto organizado en componentes independientes",
+    caption:
+      "Modelo dividido en diferentes componentes antes de enviarlo a cotizar.",
+  },
+  {
+    src: "/tutorial/ejemplo3.png",
+    alt: "Planta arquitectónica preparada para impresión 3D",
+    caption:
+      "Ejemplo real de una planta organizada para su revisión.",
+  },
+  {
+    src: "/tutorial/ejemplo4.png",
+    alt: "Conjunto arquitectónico preparado para cotización",
+    caption:
+      "Proyecto con diferentes sectores y piezas organizadas.",
+  },
+  {
+    src: "/tutorial/ejemplo5.png",
+    alt: "Modelo arquitectónico con niveles separados",
+    caption:
+      "Ejemplo de un proyecto de varios niveles preparado por partes.",
+  },
+  {
+    src: "/tutorial/ejemplo6.png",
+    alt: "Modelo real preparado para impresión 3D",
+    caption:
+      "Ejemplo real de una geometría enviada a Kint 3D para cotizar.",
+  },
+  {
+    src: "/tutorial/ejemplo7.png",
+    alt: "Componentes repetidos organizados para impresión",
+    caption:
+      "Piezas repetidas y elementos especiales organizados antes de imprimir.",
+  },
+]}
       imageClassName="max-h-[680px] w-full rounded-2xl object-contain"
     />
   </div>
