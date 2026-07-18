@@ -721,42 +721,100 @@ console.log({
 )}
 </div>
 
-{(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") &&
+{(!resultado.metodoPago ||
+  resultado.metodoPago === "Sin seleccionar") &&
   (!resultado.presupuestos ||
     resultado.presupuestos.length === 0 ||
-    resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
+    resultado.presupuestos.some(
+      (p: any) =>
+        String(p.seleccionado).toLowerCase() === "sí"
+    )) && (
     <div className="space-y-6">
       <div>
-        <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          ¿Cómo querés continuar?
+        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Elegí cómo querés pagar
+        </p>
+
+        <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
+          Revisá cuánto tenés que transferir ahora
+          y cuánto quedará pendiente.
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
           {["Seña 20%", "Pago total"].map((opcion) => {
-            const precioFinal = Number(resultado.precio) || 0;
+            const precioFinal =
+              Number(resultado.precio) || 0;
+
+            const esSena =
+              opcion === "Seña 20%";
+
             const importe =
-              opcion === "Seña 20%" ? Math.round(precioFinal * 0.2) : precioFinal;
-            const saldo = precioFinal - importe;
+              esSena
+                ? Math.round(precioFinal * 0.2)
+                : precioFinal;
+
+            const saldo =
+              precioFinal - importe;
 
             return (
               <button
                 key={opcion}
                 type="button"
-                onClick={() => setModalidadPago(opcion)}
-                className={`rounded-2xl border px-5 py-5 text-left transition ${
+                onClick={() =>
+                  setModalidadPago(opcion)
+                }
+                className={`rounded-2xl border p-5 text-left transition ${
                   modalidadPago === opcion
                     ? "border-red-600 bg-[#ffe5e5] text-black"
                     : "border-[var(--border-color)] hover:border-red-600"
                 }`}
               >
-                <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
-                  {opcion}
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-600">
+                  {esSena
+                    ? "Pagar seña 20%"
+                    : "Pagar el total"}
                 </p>
 
-                <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-                  Transferir ahora: ${importe}<br />
-                  Resta pagar: ${saldo}
+                <p className="mt-4 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Total del pedido
                 </p>
+
+                <p className="mt-1 text-xl font-black">
+                  $
+                  {precioFinal.toLocaleString("es-UY")}
+                </p>
+
+                <div className="mt-5 rounded-xl border-2 border-red-600 bg-white px-4 py-4 text-black">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">
+                    {esSena
+                      ? "Seña a transferir ahora"
+                      : "Total a transferir ahora"}
+                  </p>
+
+                  <p className="mt-2 text-3xl font-black text-red-600">
+                    $
+                    {importe.toLocaleString("es-UY")}
+                  </p>
+                </div>
+
+                <div className="mt-4 border-t border-[var(--border-color)] pt-4">
+                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    Saldo pendiente
+                  </p>
+
+                  <p className="mt-1 text-xl font-bold">
+                    $
+                    {saldo.toLocaleString("es-UY")}
+                  </p>
+                </div>
+
+                {esSena && (
+                  <p className="mt-4 text-xs leading-5 text-[var(--text-muted)]">
+                    Podés pagar el saldo más adelante
+                    desde esta misma página, incluso
+                    cuando el pedido figure como Terminado.
+                  </p>
+                )}
               </button>
             );
           })}
@@ -782,6 +840,41 @@ Titular: Alexander López<br />
 Cuenta: 26557312<br />
             Concepto: {resultado.pedido}
           </p>
+
+          <div className="mb-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-5 text-black">
+  <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
+    {resultado.modalidad === "Seña 20%"
+      ? "Seña a transferir ahora"
+      : "Total a transferir ahora"}
+  </p>
+
+  <p className="mt-2 text-4xl font-black text-red-600">
+    $
+    {Number(
+      resultado.importe || 0
+    ).toLocaleString("es-UY")}
+  </p>
+
+  {resultado.modalidad === "Seña 20%" && (
+    <div className="mt-5 border-t border-red-200 pt-4">
+      <p className="text-xs font-bold uppercase tracking-[0.18em]">
+        Saldo pendiente
+      </p>
+
+      <p className="mt-1 text-xl font-black">
+        $
+        {Number(
+          resultado.saldoPendiente || 0
+        ).toLocaleString("es-UY")}
+      </p>
+
+      <p className="mt-3 text-sm leading-6">
+        Podés completar ese saldo más adelante
+        desde esta misma página.
+      </p>
+    </div>
+  )}
+</div>
 
           <div className="rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
@@ -848,8 +941,30 @@ Cuenta: 26557312<br />
           </p>
 
           <p className="text-sm leading-7 text-[var(--text-muted)]">
-  Importe transferido: ${resultado.importe || 0}<br />
-  Resta pagar: ${resultado.saldoPendiente || 0}
+  {resultado.modalidad === "Seña 20%" ? (
+    <>
+      Seña a transferir: $
+      {Number(
+        resultado.importe || 0
+      ).toLocaleString("es-UY")}
+      <br />
+
+      Saldo pendiente: $
+      {Number(
+        resultado.saldoPendiente || 0
+      ).toLocaleString("es-UY")}
+    </>
+  ) : (
+    <>
+      Total a transferir: $
+      {Number(
+        resultado.importe || 0
+      ).toLocaleString("es-UY")}
+      <br />
+
+      Saldo pendiente: $0
+    </>
+  )}
 </p>
         </div>
       )}
@@ -865,11 +980,17 @@ Cuenta: 26557312<br />
         Resta pagar
       </p>
 
-      <p className="mb-6 text-3xl font-black text-red-600">
-        ${resultado.saldoPendiente}
-      </p>
+<p className="mb-5 text-3xl font-black text-red-600">
+  ${resultado.saldoPendiente}
+</p>
 
-      {!mostrarSaldo ? (
+<p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
+  Podés completar este saldo cuando quieras desde esta misma página.
+  Cuando el pedido figure como Terminado, podés volver acá,
+  revisar que esté listo y pagar el saldo.
+</p>
+
+{!mostrarSaldo ? (
         <button
           type="button"
           onClick={() => setMostrarSaldo(true)}
