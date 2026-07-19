@@ -220,20 +220,11 @@ export default function TutorialAvanzadoPage() {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
-  <Link
-    href="/preparador-3d"
-    className="inline-flex text-sm font-bold uppercase tracking-[0.16em] text-[var(--text-muted)] transition hover:text-red-600"
-  >
-    ← Volver al Preparador 3D
-  </Link>
-
-  <div className="fixed right-4 top-4 z-50 sm:right-8 sm:top-8">
-    <ThemeToggle />
-  </div>
+        <div className="fixed right-6 top-6 z-50">
+  <ThemeToggle />
 </div>
 
-        <header className="mb-12">
+<header className="mb-12">
           <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-red-600">
             Guía paso a paso
           </p>

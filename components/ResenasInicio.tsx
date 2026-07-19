@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import CargandoResenas from "./CargandoResenas";
 
 type Resena = {
   fecha?: string;
@@ -168,28 +169,62 @@ export default function ResenasInicio() {
   } | null>(null);
 
   useEffect(() => {
-    setLikesPropios(obtenerLikesGuardados());
+  setLikesPropios(obtenerLikesGuardados());
 
-    async function cargarResenas() {
-      try {
-        const response = await fetch("/api/resenas", {
-          cache: "no-store",
-        });
+  let componenteActivo = true;
+  let temporizadorCarga: number | undefined;
 
-        const data = await response.json();
+  const controlador = new AbortController();
 
-        if (data.ok) {
-          setResenas(data.resenas || []);
-        }
-      } catch (error) {
-        console.error("Error al cargar reseñas:", error);
-      } finally {
-        setLoading(false);
+  async function cargarResenas() {
+    const momentoInicial = performance.now();
+
+    try {
+      const response = await fetch("/api/resenas", {
+        cache: "no-store",
+        signal: controlador.signal,
+      });
+
+      const data = await response.json();
+
+      if (componenteActivo && data.ok) {
+        setResenas(data.resenas || []);
       }
-    }
+    } catch (error) {
+      if (
+        componenteActivo &&
+        !(error instanceof DOMException && error.name === "AbortError")
+      ) {
+        console.error("Error al cargar reseñas:", error);
+      }
+    } finally {
+      const tiempoTranscurrido =
+        performance.now() - momentoInicial;
 
-    cargarResenas();
-  }, []);
+      const tiempoRestante = Math.max(
+        0,
+        2900 - tiempoTranscurrido
+      );
+
+      temporizadorCarga = window.setTimeout(() => {
+        if (componenteActivo) {
+          setLoading(false);
+        }
+      }, tiempoRestante);
+    }
+  }
+
+  cargarResenas();
+
+  return () => {
+    componenteActivo = false;
+    controlador.abort();
+
+    if (temporizadorCarga !== undefined) {
+      window.clearTimeout(temporizadorCarga);
+    }
+  };
+}, []);
 
   useEffect(() => {
     if (loading || !resenas.length) {
@@ -485,12 +520,8 @@ export default function ResenasInicio() {
   }
 
   if (loading) {
-    return (
-      <p className="text-center text-sm text-[var(--text-muted)]">
-        Cargando reseñas...
-      </p>
-    );
-  }
+  return <CargandoResenas />;
+}
 
   if (!resenas.length) {
     return (

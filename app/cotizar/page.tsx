@@ -592,14 +592,6 @@ if (pedidosDeshabilitados) {
 if (enviado) {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
-      <div className="fixed left-6 right-6 top-6 z-50 flex items-center justify-between">
-  <Link href="/">
-    <button className="flex items-center gap-1 text-3xl font-bold text-[var(--text-main)] transition hover:text-red-600">
-      <span className="text-5xl leading-none">‹</span>
-      <span>Inicio</span>
-    </button>
-  </Link>
-      </div>
 
       <section className="mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center text-center">
         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[var(--border-color)] text-4xl font-bold">
@@ -640,17 +632,6 @@ return (
       <div className="fixed right-6 top-6 z-[1000]">
   <ThemeToggle />
 </div>
-
-
-
-      <div className="fixed left-8 top-8 z-50">
-        <Link href="/">
-          <button className="flex items-center gap-1 text-2xl font-bold text-[var(--text-main)] transition hover:opacity-70">
-            <span className="relative -top-1 text-6xl leading-none">‹</span>
-            <span>Inicio</span>
-          </button>
-        </Link>
-      </div>
 
       <div className="mx-auto max-w-4xl rounded-3xl bg-[var(--card-bg)] p-10 shadow-xl">
         <h1 className="mb-8 text-4xl font-bold text-[var(--text-main)]">

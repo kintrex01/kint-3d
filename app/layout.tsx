@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 import EstadoPagina from "../components/EstadoPagina";
+import MenuNavegacion from "../components/MenuNavegacion";
+import ScrollASeccion from "../components/ScrollASeccion";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -26,13 +28,17 @@ export default function RootLayout({
       className={`${montserrat.variable} h-full antialiased`}
     >
       <body
-        suppressHydrationWarning
-        className="min-h-full flex flex-col"
-      >
-        <EstadoPagina />
-        
-        {children}
-      </body>
+  suppressHydrationWarning
+  className="flex min-h-full flex-col"
+>
+  <EstadoPagina />
+
+  <MenuNavegacion />
+
+  <ScrollASeccion />
+
+  {children}
+</body>
     </html>
   );
 }

@@ -777,20 +777,14 @@ setCantidadPiezas(piezasDetectadas);
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)]">
       <div className="mx-auto max-w-7xl">
-        <Link
-          href="/"
-          className="mb-8 inline-flex text-sm font-bold uppercase tracking-[0.16em] transition hover:text-red-600"
-        >
-          ← Inicio
-        </Link>
 
-        <div className="mb-8">
-          <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-red-600">
-            Herramienta interna
-          </p>
+        <div className="mb-8 pt-28 sm:pt-32">
+  <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-red-600">
+    VISTA PREVIA INTELIGENTE
+  </p>
 
           <h1 className="text-2xl font-black uppercase tracking-[0.12em] sm:text-4xl">
-            Preparador 3D
+            Ver mi modelo en 3D
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">

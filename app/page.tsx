@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import ResenasInicio from "../components/ResenasInicio";
 import ThemeToggle from "../components/ThemeToggle";
 import EstadisticasInicio from "../components/EstadisticasInicio";
+import FondoKintAnimado from "../components/FondoKintAnimado";
 import {
   Box,
   ChevronDown,
@@ -55,8 +56,8 @@ export default function Home() {
   <ThemeToggle />
 </header>
 
-<section className="relative overflow-hidden px-8 pt-12">
-  <div className="kint-hero-bg" />
+<section className="relative isolate overflow-hidden px-8 pt-12">
+  <FondoKintAnimado />
 
   <div className="absolute right-8 top-24 z-30 hidden 2xl:block">
   <EstadisticasInicio />
@@ -132,14 +133,12 @@ export default function Home() {
 
 
 
-  <a
-    href="https://www.instagram.com/kint.3d/"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="kint-soft-btn"
-  >
-    Ver trabajos <span>→</span>
-  </a>
+  <Link
+  href="/escalador"
+  className="kint-soft-btn"
+>
+  Escalador 3D <span>→</span>
+</Link>
 
   <a href="#preguntas" className="kint-soft-btn">
     Preguntas frecuentes <span>→</span>
@@ -246,130 +245,8 @@ export default function Home() {
                     </div>
         </div>
       </section>
-</section>
 
-<section id="preguntas" className="border-t border-[var(--border-color)] px-6 py-24">
-  <div className="mx-auto max-w-5xl">
-    <div className="mb-16 text-center">
-      <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
-        Preguntas frecuentes
-      </p>
-
-      <div className="mx-auto mb-6 h-[2px] w-12 bg-red-600" />
-
-      <p className="text-sm uppercase tracking-[0.18em] text-[var(--text-muted)]">
-        Información útil antes de cotizar.
-      </p>
-
-      <p className="mx-auto mt-6 max-w-3xl text-sm leading-7 text-[var(--text-muted)]">
-  ¿Primera vez imprimiendo en 3D? No te preocupes. Revisamos cada archivo antes de imprimir y podemos ayudarte a elegir la mejor escala, configuración y materiales para tu proyecto.
-</p>
-    </div>
-
-    <div className="grid gap-5">
-      {[
-        {
-          pregunta: "¿Qué archivos puedo enviar?",
-          respuesta:
-            "Podés enviar archivos STL o SKP. Si tu archivo pesa más de 50 MB, podés enviar la solicitud igualmente y luego enviarnos el archivo por WhatsApp.",
-        },
-        {
-          pregunta: "¿Tengo que mandar el modelo a escala?",
-          respuesta:
-            "No necesariamente. Si ya conocés la escala, podés indicarla en el formulario. Si no estás seguro, podemos ayudarte a definirla.",
-        },
-        {
-          pregunta: "¿Ustedes escalan el modelo?",
-          respuesta:
-            "Sí. Podemos adaptar el modelo a la escala que necesites antes de imprimir.",
-        },
-        {
-          pregunta: "¿Puedo enviar varios archivos?",
-          respuesta:
-            "Sí. Podés subir varios archivos en una misma cotización.",
-        },
-        {
-          pregunta: "¿Qué pasa si mi archivo tiene errores?",
-          respuesta:
-            "Todos los modelos son revisados antes de presupuestar. Si encontramos errores o problemas de impresión, te lo informaremos antes de comenzar el trabajo.",
-        },
-        {
-          pregunta: "¿Cómo me avisan si mi impresión terminó?",
-          respuesta:
-            "Recibirás una notificación automática por correo electrónico cuando tu pedido cambie de estado. También podés consultar el avance en cualquier momento desde la sección Consultar pedido.",
-        },
-        {
-          pregunta: "¿Puedo modificar o reemplazar archivos después de enviar el pedido?",
-          respuesta:
-            "Sí, mientras el pedido no haya avanzado demasiado en el proceso. Si necesitás reemplazar un archivo, podés comunicarte con nosotros y te indicaremos cómo hacerlo.",
-        },
-        {
-          pregunta: "¿Qué pasa si no tengo experiencia con impresión 3D?",
-          respuesta:
-            "No es necesario tener conocimientos técnicos. Podemos ayudarte a elegir la escala, materiales y configuración más adecuada para tu proyecto.",
-        },
-        {
-          pregunta: "¿Cuánto demora un pedido?",
-          respuesta:
-            "Depende del tamaño, nivel de detalle y cantidad de piezas. Si tenés una fecha límite, podés indicarla en el formulario y la tendremos en cuenta al presupuestar.",
-        },
-        {
-  pregunta: "¿Cómo funciona el pago?",
-  respuesta:
-    "Una vez elegido el presupuesto, podés pagar una seña del 20% o el importe total. Elegir un presupuesto no inicia la impresión: comenzamos únicamente después de confirmar el pago. Si elegís la seña, podés pagar el saldo más adelante desde la página de seguimiento, incluso cuando el pedido figure como Terminado.",
-},
-        {
-          pregunta: "¿Qué incluye el presupuesto?",
-          respuesta:
-            "Incluye material, tiempo de impresión, preparación del archivo, correcciones menores, posibles fallas de impresión y servicios adicionales seleccionados.",
-        },
-        {
-          pregunta: "¿Puedo pedir varios colores en una misma impresión?",
-          respuesta:
-            "Sí. Podés seleccionar varios colores e indicar en los comentarios qué partes querés imprimir en cada color.",
-        },
-        {
-          pregunta: "¿Puedo seguir el estado de mi pedido?",
-          respuesta:
-            "Sí. Al enviar tu solicitud recibirás un número de pedido que podrás utilizar en la sección Consultar pedido para seguir el avance de tu trabajo.",
-        },
-        {
-  pregunta: "¿Qué materiales utilizan?",
-  respuesta:
-    "Trabajamos principalmente con PLA y PLA+, materiales ideales para maquetas, prototipos y piezas decorativas. Si tu proyecto requiere otro material, consultanos antes de cotizar.",
-},
-{
-  pregunta: "¿Hacen envíos?",
-  respuesta:
-    "Sí. Podemos coordinar retiro o envío según tu ubicación. El costo de envío no está incluido en el presupuesto salvo que se indique lo contrario.",
-},
-{
-  pregunta: "¿La cotización tiene costo?",
-  respuesta:
-    "No. Revisamos tu archivo y te enviamos un presupuesto sin costo y sin compromiso.",
-},
-           ].map((item) => (
-        <details
-          key={item.pregunta}
-          className="group rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-main)] backdrop-blur-xl transition"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-left">
-            <span className="text-base font-bold text-red-600 md:text-lg">
-              {item.pregunta}
-            </span>
-
-            <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
-              +
-            </span>
-          </summary>
-
-          <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
-            {item.respuesta}
-          </p>
-        </details>
-      ))}
-    </div>
-  </div>
+      {/* El fondo animado termina aquí, junto con toda la portada. */}
 </section>
 
       <section
