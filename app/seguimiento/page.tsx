@@ -26,6 +26,11 @@ const [mostrarSaldo, setMostrarSaldo] = useState(false);
 const [modoOscuro, setModoOscuro] = useState(false);
 const [codigoDescuentoInput, setCodigoDescuentoInput] = useState("");
 const [aplicandoDescuento, setAplicandoDescuento] = useState(false);
+const [archivoReemplazando, setArchivoReemplazando] =
+  useState("");
+
+const [archivoEliminando, setArchivoEliminando] =
+  useState("");
   
   const searchParams = useSearchParams();
 
@@ -150,11 +155,208 @@ if (uploadError) {
 
     setMensajeArchivo("Archivo enviado correctamente.");
     setArchivosExtra([]);
+    await consultarPedido();
   } catch (error: any) {
     setError(error.message || "Error al subir archivo.");
   }
 
   setSubiendoArchivo(false);
+}
+
+async function eliminarArchivoPedido(
+  archivo: any
+) {
+  const idArchivo = String(
+    archivo.idArchivo || ""
+  ).trim();
+
+  const nombreArchivo =
+    archivo.nombreArchivo ||
+    "este archivo";
+
+  if (!idArchivo) {
+    setError(
+      "No se pudo identificar el archivo."
+    );
+    return;
+  }
+
+  const confirmado = window.confirm(
+    `¿Eliminar "${nombreArchivo}"?\n\nEsta acción no se puede deshacer.`
+  );
+
+  if (!confirmado) {
+    return;
+  }
+
+  setError("");
+  setMensajeArchivo("");
+  setArchivoEliminando(idArchivo);
+
+  try {
+    const response = await fetch(
+      "/api/archivos",
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          pedido,
+          codigo,
+          idArchivo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudo eliminar el archivo."
+      );
+    }
+
+    await consultarPedido();
+
+    setMensajeArchivo(
+      data.advertencia ||
+        "Archivo eliminado correctamente."
+    );
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "Error al eliminar el archivo."
+    );
+  } finally {
+    setArchivoEliminando("");
+  }
+}
+
+
+async function reemplazarArchivoPedido(
+  archivoAnterior: any,
+  archivoNuevo: File
+) {
+  const idArchivoAnterior = String(
+    archivoAnterior.idArchivo || ""
+  ).trim();
+
+  if (!idArchivoAnterior) {
+    setError(
+      "No se pudo identificar el archivo anterior."
+    );
+    return;
+  }
+
+  setError("");
+  setMensajeArchivo("");
+  setArchivoReemplazando(
+    idArchivoAnterior
+  );
+
+  try {
+    const firmaResponse = await fetch(
+      "/api/archivos-firma",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          pedido,
+          archivos: [
+            {
+              nombre: archivoNuevo.name,
+              size: archivoNuevo.size,
+            },
+          ],
+        }),
+      }
+    );
+
+    const firmaData =
+      await firmaResponse.json();
+
+    if (!firmaData.ok) {
+      throw new Error(
+        firmaData.error ||
+          "No se pudo preparar el archivo nuevo."
+      );
+    }
+
+    const firmado =
+      firmaData.archivos?.[0];
+
+    if (!firmado) {
+      throw new Error(
+        "No se recibió la firma de subida."
+      );
+    }
+
+    const { error: uploadError } =
+      await supabase.storage
+        .from("kint-archivos")
+        .uploadToSignedUrl(
+          firmado.ruta,
+          firmado.token,
+          archivoNuevo
+        );
+
+    if (uploadError) {
+      throw new Error(
+        `No se pudo subir ${archivoNuevo.name}: ${uploadError.message}`
+      );
+    }
+
+    const response = await fetch(
+      "/api/archivos",
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          pedido,
+          codigo,
+          idArchivoAnterior,
+          idArchivoNuevo:
+            firmado.ruta,
+          nombreArchivoNuevo:
+            firmado.nombreArchivo,
+          linkArchivoNuevo:
+            firmado.link,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudo reemplazar el archivo."
+      );
+    }
+
+    await consultarPedido();
+
+    setMensajeArchivo(
+      data.advertencia ||
+        "Archivo reemplazado correctamente."
+    );
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "Error al reemplazar el archivo."
+    );
+  } finally {
+    setArchivoReemplazando("");
+  }
 }
 
 async function aplicarCodigoDescuento() {
@@ -1118,8 +1320,119 @@ Cuenta: 26557312<br />
   </div>
 )}
 
-    {["Recibido", "Presupuestado", "Método de pago seleccionado"].includes(resultado.estado) ? (
-  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+{Array.isArray(resultado.archivos) &&
+  resultado.archivos.length > 0 && (
+    <div className="mb-6 rounded-xl border border-[var(--border-color)] p-3 sm:p-4">
+      <p className="mb-2 text-[10px] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+        Archivos del pedido
+      </p>
+
+      <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">
+        Estos son los archivos vinculados actualmente a tu pedido.
+      </p>
+
+      <div className="space-y-1.5">
+        {resultado.archivos.map(
+          (archivo: any, index: number) => (
+            <div
+              key={`${archivo.idArchivo || "archivo"}-${index}`}
+              className="flex flex-col gap-2 rounded-lg border border-[var(--border-color)] px-3 py-2 md:flex-row md:items-center md:justify-between"
+            >
+              <div className="min-w-0">
+                <p className="break-all text-[11px] font-semibold leading-4">
+                  {archivo.nombreArchivo ||
+                    `Archivo ${index + 1}`}
+                </p>
+
+                <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  {archivo.tipo || "Archivo"}
+                </p>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-1.5">
+  {archivo.link ? (
+    <a
+      href={archivo.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] text-red-600 transition hover:underline"
+    >
+      Abrir
+    </a>
+  ) : (
+    <span className="text-[9px] font-bold uppercase text-[var(--text-muted)]">
+      Sin enlace
+    </span>
+  )}
+
+  {resultado.estado === "Recibido" && (
+    <>
+      <label
+        title="Reemplazar archivo"
+        className={`flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-[var(--border-color)] text-sm font-bold transition hover:border-red-600 hover:text-red-600 ${
+          archivoReemplazando ||
+          archivoEliminando
+            ? "pointer-events-none opacity-50"
+            : ""
+        }`}
+      >
+        {archivoReemplazando ===
+        archivo.idArchivo
+          ? "…"
+          : "↻"}
+
+        <input
+          type="file"
+          accept=".stl,.skp"
+          className="hidden"
+          disabled={Boolean(
+            archivoReemplazando ||
+              archivoEliminando
+          )}
+          onChange={(e) => {
+            const archivoNuevo =
+              e.target.files?.[0];
+
+            if (archivoNuevo) {
+              void reemplazarArchivoPedido(
+                archivo,
+                archivoNuevo
+              );
+            }
+
+            e.currentTarget.value = "";
+          }}
+        />
+      </label>
+
+      <button
+        type="button"
+        disabled={Boolean(
+          archivoReemplazando ||
+            archivoEliminando
+        )}
+        onClick={() =>
+          eliminarArchivoPedido(archivo)
+        }
+        className="rounded-md border border-red-600 px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.06em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+      >
+        {archivoEliminando ===
+        archivo.idArchivo
+          ? "Eliminando..."
+          : "Eliminar"}
+      </button>
+    </>
+  )}
+</div>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  )}
+
+    {resultado.estado === "Recibido" ? (
+  <div className="mb-8 rounded-2xl border border-[var(--border-color)] p-4 sm:p-5">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Archivos adicionales
     </p>
