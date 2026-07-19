@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -7,26 +8,92 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { pedido, archivos } = await request.json();
+    const body = await request.json();
 
-    const firmados = [];
+const pedido = String(body.pedido || "")
+  .trim()
+  .toUpperCase();
+
+const archivos = Array.isArray(body.archivos)
+  ? body.archivos
+  : [];
+
+if (!pedido) {
+  throw new Error("Falta el número de pedido.");
+}
+
+if (!archivos.length) {
+  throw new Error("No se recibieron archivos.");
+}
+
+const pedidoSeguro = pedido.replace(
+  /[^A-Z0-9_-]/g,
+  ""
+);
+
+if (!pedidoSeguro) {
+  throw new Error("El número de pedido no es válido.");
+}
+
+const firmados = [];
 
     for (const archivo of archivos) {
-      const extension = archivo.nombre.split(".").pop()?.toLowerCase();
+     const nombreOriginal = String(
+  archivo.nombre || ""
+).trim();
 
-      if (extension !== "stl" && extension !== "skp") {
-        throw new Error("Solo se permiten archivos STL o SKP.");
-      }
+const pesoArchivo = Number(
+  archivo.size || 0
+);
 
-      if (archivo.size > 50 * 1024 * 1024) {
-        throw new Error(`${archivo.nombre} supera los 50 MB.`);
-      }
+if (!nombreOriginal) {
+  throw new Error(
+    "Uno de los archivos no tiene nombre."
+  );
+}
 
-      const nombreSeguro = archivo.nombre
-        .replace(/\s+/g, "_")
-        .replace(/[^a-zA-Z0-9._-]/g, "");
+const extension = nombreOriginal
+  .split(".")
+  .pop()
+  ?.toLowerCase();
 
-      const ruta = `${pedido}/${Date.now()}-${nombreSeguro}`;
+if (
+  extension !== "stl" &&
+  extension !== "skp"
+) {
+  throw new Error(
+    "Solo se permiten archivos STL o SKP."
+  );
+}
+
+if (pesoArchivo <= 0) {
+  throw new Error(
+    `${nombreOriginal} está vacío.`
+  );
+}
+
+if (pesoArchivo > 50 * 1024 * 1024) {
+  throw new Error(
+    `${nombreOriginal} supera los 50 MB.`
+  );
+}
+
+const nombreSinExtension =
+  nombreOriginal.replace(/\.[^.]+$/, "");
+
+const nombreBaseSeguro = nombreSinExtension
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .replace(/\s+/g, "_")
+  .replace(/[^a-zA-Z0-9_-]/g, "")
+  .replace(/_+/g, "_")
+  .replace(/^_+|_+$/g, "") || "archivo";
+
+const nombreFinal =
+  `${pedidoSeguro}-${nombreBaseSeguro}.${extension}`;
+
+const ruta =
+  `${pedidoSeguro}/${randomUUID()}/${nombreFinal}`;
 
       const { data, error } = await supabase.storage
         .from("kint-archivos")
@@ -40,7 +107,8 @@ export async function POST(request: Request) {
 
 
 firmados.push({
-  nombreArchivo: archivo.nombre,
+  nombreArchivo: nombreFinal,
+  nombreOriginal,
   ruta,
   token: data.token,
   signedUrl: data.signedUrl,
