@@ -149,7 +149,7 @@ export default function Home() {
   href="/tutorial"
   className="kint-soft-btn md:col-span-2"
 >
-  Preparar mi modelo <span>→</span>
+  GUÍA PARA PREPARAR MI MODELO <span>→</span>
 </Link>
 </div>
 
