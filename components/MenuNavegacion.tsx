@@ -242,6 +242,53 @@ function GrupoMenu({
             </>
           );
 
+if (esEnlaceConSeccion) {
+  return (
+    <a
+      key={enlace.nombre}
+      href={enlace.href}
+      onClick={(evento) => {
+        const [ruta, idSeccion] =
+          enlace.href.split("#");
+
+        const rutaObjetivo =
+          ruta || "/";
+
+        if (
+          pathname === rutaObjetivo &&
+          idSeccion
+        ) {
+          evento.preventDefault();
+
+          cerrar();
+
+          window.setTimeout(() => {
+            document
+              .getElementById(idSeccion)
+              ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+
+            window.history.replaceState(
+              null,
+              "",
+              `${rutaObjetivo}#${idSeccion}`
+            );
+          }, 100);
+
+          return;
+        }
+
+        cerrar();
+      }}
+      className={clasesEnlace}
+    >
+      {contenido}
+    </a>
+  );
+}
+
           if (enlace.externo) {
             return (
               <a
