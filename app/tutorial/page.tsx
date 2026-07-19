@@ -58,20 +58,33 @@ export default function TutorialPage() {
           única envolvente exterior.
         </p>
 
-        <div className="mx-auto mt-9 flex max-w-2xl flex-wrap justify-center gap-3 text-[10px] font-black uppercase tracking-[0.17em]">
-          <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-blue-500">
-            Con interiores: despiezado
-          </span>
+        <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-[var(--text-muted)]">
+  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-600">
+    Recomendado
+  </span>
 
-          <span className="rounded-full border border-red-600/40 bg-red-600/10 px-4 py-2 text-red-600">
-            Sin interiores: unido
-          </span>
-        </div>
+  <span>
+    ¿Tu modelo ya está listo?
+  </span>
+
+  <Link
+    href="/tutorial-avanzado"
+    className="font-bold text-emerald-600 transition hover:text-emerald-500 hover:underline"
+  >
+    Aprendé a exportarlo correctamente como STL →
+  </Link>
+</div>
       </section>
 
       <section className="relative z-10 mx-auto grid max-w-6xl gap-7 lg:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
-          <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
+  <div className="px-4 pb-3 pt-5 sm:px-6">
+    <span className="inline-flex rounded-full border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.17em] text-blue-500">
+      Con interiores: despiezado
+    </span>
+  </div>
+
+  <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
             <TutorialGallery
               images={[{
                 src: "/tutorial/modelo-despiezado-pisos.png",
@@ -82,11 +95,8 @@ export default function TutorialPage() {
           </div>
 
           <div className="p-7 sm:p-9">
-            <span className="inline-flex rounded-full border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
-              Opción 1 · Con interiores
-            </span>
 
-            <h2 className="mt-5 text-2xl font-black">
+            <h2 className="text-2xl font-black">
               Modelo despiezado por niveles
             </h2>
 
@@ -111,7 +121,13 @@ export default function TutorialPage() {
         </article>
 
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
-          <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
+  <div className="px-4 pb-3 pt-5 sm:px-6">
+    <span className="inline-flex rounded-full border border-red-600/40 bg-red-600/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.17em] text-red-600">
+      Sin interiores: unido
+    </span>
+  </div>
+
+  <div className="flex min-h-[310px] items-center justify-center bg-black/5 p-3">
             <TutorialGallery
               images={[{
                 src: "/tutorial/modelo-unido.jpeg",
@@ -122,11 +138,8 @@ export default function TutorialPage() {
           </div>
 
           <div className="p-7 sm:p-9">
-            <span className="inline-flex rounded-full border border-red-600/40 bg-red-600/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-600">
-              Opción 2 · Sin interiores
-            </span>
 
-            <h2 className="mt-5 text-2xl font-black">
+            <h2 className="text-2xl font-black">
               Modelo unido
             </h2>
 
@@ -732,27 +745,45 @@ export default function TutorialPage() {
   </div>
 </section>
 
-      <section className="relative z-10 mx-auto max-w-4xl py-24 text-center">
-        <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
-          Siguiente paso
-        </p>
+      <section className="relative z-10 mx-auto max-w-5xl py-24">
+  <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 text-center shadow-[var(--shadow-soft)] sm:p-10">
+    <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
+      Siguiente paso
+    </p>
 
-        <h2 className="mt-5 text-3xl font-black sm:text-4xl">
-          ¿Tu modelo ya está preparado?
-        </h2>
+    <h2 className="mt-5 text-3xl font-black sm:text-4xl">
+      ¿Tu modelo ya está preparado?
+    </h2>
 
-        <p className="mx-auto mt-5 max-w-2xl leading-8 text-[var(--text-muted)]">
-          Subilo, contanos cómo querés imprimirlo y recibirás una o
-          más opciones de presupuesto.
-        </p>
+    <p className="mx-auto mt-5 max-w-2xl leading-8 text-[var(--text-muted)]">
+      Podés aprender a exportarlo correctamente como
+      STL o continuar directamente con la solicitud
+      de cotización.
+    </p>
 
-        <Link
-          href="/cotizar"
-          className="mt-9 inline-flex items-center justify-center rounded-2xl border border-red-600 bg-red-600 px-10 py-5 text-sm font-black uppercase tracking-[0.25em] text-white transition hover:bg-transparent hover:text-red-600"
-        >
-          Subir mi modelo →
-        </Link>
-      </section>
+    <div className="mx-auto mt-9 grid max-w-2xl gap-4 sm:grid-cols-2">
+      <Link
+        href="/tutorial-avanzado"
+        className="inline-flex min-h-[60px] items-center justify-center rounded-2xl border border-[var(--border-color)] px-6 py-4 text-xs font-black uppercase tracking-[0.16em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600"
+      >
+        Ver tutorial avanzado →
+      </Link>
+
+      <Link
+        href="/cotizar"
+        className="inline-flex min-h-[60px] items-center justify-center rounded-2xl border border-red-600 bg-red-600 px-6 py-4 text-xs font-black uppercase tracking-[0.16em] text-white transition hover:bg-transparent hover:text-red-600"
+      >
+        Subir mi modelo →
+      </Link>
+    </div>
+
+    <p className="mx-auto mt-5 max-w-xl text-xs leading-6 text-[var(--text-muted)]">
+      El tutorial avanzado explica cómo pasar de
+      SketchUp a STL y comprobar el archivo en el
+      Preparador 3D.
+    </p>
+  </div>
+</section>
     </main>
   );
 }

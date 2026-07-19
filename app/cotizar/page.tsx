@@ -657,18 +657,45 @@ return (
           Configurar impresión 3D
         </h1>
 
-        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-5 sm:flex-row sm:items-center sm:justify-between">
-  <p className="text-sm leading-6 text-[var(--text-muted)]">
-    ¿Tenés dudas sobre formatos, escalas o tiempos de entrega?
-  </p>
+        <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]">
+  <div className="p-6 sm:p-7">
+    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-red-600">
+      Antes de cotizar
+    </p>
 
-  <Link
-    href="/#preguntas"
-    className="inline-flex justify-center rounded-xl border border-[var(--border-color)] px-5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)] transition hover:border-red-600 hover:text-red-600"
-  >
-    Ver preguntas frecuentes
-  </Link>
-</div>
+    <h2 className="mt-3 text-xl font-black text-[var(--text-main)]">
+      ¿Es tu primera vez imprimiendo en 3D?
+    </h2>
+
+    <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
+      Te explicamos cómo preparar tu modelo, qué
+      archivos podés enviar y cómo evitar errores
+      antes de solicitar la cotización.
+    </p>
+
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <Link
+        href="/tutorial"
+        className="inline-flex items-center justify-center rounded-xl bg-red-600 px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-red-700"
+      >
+        Sí, es mi primera vez
+      </Link>
+
+      <Link
+        href="/tutorial-avanzado"
+        className="inline-flex items-center justify-center rounded-xl border border-[var(--border-color)] px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600"
+      >
+        Ya tengo un archivo STL
+      </Link>
+    </div>
+
+    <p className="mt-4 text-xs leading-6 text-[var(--text-muted)]">
+      También podés continuar directamente con el
+      formulario. Revisamos cada archivo antes de
+      preparar el presupuesto.
+    </p>
+  </div>
+</section>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">

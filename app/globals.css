@@ -335,4 +335,8 @@ html:not(.dark) .kint-services-card {
   .dark .kint-hero-bg {
     background-image: url("/fondos/kint-oscuro-movil.png") !important;
   }
+
+  html {
+  scroll-behavior: smooth;
+}
 }
