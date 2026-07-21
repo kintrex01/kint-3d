@@ -566,7 +566,7 @@ export default function ResenasInicio() {
         </p>
       )}
 
-      <div className="grid items-start gap-6 md:grid-cols-2">
+      <div className="grid items-start gap-6 md:grid-cols-2 [overflow-anchor:none]">
         {resenasOrdenadas.map((resena, index) => {
           const pedido =
             String(resena.pedido || "").trim().toUpperCase() ||
@@ -695,28 +695,12 @@ const fotosProyecto = enlacesFotos
                 <div className="mt-2">
                   <button
                     type="button"
-                    onClick={(evento) => {
-  const boton = evento.currentTarget;
-  const posicionAntes = boton.getBoundingClientRect().top;
-
-  setAbierta(
-    estaAbierta
+                    onClick={() => {
+  setAbierta((actual) =>
+    actual === idProyecto
       ? null
       : idProyecto
   );
-
-  window.requestAnimationFrame(() => {
-    window.requestAnimationFrame(() => {
-      const posicionDespues =
-        boton.getBoundingClientRect().top;
-
-      window.scrollBy({
-        top: posicionDespues - posicionAntes,
-        left: 0,
-        behavior: "auto",
-      });
-    });
-  });
 }}
                     className="flex w-full items-center justify-between px-6 py-4 text-xs font-bold uppercase tracking-[0.22em] text-red-600 transition hover:bg-red-600/5 sm:px-7"
                   >

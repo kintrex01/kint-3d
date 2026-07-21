@@ -18,31 +18,95 @@ export default function Home() {
   const [mostrarAccesoResenas, setMostrarAccesoResenas] =
     useState(true);
 
-  useEffect(() => {
-    const seccionResenas =
-      document.getElementById("resenas");
+useEffect(() => {
+  const seccionResenas =
+    document.getElementById("resenas");
 
-    if (!seccionResenas) {
+  if (!seccionResenas) {
+    return;
+  }
+
+  function actualizarBotonResenas() {
+    const posicion =
+      seccionResenas.getBoundingClientRect();
+
+    const estamosEnResenas =
+      posicion.top < window.innerHeight &&
+      posicion.bottom > 0;
+
+    setMostrarAccesoResenas(
+      !estamosEnResenas
+    );
+  }
+
+  function quitarHashResenas() {
+    if (window.location.hash !== "#resenas") {
       return;
     }
 
-    const observador = new IntersectionObserver(
-      ([entrada]) => {
-        setMostrarAccesoResenas(
-          !entrada.isIntersecting
+    /*
+     * Esperamos a que el navegador termine de bajar
+     * a la sección y después eliminamos el hash
+     * sin cambiar la posición de la pantalla.
+     */
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const posicionActual = window.scrollY;
+
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${window.location.pathname}${window.location.search}`
         );
-      },
-      {
-        threshold: 0.15,
-      }
+
+        window.scrollTo({
+          top: posicionActual,
+          left: 0,
+          behavior: "auto",
+        });
+
+        actualizarBotonResenas();
+      });
+    });
+  }
+
+  actualizarBotonResenas();
+  quitarHashResenas();
+
+  window.addEventListener(
+    "hashchange",
+    quitarHashResenas
+  );
+
+  window.addEventListener(
+    "scroll",
+    actualizarBotonResenas,
+    { passive: true }
+  );
+
+  window.addEventListener(
+    "resize",
+    actualizarBotonResenas
+  );
+
+  return () => {
+    window.removeEventListener(
+      "hashchange",
+      quitarHashResenas
     );
 
-    observador.observe(seccionResenas);
+    window.removeEventListener(
+      "scroll",
+      actualizarBotonResenas
+    );
 
-    return () => {
-      observador.disconnect();
-    };
-  }, []);
+    window.removeEventListener(
+      "resize",
+      actualizarBotonResenas
+    );
+  };
+}, []);
+
 
 
   return (
