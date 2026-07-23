@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
 import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
@@ -24,6 +27,49 @@ const organizacionPiezas = [
 ];
 
 export default function TutorialPage() {
+  useEffect(() => {
+    const urlActual =
+      new URL(window.location.href);
+
+    const irAPreguntas =
+      urlActual.searchParams.get("ir") ===
+        "preguntas" ||
+      urlActual.hash === "#preguntas";
+
+    if (!irAPreguntas) {
+      return;
+    }
+
+    const temporizador =
+      window.setTimeout(() => {
+        const preguntas =
+          document.getElementById(
+            "preguntas"
+          );
+
+        preguntas?.scrollIntoView({
+          behavior: "auto",
+          block: "start",
+        });
+
+        const urlLimpia =
+          new URL(window.location.href);
+
+        urlLimpia.searchParams.delete("ir");
+        urlLimpia.hash = "";
+
+        window.history.replaceState(
+          window.history.state,
+          "",
+          `${urlLimpia.pathname}${urlLimpia.search}`
+        );
+      }, 100);
+
+    return () => {
+      window.clearTimeout(temporizador);
+    };
+  }, []);
+
   return (
     <main className="relative min-h-screen overflow-hidden px-5 py-8 text-[var(--text-main)] sm:px-8 sm:py-10">
       <div className="pointer-events-none absolute inset-0">

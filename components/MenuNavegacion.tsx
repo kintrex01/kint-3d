@@ -141,7 +141,7 @@ const enlacesKint: EnlaceMenu[] = [
 },
  {
   nombre: "Preguntas frecuentes",
-  href: "/tutorial#preguntas",
+  href: "/tutorial?ir=preguntas",
   icono: HelpCircle,
 },
   {
@@ -290,6 +290,22 @@ if (esEnlaceConSeccion) {
 }
 
 if (enlace.href === "/?ir=resenas") {
+  return (
+    <a
+      key={enlace.nombre}
+      href={enlace.href}
+      onClick={cerrar}
+      className={clasesEnlace}
+    >
+      {contenido}
+    </a>
+  );
+}
+
+if (
+  enlace.href === "/tutorial" ||
+  enlace.href === "/tutorial?ir=preguntas"
+) {
   return (
     <a
       key={enlace.nombre}
