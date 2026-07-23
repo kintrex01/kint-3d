@@ -172,12 +172,10 @@ export default function ResenasInicio() {
   setLikesPropios(obtenerLikesGuardados());
 
   let componenteActivo = true;
-  let temporizadorCarga: number | undefined;
 
   const controlador = new AbortController();
 
   async function cargarResenas() {
-    const momentoInicial = performance.now();
 
     try {
       const response = await fetch("/api/resenas", {
@@ -198,20 +196,10 @@ export default function ResenasInicio() {
         console.error("Error al cargar reseñas:", error);
       }
     } finally {
-      const tiempoTranscurrido =
-        performance.now() - momentoInicial;
-
-      const tiempoRestante = Math.max(
-        0,
-        2900 - tiempoTranscurrido
-      );
-
-      temporizadorCarga = window.setTimeout(() => {
-        if (componenteActivo) {
-          setLoading(false);
-        }
-      }, tiempoRestante);
-    }
+  if (componenteActivo) {
+    setLoading(false);
+  }
+}
   }
 
   cargarResenas();
@@ -219,10 +207,6 @@ export default function ResenasInicio() {
   return () => {
     componenteActivo = false;
     controlador.abort();
-
-    if (temporizadorCarga !== undefined) {
-      window.clearTimeout(temporizadorCarga);
-    }
   };
 }, []);
 

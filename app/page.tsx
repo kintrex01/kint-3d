@@ -20,18 +20,15 @@ export default function Home() {
 
 useEffect(() => {
   const elementoResenas =
-  document.getElementById("resenas");
+    document.getElementById("resenas");
 
-if (!elementoResenas) {
-  return;
-}
-
-const seccionResenas: HTMLElement =
-  elementoResenas;
+  if (!elementoResenas) {
+    return;
+  }
 
   function actualizarBotonResenas() {
     const posicion =
-      seccionResenas.getBoundingClientRect();
+      elementoResenas.getBoundingClientRect();
 
     const estamosEnResenas =
       posicion.top < window.innerHeight &&
@@ -42,44 +39,40 @@ const seccionResenas: HTMLElement =
     );
   }
 
-  function quitarHashResenas() {
-    if (window.location.hash !== "#resenas") {
-      return;
-    }
+  const urlActual =
+    new URL(window.location.href);
 
-    /*
-     * Esperamos a que el navegador termine de bajar
-     * a la sección y después eliminamos el hash
-     * sin cambiar la posición de la pantalla.
-     */
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        const posicionActual = window.scrollY;
+  const debeIrAResenas =
+    urlActual.searchParams.get("ir") === "resenas" ||
+    urlActual.hash === "#resenas";
 
-        window.history.replaceState(
-          window.history.state,
-          "",
-          `${window.location.pathname}${window.location.search}`
-        );
+  let temporizador:
+    number | undefined;
 
-        window.scrollTo({
-          top: posicionActual,
-          left: 0,
-          behavior: "auto",
-        });
-
-        actualizarBotonResenas();
+  if (debeIrAResenas) {
+    temporizador = window.setTimeout(() => {
+      elementoResenas.scrollIntoView({
+        behavior: "auto",
+        block: "start",
       });
-    });
+
+      const urlLimpia =
+        new URL(window.location.href);
+
+      urlLimpia.searchParams.delete("ir");
+      urlLimpia.hash = "";
+
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${urlLimpia.pathname}${urlLimpia.search}`
+      );
+
+      actualizarBotonResenas();
+    }, 100);
   }
 
   actualizarBotonResenas();
-  quitarHashResenas();
-
-  window.addEventListener(
-    "hashchange",
-    quitarHashResenas
-  );
 
   window.addEventListener(
     "scroll",
@@ -93,10 +86,9 @@ const seccionResenas: HTMLElement =
   );
 
   return () => {
-    window.removeEventListener(
-      "hashchange",
-      quitarHashResenas
-    );
+    if (temporizador !== undefined) {
+      window.clearTimeout(temporizador);
+    }
 
     window.removeEventListener(
       "scroll",

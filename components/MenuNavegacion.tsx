@@ -135,10 +135,10 @@ const enlacesPreparacion: EnlaceMenu[] = [
 
 const enlacesKint: EnlaceMenu[] = [
   {
-    nombre: "Reseñas verificadas",
-    href: "/#resenas",
-    icono: MessageCircle,
-  },
+  nombre: "Reseñas verificadas",
+  href: "/?ir=resenas",
+  icono: MessageCircle,
+},
  {
   nombre: "Preguntas frecuentes",
   href: "/tutorial#preguntas",
@@ -282,6 +282,19 @@ if (esEnlaceConSeccion) {
 
         cerrar();
       }}
+      className={clasesEnlace}
+    >
+      {contenido}
+    </a>
+  );
+}
+
+if (enlace.href === "/?ir=resenas") {
+  return (
+    <a
+      key={enlace.nombre}
+      href={enlace.href}
+      onClick={cerrar}
       className={clasesEnlace}
     >
       {contenido}

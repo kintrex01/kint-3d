@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { X, ZoomIn } from "lucide-react";
 
 type ImagenAmpliableProps = {
   src: string;
@@ -13,9 +14,22 @@ export default function ImagenAmpliable({
   alt,
 }: ImagenAmpliableProps) {
   const [abierta, setAbierta] = useState(false);
+  const [montado, setMontado] = useState(false);
 
   useEffect(() => {
-    if (!abierta) return;
+    setMontado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!abierta) {
+      return;
+    }
+
+    const overflowBodyAnterior =
+      document.body.style.overflow;
+
+    const overflowHtmlAnterior =
+      document.documentElement.style.overflow;
 
     function cerrarConEscape(
       evento: KeyboardEvent
@@ -25,10 +39,10 @@ export default function ImagenAmpliable({
       }
     }
 
-    const overflowAnterior =
-      document.body.style.overflow;
-
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow =
+      "hidden";
+
     window.addEventListener(
       "keydown",
       cerrarConEscape
@@ -36,7 +50,10 @@ export default function ImagenAmpliable({
 
     return () => {
       document.body.style.overflow =
-        overflowAnterior;
+        overflowBodyAnterior;
+
+      document.documentElement.style.overflow =
+        overflowHtmlAnterior;
 
       window.removeEventListener(
         "keydown",
@@ -45,61 +62,84 @@ export default function ImagenAmpliable({
     };
   }, [abierta]);
 
+  function abrirImagen() {
+    setAbierta(true);
+  }
+
+  function cerrarImagen() {
+    setAbierta(false);
+  }
+
   return (
     <>
       <button
         type="button"
-        onClick={() => setAbierta(true)}
-        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-xl"
+        onClick={abrirImagen}
+        className="group relative flex w-full touch-manipulation items-center justify-center overflow-hidden rounded-xl bg-black/10"
         aria-label={`Ampliar imagen: ${alt}`}
       >
-        <Image
+        <img
           src={src}
           alt={alt}
-          width={1600}
-          height={1000}
-          className="max-h-[600px] w-full object-contain transition duration-300 group-hover:scale-[1.02]"
+          loading="lazy"
+          className="block h-auto max-h-[520px] w-full object-contain transition duration-300 group-hover:scale-[1.01]"
         />
 
-        <span className="pointer-events-none absolute bottom-3 right-3 rounded-lg border border-[var(--border-color)] bg-[var(--page-bg)]/90 px-3 py-2 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-main)] opacity-0 backdrop-blur transition group-hover:opacity-100">
-          Presionar para ampliar
+        <span className="absolute bottom-3 right-3 flex items-center gap-2 rounded-full bg-black/75 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-white backdrop-blur">
+          <ZoomIn size={15} />
+          Ampliar
         </span>
       </button>
 
-      {abierta && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label={alt}
-          onClick={() => setAbierta(false)}
-        >
-          <button
-            type="button"
-            onClick={() => setAbierta(false)}
-            className="fixed right-4 top-4 z-[110] rounded-full border border-white/40 bg-black/60 px-4 py-2 text-sm font-black text-white backdrop-blur transition hover:border-red-500 hover:text-red-400 sm:right-8 sm:top-8"
-            aria-label="Cerrar imagen ampliada"
-          >
-            ✕
-          </button>
-
+      {montado &&
+        abierta &&
+        createPortal(
           <div
-            className="relative flex h-full w-full items-center justify-center"
-            onClick={(evento) =>
-              evento.stopPropagation()
-            }
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Imagen ampliada: ${alt}`}
+            onClick={cerrarImagen}
           >
-            <Image
-              src={src}
-              alt={alt}
-              width={2200}
-              height={1600}
-              className="max-h-[92vh] max-w-[96vw] object-contain"
-              priority
-            />
-          </div>
-        </div>
-      )}
+            {/* Botón siempre visible en PC y celular */}
+            <button
+              type="button"
+              onClick={(evento) => {
+                evento.stopPropagation();
+                cerrarImagen();
+              }}
+              className="fixed right-[max(1rem,env(safe-area-inset-right))] top-[max(1rem,env(safe-area-inset-top))] z-[10001] flex h-12 w-12 touch-manipulation items-center justify-center rounded-full border border-white/40 bg-black/80 text-white shadow-2xl backdrop-blur transition active:scale-95 sm:hover:bg-white sm:hover:text-black"
+              aria-label="Cerrar imagen"
+            >
+              <X size={27} strokeWidth={2} />
+            </button>
+
+            {/* Contenedor adaptable a la altura real del celular */}
+            <div
+              className="flex h-[100dvh] w-full items-center justify-center overflow-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(4.75rem,calc(env(safe-area-inset-top)+4.75rem))] sm:px-6"
+              onClick={(evento) =>
+                evento.stopPropagation()
+              }
+            >
+              <img
+                src={src}
+                alt={alt}
+                draggable={false}
+                className="max-h-[calc(100dvh-6rem)] max-w-[96vw] touch-pinch-zoom select-none object-contain sm:max-h-[90vh] sm:max-w-[92vw]"
+              />
+            </div>
+
+            {/* Cerrar tocando el fondo inferior */}
+            <button
+              type="button"
+              onClick={cerrarImagen}
+              className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-[10001] -translate-x-1/2 rounded-full border border-white/30 bg-black/80 px-5 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur sm:hidden"
+            >
+              Cerrar
+            </button>
+          </div>,
+          document.body
+        )}
     </>
   );
 }
