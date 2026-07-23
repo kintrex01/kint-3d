@@ -19,12 +19,15 @@ export default function Home() {
     useState(true);
 
 useEffect(() => {
-  const elementoResenas =
-    document.getElementById("resenas");
+  const elementoEncontrado =
+  document.getElementById("resenas");
 
-  if (!elementoResenas) {
-    return;
-  }
+if (!elementoEncontrado) {
+  return;
+}
+
+const elementoResenas: HTMLElement =
+  elementoEncontrado;
 
   function actualizarBotonResenas() {
     const posicion =
