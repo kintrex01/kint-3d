@@ -202,9 +202,12 @@ const elementoResenas: HTMLElement =
   Escalador 3D <span>→</span>
 </Link>
 
-  <a href="#preguntas" className="kint-soft-btn">
-    Preguntas frecuentes <span>→</span>
-  </a>
+  <Link
+  href="/tutorial#preguntas"
+  className="kint-soft-btn"
+>
+  Preguntas frecuentes <span>→</span>
+</Link>
 
   <Link
   href="/tutorial"
