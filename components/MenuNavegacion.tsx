@@ -511,12 +511,11 @@ export default function MenuNavegacion() {
             "border-r",
             "border-[var(--blue-border)]",
             "bg-[var(--page-bg)]",
-            "shadow-[25px_0_70px_rgba(0,0,0,0.45)]",
-            "transition-transform",
-            "duration-300",
-            abierto
-              ? "translate-x-0"
-              : "-translate-x-full",
+"transition-transform",
+"duration-300",
+abierto
+  ? "translate-x-0 shadow-[25px_0_70px_rgba(0,0,0,0.45)]"
+  : "-translate-x-[120%] shadow-none",
           ].join(" ")}
           role="dialog"
           aria-modal="true"
