@@ -638,13 +638,18 @@ return (
           Configurar impresión 3D
         </h1>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-blue-300/70 bg-blue-50/80 shadow-[0_10px_35px_rgba(29,79,154,0.08)] dark:border-blue-800/70 dark:bg-blue-950/25">
   <div className="p-6 sm:p-7">
-    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-red-600">
-      Antes de cotizar
-    </p>
 
-    <h2 className="mt-3 text-xl font-black text-[var(--text-main)]">
+    <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/70 bg-blue-100/80 px-3 py-1.5 dark:border-blue-700/60 dark:bg-blue-900/40">
+      <span className="text-sm">💡</span>
+
+      <p className="text-[10px] font-black uppercase tracking-[0.20em] text-blue-700 dark:text-blue-300">
+        Ayuda opcional
+      </p>
+    </div>
+
+    <h2 className="mt-4 text-xl font-black text-[var(--text-main)]">
       ¿Es tu primera vez imprimiendo en 3D?
     </h2>
 
@@ -664,7 +669,7 @@ return (
 
       <Link
         href="/tutorial-avanzado"
-        className="inline-flex items-center justify-center rounded-xl border border-[var(--border-color)] px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600"
+        className="inline-flex items-center justify-center rounded-xl border border-blue-300 bg-white/60 px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-main)] transition hover:border-blue-500 hover:text-blue-600 dark:border-blue-700 dark:bg-blue-950/20"
       >
         Ya tengo un archivo STL
       </Link>

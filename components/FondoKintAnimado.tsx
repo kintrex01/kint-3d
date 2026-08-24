@@ -19,10 +19,10 @@ const FONDO_OSCURO_PC =
   "/fondos/kint-oscuro-pc.png";
 
 const FONDO_CLARO_MOVIL =
-  "/fondos/kint-claro-movil.png";
+  "/fondos/kint-claro-grande.png";
 
 const FONDO_OSCURO_MOVIL =
-  "/fondos/kint-oscuro-movil.png";
+  "/fondos/kint-oscuro-grande.png";
 
 const ANCHO_MAXIMO_MOVIL = 760;
 
@@ -240,51 +240,51 @@ const fragmentShader = `
       arriba;
   }
 
-  vec3 obtenerClaro(
-    vec2 desplazamiento
-  ) {
-    vec2 uv = cubrirArribaDerecha(
-      vUv,
-      uResolucion,
-      uTamanoClaro
-    );
+ vec3 obtenerClaro(
+  vec2 desplazamiento
+) {
+  vec2 uv = cubrirArribaDerecha(
+    vUv,
+    uResolucion,
+    uTamanoClaro
+  );
 
-    uv += desplazamiento;
+  uv += desplazamiento;
 
-    uv = clamp(
-      uv,
-      vec2(0.002),
-      vec2(0.998)
-    );
+  uv = clamp(
+    uv,
+    vec2(0.002),
+    vec2(0.998)
+  );
 
-    return texture2D(
-      uFondoClaro,
-      uv
-    ).rgb;
-  }
+  return texture2D(
+    uFondoClaro,
+    uv
+  ).rgb;
+}
 
-  vec3 obtenerOscuro(
-    vec2 desplazamiento
-  ) {
-    vec2 uv = cubrirArribaDerecha(
-      vUv,
-      uResolucion,
-      uTamanoOscuro
-    );
+ vec3 obtenerOscuro(
+  vec2 desplazamiento
+) {
+  vec2 uv = cubrirArribaDerecha(
+    vUv,
+    uResolucion,
+    uTamanoOscuro
+  );
 
-    uv += desplazamiento;
+  uv += desplazamiento;
 
-    uv = clamp(
-      uv,
-      vec2(0.002),
-      vec2(0.998)
-    );
+  uv = clamp(
+    uv,
+    vec2(0.002),
+    vec2(0.998)
+  );
 
-    return texture2D(
-      uFondoOscuro,
-      uv
-    ).rgb;
-  }
+  return texture2D(
+    uFondoOscuro,
+    uv
+  ).rgb;
+}
 
   /*
    * Evita que el modo oscuro se vea negro puro.
@@ -292,57 +292,64 @@ const fragmentShader = `
    * el contraste y, especialmente, los blancos del humo.
    */
   vec3 levantarAzulOscuro(vec3 color) {
-    vec3 azulMinimo = vec3(
-      0.012,
-      0.050,
-      0.105
-    );
+  /*
+   * Modo oscuro mucho más profundo.
+   * Oscurece fuertemente fondos y tonos medios,
+   * pero conserva las partes claras del humo.
+   */
 
-    color = max(
+  vec3 original = color;
+
+  float luminanciaOriginal = dot(
+    original,
+    vec3(
+      0.2126,
+      0.7152,
+      0.0722
+    )
+  );
+
+  /*
+   * Oscurece principalmente medios y sombras.
+   */
+  color = pow(
+    max(
       color,
-      azulMinimo
+      vec3(0.0)
+    ),
+    vec3(1.70)
+  );
+
+  color *= 0.50;
+
+  /*
+   * Un mínimo azul-negro para que no quede
+   * negro completamente plano.
+   */
+  color += vec3(
+    0.002,
+    0.006,
+    0.014
+  );
+
+  /*
+   * Conservamos las zonas blancas del humo.
+   */
+  float conservarHumo =
+    smoothstep(
+      0.48,
+      0.90,
+      luminanciaOriginal
     );
 
-    vec3 mediosLevantados = sqrt(
-      max(
-        color,
-        vec3(0.0)
-      )
-    );
+  color = mix(
+    color,
+    original * 0.74,
+    conservarHumo
+  );
 
-    color = mix(
-      color,
-      mediosLevantados,
-      0.135
-    );
-
-    float luminancia = dot(
-      color,
-      vec3(
-        0.2126,
-        0.7152,
-        0.0722
-      )
-    );
-
-    float sombras =
-      1.0 -
-      smoothstep(
-        0.045,
-        0.30,
-        luminancia
-      );
-
-    color +=
-      vec3(
-        0.000,
-        0.015,
-        0.036
-      ) *
-      sombras;
-
-    return color;
-  }
+  return color;
+}
 
   void main() {
     vec2 uv = vUv;
@@ -742,10 +749,8 @@ export default function FondoKintAnimado() {
     const punteroActual =
       new THREE.Vector2(0, 0);
 
-    const temporizador =
-      new THREE.Timer();
-
-    temporizador.connect(document);
+    const reloj =
+  new THREE.Clock();
 
     const escena =
       new THREE.Scene();
@@ -772,11 +777,11 @@ export default function FondoKintAnimado() {
       THREE.SRGBColorSpace;
 
     renderizador.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio || 1,
-        2.0
-      )
-    );
+  Math.min(
+    window.devicePixelRatio || 1,
+    3.0
+  )
+);
 
     renderizador.domElement.className =
       "fondo-kint-canvas";
@@ -1272,10 +1277,6 @@ const altoInicial = Math.max(
           tiempoAnterior =
             tiempoActual;
 
-          temporizador.update(
-            tiempoActual
-          );
-
           /*
            * Transición gradual de tema sin descargar ni reemplazar
            * el canvas. Las dos texturas permanecen siempre activas.
@@ -1299,9 +1300,9 @@ const altoInicial = Math.max(
           );
 
           material.uniforms
-            .uTiempo
-            .value =
-            temporizador.getElapsed();
+  .uTiempo
+  .value =
+  reloj.getElapsedTime();
 
           material.uniforms
             .uTema
@@ -1385,7 +1386,6 @@ const altoInicial = Math.max(
         texturas.oscuroMovil.dispose();
       }
 
-      temporizador.dispose();
       renderizador.dispose();
 
       if (
@@ -1491,21 +1491,21 @@ const altoInicial = Math.max(
         }
 
         .fallback-claro {
-          opacity: 1;
+  opacity: 1;
 
-          background-image:
-            url("/fondos/kint-claro-pc.png");
-        }
+  background-image:
+    url("/fondos/kint-claro-pc.png");
+}
 
-        .fallback-oscuro {
-          opacity: 0;
+.fallback-oscuro {
+  opacity: 0;
 
-          background-color:
-            #06182d;
+  background-color:
+    #06182d;
 
-          background-image:
-            url("/fondos/kint-oscuro-pc.png");
-        }
+  background-image:
+    url("/fondos/kint-oscuro-pc.png");
+}
 
         :global(html.dark)
           .fallback-claro {
@@ -1748,13 +1748,13 @@ const altoInicial = Math.max(
 
           .fallback-claro {
             background-image:
-              url("/fondos/kint-claro-movil.png");
+               url("/fondos/kint-claro-grande.png");
           }
 
           .fallback-oscuro {
-            background-image:
-              url("/fondos/kint-oscuro-movil.png");
-          }
+  background-image:
+    url("/fondos/kint-oscuro-grande.png");
+}
 
           .fallback {
             /* El humo comienza desde el borde superior. */
