@@ -5,6 +5,46 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+async function llamarAppsScript(
+  payload: unknown,
+  etapa: string
+) {
+  const url = process.env.GOOGLE_APPS_SCRIPT_URL;
+
+  if (!url) {
+    throw new Error(
+      "Falta configurar GOOGLE_APPS_SCRIPT_URL en Vercel."
+    );
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error(
+        `Apps Script respondió ${response.status}: ${text.slice(0, 200)}`
+      );
+    }
+
+    return text;
+  } catch (error: any) {
+    throw new Error(
+      `${etapa}: no se pudo conectar con Google Apps Script. ${
+        error?.message || "Error desconocido"
+      }`
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -45,20 +85,15 @@ if (!payload.usoImagenesAutorizado) {
   );
 }
     
-    const response = await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
-      method: "POST",
-      body: JSON.stringify({
-  ...payload,
-  archivoNombre: "",
-  archivoLink: "",
-  archivoId: "",
-}),
-      headers: {
-        "Content-Type": "text/plain;charset=utf-8",
-      },
-    });
-
-    const text = await response.text();
+    const text = await llamarAppsScript(
+  {
+    ...payload,
+    archivoNombre: "",
+    archivoLink: "",
+    archivoId: "",
+  },
+  "Creación del pedido"
+);
 
     let data;
     try {
@@ -119,18 +154,15 @@ for (const archivo of archivosOriginales) {
 }
 
 if (archivosRegistrados.length > 0) {
-  await fetch(process.env.GOOGLE_APPS_SCRIPT_URL!, {
-    method: "POST",
-    body: JSON.stringify({
+  await llamarAppsScript(
+    {
       tipo: "archivo_adicional_link",
       pedido: data.pedido,
       codigo: data.codigoSeguimiento,
       archivos: archivosRegistrados,
-    }),
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8",
     },
-  });
+    "Registro de archivos"
+  );
 }
 
     const resend = new Resend(process.env.RESEND_API_KEY);
