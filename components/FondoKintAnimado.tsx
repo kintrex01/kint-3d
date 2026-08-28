@@ -691,10 +691,7 @@ const fragmentShader = `
       grano *
       0.00125;
 
-    gl_FragColor = vec4(
-      color,
-      1.0
-    );
+       
   }
 `;
 
@@ -766,12 +763,18 @@ export default function FondoKintAnimado() {
       );
 
     const renderizador =
-      new THREE.WebGLRenderer({
-        antialias: false,
-        alpha: false,
-        powerPreference:
-          "high-performance",
-      });
+  new THREE.WebGLRenderer({
+    antialias: false,
+    alpha: true,
+    premultipliedAlpha: true,
+    powerPreference:
+      "high-performance",
+  });
+
+renderizador.setClearColor(
+  0x000000,
+  0
+);
 
     renderizador.outputColorSpace =
       THREE.SRGBColorSpace;
