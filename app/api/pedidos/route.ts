@@ -130,16 +130,20 @@ for (const archivo of archivosOriginales) {
   const nombreFinal = archivoId.split("/").pop() || archivoNombre;
   const rutaNueva = `${data.pedido}/${nombreFinal}`;
 
+  try {
   const { error: moveError } = await supabase.storage
     .from("kint-archivos")
     .move(archivoId, rutaNueva);
 
   if (moveError) {
-    throw new Error(
-      "Pedido creado, pero no se pudo mover archivo: " +
-        moveError.message
-    );
+    throw moveError;
   }
+} catch (error: any) {
+  throw new Error(
+    "Pedido creado, pero falló Supabase al mover el archivo: " +
+      (error?.message || "Error desconocido")
+  );
+}
 
   const linkNuevo = supabase.storage
     .from("kint-archivos")
@@ -165,9 +169,10 @@ if (archivosRegistrados.length > 0) {
   );
 }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    try {
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
-    await resend.emails.send({
+  const resultadoCorreo = await resend.emails.send({
       from: "Kint 3D <onboarding@resend.dev>",
       to: "alecap12345@gmail.com",
       subject: `Nuevo pedido Kint 3D - ${data.pedido}`,
@@ -207,12 +212,31 @@ if (archivosRegistrados.length > 0) {
       `,
     });
 
+  });
+
+  if (resultadoCorreo.error) {
+    throw new Error(
+      resultadoCorreo.error.message
+    );
+  }
+} catch (error: any) {
+  throw new Error(
+    "Pedido creado, pero falló el correo interno: " +
+      (error?.message || "Error desconocido")
+  );
+}
+
     return Response.json({
       ok: true,
       pedido: data.pedido,
     });
   } catch (error: any) {
-    return Response.json(
+  console.error(
+    "ERROR CREANDO PEDIDO:",
+    error
+  );
+
+  return Response.json(
       {
         ok: false,
         error: error?.message || "Error al enviar pedido.",
