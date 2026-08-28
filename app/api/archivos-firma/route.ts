@@ -6,19 +6,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const FORMATOS_PERMITIDOS = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-];
-
-const EXTENSIONES_PERMITIDAS = [
-  "jpg",
-  "jpeg",
-  "png",
-  "webp",
-];
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -39,13 +26,7 @@ export async function POST(request: Request) {
 
     if (!archivos.length) {
       throw new Error(
-        "No se recibieron imágenes."
-      );
-    }
-
-    if (archivos.length > 3) {
-      throw new Error(
-        "Podés subir un máximo de 3 imágenes."
+        "No se recibieron archivos."
       );
     }
 
@@ -67,34 +48,27 @@ export async function POST(request: Request) {
         archivo.nombre || ""
       ).trim();
 
-      const tipo = String(
-        archivo.tipo || ""
-      )
-        .trim()
-        .toLowerCase();
-
       const pesoArchivo = Number(
         archivo.size || 0
       );
 
       if (!nombreOriginal) {
         throw new Error(
-          "Una de las imágenes no tiene nombre."
+          "Uno de los archivos no tiene nombre."
         );
       }
 
-      const extension =
-        nombreOriginal
-          .split(".")
-          .pop()
-          ?.toLowerCase() || "";
+      const extension = nombreOriginal
+        .split(".")
+        .pop()
+        ?.toLowerCase();
 
       if (
-        !FORMATOS_PERMITIDOS.includes(tipo) ||
-        !EXTENSIONES_PERMITIDAS.includes(extension)
+        extension !== "stl" &&
+        extension !== "skp"
       ) {
         throw new Error(
-          `${nombreOriginal} no tiene un formato válido.`
+          "Solo se permiten archivos STL o SKP."
         );
       }
 
@@ -106,10 +80,10 @@ export async function POST(request: Request) {
 
       if (
         pesoArchivo >
-        8 * 1024 * 1024
+        50 * 1024 * 1024
       ) {
         throw new Error(
-          `${nombreOriginal} supera los 8 MB.`
+          `${nombreOriginal} supera los 50 MB.`
         );
       }
 
@@ -135,15 +109,13 @@ export async function POST(request: Request) {
           .replace(
             /^_+|_+$/g,
             ""
-          ) || "imagen";
+          ) || "archivo";
 
       const nombreFinal =
         `${pedidoSeguro}-${nombreBaseSeguro}.${extension}`;
 
       const ruta =
-        `resenas/${pedidoSeguro}/` +
-        `${randomUUID()}/` +
-        `${nombreFinal}`;
+        `${pedidoSeguro}/${randomUUID()}/${nombreFinal}`;
 
       const {
         data,
@@ -154,7 +126,7 @@ export async function POST(request: Request) {
 
       if (error) {
         throw new Error(
-          `Supabase no pudo preparar ${nombreOriginal}: ${error.message}`
+          error.message
         );
       }
 
@@ -179,17 +151,12 @@ export async function POST(request: Request) {
       archivos: firmados,
     });
   } catch (error: any) {
-    console.error(
-      "ERROR PREPARANDO FOTOS DE RESEÑA:",
-      error
-    );
-
     return Response.json(
       {
         ok: false,
         error:
           error?.message ||
-          "Error al preparar las imágenes.",
+          "Error al preparar subida.",
       },
       {
         status: 500,
