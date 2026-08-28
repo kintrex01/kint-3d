@@ -1,3 +1,44 @@
+async function llamarAppsScriptResenas(
+  payload: unknown,
+  etapa: string
+) {
+  const url = process.env.GOOGLE_APPS_SCRIPT_URL;
+
+  if (!url) {
+    throw new Error(
+      "Falta configurar GOOGLE_APPS_SCRIPT_URL en Vercel."
+    );
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    const text = await response.text();
+
+    if (!response.ok) {
+      throw new Error(
+        `Apps Script respondió ${response.status}: ${text.slice(0, 200)}`
+      );
+    }
+
+    return text;
+  } catch (error: any) {
+    throw new Error(
+      `${etapa}: no se pudo conectar con Google Apps Script. ${
+        error?.message || "Error desconocido"
+      }`
+    );
+  }
+}
+
 export async function GET() {
   try {
     const response = await fetch(
@@ -190,28 +231,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(
-      process.env.GOOGLE_APPS_SCRIPT_URL!,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify({
-          tipo: "resena",
-          pedido,
-          codigo,
-          estrellas,
-          comentario,
-          autorizarPublicacion,
-          mostrarProyecto,
-          fotos,
-        }),
-      }
-    );
+    const text = await llamarAppsScriptResenas(
+  {
+    tipo: "resena",
+    pedido,
+    codigo,
+    estrellas,
+    comentario,
+    autorizarPublicacion,
+    mostrarProyecto,
+    fotos,
+  },
+  "Envío de la reseña"
+);
 
-    const text = await response.text();
-    const result = JSON.parse(text);
+let result;
+
+try {
+  result = JSON.parse(text);
+} catch {
+  throw new Error(
+    "Apps Script no devolvió JSON. Respuesta: " +
+      text.slice(0, 300)
+  );
+}
 
     if (!result.ok) {
       throw new Error(
