@@ -212,17 +212,15 @@ if (archivosRegistrados.length > 0) {
       `,
     });
 
-  });
-
   if (resultadoCorreo.error) {
     throw new Error(
       resultadoCorreo.error.message
     );
   }
 } catch (error: any) {
-  throw new Error(
-    "Pedido creado, pero falló el correo interno: " +
-      (error?.message || "Error desconocido")
+  console.error(
+    "El pedido se creó correctamente, pero falló el correo interno:",
+    error
   );
 }
 
