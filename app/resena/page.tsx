@@ -138,79 +138,139 @@ const [error, setError] = useState("");
     );
   }
 
-  async function subirImagenes() {
-    if (!archivos.length) {
-      return [];
-    }
+async function subirImagenes() {
+  if (!archivos.length) {
+    return [];
+  }
 
-    setEtapaEnvio("Preparando imágenes...");
+  setEtapaEnvio(
+    "Preparando imágenes..."
+  );
 
-    const respuestaFirma = await fetch(
+  let respuestaFirma: Response;
+
+  try {
+    respuestaFirma = await fetch(
       "/api/resenas-firma",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type":
+            "application/json",
         },
         body: JSON.stringify({
           pedido,
-          archivos: archivos.map((archivo) => ({
-            nombre: archivo.name,
-            tipo: archivo.type,
-            size: archivo.size,
-          })),
+          archivos: archivos.map(
+            (archivo) => ({
+              nombre: archivo.name,
+              tipo: archivo.type,
+              size: archivo.size,
+            })
+          ),
         }),
       }
     );
+  } catch (error: unknown) {
+    throw new Error(
+      "No se pudo contactar con el servidor para preparar las imágenes: " +
+        (
+          error instanceof Error
+            ? error.message
+            : "Error desconocido"
+        )
+    );
+  }
 
-    const datosFirma = await respuestaFirma.json();
+  const textoFirma =
+    await respuestaFirma.text();
 
-    if (!respuestaFirma.ok || !datosFirma.ok) {
-      throw new Error(
-        datosFirma.error ||
-          "No se pudieron preparar las imágenes."
-      );
-    }
+  let datosFirma: any;
 
-    const firmados: ArchivoFirmado[] =
-      datosFirma.archivos || [];
+  try {
+    datosFirma =
+      JSON.parse(textoFirma);
+  } catch {
+    throw new Error(
+      "El servidor de imágenes devolvió una respuesta inválida: " +
+        textoFirma.slice(0, 300)
+    );
+  }
 
-    if (firmados.length !== archivos.length) {
-      throw new Error(
-        "No se pudieron preparar todas las imágenes."
-      );
-    }
+  if (
+    !respuestaFirma.ok ||
+    !datosFirma.ok
+  ) {
+    throw new Error(
+      datosFirma.error ||
+        "No se pudieron preparar las imágenes."
+    );
+  }
 
-    setEtapaEnvio("Subiendo imágenes...");
+  const firmados: ArchivoFirmado[] =
+    datosFirma.archivos || [];
 
-    const enlaces: string[] = [];
+  if (
+    firmados.length !==
+    archivos.length
+  ) {
+    throw new Error(
+      "No se pudieron preparar todas las imágenes."
+    );
+  }
 
-    for (let indice = 0; indice < archivos.length; indice++) {
-      const archivo = archivos[indice];
-      const firmado = firmados[indice];
+  setEtapaEnvio(
+    "Subiendo imágenes..."
+  );
 
-      const { error: errorSubida } = await supabase.storage
+  const enlaces: string[] = [];
+
+  for (
+    let indice = 0;
+    indice < archivos.length;
+    indice++
+  ) {
+    const archivo =
+      archivos[indice];
+
+    const firmado =
+      firmados[indice];
+
+    try {
+      const {
+        error: errorSubida,
+      } = await supabase.storage
         .from("kint-archivos")
         .uploadToSignedUrl(
           firmado.ruta,
           firmado.token,
           archivo,
           {
-            contentType: archivo.type,
+            contentType:
+              archivo.type,
           }
         );
 
       if (errorSubida) {
-        throw new Error(
-          `No se pudo subir ${archivo.name}: ${errorSubida.message}`
-        );
+        throw errorSubida;
       }
-
-      enlaces.push(firmado.link);
+    } catch (error: unknown) {
+      throw new Error(
+        `No se pudo subir "${archivo.name}" a Supabase: ` +
+          (
+            error instanceof Error
+              ? error.message
+              : "Error desconocido"
+          )
+      );
     }
 
-    return enlaces;
+    enlaces.push(
+      firmado.link
+    );
   }
+
+  return enlaces;
+}
 
   async function enviarResena() {
     setError("");
