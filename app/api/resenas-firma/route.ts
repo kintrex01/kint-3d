@@ -1,6 +1,10 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs";
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const FORMATOS_PERMITIDOS = [
   "image/jpeg",
@@ -15,179 +19,51 @@ const EXTENSIONES_PERMITIDAS = [
   "webp",
 ];
 
-function mensajeError(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error
-  ) {
-    return String(
-      (error as { message?: unknown }).message ||
-        "Error desconocido"
-    );
-  }
-
-  return String(error || "Error desconocido");
-}
-
-function obtenerSupabaseAdmin() {
-  const url =
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-
-  if (!url) {
-    throw new Error(
-      "Falta NEXT_PUBLIC_SUPABASE_URL en Vercel."
-    );
-  }
-
-  if (!serviceKey) {
-    throw new Error(
-      "Falta SUPABASE_SERVICE_ROLE_KEY en Vercel."
-    );
-  }
-
-  return createClient(
-    url,
-    serviceKey,
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-    }
-  );
-}
-
-function esperar(ms: number) {
-  return new Promise((resolve) =>
-    setTimeout(resolve, ms)
-  );
-}
-
-async function crearFirmaConReintento(
-  supabase: ReturnType<
-    typeof obtenerSupabaseAdmin
-  >,
-  ruta: string,
-  nombreArchivo: string
-) {
-  let ultimoError: unknown = null;
-
-  /*
-   * Crear una URL firmada no sube todavía el archivo,
-   * así que es seguro reintentar una vez si Supabase
-   * tiene un fallo de conexión temporal.
-   */
-  for (
-    let intento = 1;
-    intento <= 2;
-    intento++
-  ) {
-    try {
-      const {
-        data,
-        error,
-      } = await supabase.storage
-        .from("kint-archivos")
-        .createSignedUploadUrl(ruta);
-
-      if (error) {
-        ultimoError = error;
-      } else if (
-        data &&
-        data.token
-      ) {
-        return data;
-      } else {
-        ultimoError = new Error(
-          "Supabase no devolvió una firma válida."
-        );
-      }
-    } catch (error: unknown) {
-      ultimoError = error;
-    }
-
-    if (intento < 2) {
-      await esperar(400);
-    }
-  }
-
-  throw new Error(
-    `No se pudo preparar "${nombreArchivo}" en Supabase: ` +
-      mensajeError(ultimoError)
-  );
-}
-
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const pedido = String(
-      body.pedido || ""
-    )
+    const pedido = String(body.pedido || "")
       .trim()
       .toUpperCase();
 
-    const archivos =
-      Array.isArray(body.archivos)
-        ? body.archivos
-        : [];
+    const archivos = Array.isArray(body.archivos)
+      ? body.archivos
+      : [];
 
     if (!pedido) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Falta el número de pedido.",
-        },
-        {
-          status: 400,
-        }
+      throw new Error(
+        "Falta el número de pedido."
       );
     }
 
     if (!archivos.length) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "No se recibieron imágenes.",
-        },
-        {
-          status: 400,
-        }
+      throw new Error(
+        "No se recibieron imágenes."
       );
     }
 
     if (archivos.length > 3) {
-      return Response.json(
-        {
-          ok: false,
-          error:
-            "Podés subir un máximo de 3 imágenes.",
-        },
-        {
-          status: 400,
-        }
+      throw new Error(
+        "Podés subir un máximo de 3 imágenes."
       );
     }
 
-    const supabase =
-      obtenerSupabaseAdmin();
+    const pedidoSeguro = pedido.replace(
+      /[^A-Z0-9_-]/g,
+      ""
+    );
+
+    if (!pedidoSeguro) {
+      throw new Error(
+        "El número de pedido no es válido."
+      );
+    }
 
     const firmados = [];
 
     for (const archivo of archivos) {
-      const nombre = String(
+      const nombreOriginal = String(
         archivo.nombre || ""
       ).trim();
 
@@ -197,78 +73,88 @@ export async function POST(
         .trim()
         .toLowerCase();
 
-      const size = Number(
+      const pesoArchivo = Number(
         archivo.size || 0
       );
 
-      const extension =
-        nombre
-          .split(".")
-          .pop()
-          ?.toLowerCase() || "";
-
-      if (!nombre) {
+      if (!nombreOriginal) {
         throw new Error(
           "Una de las imágenes no tiene nombre."
         );
       }
 
+      const extension =
+        nombreOriginal
+          .split(".")
+          .pop()
+          ?.toLowerCase() || "";
+
       if (
-        !FORMATOS_PERMITIDOS.includes(
-          tipo
-        ) ||
-        !EXTENSIONES_PERMITIDAS.includes(
-          extension
-        )
+        !FORMATOS_PERMITIDOS.includes(tipo) ||
+        !EXTENSIONES_PERMITIDAS.includes(extension)
       ) {
         throw new Error(
-          `${nombre} no tiene un formato válido.`
+          `${nombreOriginal} no tiene un formato válido.`
+        );
+      }
+
+      if (pesoArchivo <= 0) {
+        throw new Error(
+          `${nombreOriginal} está vacío.`
         );
       }
 
       if (
-        !Number.isFinite(size) ||
-        size <= 0
-      ) {
-        throw new Error(
-          `${nombre} está vacío.`
-        );
-      }
-
-      if (
-        size >
+        pesoArchivo >
         8 * 1024 * 1024
       ) {
         throw new Error(
-          `${nombre} supera los 8 MB.`
+          `${nombreOriginal} supera los 8 MB.`
         );
       }
 
-      let nombreSeguro = nombre
-        .replace(/\s+/g, "_")
-        .replace(
-          /[^a-zA-Z0-9._-]/g,
+      const nombreSinExtension =
+        nombreOriginal.replace(
+          /\.[^.]+$/,
           ""
         );
 
-      if (!nombreSeguro) {
-        nombreSeguro =
-          `imagen.${extension}`;
-      }
+      const nombreBaseSeguro =
+        nombreSinExtension
+          .normalize("NFD")
+          .replace(
+            /[\u0300-\u036f]/g,
+            ""
+          )
+          .replace(/\s+/g, "_")
+          .replace(
+            /[^a-zA-Z0-9_-]/g,
+            ""
+          )
+          .replace(/_+/g, "_")
+          .replace(
+            /^_+|_+$/g,
+            ""
+          ) || "imagen";
 
-      const identificador =
-        crypto.randomUUID();
+      const nombreFinal =
+        `${pedidoSeguro}-${nombreBaseSeguro}.${extension}`;
 
       const ruta =
-        `resenas/${pedido}/` +
-        `${identificador}-${nombreSeguro}`;
+        `resenas/${pedidoSeguro}/${randomUUID()}/${nombreFinal}`;
 
-      const data =
-        await crearFirmaConReintento(
-          supabase,
-          ruta,
-          nombre
+      const {
+        data,
+        error,
+      } = await supabase.storage
+        .from("kint-archivos")
+        .createSignedUploadUrl(ruta);
+
+      if (error) {
+        throw new Error(
+          `Supabase no pudo preparar ${nombreOriginal}: ${error.message}`
         );
+      }
 
       const publicUrl =
         supabase.storage
@@ -277,11 +163,11 @@ export async function POST(
           .data.publicUrl;
 
       firmados.push({
-        nombreArchivo: nombre,
+        nombreArchivo: nombreFinal,
+        nombreOriginal,
         ruta,
         token: data.token,
-        signedUrl:
-          data.signedUrl || "",
+        signedUrl: data.signedUrl,
         link: publicUrl,
       });
     }
@@ -290,9 +176,9 @@ export async function POST(
       ok: true,
       archivos: firmados,
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error(
-      "ERROR RESENAS-FIRMA:",
+      "ERROR PREPARANDO FOTOS DE RESEÑA:",
       error
     );
 
@@ -300,8 +186,8 @@ export async function POST(
       {
         ok: false,
         error:
-          "Error preparando las imágenes: " +
-          mensajeError(error),
+          error?.message ||
+          "Error al preparar las imágenes.",
       },
       {
         status: 500,
