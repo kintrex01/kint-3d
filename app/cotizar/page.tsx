@@ -20,58 +20,30 @@ type Configuracion = Record<
   OpcionConfiguracion
 >;
 
-const COLORES_FILAMENTO = [
-  {
-    nombre: "Amarillo",
-    img: "/colores/Amarillo.png",
-    clave: "filamento_amarillo",
-  },
-  {
-    nombre: "Blanco",
-    img: "/colores/Blanco.png",
-    clave: "filamento_blanco",
-  },
-  {
-  nombre: "Celeste",
-  img: null,
-  clave: "filamento_celeste",
-},
-  {
-    nombre: "Cristal",
-    img: "/colores/Cristal.png",
-    clave: "filamento_cristal",
-  },
-  {
-    nombre: "Negro",
-    img: "/colores/Negro.png",
-    clave: "filamento_negro",
-  },
-  {
-    nombre: "Oro",
-    img: "/colores/Oro.png",
-    clave: "filamento_oro",
-  },
-  {
-    nombre: "Rojo",
-    img: "/colores/Rojo.png",
-    clave: "filamento_rojo",
-  },
-  {
-    nombre: "Verde Bosque",
-    img: "/colores/Verde Bosque.png",
-    clave: "filamento_verde_bosque",
-  },
-  {
-    nombre: "Verde",
-    img: "/colores/Verde.png",
-    clave: "filamento_verde",
-  },
-  {
-    nombre: "Violeta",
-    img: "/colores/Violeta.png",
-    clave: "filamento_violeta",
-  },
-] as const;
+const IMAGENES_FILAMENTO: Record<string, string | null> = {
+  filamento_amarillo: "/colores/Amarillo.png",
+  filamento_blanco: "/colores/Blanco.png",
+  filamento_celeste: null,
+  filamento_cristal: "/colores/Cristal.png",
+  filamento_negro: "/colores/Negro.png",
+  filamento_oro: "/colores/Oro.png",
+  filamento_rojo: "/colores/Rojo.png",
+  filamento_verde_bosque: "/colores/Verde Bosque.png",
+  filamento_verde: "/colores/Verde.png",
+  filamento_violeta: "/colores/Violeta.png",
+};
+
+function nombreFilamentoDesdeClave(clave: string) {
+  return clave
+    .replace(/^filamento_/, "")
+    .split("_")
+    .map(
+      (palabra) =>
+        palabra.charAt(0).toUpperCase() +
+        palabra.slice(1)
+    )
+    .join(" ");
+}
 
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
@@ -190,38 +162,45 @@ const boquilla04Habilitada =
     .trim()
     .toLowerCase() === "habilitada";
 
-    const filamentosConfigurados = COLORES_FILAMENTO.map(
-  (item) => {
-    const opcion = configuracion[item.clave];
+ const filamentosConfigurados =
+  Object.entries(configuracion)
+    .filter(([clave]) =>
+      clave.startsWith("filamento_")
+    )
+    .map(([clave, opcion]) => {
+      const estado = String(
+        opcion?.valor || ""
+      )
+        .trim()
+        .toLowerCase();
 
-    const estado = String(opcion?.valor || "")
-      .trim()
-      .toLowerCase();
+      return {
+        nombre: nombreFilamentoDesdeClave(clave),
 
-    return {
-      ...item,
+        clave,
 
-      habilitado:
-        Boolean(opcion) &&
-        [
+        img:
+          IMAGENES_FILAMENTO[clave] ?? null,
+
+        habilitado: [
           "habilitada",
           "habilitado",
           "sí",
           "si",
         ].includes(estado),
 
-      comentario: String(
-        opcion?.comentario || ""
-      ).trim(),
-    };
-  }
-).sort((a, b) => {
-  if (a.habilitado === b.habilitado) {
-    return 0;
-  }
+        comentario: String(
+          opcion?.comentario || ""
+        ).trim(),
+      };
+    })
+    .sort((a, b) => {
+      if (a.habilitado === b.habilitado) {
+        return 0;
+      }
 
-  return a.habilitado ? -1 : 1;
-});
+      return a.habilitado ? -1 : 1;
+    });
 
   const mensajePedidosDeshabilitados =
   configuracion.aceptar_pedidos?.comentario ||
@@ -276,37 +255,36 @@ useEffect(() => {
   boquilla02Habilitada,
   boquilla04Habilitada,
 ]);
-
-useEffect(() => {
+ useEffect(() => {
   setColor((actual) => {
+    const coloresHabilitados = new Set(
+      Object.entries(configuracion)
+        .filter(([clave, opcion]) => {
+          if (!clave.startsWith("filamento_")) {
+            return false;
+          }
+
+          const estado = String(
+            opcion?.valor || ""
+          )
+            .trim()
+            .toLowerCase();
+
+          return [
+            "habilitada",
+            "habilitado",
+            "sí",
+            "si",
+          ].includes(estado);
+        })
+        .map(([clave]) =>
+          nombreFilamentoDesdeClave(clave)
+        )
+    );
+
     const coloresValidos = actual.filter(
-      (nombreSeleccionado) => {
-        const item = COLORES_FILAMENTO.find(
-          (filamento) =>
-            filamento.nombre === nombreSeleccionado
-        );
-
-        if (!item) {
-          return false;
-        }
-
-        const opcion = configuracion[item.clave];
-
-        if (!opcion) {
-          return false;
-        }
-
-        const estado = String(opcion.valor || "")
-          .trim()
-          .toLowerCase();
-
-        return [
-          "habilitada",
-          "habilitado",
-          "sí",
-          "si",
-        ].includes(estado);
-      }
+      (nombreSeleccionado) =>
+        coloresHabilitados.has(nombreSeleccionado)
     );
 
     return coloresValidos.length === actual.length
