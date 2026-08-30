@@ -1,3 +1,131 @@
+import { createClient } from "@supabase/supabase-js";
+
+const BUCKET = "kint-archivos";
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
+
+async function obtenerArchivosDeCarpeta(
+  carpeta: string
+): Promise<string[]> {
+  const rutas: string[] = [];
+
+  let offset = 0;
+  const limite = 100;
+
+  while (true) {
+    const { data, error } =
+      await supabaseAdmin.storage
+        .from(BUCKET)
+        .list(carpeta, {
+          limit: limite,
+          offset,
+          sortBy: {
+            column: "name",
+            order: "asc",
+          },
+        });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data || data.length === 0) {
+      break;
+    }
+
+    for (const elemento of data) {
+      const ruta =
+        `${carpeta}/${elemento.name}`;
+
+      /*
+       * Los archivos tienen id.
+       * Las carpetas virtuales no.
+       */
+      if (elemento.id) {
+        rutas.push(ruta);
+      } else {
+        const archivosInternos =
+          await obtenerArchivosDeCarpeta(
+            ruta
+          );
+
+        rutas.push(...archivosInternos);
+      }
+    }
+
+    if (data.length < limite) {
+      break;
+    }
+
+    offset += data.length;
+  }
+
+  return rutas;
+}
+
+async function eliminarArchivosPedido(
+  pedido: string
+) {
+  const pedidoSeguro = pedido.replace(
+    /[^A-Z0-9_-]/g,
+    ""
+  );
+
+  if (!pedidoSeguro) {
+    throw new Error(
+      "El número de pedido no es válido."
+    );
+  }
+
+  const rutas =
+    await obtenerArchivosDeCarpeta(
+      pedidoSeguro
+    );
+
+  /*
+   * Si no hay objetos físicos,
+   * no hay nada que borrar.
+   */
+  if (rutas.length === 0) {
+    return;
+  }
+
+  /*
+   * Los eliminamos por grupos para que también
+   * funcione si un pedido tiene muchos archivos.
+   */
+  const TAMANO_LOTE = 100;
+
+  for (
+    let i = 0;
+    i < rutas.length;
+    i += TAMANO_LOTE
+  ) {
+    const lote = rutas.slice(
+      i,
+      i + TAMANO_LOTE
+    );
+
+    const { error } =
+      await supabaseAdmin.storage
+        .from(BUCKET)
+        .remove(lote);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+}
+
 const MOTIVOS_VALIDOS = [
   "El precio no me sirve",
   "Solo estaba averiguando",
@@ -210,13 +338,28 @@ export async function POST(request: Request) {
       );
     }
 
-    return Response.json({
-      ok: true,
-      pedido,
-      mensaje:
-        result.mensaje ||
-        "El pedido fue cancelado correctamente.",
-    });
+    let advertencia = "";
+
+try {
+  await eliminarArchivosPedido(pedido);
+} catch (error) {
+  console.error(
+    `El pedido ${pedido} fue cancelado, pero no se pudieron eliminar sus archivos de Supabase:`,
+    error
+  );
+
+  advertencia =
+    "El pedido fue cancelado correctamente, pero quedaron archivos internos pendientes de limpieza.";
+}
+
+return Response.json({
+  ok: true,
+  pedido,
+  mensaje:
+    result.mensaje ||
+    "El pedido fue cancelado correctamente.",
+  advertencia,
+});
   } catch (error: unknown) {
     const mensaje =
       error instanceof Error

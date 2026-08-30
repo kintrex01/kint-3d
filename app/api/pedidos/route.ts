@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
@@ -122,36 +123,101 @@ if (!payload.usoImagenesAutorizado) {
 const archivosRegistrados = [];
 
 for (const archivo of archivosOriginales) {
-  const archivoId = String(archivo.idDrive || "");
-  const archivoNombre = String(archivo.nombreArchivo || "");
+  const archivoId = String(
+    archivo.idDrive || ""
+  ).trim();
 
-  if (!archivoId || !data.pedido) continue;
+  const archivoNombre = String(
+    archivo.nombreArchivo || ""
+  ).trim();
 
-  const nombreFinal = archivoId.split("/").pop() || archivoNombre;
-  const rutaNueva = `${data.pedido}/${nombreFinal}`;
+  if (!archivoId || !data.pedido) {
+    continue;
+  }
+
+  /*
+   * El archivo inicialmente llega como:
+   *
+   * COTIZACION-TEMP/uuid/COTIZACION-TEMP-mi_modelo.skp
+   *
+   * Después de crear el pedido lo convertimos en:
+   *
+   * KNT-0006/uuid/KNT-0006-mi_modelo.skp
+   */
+
+  const partesRuta = archivoId.split("/");
+
+  const nombreTemporal =
+    partesRuta.pop() ||
+    archivoNombre ||
+    "archivo";
+
+  const uuidExistente =
+    partesRuta.length > 1
+      ? partesRuta[partesRuta.length - 1]
+      : randomUUID();
+
+  const extension =
+    nombreTemporal
+      .split(".")
+      .pop()
+      ?.toLowerCase() || "";
+
+  const nombreSinExtension =
+    nombreTemporal.replace(
+      /\.[^.]+$/,
+      ""
+    );
+
+  const nombreCliente =
+    nombreSinExtension
+      .replace(
+        /^COTIZACION-TEMP-/i,
+        ""
+      )
+      .replace(
+        /^COTIZACION_TEMP-/i,
+        ""
+      ) || "archivo";
+
+  const nombreFinal = extension
+    ? `${data.pedido}-${nombreCliente}.${extension}`
+    : `${data.pedido}-${nombreCliente}`;
+
+  const rutaNueva =
+    `${data.pedido}/${uuidExistente}/${nombreFinal}`;
 
   try {
-  const { error: moveError } = await supabase.storage
-    .from("kint-archivos")
-    .move(archivoId, rutaNueva);
+    const { error: moveError } =
+      await supabase.storage
+        .from("kint-archivos")
+        .move(
+          archivoId,
+          rutaNueva
+        );
 
-  if (moveError) {
-    throw moveError;
+    if (moveError) {
+      throw moveError;
+    }
+  } catch (error: any) {
+    throw new Error(
+      "Pedido creado, pero falló Supabase al mover el archivo: " +
+        (
+          error?.message ||
+          "Error desconocido"
+        )
+    );
   }
-} catch (error: any) {
-  throw new Error(
-    "Pedido creado, pero falló Supabase al mover el archivo: " +
-      (error?.message || "Error desconocido")
-  );
-}
 
-  const linkNuevo = supabase.storage
-    .from("kint-archivos")
-    .getPublicUrl(rutaNueva).data.publicUrl;
+  const linkNuevo =
+    supabase.storage
+      .from("kint-archivos")
+      .getPublicUrl(rutaNueva)
+      .data.publicUrl;
 
   archivosRegistrados.push({
     tipo: "Original",
-    nombreArchivo: archivoNombre,
+    nombreArchivo: nombreFinal,
     link: linkNuevo,
     idDrive: rutaNueva,
   });

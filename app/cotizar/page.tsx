@@ -54,7 +54,8 @@ export default function Cotizar() {
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
   const [color, setColor] = useState<string[]>([]);
   const [armado, setArmado] = useState("");
-  const [alisado, setAlisado] = useState("");
+  const [alisado, setAlisado] =
+  useState("No requiero este servicio");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
@@ -65,8 +66,14 @@ export default function Cotizar() {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
-  const [aceptaUsoImagenes, setAceptaUsoImagenes] =
+const [aceptaUsoImagenes, setAceptaUsoImagenes] =
   useState(false);
+
+const [medidaCalculadora, setMedidaCalculadora] =
+  useState("");
+
+const [unidadCalculadora, setUnidadCalculadora] =
+  useState<"mm" | "cm" | "m">("cm");
 
   const [configuracion, setConfiguracion] =
   useState<Configuracion>({});
@@ -225,10 +232,17 @@ const detallePedidosDeshabilitados =
 }, [pedidoUrgenteDisponible]);
 
 useEffect(() => {
+  if (cargandoConfiguracion) {
+    return;
+  }
+
   if (!armadoHabilitado) {
     setArmado("No requiero este servicio");
   }
-}, [armadoHabilitado]);
+}, [
+  armadoHabilitado,
+  cargandoConfiguracion,
+]);
 
 useEffect(() => {
   if (!alisadoHabilitado) {
@@ -292,6 +306,157 @@ useEffect(() => {
       : coloresValidos;
   });
 }, [configuracion]);
+
+const escalaCompleta =
+  Boolean(escala) &&
+  (
+    escala !== "Otra escala" ||
+    Boolean(escalaPersonalizada.trim())
+  );
+
+const armadoCompleto =
+  !armadoHabilitado ||
+  Boolean(armado);
+
+const alisadoCompleto =
+  !alisadoHabilitado ||
+  Boolean(alisado);
+
+const camposPendientes = [
+  {
+    nombre: "Nombre o apodo",
+    completo: Boolean(nombre.trim()),
+  },
+  {
+    nombre: "Correo electrónico",
+    completo: Boolean(email.trim()),
+  },
+  {
+    nombre: "Escala",
+    completo: escalaCompleta,
+  },
+  {
+    nombre: "Color de impresión",
+    completo: color.length > 0,
+  },
+  {
+    nombre: "Armado de piezas",
+    completo: armadoCompleto,
+  },
+  {
+    nombre: "Alisado",
+    completo: alisadoCompleto,
+  },
+  {
+    nombre: "Boquilla",
+    completo: Boolean(boquilla),
+  },
+  {
+    nombre: "Autorización de imágenes",
+    completo: aceptaUsoImagenes,
+  },
+].filter(
+  (campo) => !campo.completo
+);
+
+const todoListo =
+  camposPendientes.length === 0;
+
+  const escalaCalculadora = (() => {
+  const valorEscala =
+    escala === "Otra escala"
+      ? escalaPersonalizada
+      : escala;
+
+  const limpio = String(valorEscala || "")
+    .trim()
+    .replace(",", ".");
+
+  const coincidencia = limpio.match(
+    /(?:1\s*:\s*)?(\d+(?:\.\d+)?)/
+  );
+
+  if (!coincidencia) {
+    return null;
+  }
+
+  const numero = Number(coincidencia[1]);
+
+  return Number.isFinite(numero) &&
+    numero > 0
+    ? numero
+    : null;
+})();
+
+const boquillaCalculadora =
+  boquilla.includes("0.2")
+    ? 0.2
+    : boquilla.includes("0.4")
+    ? 0.4
+    : null;
+
+const valorMedidaCalculadora = Number(
+  medidaCalculadora
+    .replace(",", ".")
+    .trim()
+);
+
+const factorUnidadCalculadora =
+  unidadCalculadora === "m"
+    ? 1000
+    : unidadCalculadora === "cm"
+    ? 10
+    : 1;
+
+const medidaRealMm =
+  Number.isFinite(valorMedidaCalculadora) &&
+  valorMedidaCalculadora > 0
+    ? valorMedidaCalculadora *
+      factorUnidadCalculadora
+    : null;
+
+const medidaImpresaMm =
+  medidaRealMm !== null &&
+  escalaCalculadora
+    ? medidaRealMm / escalaCalculadora
+    : null;
+
+const minimoRealMm =
+  escalaCalculadora &&
+  boquillaCalculadora
+    ? escalaCalculadora *
+      boquillaCalculadora
+    : null;
+
+const minimoRealEnUnidad =
+  minimoRealMm !== null
+    ? minimoRealMm /
+      factorUnidadCalculadora
+    : null;
+
+    const minimoRealCm =
+  minimoRealMm !== null
+    ? minimoRealMm / 10
+    : null;
+
+const margenImpresion =
+  medidaImpresaMm !== null &&
+  boquillaCalculadora
+    ? medidaImpresaMm -
+      boquillaCalculadora
+    : null;
+
+const estadoCalculadora =
+  medidaImpresaMm === null ||
+  boquillaCalculadora === null
+    ? null
+    : medidaImpresaMm <
+      boquillaCalculadora
+    ? "no"
+    : medidaImpresaMm <
+      boquillaCalculadora * 1.25
+    ? "justo"
+    : "si";
 
   async function enviarPedido() {
 
@@ -361,7 +526,7 @@ const alisadoValido =
   !alisadoHabilitado || Boolean(alisado);
 
 if (
-  !escala ||
+  !escalaCompleta ||
   color.length === 0 ||
   !armadoValido ||
   !alisadoValido ||
@@ -377,7 +542,9 @@ if (
 
   try {
     const escalaFinal =
-      escala === "Otra escala" ? escalaPersonalizada : escala;
+  escala === "Otra escala"
+    ? `1:${escalaPersonalizada}`
+    : escala;
 
     const archivosOriginales = [];
 
@@ -476,7 +643,7 @@ usoImagenesAutorizado: aceptaUsoImagenes,
     setEscalaPersonalizada("");
     setColor([]);
     setArmado("");
-    setAlisado("");
+    setAlisado("No requiero este servicio");
     setBoquilla("");
     setComentarios("");
     setCodigoDescuento("");
@@ -744,52 +911,6 @@ return (
   </span>
 </label>
 
-<details className="mb-4 rounded-xl border border-[var(--border-color)] p-4">
-  <summary className="cursor-pointer font-semibold text-[var(--text-main)]">
-    📏 Consejos para una impresión exitosa
-  </summary>
-
-  <div className="mt-4 space-y-3 text-sm text-[var(--text-muted)]">
-    <p>✓ Mínimo imprimible: 0,2 mm</p>
-
-    <p>✓ Escala 1:500</p>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Muros finos, vallas y barandas:
-      </strong>
-      <p>- Espesor mínimo: 10 cm</p>
-      <p>- Espesor recomendado: 12–13 cm</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        • Pilares:
-      </strong>
-      <p>- Espesor mínimo: 13 cm</p>
-      <p>- Espesor recomendado: 20 cm o más</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        📦 Volumen máximo de impresión:
-      </strong>
-      <p>18 × 18 × 18 cm</p>
-    </div>
-
-    <div>
-      <strong className="text-[var(--text-main)]">
-        📏 Espesor mínimo imprimible:
-      </strong>
-      <p>• Boquilla 0,2 mm → 0,2 mm</p>
-      <p>• Boquilla 0,4 mm → 0,4 mm</p>
-    </div>
-
-    <p className="font-semibold text-red-500">
-      ⚠️ Los elementos más finos pueden resultar frágiles o no imprimirse correctamente.
-    </p>
-  </div>
-</details>
 
           <div className="mt-3 rounded-xl border border-red-600 bg-red-600/10 p-4">
   <p className="text-sm font-bold text-red-500">
@@ -943,15 +1064,28 @@ return (
   <option>1:250</option>
   <option>1:500</option>
   <option>1:1000</option>
+  <option>No es necesario</option>
   <option>Otra escala</option>
 </select>
 
-          <input
-            value={escalaPersonalizada}
-            onChange={(e) => setEscalaPersonalizada(e.target.value)}
-            className="mt-3 w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-            placeholder="Si elegiste otra escala, escribila acá. Ej: 1:125"
-          />
+          {escala === "Otra escala" && (
+  <div className="mt-3 flex items-center gap-3">
+    <span className="text-lg font-semibold text-[var(--text-main)]">
+      1 :
+    </span>
+
+    <input
+      type="number"
+      min="1"
+      value={escalaPersonalizada}
+      onChange={(e) =>
+        setEscalaPersonalizada(e.target.value)
+      }
+      className="w-32 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      placeholder="125"
+    />
+  </div>
+)}
         </div>
 
         <div className="mb-6">
@@ -1026,7 +1160,7 @@ return (
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Incluye el pegado de piezas y la remoción de soportes.
+    Incluye el pegado de piezas.
     Nos encargamos de entregar el producto completamente terminado
     y ensamblado.
   </p>
@@ -1107,6 +1241,229 @@ return (
           </select>
         </div>
 
+{escalaCalculadora &&
+ boquillaCalculadora && (
+  <details className="group mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-5 p-5">
+      <div>
+        <p className="font-bold text-[var(--text-main)]">
+          Calculadora de imprimibilidad
+        </p>
+
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          Escala 1:{escalaCalculadora} ·
+          Boquilla{" "}
+          {boquillaCalculadora
+            .toFixed(1)
+            .replace(".", ",")}{" "}
+          mm
+        </p>
+      </div>
+
+      <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
+        +
+      </span>
+    </summary>
+
+    <div className="border-t border-[var(--border-color)] p-5">
+      <p className="mb-4 text-sm leading-6 text-[var(--text-muted)]">
+        Ingresá la medida real de cualquier
+        muro, pilar, baranda o elemento que
+        quieras comprobar.
+      </p>
+
+      <div className="flex gap-3">
+        <input
+          type="number"
+          min="0"
+          step="any"
+          value={medidaCalculadora}
+          onChange={(e) =>
+            setMedidaCalculadora(
+              e.target.value
+            )
+          }
+          placeholder="Ej: 12"
+          className="min-w-0 flex-1 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+        />
+
+        <select
+          value={unidadCalculadora}
+          onChange={(e) =>
+            setUnidadCalculadora(
+              e.target.value as
+                | "mm"
+                | "cm"
+                | "m"
+            )
+          }
+          className="w-24 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+        >
+          <option value="mm">mm</option>
+          <option value="cm">cm</option>
+          <option value="m">m</option>
+        </select>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between gap-4 px-1">
+  <div>
+    <p className="text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
+      Mínimo en tu modelo
+    </p>
+
+    <p className="mt-1 text-xs text-[var(--text-muted)]">
+      Equivale a{" "}
+      {boquillaCalculadora
+        .toFixed(1)
+        .replace(".", ",")}{" "}
+      mm una vez impreso.
+    </p>
+  </div>
+
+  <strong className="text-xl text-[var(--text-main)]">
+    {minimoRealCm?.toLocaleString(
+      "es-UY",
+      {
+        maximumFractionDigits: 2,
+      }
+    )}{" "}
+    cm
+  </strong>
+</div>
+
+      {estadoCalculadora && (
+        <div
+          className={`mt-4 rounded-xl border p-5 ${
+            estadoCalculadora === "si"
+              ? "border-green-600 bg-green-50 dark:bg-green-950/20"
+              : estadoCalculadora ===
+                "justo"
+              ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20"
+              : "border-red-600 bg-red-50 dark:bg-red-950/20"
+          }`}
+        >
+          <p
+            className={`font-black ${
+              estadoCalculadora === "si"
+                ? "text-green-700 dark:text-green-400"
+                : estadoCalculadora ===
+                  "justo"
+                ? "text-amber-700 dark:text-amber-400"
+                : "text-red-600"
+            }`}
+          >
+            {estadoCalculadora === "si"
+              ? "✓ SE PUEDE IMPRIMIR"
+              : estadoCalculadora ===
+                "justo"
+              ? "⚠ SE IMPRIME, PERO ES MUY FINO"
+              : "✕ NO SE RECOMIENDA IMPRIMIR"}
+          </p>
+
+          <div className="mt-4 space-y-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <span className="text-[var(--text-muted)]">
+                Medida original
+              </span>
+
+              <strong className="text-[var(--text-main)]">
+                {valorMedidaCalculadora.toLocaleString(
+                  "es-UY",
+                  {
+                    maximumFractionDigits: 3,
+                  }
+                )}{" "}
+                {unidadCalculadora}
+              </strong>
+            </div>
+
+            <div className="flex justify-between gap-4">
+              <span className="text-[var(--text-muted)]">
+                Una vez impreso
+              </span>
+
+              <strong className="text-[var(--text-main)]">
+                {medidaImpresaMm?.toLocaleString(
+                  "es-UY",
+                  {
+                    maximumFractionDigits: 3,
+                  }
+                )}{" "}
+                mm
+              </strong>
+            </div>
+
+            <div className="flex justify-between gap-4">
+              <span className="text-[var(--text-muted)]">
+                Mínimo imprimible
+              </span>
+
+              <strong className="text-[var(--text-main)]">
+                {boquillaCalculadora
+                  .toFixed(1)
+                  .replace(".", ",")}{" "}
+                mm
+              </strong>
+            </div>
+          </div>
+
+          {estadoCalculadora === "no" && (
+            <div className="mt-4 border-t border-red-600/30 pt-4">
+              <p className="text-sm font-semibold text-red-600">
+                Para esta configuración, el
+                elemento debería medir al menos{" "}
+                {minimoRealEnUnidad?.toLocaleString(
+                  "es-UY",
+                  {
+                    maximumFractionDigits: 3,
+                  }
+                )}{" "}
+                {unidadCalculadora}.
+              </p>
+
+              {margenImpresion !== null && (
+                <p className="mt-2 text-xs text-[var(--text-muted)]">
+                  Le faltan{" "}
+                  {Math.abs(
+                    margenImpresion
+                  ).toLocaleString(
+                    "es-UY",
+                    {
+                      maximumFractionDigits: 3,
+                    }
+                  )}{" "}
+                  mm en la impresión.
+                </p>
+              )}
+            </div>
+          )}
+
+          {estadoCalculadora !== "no" &&
+            margenImpresion !== null && (
+              <p className="mt-4 border-t border-[var(--border-color)] pt-4 text-xs text-[var(--text-muted)]">
+                Margen sobre el mínimo: +
+                {margenImpresion.toLocaleString(
+                  "es-UY",
+                  {
+                    maximumFractionDigits: 3,
+                  }
+                )}{" "}
+                mm
+              </p>
+            )}
+        </div>
+      )}
+
+      {!medidaRealMm && (
+        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
+          Ingresá una medida para comprobar
+          si puede imprimirse.
+        </p>
+      )}
+    </div>
+  </details>
+)}
+
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Alisado
@@ -1120,21 +1477,18 @@ return (
 
   {alisadoHabilitado ? (
     <select
-      value={alisado}
-      onChange={(e) => setAlisado(e.target.value)}
-      className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-        alisado === "" ? "text-red-600" : "text-black"
-      }`}
-    >
-      <option value="" className="text-red-600">
-        Seleccionar opción
-      </option>
+  value={alisado}
+  onChange={(e) => setAlisado(e.target.value)}
+  className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+>
+  <option value="No requiero este servicio">
+    No requiero este servicio
+  </option>
 
-      <option>Sí, quiero incluir este servicio</option>
-      <option>No requiero este servicio</option>
-      <option>Quiero presupuesto con y sin este servicio</option>
-      <option>Que Kint 3D decida</option>
-    </select>
+  <option value="Sí, quiero incluir este servicio">
+    Sí, quiero incluir este servicio
+  </option>
+</select>
   ) : (
     <div className="w-full rounded-xl border border-gray-300 bg-gray-100 p-4 text-gray-400">
       {configuracion.alisado?.comentario ||
@@ -1225,13 +1579,85 @@ return (
 </details>
 </div>
 
+<div
+  className={`mb-5 rounded-2xl border p-5 ${
+    todoListo
+      ? "border-green-600 bg-green-50"
+      : "border-[var(--border-color)] bg-[var(--page-bg)]"
+  }`}
+>
+  {todoListo ? (
+    <div className="flex items-center gap-3 text-green-700">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-green-600 text-sm font-bold">
+        ✓
+      </span>
+
+      <div>
+        <p className="font-bold">
+          Todo listo para enviar
+        </p>
+
+        <p className="mt-1 text-xs">
+          Completaste todos los datos obligatorios.
+        </p>
+      </div>
+    </div>
+  ) : (
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="font-bold text-[var(--text-main)]">
+            Antes de enviar
+          </p>
+
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Completá los siguientes datos:
+          </p>
+        </div>
+
+        <span className="rounded-full border border-red-600 px-3 py-1 text-xs font-bold text-red-600">
+          {camposPendientes.length}{" "}
+          {camposPendientes.length === 1
+            ? "pendiente"
+            : "pendientes"}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {camposPendientes.map(
+          (campo) => (
+            <div
+              key={campo.nombre}
+              className="flex items-center gap-3 text-sm text-[var(--text-main)]"
+            >
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-600 text-[10px] font-bold text-red-600">
+                !
+              </span>
+
+              <span>
+                {campo.nombre}
+              </span>
+            </div>
+          )
+        )}
+      </div>
+    </>
+  )}
+</div>
 
         <button
           onClick={enviarPedido}
-          disabled={enviando}
+          disabled={
+  enviando ||
+  !todoListo
+}
           className="w-full rounded-2xl bg-red-600 px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-black disabled:opacity-50"
         >
-          {enviando ? "Enviando..." : "Enviar Cotización"}
+          {enviando
+  ? "Enviando..."
+  : todoListo
+  ? "Enviar Cotización"
+  : "Completá los datos pendientes"}
         </button>
 
         <details className="group mt-6 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
