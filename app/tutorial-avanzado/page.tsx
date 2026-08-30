@@ -238,6 +238,23 @@ export default function TutorialAvanzadoPage() {
             correctamente como STL y comprobá sus
             medidas antes de imprimir.
           </p>
+
+<div className="mt-6 max-w-3xl rounded-2xl border border-blue-500/30 bg-blue-500/5 px-5 py-4">
+  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-500">
+    Prepararlo bien puede acelerar mucho tu pedido
+  </p>
+
+  <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">
+    Los archivos STL correctamente escalados, cerrados y listos para
+    imprimir pueden revisarse y presupuestarse mucho más rápido.
+    Cuando un archivo necesita correcciones, cambios de escala o una
+    nueva exportación, el pedido queda detenido hasta resolverlos.
+    Por eso, un STL bien preparado puede avanzar antes que otros
+    pedidos recibidos previamente y llegar a impresión mucho más rápido,
+    especialmente en momentos de alta demanda.
+  </p>
+</div>
+
           <div className="mt-6 flex flex-wrap items-center gap-3">
   <span className="text-sm text-[var(--text-muted)]">
     ¿Todavía no preparaste o dividiste tu modelo?

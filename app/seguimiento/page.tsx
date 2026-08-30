@@ -1005,6 +1005,146 @@ async function subirComprobanteSaldo() {
 
     </div>
 
+    {resultado.fidelidad?.habilitada && (
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          Tus beneficios Kint
+        </p>
+
+        <p className="mt-3 text-2xl font-black">
+          {resultado.fidelidad.entregados}{" "}
+          {resultado.fidelidad.entregados === 1
+            ? "pedido entregado"
+            : "pedidos entregados"}
+        </p>
+      </div>
+
+      {resultado.fidelidad.proximoHito && (
+        <p className="text-sm font-bold text-red-600">
+          Próximo: {resultado.fidelidad.proximoDescuento}% OFF
+        </p>
+      )}
+    </div>
+
+    {resultado.fidelidad.proximoHito ? (
+      <>
+        <div className="mt-6 h-2 overflow-hidden rounded-full bg-[var(--border-color)]">
+          <div
+            className="h-full rounded-full bg-red-600 transition-all"
+            style={{
+              width: `${Math.min(
+                100,
+                (Number(resultado.fidelidad.entregados) /
+                  Number(resultado.fidelidad.proximoHito)) *
+                  100
+              )}%`,
+            }}
+          />
+        </div>
+
+        <p className="mt-3 text-sm text-[var(--text-muted)]">
+          Te{" "}
+          {resultado.fidelidad.faltan === 1
+            ? "falta 1 pedido"
+            : `faltan ${resultado.fidelidad.faltan} pedidos`}{" "}
+          para desbloquear{" "}
+          <strong className="text-[var(--text-main)]">
+            {resultado.fidelidad.proximoDescuento}% OFF
+          </strong>
+        </p>
+      </>
+    ) : (
+      <p className="mt-5 text-sm text-[var(--text-muted)]">
+        Alcanzaste todos los beneficios configurados actualmente.
+      </p>
+    )}
+
+    {Array.isArray(resultado.fidelidad.recompensas) &&
+      resultado.fidelidad.recompensas.some(
+        (recompensa: any) =>
+          recompensa.estado === "DISPONIBLE" ||
+          recompensa.estado === "RESERVADO"
+      ) && (
+        <div className="mt-7 border-t border-[var(--border-color)] pt-6">
+
+          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Recompensas
+          </p>
+
+          <div className="space-y-3">
+            {resultado.fidelidad.recompensas
+              .filter(
+                (recompensa: any) =>
+                  recompensa.estado === "DISPONIBLE" ||
+                  recompensa.estado === "RESERVADO"
+              )
+              .map((recompensa: any, index: number) => (
+                <div
+                  key={`${recompensa.codigo}-${index}`}
+                  className="rounded-xl border border-[var(--border-color)] p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div>
+                      <p className="text-xl font-black text-red-600">
+                        {recompensa.descuento}% OFF
+                      </p>
+
+                      <p className="mt-1 font-mono text-sm font-bold tracking-[0.12em]">
+                        {recompensa.codigo}
+                      </p>
+
+                      {recompensa.vencimiento && (
+                        <p className="mt-2 text-xs text-[var(--text-muted)]">
+                          Vence {recompensa.vencimiento}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-start gap-2 sm:items-end">
+                      <span
+                        className={`rounded-full px-3 py-1 text-[9px] font-black uppercase tracking-[0.15em] ${
+                          recompensa.estado === "DISPONIBLE"
+                            ? "bg-green-600/10 text-green-600"
+                            : "bg-red-600/10 text-red-600"
+                        }`}
+                      >
+                        {recompensa.estado === "DISPONIBLE"
+                          ? "Disponible"
+                          : recompensa.pedidoUsado === resultado.pedido
+                          ? "Reservada para este pedido"
+                          : "Reservada"}
+                      </span>
+
+                      {resultado.estado === "Recibido" &&
+                        !resultado.codigoDescuento &&
+                        recompensa.estado === "DISPONIBLE" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCodigoDescuentoInput(
+                                recompensa.codigo
+                              )
+                            }
+                            className="text-[10px] font-black uppercase tracking-[0.15em] text-red-600 hover:underline"
+                          >
+                            Usar recompensa
+                          </button>
+                        )}
+                    </div>
+
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+  </div>
+)}
+
 {[
   "Presupuestado",
   "Método de pago seleccionado",

@@ -311,12 +311,25 @@ const elementoResenas: HTMLElement =
                   {numero}
                 </p>
                 <div className="mx-auto mb-5 h-[2px] w-10 bg-red-600" />
-                <h3 className="mb-4 text-xs font-black uppercase tracking-[0.3em]">
-                  {titulo}
-                </h3>
-                <p className="text-sm leading-7 text-[var(--text-muted)]">
-                  {texto}
-                </p>
+                <h3
+  className={`mb-4 text-xs font-black uppercase tracking-[0.3em] ${
+    numero === "01"
+      ? "text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.8)] md:text-[var(--text-main)] md:[text-shadow:none]"
+      : ""
+  }`}
+>
+  {titulo}
+</h3>
+
+<p
+  className={`text-sm leading-7 ${
+    numero === "01"
+      ? "text-white/95 [text-shadow:0_2px_10px_rgba(0,0,0,0.8)] md:text-[var(--text-muted)] md:[text-shadow:none]"
+      : "text-[var(--text-muted)]"
+  }`}
+>
+  {texto}
+</p>
               </div>
             ))}
           </div>
