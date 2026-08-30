@@ -15,10 +15,13 @@ export default function EstadisticasInicio() {
     });
 
   const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function cargarEstadisticas() {
       try {
+        setError(false);
+
         const response = await fetch(
           "/api/estadisticas-inicio",
           {
@@ -45,6 +48,7 @@ export default function EstadisticasInicio() {
         });
       } catch (error) {
         console.error(error);
+        setError(true);
       } finally {
         setCargando(false);
       }
@@ -53,40 +57,47 @@ export default function EstadisticasInicio() {
     cargarEstadisticas();
   }, []);
 
-return (
-  <div className="flex max-w-full flex-wrap items-center justify-center gap-3">
-    <div className="flex items-center gap-3 rounded-full border border-[var(--blue-border)] bg-[var(--glass-bg)] px-5 py-3 text-[var(--text-main)] shadow-sm backdrop-blur transition">
-      <span className="text-xl font-black leading-none text-red-600">
-        {cargando
-          ? "—"
-          : estadisticas.impresionesEnCurso}
-      </span>
+  if (error) {
+    return null;
+  }
 
-      <span className="text-[9px] font-bold uppercase leading-[1.5] tracking-[0.17em]">
-        Impresiones
-        <br />
-        en curso
-      </span>
+  return (
+    <div className="flex max-w-full flex-wrap items-center justify-center gap-3">
+      <div className="flex items-center gap-3 rounded-full border border-[var(--blue-border)] bg-[var(--glass-bg)] px-5 py-3 text-[var(--text-main)] shadow-sm backdrop-blur transition">
+        <span className="text-xl font-black leading-none text-red-600">
+          {cargando
+            ? "—"
+            : estadisticas.impresionesEnCurso}
+        </span>
 
-      <span className="relative ml-1 flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-600 opacity-50" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
-      </span>
+        <span className="text-[9px] font-bold uppercase leading-[1.5] tracking-[0.17em]">
+          Impresiones
+          <br />
+          en curso
+        </span>
+
+        {!cargando &&
+          estadisticas.impresionesEnCurso > 0 && (
+            <span className="relative ml-1 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-600 opacity-50" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+            </span>
+          )}
+      </div>
+
+      <div className="flex items-center gap-3 rounded-full border border-[var(--blue-border)] bg-[var(--glass-bg)] px-5 py-3 text-[var(--text-main)] shadow-sm backdrop-blur transition">
+        <span className="text-xl font-black leading-none text-red-600">
+          {cargando
+            ? "—"
+            : estadisticas.pedidosFinalizados}
+        </span>
+
+        <span className="text-[9px] font-bold uppercase leading-[1.5] tracking-[0.17em]">
+          Pedidos
+          <br />
+          finalizados
+        </span>
+      </div>
     </div>
-
-    <div className="flex items-center gap-3 rounded-full border border-[var(--blue-border)] bg-[var(--glass-bg)] px-5 py-3 text-[var(--text-main)] shadow-sm backdrop-blur transition">
-      <span className="text-xl font-black leading-none text-red-600">
-        {cargando
-          ? "—"
-          : estadisticas.pedidosFinalizados}
-      </span>
-
-      <span className="text-[9px] font-bold uppercase leading-[1.5] tracking-[0.17em]">
-        Pedidos
-        <br />
-        finalizados
-      </span>
-    </div>
-  </div>
-);
+  );
 }

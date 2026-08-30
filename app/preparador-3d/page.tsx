@@ -18,9 +18,9 @@ type Medidas = {
   altura: number;
 };
 
-type TamanoCama = 180 | 250 | 300;
+type TamanoCama = 180 | 300;
 
-const tamanosCama: TamanoCama[] = [180, 250, 300];
+const tamanosCama: TamanoCama[] = [180, 300];
 
 function liberarObjeto(objeto: THREE.Object3D) {
   objeto.traverse((hijo) => {
@@ -265,6 +265,9 @@ export default function Preparador3D() {
   const [cantidadPiezas, setCantidadPiezas] =
   useState<number | null>(null);
 
+const [escalaPorcentaje, setEscalaPorcentaje] =
+  useState(100);
+
   const excesoAncho = medidas
   ? Math.max(0, medidas.ancho - tamanoCama)
   : 0;
@@ -503,6 +506,54 @@ requestAnimationFrame(() => {
 });
   }, [tamanoCama]);
 
+function aplicarEscala(nuevoPorcentaje: number) {
+  const modelo = modeloRef.current;
+
+  if (!modelo) {
+    return;
+  }
+
+  const porcentajeSeguro = Math.min(
+    1000,
+    Math.max(1, nuevoPorcentaje)
+  );
+
+  const factor = porcentajeSeguro / 100;
+
+  modelo.scale.setScalar(factor);
+  modelo.updateMatrixWorld(true);
+
+  /*
+   * Después de escalar volvemos a centrar
+   * el modelo sobre la cama y apoyarlo en Y = 0.
+   */
+  let caja = new THREE.Box3().setFromObject(modelo);
+
+  const centro = caja.getCenter(
+    new THREE.Vector3()
+  );
+
+  modelo.position.x -= centro.x;
+  modelo.position.z -= centro.z;
+  modelo.position.y -= caja.min.y;
+
+  modelo.updateMatrixWorld(true);
+
+  caja = new THREE.Box3().setFromObject(modelo);
+
+  const tamano = caja.getSize(
+    new THREE.Vector3()
+  );
+
+  setMedidas({
+    ancho: tamano.x,
+    profundidad: tamano.z,
+    altura: tamano.y,
+  });
+
+  setEscalaPorcentaje(porcentajeSeguro);
+}
+
   async function cargarSTL(
     evento: ChangeEvent<HTMLInputElement>
   ) {
@@ -615,9 +666,10 @@ setCantidadPiezas(piezasDetectadas);
       }
 
       modeloRef.current = modelo;
-      escena.add(modelo);
+escena.add(modelo);
 
-      setNombreArchivo(archivo.name);
+setNombreArchivo(archivo.name);
+setEscalaPorcentaje(100);
 
       setMedidas({
         ancho: tamano.x,
@@ -856,7 +908,7 @@ setCantidadPiezas(piezasDetectadas);
               Cama de impresión
             </p>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {tamanosCama.map((tamano) => (
                 <button
                   key={tamano}
@@ -883,6 +935,74 @@ setCantidadPiezas(piezasDetectadas);
               {tamanoCama} × {tamanoCama} ×{" "}
               {tamanoCama} mm
             </p>
+
+{medidas && (
+  <>
+    <div className="my-6 h-px bg-[var(--border-color)]" />
+
+    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em]">
+      Escala del modelo
+    </p>
+
+    <div className="flex items-center gap-2">
+      <input
+        type="number"
+        min={1}
+        max={1000}
+        step={1}
+        value={escalaPorcentaje}
+        onChange={(evento) => {
+          const valor = Number(
+            evento.target.value
+          );
+
+          if (Number.isFinite(valor)) {
+            aplicarEscala(valor);
+          }
+        }}
+        className="min-w-0 flex-1 rounded-xl border border-[var(--border-color)] bg-transparent px-4 py-3 text-center text-sm font-bold outline-none transition focus:border-red-600"
+      />
+
+      <span className="text-sm font-bold text-[var(--text-muted)]">
+        %
+      </span>
+    </div>
+
+    <div className="mt-3 grid grid-cols-3 gap-2">
+      <button
+        type="button"
+        onClick={() =>
+          aplicarEscala(escalaPorcentaje - 10)
+        }
+        className="rounded-lg border border-[var(--border-color)] px-2 py-3 text-[10px] font-bold transition hover:border-red-600 hover:text-red-600"
+      >
+        −10%
+      </button>
+
+      <button
+        type="button"
+        onClick={() => aplicarEscala(100)}
+        className="rounded-lg border border-[var(--border-color)] px-2 py-3 text-[10px] font-bold transition hover:border-red-600 hover:text-red-600"
+      >
+        Original
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          aplicarEscala(escalaPorcentaje + 10)
+        }
+        className="rounded-lg border border-[var(--border-color)] px-2 py-3 text-[10px] font-bold transition hover:border-red-600 hover:text-red-600"
+      >
+        +10%
+      </button>
+    </div>
+
+    <p className="mt-3 text-[9px] leading-4 text-[var(--text-muted)]">
+      100% corresponde al tamaño original del archivo STL.
+    </p>
+  </>
+)}
 
             <div className="my-6 h-px bg-[var(--border-color)]" />
 

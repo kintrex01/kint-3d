@@ -18,7 +18,6 @@ function SeguimientoContent() {
   const [archivosExtra, setArchivosExtra] = useState<File[]>([]);
 const [subiendoArchivo, setSubiendoArchivo] = useState(false);
 const [mensajeArchivo, setMensajeArchivo] = useState("");
-const [metodoSeleccionado, setMetodoSeleccionado] = useState("");
 const [guardandoMetodo, setGuardandoMetodo] = useState(false);
 const [modalidadPago, setModalidadPago] = useState("");
 const [mostrarSaldo, setMostrarSaldo] = useState(false);
@@ -34,13 +33,87 @@ const [archivoEliminando, setArchivoEliminando] =
   const searchParams = useSearchParams();
 
 useEffect(() => {
-  const pedidoUrl = searchParams.get("pedido") || "";
-  const codigoUrl = searchParams.get("codigo") || "";
+  const pedidoUrl =
+    (searchParams.get("pedido") || "")
+      .trim()
+      .toUpperCase();
 
-  if (pedidoUrl) setPedido(pedidoUrl.toUpperCase());
-  if (codigoUrl) setCodigo(codigoUrl.toUpperCase());
+  const codigoUrl =
+    (searchParams.get("codigo") || "")
+      .trim()
+      .toUpperCase();
 
+  if (pedidoUrl) {
+    setPedido(pedidoUrl);
+  }
+
+  if (codigoUrl) {
+    setCodigo(codigoUrl);
+  }
+
+  if (!pedidoUrl || !codigoUrl) {
+    return;
+  }
+
+  const cargarPedidoDesdeUrl = async () => {
+    setError("");
+    setCargando(true);
+
+    try {
+      const response = await fetch(
+        `/api/seguimiento?pedido=${encodeURIComponent(
+          pedidoUrl
+        )}&codigo=${encodeURIComponent(
+          codigoUrl
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        throw new Error(
+          data.error ||
+            "No encontramos ese pedido."
+        );
+      }
+
+      setResultado(data);
+    } catch (error: any) {
+      setResultado(null);
+
+      setError(
+        error?.message ||
+          "Error al consultar el pedido."
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  void cargarPedidoDesdeUrl();
 }, [searchParams]);
+
+useEffect(() => {
+  const temaGuardado = localStorage.getItem("tema");
+
+  const paginaYaEstaOscura =
+    document.documentElement.classList.contains("dark");
+
+  const usarModoOscuro =
+    temaGuardado === "dark" ||
+    (!temaGuardado && paginaYaEstaOscura);
+
+  setModoOscuro(usarModoOscuro);
+
+  if (usarModoOscuro) {
+    document.documentElement.classList.add("dark");
+  } else {
+    document.documentElement.classList.remove("dark");
+  }
+}, []);
 
 function cambiarTema() {
   const nuevoModo = !modoOscuro;
@@ -89,6 +162,95 @@ function cambiarTema() {
 
     setCargando(false);
   }
+
+  async function actualizarPedidoSilenciosamente() {
+  if (!pedido.trim() || !codigo.trim()) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/seguimiento?pedido=${encodeURIComponent(
+        pedido
+      )}&codigo=${encodeURIComponent(
+        codigo
+      )}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudo actualizar el pedido."
+      );
+    }
+
+    setResultado(data);
+  } catch (error) {
+    console.error(
+      "No se pudo actualizar silenciosamente:",
+      error
+    );
+  }
+}
+
+  useEffect(() => {
+  if (
+    !resultado?.pedido ||
+    !pedido.trim() ||
+    !codigo.trim()
+  ) {
+    return;
+  }
+
+  const actualizarSilenciosamente =
+    async () => {
+      try {
+        const response = await fetch(
+          `/api/seguimiento?pedido=${encodeURIComponent(
+            pedido
+          )}&codigo=${encodeURIComponent(
+            codigo
+          )}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        const data = await response.json();
+
+        if (
+          response.ok &&
+          data.ok
+        ) {
+          setResultado(data);
+        }
+      } catch (error) {
+        console.error(
+          "No se pudo actualizar automáticamente el seguimiento:",
+          error
+        );
+      }
+    };
+
+  const intervalo = window.setInterval(
+    actualizarSilenciosamente,
+    25000
+  );
+
+  return () => {
+    window.clearInterval(intervalo);
+  };
+}, [
+  resultado?.pedido,
+  pedido,
+  codigo,
+]);
+
 async function subirArchivoAdicional() {
   setMensajeArchivo("");
   setError("");
@@ -154,7 +316,7 @@ if (uploadError) {
 
     setMensajeArchivo("Archivo enviado correctamente.");
     setArchivosExtra([]);
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al subir archivo.");
   }
@@ -218,7 +380,7 @@ async function eliminarArchivoPedido(
       );
     }
 
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
 
     setMensajeArchivo(
       data.advertencia ||
@@ -342,7 +504,7 @@ async function reemplazarArchivoPedido(
       );
     }
 
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
 
     setMensajeArchivo(
       data.advertencia ||
@@ -387,7 +549,7 @@ async function aplicarCodigoDescuento() {
     }
 
     setCodigoDescuentoInput("");
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al aplicar descuento.");
   }
@@ -434,7 +596,7 @@ async function confirmarMetodoPago() {
       throw new Error(data.error || "No se pudo guardar el pago.");
     }
 
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al guardar pago.");
   }
@@ -483,7 +645,7 @@ async function subirComprobante() {
 
     setMensajeArchivo("Comprobante enviado correctamente.");
     setArchivosExtra([]);
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al subir comprobante.");
   }
@@ -532,7 +694,7 @@ async function subirComprobanteSaldo() {
 
     setMensajeArchivo("Comprobante del saldo enviado correctamente.");
     setArchivosExtra([]);
-    await consultarPedido();
+    await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al subir comprobante del saldo.");
   }
@@ -619,113 +781,224 @@ async function subirComprobanteSaldo() {
     "Entregado",
   ];
 
-  const nombresMobile = [
-    "Recibido",
-    "Presupuestado",
-    "Pago",
-    "Confirmado",
-    "Impresión",
-    "Terminado",
-    "Entregado",
-  ];
-
-  const estadoActual = estados.indexOf(resultado.estado);
+  const indiceActual =
+    estados.indexOf(resultado.estado);
 
   return (
     <>
+      {/* ESCRITORIO */}
       <div className="hidden w-full pb-2 sm:block">
         <div className="grid grid-cols-7 items-start">
-          {estados.map((estado, index) => {
-            const activo = index <= estadoActual;
-            const esEntregado = estado === "Entregado" && activo;
+          {estados.map(
+            (estado, index) => {
+              const completado =
+                indiceActual >= 0 &&
+                index < indiceActual;
 
-            return (
-              <div key={estado} className="flex min-w-0 flex-col items-center">
-                <div className="flex w-full items-center">
-                  <div
-                    className={`h-[2px] flex-1 ${
-                      index === 0
-                        ? "bg-transparent"
-                        : activo
-                        ? "bg-red-600"
-                        : "bg-[var(--border-color)]"
-                    }`}
-                  />
+              const actual =
+                index === indiceActual;
 
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-black ${
-                      esEntregado
-                        ? "border-green-600 bg-green-600 text-white"
-                        : activo
-                        ? "border-red-600 bg-red-600 text-white"
-                        : "border-[var(--border-color)] text-[var(--text-muted)]"
-                    }`}
-                  >
-                    {esEntregado ? "✓" : index + 1}
+              const entregadoActual =
+                estado === "Entregado" &&
+                actual;
+
+              return (
+                <div
+                  key={estado}
+                  className="flex min-w-0 flex-col items-center"
+                >
+                  <div className="flex w-full items-center">
+
+                    {/* LÍNEA IZQUIERDA */}
+                    <div
+                      className={`h-[2px] flex-1 ${
+                        index === 0
+                          ? "bg-transparent"
+                          : completado ||
+                            actual
+                          ? "bg-red-600"
+                          : "bg-[var(--border-color)]"
+                      }`}
+                    />
+
+                    {/* CÍRCULO */}
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-black transition-all ${
+                        entregadoActual
+                          ? "scale-110 border-green-600 bg-green-600 text-white ring-4 ring-green-600/15"
+                          : actual
+                          ? "scale-110 border-red-600 bg-red-600 text-white ring-4 ring-red-600/15"
+                          : completado
+                          ? "border-red-600 bg-transparent text-red-600"
+                          : "border-[var(--border-color)] bg-transparent text-[var(--text-muted)]"
+                      }`}
+                    >
+                      {completado ||
+                      entregadoActual
+                        ? "✓"
+                        : index + 1}
+                    </div>
+
+                    {/* LÍNEA DERECHA */}
+                    <div
+                      className={`h-[2px] flex-1 ${
+                        index ===
+                        estados.length - 1
+                          ? "bg-transparent"
+                          : completado
+                          ? "bg-red-600"
+                          : "bg-[var(--border-color)]"
+                      }`}
+                    />
                   </div>
 
-                  <div
-                    className={`h-[2px] flex-1 ${
-                      index === estados.length - 1
-                        ? "bg-transparent"
-                        : index < estadoActual
-                        ? "bg-red-600"
-                        : "bg-[var(--border-color)]"
+                  <p
+                    className={`mt-3 max-w-[100px] text-center text-[9px] font-bold uppercase leading-4 tracking-[0.1em] ${
+                      actual
+                        ? entregadoActual
+                          ? "text-green-600"
+                          : "text-red-600"
+                        : completado
+                        ? "text-[var(--text-main)]"
+                        : "text-[var(--text-muted)]"
                     }`}
-                  />
-                </div>
+                  >
+                    {estado}
+                  </p>
 
-                <p
-                  className={`mt-3 max-w-[90px] text-center text-[9px] font-bold uppercase leading-4 tracking-[0.12em] ${
-                    activo
-                      ? "text-[var(--text-main)]"
-                      : "text-[var(--text-muted)]"
-                  }`}
-                >
-                  {estado}
-                </p>
-              </div>
-            );
-          })}
+                  {actual && (
+                    <span
+                      className={`mt-1 text-[8px] font-black uppercase tracking-[0.16em] ${
+                        entregadoActual
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      Ahora
+                    </span>
+                  )}
+                </div>
+              );
+            }
+          )}
         </div>
       </div>
 
-      <div className="space-y-3 sm:hidden">
-        {estados.map((estado, index) => {
-          const activo = index <= estadoActual;
+      {/* MÓVIL */}
+      <div className="space-y-2 sm:hidden">
+        {estados.map(
+          (estado, index) => {
+            const completado =
+              indiceActual >= 0 &&
+              index < indiceActual;
 
-          return (
-            <div
-              key={estado}
-              className={`flex items-center gap-3 border px-4 py-3 ${
-                activo
-                  ? "border-red-600 bg-red-50"
-                  : "border-[var(--border-color)]"
+            const actual =
+              index === indiceActual;
+
+            const entregadoActual =
+              estado === "Entregado" &&
+              actual;
+
+            return (
+              <div
+                key={estado}
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                  entregadoActual
+                    ? "border-green-600 bg-green-600/10"
+                    : actual
+                    ? "border-red-600 bg-red-600/10"
+                    : completado
+                    ? "border-red-600/30"
+                    : "border-[var(--border-color)]"
+                }`}
+              >
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-black ${
+                    entregadoActual
+                      ? "border-green-600 bg-green-600 text-white"
+                      : actual
+                      ? "border-red-600 bg-red-600 text-white"
+                      : completado
+                      ? "border-red-600 text-red-600"
+                      : "border-[var(--border-color)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {completado ||
+                  entregadoActual
+                    ? "✓"
+                    : index + 1}
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <span
+                    className={`text-xs font-bold uppercase tracking-[0.12em] ${
+                      entregadoActual
+                        ? "text-green-600"
+                        : actual
+                        ? "text-red-600"
+                        : completado
+                        ? "text-[var(--text-main)]"
+                        : "text-[var(--text-muted)]"
+                    }`}
+                  >
+                    {estado}
+                  </span>
+                </div>
+
+                {actual && (
+                  <span
+                    className={`text-[9px] font-black uppercase tracking-[0.14em] ${
+                      entregadoActual
+                        ? "text-green-600"
+                        : "text-red-600"
+                    }`}
+                  >
+                    Ahora
+                  </span>
+                )}
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      {/* ESTADO ACTUAL DESTACADO */}
+      {indiceActual >= 0 && (
+        <div
+          className={`mt-7 rounded-2xl border px-5 py-4 ${
+            resultado.estado ===
+            "Entregado"
+              ? "border-green-600/50 bg-green-600/10"
+              : "border-red-600/40 bg-red-600/5"
+          }`}
+        >
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Estado actual
+          </p>
+
+          <div className="mt-2 flex items-center gap-3">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${
+                resultado.estado ===
+                "Entregado"
+                  ? "bg-green-600"
+                  : "bg-red-600"
+              }`}
+            />
+
+            <p
+              className={`text-lg font-black ${
+                resultado.estado ===
+                "Entregado"
+                  ? "text-green-600"
+                  : "text-[var(--text-main)]"
               }`}
             >
-              <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-black ${
-                  activo
-                    ? "bg-red-600 text-white"
-                    : "bg-transparent text-[var(--text-muted)]"
-                }`}
-              >
-                {estado === "Entregado" && activo ? "✓" : index + 1}
-              </span>
-
-              <span
-                className={`text-xs font-bold uppercase tracking-[0.18em] ${
-                  activo
-                    ? "text-[var(--text-main)]"
-                    : "text-[var(--text-muted)]"
-                }`}
-              >
-                {nombresMobile[index]}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+              {resultado.estado}
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 })()}
@@ -882,10 +1155,10 @@ console.log({
                   const data = await response.json();
 
                   if (data.ok) {
-                    window.location.reload();
-                  } else {
-                    alert(data.error || "Error al seleccionar presupuesto.");
-                  }
+  await actualizarPedidoSilenciosamente();
+} else {
+  alert(data.error || "Error al seleccionar presupuesto.");
+}
                 }}
                 className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white"
               >
@@ -1009,10 +1282,24 @@ console.log({
                     cuando el pedido figure como Terminado.
                   </p>
                 )}
-              </button>
+                            </button>
             );
           })}
         </div>
+
+        <button
+          type="button"
+          onClick={confirmarMetodoPago}
+          disabled={!modalidadPago || guardandoMetodo}
+          className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {guardandoMetodo
+            ? "Guardando..."
+            : modalidadPago
+            ? `Confirmar ${modalidadPago}`
+            : "Seleccioná una opción para continuar"}
+        </button>
+
       </div>
     </div>
 )}
@@ -1038,8 +1325,8 @@ Cuenta: 26557312<br />
           <div className="mb-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-5 text-black">
   <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
     {resultado.modalidad === "Seña 20%"
-      ? "Seña a transferir ahora"
-      : "Total a transferir ahora"}
+  ? "Seña a transferir"
+  : "Total a transferir"}
   </p>
 
   <p className="mt-2 text-4xl font-black text-red-600">
@@ -1115,175 +1402,199 @@ Cuenta: 26557312<br />
         </div>
       )}
 
-    <div className="mt-8 rounded-2xl border border-[var(--border-color)] p-6">
-      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Método seleccionado
+{resultado.metodoPago === "Transferencia" && (
+  <div className="mt-8 rounded-2xl border border-[var(--border-color)] p-6">
+
+    <div className="mb-6 flex items-center justify-between gap-4">
+      <div>
+        <p className="text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Resumen de pago
+        </p>
+
+        <p className="mt-2 text-xl font-black">
+          {resultado.modalidad || "Pago"}
+        </p>
+      </div>
+
+      <div className="text-right">
+        <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          Método
+        </p>
+
+        <p className="mt-1 text-sm font-bold text-red-600">
+          Transferencia
+        </p>
+      </div>
+    </div>
+
+    <div className="border-t border-[var(--border-color)] pt-6">
+      <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        {resultado.modalidad === "Seña 20%"
+          ? "Seña transferida"
+          : "Total a transferir"}
       </p>
 
-      <p className="mb-6 text-xl font-bold">
-        {metodoSeleccionado || resultado.metodoPago || "Sin seleccionar"}
+      <p className="mt-2 text-2xl font-black">
+        $
+        {Number(
+          resultado.importe || 0
+        ).toLocaleString("es-UY")}
       </p>
 
-      {resultado.modalidad && (
-        <div className="mb-6 border-t border-[var(--border-color)] pt-6">
-          <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-            Modalidad
+      {resultado.modalidad === "Seña 20%" && (
+        <div className="mt-5">
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
+            Saldo pendiente
           </p>
 
-          <p className="mb-4 text-lg font-bold">
-            {resultado.modalidad}
+          <p className="mt-2 text-xl font-black text-red-600">
+            $
+            {Number(
+              resultado.saldoPendiente || 0
+            ).toLocaleString("es-UY")}
           </p>
-
-          <p className="text-sm leading-7 text-[var(--text-muted)]">
-  {resultado.modalidad === "Seña 20%" ? (
-    <>
-      Seña a transferir: $
-      {Number(
-        resultado.importe || 0
-      ).toLocaleString("es-UY")}
-      <br />
-
-      Saldo pendiente: $
-      {Number(
-        resultado.saldoPendiente || 0
-      ).toLocaleString("es-UY")}
-    </>
-  ) : (
-    <>
-      Total a transferir: $
-      {Number(
-        resultado.importe || 0
-      ).toLocaleString("es-UY")}
-      <br />
-
-      Saldo pendiente: $0
-    </>
-  )}
-</p>
         </div>
       )}
+    </div>
 
-      {resultado.modalidad === "Seña 20%" &&
-  Number(resultado.saldoPendiente) > 0 &&
-  resultado.estado !== "Entregado" &&
-  resultado.pagoConfirmado === "Sí" &&
-  resultado.saldoConfirmado !== "Sí" &&
-  !resultado.comprobanteSaldo && (
-    <div className="mt-6 border-t border-[var(--border-color)] pt-6">
-      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Resta pagar
-      </p>
-
-<p className="mb-5 text-3xl font-black text-red-600">
-  ${resultado.saldoPendiente}
-</p>
-
-<p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
-  Podés completar este saldo cuando quieras desde esta misma página.
-  Cuando el pedido figure como Terminado, podés volver acá,
-  revisar que esté listo y pagar el saldo.
-</p>
-
-{!mostrarSaldo ? (
-        <button
-          type="button"
-          onClick={() => setMostrarSaldo(true)}
-          className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
-        >
-          Pagar presupuesto restante
-        </button>
-      ) : (
-        <div className="space-y-6">
-          <p className="text-sm leading-7">
-            Banco: BBVA<br />
-Tipo de cuenta: Cuenta corriente en pesos<br />
-Titular: Alexander López<br />
-Cuenta: 26557312<br />
-            Concepto: {resultado.pedido} - Saldo
+    {resultado.modalidad === "Seña 20%" &&
+      Number(resultado.saldoPendiente) > 0 &&
+      resultado.estado !== "Entregado" &&
+      resultado.pagoConfirmado === "Sí" &&
+      resultado.saldoConfirmado !== "Sí" &&
+      !resultado.comprobanteSaldo && (
+        <div className="mt-6 border-t border-[var(--border-color)] pt-6">
+          <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Resta pagar
           </p>
 
-          <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
-            Seleccionar comprobante
+          <p className="mb-5 text-3xl font-black text-red-600">
+            $
+            {Number(
+              resultado.saldoPendiente || 0
+            ).toLocaleString("es-UY")}
+          </p>
 
-            <input
-              type="file"
-              accept=".jpg,.jpeg,.png,.pdf"
-              className="hidden"
-              onChange={(e) => {
-                const archivo = e.target.files?.[0];
-                if (archivo) {
-                  setArchivosExtra([archivo]);
-                }
-              }}
-            />
-          </label>
+          <p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
+            Podés completar este saldo cuando quieras desde esta misma página.
+            Cuando el pedido figure como Terminado, podés volver acá,
+            revisar que esté listo y pagar el saldo.
+          </p>
 
-          {archivosExtra.length > 0 && (
+          {!mostrarSaldo ? (
             <button
               type="button"
-              onClick={subirComprobanteSaldo}
-              disabled={subiendoArchivo}
-              className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+              onClick={() => setMostrarSaldo(true)}
+              className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
             >
-              {subiendoArchivo ? "Enviando..." : "Enviar comprobante del saldo"}
+              Pagar presupuesto restante
             </button>
+          ) : (
+            <div className="space-y-6">
+              <p className="text-sm leading-7">
+                Banco: BBVA
+                <br />
+                Tipo de cuenta: Cuenta corriente en pesos
+                <br />
+                Titular: Alexander López
+                <br />
+                Cuenta: 26557312
+                <br />
+                Concepto: {resultado.pedido} - Saldo
+              </p>
+
+              <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+                Seleccionar comprobante
+
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const archivo = e.target.files?.[0];
+
+                    if (archivo) {
+                      setArchivosExtra([archivo]);
+                    }
+                  }}
+                />
+              </label>
+
+              {archivosExtra.length > 0 && (
+                <button
+                  type="button"
+                  onClick={subirComprobanteSaldo}
+                  disabled={subiendoArchivo}
+                  className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+                >
+                  {subiendoArchivo
+                    ? "Enviando..."
+                    : "Enviar comprobante del saldo"}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
-    </div>
-  )}
 
-      <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Estado
+    <div className="mt-6 border-t border-[var(--border-color)] pt-6">
+      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        Estado del pago
       </p>
 
       {resultado.saldoConfirmado === "Sí" ? (
-  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
-    <p className="text-3xl font-black text-green-600">✓</p>
-    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
-      Pago completado correctamente
-    </p>
-    <p className="mt-3 text-sm font-semibold">
-      Total pagado: ${resultado.precio}
-    </p>
-  </div>
-) : resultado.comprobanteSaldo ? (
-  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
-    <p className="text-3xl font-black text-green-600">✓</p>
-    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
-      Comprobante enviado correctamente
-    </p>
-    <p className="mt-3 text-sm font-semibold">
-      Esperando confirmación.
-    </p>
-  </div>
-) : resultado.estadoPago === "Pago realizado correctamente" ||
-  resultado.estadoPago === "Seña realizada correctamente" ? (
-  <div className="mb-6 rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
-    <p className="text-3xl font-black text-green-600">✓</p>
-    <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
-      {resultado.estadoPago}
-    </p>
-  </div>
-) : (
-  <p className="mb-6 text-lg font-bold text-red-600">
-    {resultado.estadoPago || "Pendiente"}
-  </p>
-)}
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+          <p className="text-3xl font-black text-green-600">
+            ✓
+          </p>
 
-      {(!resultado.metodoPago || resultado.metodoPago === "Sin seleccionar") && (
-        <button
-          type="button"
-          onClick={confirmarMetodoPago}
-          disabled={guardandoMetodo}
-          className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
-        >
-          {guardandoMetodo ? "Guardando..." : "Confirmar método de pago"}
-        </button>
+          <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+            Pago completado correctamente
+          </p>
+
+          <p className="mt-3 text-sm font-semibold">
+            Total pagado: ${resultado.precio}
+          </p>
+        </div>
+      ) : resultado.comprobanteSaldo ? (
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+          <p className="text-3xl font-black text-green-600">
+            ✓
+          </p>
+
+          <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+            Comprobante enviado correctamente
+          </p>
+
+          <p className="mt-3 text-sm font-semibold">
+            Esperando confirmación.
+          </p>
+        </div>
+      ) : resultado.estadoPago ===
+          "Pago realizado correctamente" ||
+        resultado.estadoPago ===
+          "Seña realizada correctamente" ? (
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+          <p className="text-3xl font-black text-green-600">
+            ✓
+          </p>
+
+          <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-green-700">
+            {resultado.estadoPago}
+          </p>
+        </div>
+      ) : (
+        <p className="text-lg font-bold text-red-600">
+          {resultado.estadoPago || "Pendiente"}
+        </p>
       )}
     </div>
   </div>
 )}
+
+  </div>
+)}
+
 {resultado.estado === "Recibido" && !resultado.codigoDescuento && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
@@ -1485,30 +1796,89 @@ Cuenta: 26557312<br />
   </div>
 )}
 
-    {resultado.historial && (
+{resultado.historial && (
   <div className="border-t border-[var(--border-color)] pt-8">
-    <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+    <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Historial
     </p>
 
-    <div className="space-y-4">
+    <div className="relative">
       {String(resultado.historial)
         .split("\n")
         .filter(Boolean)
         .reverse()
-        .map((item, index) => (
-          <div
-            key={index}
-            className="rounded-xl border border-[var(--border-color)] px-4 py-3"
-          >
-            <p className="text-sm font-semibold">
-              {item}
-            </p>
-          </div>
-        ))}
+        .map((item, index, items) => {
+          const partes = item.match(
+            /^(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})\s*-\s*(.+)$/
+          );
+
+          const fecha = partes?.[1] || "";
+          const hora = partes?.[2] || "";
+          const evento = partes?.[3] || item;
+
+          const esUltimo =
+            index === items.length - 1;
+
+          const esEntregado =
+            evento.trim() === "Entregado";
+
+          return (
+            <div
+              key={`${item}-${index}`}
+              className="relative flex gap-4"
+            >
+              {/* MARCADOR */}
+              <div className="flex w-5 shrink-0 flex-col items-center">
+                <div
+                  className={`relative z-10 mt-1 h-3 w-3 rounded-full ${
+                    index === 0
+                      ? esEntregado
+                        ? "bg-green-600 ring-4 ring-green-600/15"
+                        : "bg-red-600 ring-4 ring-red-600/15"
+                      : "border-2 border-[var(--border-color)] bg-[var(--page-bg)]"
+                  }`}
+                />
+
+                {!esUltimo && (
+                  <div className="min-h-12 w-px flex-1 bg-[var(--border-color)]" />
+                )}
+              </div>
+
+              {/* INFORMACIÓN */}
+              <div className="pb-7">
+                <p
+                  className={`text-xs font-black uppercase tracking-[0.16em] ${
+                    index === 0
+                      ? esEntregado
+                        ? "text-green-600"
+                        : "text-red-600"
+                      : "text-[var(--text-main)]"
+                  }`}
+                >
+                  {evento}
+                </p>
+
+                {(fecha || hora) && (
+                  <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                    {fecha}
+                    {fecha && hora ? " · " : ""}
+                    {hora}
+                  </p>
+                )}
+
+                {index === 0 && (
+                  <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                    Última actualización
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
     </div>
   </div>
 )}
+
   </div>
 )}
 

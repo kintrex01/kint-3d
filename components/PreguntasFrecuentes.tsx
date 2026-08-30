@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const preguntas = [
   {
     pregunta: "¿Qué archivos puedo enviar?",
@@ -30,14 +32,14 @@ const preguntas = [
       "No. El tutorial explica cómo preparar el modelo y nosotros revisamos cada archivo antes de imprimir. También podemos orientarte con la escala, el material y la configuración.",
   },
   {
-    pregunta: "¿Qué tamaño máximo puede tener mi modelo?",
-    respuesta:
-      "Trabajamos con volúmenes de impresión de referencia de 180 × 180 × 180 mm, 250 × 250 × 250 mm y 300 × 300 × 300 mm. La disponibilidad depende del equipo y de la configuración necesaria para tu pedido.",
-  },
+  pregunta: "¿Qué tamaño máximo puede tener mi modelo?",
+  respuesta:
+    "Contamos con impresoras con volúmenes de impresión de aproximadamente 18 × 18 × 18 cm y 30 × 30 × 30 cm. Si tu modelo supera estas dimensiones, podemos evaluar dividirlo en varias partes para imprimirlas por separado y unirlas posteriormente.",
+},
   {
     pregunta: "¿Cuál es el espesor mínimo que puede imprimirse?",
     respuesta:
-      "Como referencia técnica, una boquilla de 0,2 mm permite líneas desde 0,2 mm y una boquilla de 0,4 mm desde 0,4 mm. Sin embargo, algunas paredes deben ser más gruesas para que la pieza tenga suficiente resistencia.",
+      "Como referencia técnica, una boquilla de 0,2 mm permite trabajar con detalles más pequeños que una boquilla de 0,4 mm. Sin embargo, el espesor mínimo recomendable depende de la geometría, la escala y la resistencia que necesite cada pieza. Revisaremos el modelo antes de imprimirlo.",
   },
   {
     pregunta: "¿Cuánto demora un pedido?",
@@ -52,7 +54,7 @@ const preguntas = [
   {
     pregunta: "¿Qué incluye el presupuesto?",
     respuesta:
-      "Incluye el material, el tiempo de impresión, la preparación del archivo, correcciones menores, posibles fallas de impresión y los servicios adicionales seleccionados.",
+      "Incluye el material, el tiempo de impresión, la preparación del archivo, correcciones menores, los reintentos de impresión que puedan ser necesarios y los servicios adicionales seleccionados.",
   },
   {
     pregunta: "¿Qué materiales y colores utilizan?",
@@ -60,14 +62,14 @@ const preguntas = [
       "Trabajamos principalmente con PLA y PLA+. Podés seleccionar uno o varios colores e indicar en los comentarios qué piezas querés imprimir con cada uno.",
   },
   {
-    pregunta: "¿Puedo reemplazar el archivo después de cotizar?",
+    pregunta: "¿Puedo reemplazar el archivo después de enviarlo?",
     respuesta:
-      "Sí, siempre que la impresión todavía no haya comenzado. Un cambio de archivo, tamaño, escala o cantidad de piezas puede requerir actualizar el presupuesto.",
+      "Sí, mientras el pedido todavía esté en estado Recibido. Desde la sección de seguimiento podés reemplazar o eliminar archivos antes de que preparemos el presupuesto. Una vez presupuestado, los archivos quedan bloqueados y cualquier cambio debe coordinarse con Kint 3D.",
   },
   {
     pregunta: "¿Cómo sé cuándo está terminado mi pedido?",
     respuesta:
-      "Recibirás avisos por correo electrónico cuando el pedido cambie de estado. También podés consultar el avance desde la sección Consultar pedido utilizando tu número y código de seguimiento.",
+      "Recibirás avisos por correo electrónico cuando el pedido cambie de estado. También podés consultar el avance desde la sección Consultar pedido utilizando tu número de pedido y código de seguimiento.",
   },
   {
     pregunta: "¿Cómo funcionan las entregas y los envíos?",
@@ -147,11 +149,18 @@ export default function PreguntasFrecuentes() {
         ))}
       </div>
 
-      <div className="mt-12 text-center">
+      <div className="mt-14 text-center">
         <p className="text-sm leading-7 text-[var(--text-muted)]">
           ¿Todavía te quedó alguna duda? Podés enviarla
           junto con tu solicitud de cotización.
         </p>
+
+        <Link
+          href="/cotizar"
+          className="mt-7 inline-flex min-h-[56px] items-center justify-center rounded-2xl border border-red-600 bg-red-600 px-8 py-4 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-transparent hover:text-red-600"
+        >
+          Cotizar mi modelo →
+        </Link>
       </div>
     </section>
   );

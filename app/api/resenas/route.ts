@@ -137,13 +137,58 @@ export async function GET() {
       );
 
     if (!data.ok) {
-      throw new Error(
-        data.error ||
-          "Error al obtener reseñas."
-      );
-    }
+  throw new Error(
+    data.error ||
+      "Error al obtener reseñas."
+  );
+}
 
-    return Response.json(data);
+const resenas = Array.isArray(data.resenas)
+  ? data.resenas.map((resena: any) => ({
+      fecha: resena.fecha || "",
+      pedido: String(
+        resena.pedido || ""
+      ).trim(),
+
+      nombre: String(
+        resena.nombre || ""
+      ).trim(),
+
+      estrellas: Number(
+        resena.estrellas || 0
+      ),
+
+      comentario: String(
+        resena.comentario || ""
+      ),
+
+      insignia: String(
+        resena.insignia || ""
+      ),
+
+      fotoProyecto: String(
+        resena.fotoProyecto || ""
+      ),
+
+      fotos: Array.isArray(resena.fotos)
+        ? resena.fotos
+            .map((foto: unknown) =>
+              String(foto || "").trim()
+            )
+            .filter(Boolean)
+        : [],
+
+      likes: Number(
+        resena.likes || 0
+      ),
+    }))
+  : [];
+
+return Response.json({
+  ok: true,
+  cantidad: resenas.length,
+  resenas,
+});
   } catch (error: unknown) {
     console.error(
       "ERROR CARGANDO RESEÑAS:",

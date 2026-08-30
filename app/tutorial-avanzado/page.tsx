@@ -329,27 +329,36 @@ export default function TutorialAvanzadoPage() {
         </div>
 
         <section className="mt-12 rounded-2xl border border-red-600 bg-[var(--glass-bg)] p-7 text-center shadow-xl backdrop-blur transition-colors duration-300 sm:p-10">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-600">
-            Archivo exportado
-          </p>
+  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-red-600">
+    Archivo exportado
+  </p>
 
-          <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em]">
-            Comprobá el STL
-          </h2>
+  <h2 className="mt-3 text-2xl font-black uppercase tracking-[0.08em]">
+    Comprobá el STL
+  </h2>
 
-          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--text-muted)]">
-            Cargá el archivo para revisar sus medidas,
-            la cantidad de piezas y su ubicación dentro
-            de la cama de impresión.
-          </p>
+  <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--text-muted)]">
+    Cargá el archivo para revisar sus medidas,
+    la cantidad de piezas y su ubicación dentro
+    de la cama de impresión.
+  </p>
 
-          <Link
-            href="/preparador-3d"
-            className="mt-6 inline-flex rounded-xl bg-red-600 px-6 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-red-700"
-          >
-            Abrir Preparador 3D
-          </Link>
-        </section>
+  <div className="mt-6 flex flex-wrap justify-center gap-4">
+    <Link
+      href="/preparador-3d"
+      className="inline-flex rounded-xl bg-red-600 px-6 py-3 text-xs font-bold uppercase tracking-[0.14em] text-white transition hover:bg-red-700"
+    >
+      Abrir Preparador 3D
+    </Link>
+
+    <Link
+      href="/cotizar"
+      className="inline-flex rounded-xl border border-[var(--border-color)] px-6 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--text-main)] transition hover:border-red-600 hover:text-red-600"
+    >
+      Cotizar mi modelo →
+    </Link>
+  </div>
+</section>
       </div>
     </main>
   );

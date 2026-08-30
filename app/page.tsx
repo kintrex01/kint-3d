@@ -154,67 +154,67 @@ const elementoResenas: HTMLElement =
 
       <div className="mt-8 grid w-full grid-cols-2 gap-6 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-main)] md:flex md:w-[680px] md:items-center md:gap-8">
   <div className="flex items-center gap-3">
-    <Layers3 size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    <Layers3 size={28} strokeWidth={1.5}  className="shrink-0 text-[var(--blue-main)]" />
     Arquitectura
   </div>
 
   <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
-    <Box size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
-    Prototipos
-  </div>
+  <Box size={28} strokeWidth={1.5}  className="shrink-0 text-[var(--blue-main)]" />
+  Modelos a escala
+</div>
 
   <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
-    <SlidersHorizontal size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    <SlidersHorizontal size={28} strokeWidth={1.5}  className="shrink-0 text-[var(--blue-main)]" />
     Piezas funcionales
   </div>
 
   <div className="hidden h-10 w-px bg-[var(--border-color)] md:block" />
 
   <div className="flex items-center gap-3">
-    <TimerReset size={28} strokeWidth={1.5} className="text-[var(--blue-main)]" />
+    <TimerReset size={28} strokeWidth={1.5}  className="shrink-0 text-[var(--blue-main)]" />
     Diseño personalizado
   </div>
 </div>
 
 <div className="mt-9 grid w-full grid-cols-1 gap-5 md:w-[680px] md:grid-cols-2">
-  <Link href="/cotizar">
-    <button className="kint-main-btn">
-      Cotizar ahora <span>→</span>
-    </button>
+  <Link
+    href="/cotizar"
+    className="kint-main-btn"
+  >
+    Cotizar ahora <span>→</span>
   </Link>
 
-  <Link href="/seguimiento">
-    <button className="kint-outline-btn">
-      Consultar pedido <span>→</span>
-    </button>
+  <Link
+    href="/seguimiento"
+    className="kint-outline-btn"
+  >
+    Consultar pedido <span>→</span>
   </Link>
 
-
+  <Link
+    href="/tutorial"
+    className="kint-soft-btn md:col-span-2"
+  >
+    Guía para preparar mi modelo <span>→</span>
+  </Link>
 
   <Link
-  href="/escalador"
-  className="kint-soft-btn"
->
-  Escalador 3D <span>→</span>
-</Link>
+    href="/escalador"
+    className="kint-soft-btn"
+  >
+    Escalar mi modelo <span>→</span>
+  </Link>
 
   <Link
-  href="/tutorial#preguntas"
-  className="kint-soft-btn"
->
-  Preguntas frecuentes <span>→</span>
-</Link>
-
-  <Link
-  href="/tutorial"
-  className="kint-soft-btn md:col-span-2"
->
-  GUÍA PARA PREPARAR MI MODELO <span>→</span>
-</Link>
+    href="/tutorial#preguntas"
+    className="kint-soft-btn"
+  >
+    Preguntas frecuentes <span>→</span>
+  </Link>
 </div>
 
       <section className="kint-services-section">
@@ -222,11 +222,27 @@ const elementoResenas: HTMLElement =
     <div className="kint-services-card px-0 py-0">
       <div className="grid grid-cols-2 gap-y-8 md:grid-cols-4 md:divide-x divide-[var(--border-color)]">
         {[
-          ["printer", "Tecnología", "Impresión 3D de alta precisión."],
-          ["cube", "Diseño", "Transformamos ideas en piezas reales."],
-          ["layers", "Personalizado", "Soluciones a medida para cada proyecto."],
-          ["clock", "Rápido", "Tiempos de entrega optimizados."],
-        ].map(([icono, titulo, texto]) => (
+  [
+    "printer",
+    "Precisión",
+    "Configuramos cada impresión según el tamaño y nivel de detalle de la pieza.",
+  ],
+  [
+    "cube",
+    "Revisión",
+    "Analizamos tu modelo antes de presupuestar y comenzar la impresión.",
+  ],
+  [
+    "layers",
+    "A medida",
+    "Adaptamos escala, orientación y configuración según cada proyecto.",
+  ],
+  [
+    "clock",
+    "Seguimiento",
+    "Consultá el estado de tu pedido durante todo el proceso.",
+  ],
+].map(([icono, titulo, texto]) => (
           <div key={titulo} className="px-3 text-center md:px-4">
             <div className="kint-service-icon mx-auto mb-4 flex h-14 w-14 items-center justify-center text-[var(--blue-main)]">
              {icono === "printer" && (
@@ -284,7 +300,11 @@ const elementoResenas: HTMLElement =
   "Imprimimos",
   "Una vez elegido el presupuesto y confirmado el pago de la seña mínima del 20% o el pago total, comenzamos la impresión.",
 ],
-              ["04", "Entregamos", "Te entregamos el modelo donde lo necesites."],
+              [
+  "04",
+  "Coordinamos la entrega",
+  "Cuando tu pedido está terminado, coordinamos la entrega gratuita en FADU o el envío correspondiente según tu ubicación y horario.",
+],
             ].map(([numero, titulo, texto]) => (
               <div key={numero}>
                 <p className="mb-3 text-4xl font-black text-red-600">
@@ -302,11 +322,12 @@ const elementoResenas: HTMLElement =
           </div>
 
           <div className="mt-20">
-            <Link href="/cotizar">
-              <button className="border border-red-600 bg-red-600 px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] text-white transition hover:bg-transparent hover:text-red-600">
-                Iniciar cotización
-              </button>
-            </Link>
+            <Link
+  href="/cotizar"
+  className="inline-flex items-center justify-center border border-red-600 bg-red-600 px-10 py-5 text-sm font-bold uppercase tracking-[0.35em] text-white transition hover:bg-transparent hover:text-red-600"
+>
+  Iniciar cotización
+</Link>
                     </div>
         </div>
       </section>
