@@ -18,6 +18,46 @@ export default function Home() {
   const [mostrarAccesoResenas, setMostrarAccesoResenas] =
     useState(true);
 
+const [promocion, setPromocion] =
+  useState<{
+    activa: boolean;
+    descuento: number;
+    mensaje: string;
+    inicio: string;
+    fin: string;
+  } | null>(null);
+
+useEffect(() => {
+  async function cargarPromocion() {
+    try {
+      const response = await fetch(
+        "/api/configuracion",
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data = await response.json();
+
+      if (
+        response.ok &&
+        data.ok
+      ) {
+        setPromocion(
+          data.promocion || null
+        );
+      }
+    } catch (error) {
+      console.error(
+        "No se pudo cargar la promoción:",
+        error
+      );
+    }
+  }
+
+  cargarPromocion();
+}, []);
+
 useEffect(() => {
   const elementoEncontrado =
   document.getElementById("resenas");
@@ -216,6 +256,61 @@ const elementoResenas: HTMLElement =
     Preguntas frecuentes <span>→</span>
   </Link>
 </div>
+
+{promocion?.activa && (
+  <Link
+    href="/cotizar"
+    className="mt-7 block w-full md:w-[680px]"
+  >
+    <div className="group overflow-hidden rounded-2xl border border-red-600/40 bg-[var(--card-bg)] shadow-[var(--shadow-soft)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-red-600">
+
+      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="rounded-full bg-red-600 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white">
+              Promoción activa
+            </span>
+
+            <span className="text-2xl font-black text-red-600">
+              {promocion.descuento}% OFF
+            </span>
+          </div>
+
+          {promocion.mensaje && (
+            <p className="mt-3 max-w-[430px] text-sm leading-6 text-[var(--text-muted)]">
+              {promocion.mensaje}
+            </p>
+          )}
+
+          {(promocion.inicio ||
+            promocion.fin) && (
+            <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
+              {promocion.inicio &&
+                `Desde ${promocion.inicio}`}
+
+              {promocion.inicio &&
+                promocion.fin &&
+                " · "}
+
+              {promocion.fin &&
+                `Hasta ${promocion.fin}`}
+            </p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-red-600">
+          Cotizar ahora
+
+          <span className="text-xl transition-transform group-hover:translate-x-1">
+            →
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </Link>
+)}
 
       <section className="kint-services-section">
   <div className="w-full md:w-[600px]">

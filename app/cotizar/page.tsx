@@ -829,7 +829,7 @@ return (
 
       <div className="mt-5 border-t border-red-600/20 pt-4">
         <p className="text-xs leading-6 text-[var(--text-muted)]">
-          Esta promoción quedará asociada a tu solicitud aunque termine antes de que preparemos el presupuesto. Si tenés un código o recompensa con un descuento mayor, aplicaremos automáticamente el beneficio más conveniente.
+          Esta promoción quedará asociada a tu solicitud aunque termine antes de que preparemos el presupuesto. Si tenés un código con un descuento mayor, aplicaremos automáticamente el beneficio más conveniente. Las recompensas Kint también podrán utilizarse desde el seguimiento del pedido.
         </p>
 
         {(promocion.inicio || promocion.fin) && (
