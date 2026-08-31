@@ -78,6 +78,15 @@ const [unidadCalculadora, setUnidadCalculadora] =
   const [configuracion, setConfiguracion] =
   useState<Configuracion>({});
 
+  const [promocion, setPromocion] =
+  useState<{
+    activa: boolean;
+    descuento: number;
+    mensaje: string;
+    inicio: string;
+    fin: string;
+  } | null>(null);
+
 const [cargandoConfiguracion, setCargandoConfiguracion] =
   useState(true);
 
@@ -101,6 +110,7 @@ useEffect(() => {
       }
 
       setConfiguracion(data.configuracion || {});
+setPromocion(data.promocion || null);
     } catch (error) {
       console.error(error);
 
@@ -782,6 +792,66 @@ return (
         <h1 className="mb-8 text-4xl font-bold text-[var(--text-main)]">
           Configurar impresión 3D
         </h1>
+
+        {promocion?.activa && (
+  <section className="mb-8 overflow-hidden rounded-2xl border border-red-600/40 bg-red-600/5">
+    <div className="p-6 sm:p-7">
+
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-red-600">
+            Promoción activa
+          </p>
+
+          <p className="mt-2 text-3xl font-black text-red-600">
+            {promocion.descuento}% OFF
+          </p>
+
+          {promocion.mensaje && (
+            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+              {promocion.mensaje}
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-red-600/30 bg-[var(--card-bg)] px-4 py-3 text-left sm:text-right">
+          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            Se aplica automáticamente
+          </p>
+
+          <p className="mt-1 text-xs font-bold">
+            No necesitás ingresar ningún código.
+          </p>
+        </div>
+
+      </div>
+
+      <div className="mt-5 border-t border-red-600/20 pt-4">
+        <p className="text-xs leading-6 text-[var(--text-muted)]">
+          Esta promoción quedará asociada a tu solicitud aunque termine antes de que preparemos el presupuesto. Si tenés un código o recompensa con un descuento mayor, aplicaremos automáticamente el beneficio más conveniente.
+        </p>
+
+        {(promocion.inicio || promocion.fin) && (
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            {promocion.inicio && (
+              <>Desde {promocion.inicio}</>
+            )}
+
+            {promocion.inicio &&
+              promocion.fin &&
+              " · "}
+
+            {promocion.fin && (
+              <>Hasta {promocion.fin}</>
+            )}
+          </p>
+        )}
+      </div>
+
+    </div>
+  </section>
+)}
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-blue-300/70 bg-blue-50/80 shadow-[0_10px_35px_rgba(29,79,154,0.08)] dark:border-blue-800/70 dark:bg-blue-950/25">
   <div className="p-6 sm:p-7">

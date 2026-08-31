@@ -702,6 +702,60 @@ async function subirComprobanteSaldo() {
   setSubiendoArchivo(false);
 }
 
+function obtenerNombreBeneficio() {
+  const origen = String(
+    resultado?.origenDescuento || ""
+  ).trim();
+
+  if (origen === "promocion_global") {
+    return "Promoción global";
+  }
+
+  if (origen === "fidelidad") {
+    return "Recompensa Kint";
+  }
+
+  if (origen === "codigo_normal") {
+    return "Código de descuento";
+  }
+
+  return "Descuento";
+}
+
+function obtenerPorcentajeDescuento() {
+  const valor = Number(
+    resultado?.descuento || 0
+  );
+
+  if (!valor) {
+    return 0;
+  }
+
+  return valor < 1
+    ? valor * 100
+    : valor;
+}
+
+function obtenerAhorro() {
+  const original = Number(
+    resultado?.precioOriginal || 0
+  );
+
+  const final = Number(
+    resultado?.precio || 0
+  );
+
+  if (
+    !original ||
+    !final ||
+    final >= original
+  ) {
+    return 0;
+  }
+
+  return original - final;
+}
+
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
 <div className="fixed right-6 top-6 z-50">
@@ -1163,40 +1217,75 @@ async function subirComprobanteSaldo() {
   resultado.precioOriginal !== resultado.precio &&
   (!resultado.presupuestos ||
     resultado.presupuestos.length === 0 ||
-    resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
-        <div className="mb-6 space-y-4">
-          <div>
-            <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-              Precio original
+    resultado.presupuestos.some(
+      (p: any) =>
+        String(p.seleccionado).toLowerCase() === "sí"
+    )) && (
+    <div className="mb-6 space-y-4">
+
+      <div>
+        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          Precio original
+        </p>
+
+        <p className="text-xl font-bold line-through text-[var(--text-muted)]">
+          $
+          {Number(
+            resultado.precioOriginal
+          ).toLocaleString("es-UY")}
+        </p>
+      </div>
+
+      {obtenerPorcentajeDescuento() > 0 && (
+        <div className="rounded-2xl border border-red-600/30 bg-red-600/5 p-5">
+
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Beneficio aplicado
+          </p>
+
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="text-lg font-black text-red-600">
+              {obtenerNombreBeneficio()}
             </p>
-            <p className="text-xl font-bold line-through text-[var(--text-muted)]">
-              ${resultado.precioOriginal}
-            </p>
+
+            <span className="rounded-full bg-red-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+              {obtenerPorcentajeDescuento()}% OFF
+            </span>
           </div>
 
-          {resultado.codigoDescuento && (
-            <div>
-              <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-                Código aplicado
+          {resultado.origenDescuento ===
+            "promocion_global" &&
+            resultado.promocionMensaje && (
+              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
+                {resultado.promocionMensaje}
               </p>
-              <p className="text-lg font-bold italic text-red-600">
+            )}
+
+          {(resultado.origenDescuento ===
+            "codigo_normal" ||
+            resultado.origenDescuento ===
+              "fidelidad") &&
+            resultado.codigoDescuento && (
+              <p className="mt-3 font-mono text-sm font-bold uppercase tracking-[0.12em]">
                 {resultado.codigoDescuento}
               </p>
-            </div>
-          )}
+            )}
 
-          {resultado.descuento && (
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-              Descuento aplicado:{" "}
-              {Number(resultado.descuento) < 1
-                ? `${Number(resultado.descuento) * 100}%`
-                : `${resultado.descuento}%`}
+          {obtenerAhorro() > 0 && (
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-green-600">
+              Ahorrás $
+              {obtenerAhorro().toLocaleString(
+                "es-UY"
+              )}
             </p>
           )}
 
-          <div className="h-px w-full bg-[var(--border-color)]" />
         </div>
       )}
+
+      <div className="h-px w-full bg-[var(--border-color)]" />
+    </div>
+  )}
 
 {resultado.estado === "Presupuestado" &&
   resultado.presupuestos?.length > 0 && (
@@ -1252,8 +1341,21 @@ async function subirComprobanteSaldo() {
     </p>
 
     <p className="mt-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-      {resultado.codigoDescuento} aplicado · {presupuesto.descuento || resultado.descuento}% OFF
-    </p>
+  {obtenerNombreBeneficio()} ·{" "}
+  {Number(
+    presupuesto.descuento ||
+      obtenerPorcentajeDescuento()
+  ) < 1
+    ? Number(
+        presupuesto.descuento ||
+          obtenerPorcentajeDescuento()
+      ) * 100
+    : Number(
+        presupuesto.descuento ||
+          obtenerPorcentajeDescuento()
+      )}
+  % OFF
+</p>
 
     <p className="mt-2 text-xl font-black text-red-600">
       ${presupuesto.precio}
