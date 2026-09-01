@@ -68,6 +68,9 @@ const [mensajeAlias, setMensajeAlias] =
 const [verificandoAlias, setVerificandoAlias] =
   useState(false);
 
+  const [puntosDisponibles, setPuntosDisponibles] =
+  useState(0);
+
 const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [escala, setEscala] = useState("");
@@ -119,9 +122,12 @@ useEffect(() => {
     email.trim();
 
   setClienteExiste(null);
-  setEstadoCliente("");
-  setAliasDisponible(null);
-  setMensajeAlias("");
+setEstadoCliente("");
+setAliasDisponible(null);
+setMensajeAlias("");
+setNombre("");
+setPuntosDisponibles(0);
+
 
   if (!emailLimpio) {
     setAlias("");
@@ -195,26 +201,37 @@ useEffect(() => {
          * que cree uno.
          */
         if (
-          data.existe &&
-          String(data.alias || "").trim()
-        ) {
-          setClienteExiste(true);
+  data.existe &&
+  String(data.alias || "").trim()
+) {
+  setClienteExiste(true);
 
-          setAlias(
-            String(data.alias)
-          );
+  setAlias(
+    String(data.alias)
+  );
 
-          setAliasDisponible(true);
+  setNombre(
+    String(data.nombre || "")
+  );
 
-          setMensajeAlias(
-            "Alias asociado a este correo."
-          );
-        } else {
-          setClienteExiste(false);
-          setAlias("");
-          setAliasDisponible(null);
-          setMensajeAlias("");
-        }
+  setPuntosDisponibles(
+  Number(
+    data.puntosDisponibles || 0
+  )
+);
+
+  setAliasDisponible(true);
+
+  setMensajeAlias(
+    "Alias asociado a este correo."
+  );
+} else {
+  setClienteExiste(false);
+  setAlias("");
+  setAliasDisponible(null);
+  setMensajeAlias("");
+  setPuntosDisponibles(0);
+}
 
       } catch (error) {
         if (
@@ -996,6 +1013,7 @@ setClienteExiste(null);
 setEstadoCliente("");
 setAliasDisponible(null);
 setMensajeAlias("");
+setPuntosDisponibles(0);
 setTelefono("");
     setFechaEntrega("");
     setEscala("");
@@ -1231,83 +1249,113 @@ return (
   )}
 </div>
 
-{clienteExiste !== null && (
-  <div className="mb-6">
-    <label className="mb-2 block font-semibold text-[var(--text-main)]">
-      Alias público *
-    </label>
-
-    {clienteExiste ? (
-      <p className="mb-3 text-sm text-[var(--text-muted)]">
-        Este es el alias único asociado a tu correo.
-      </p>
-    ) : (
-      <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
-        Elegí un alias de entre 3 y 20 caracteres.
-        Quedará asociado a este correo y se utilizará
-        en tus futuros pedidos.
-      </p>
-    )}
-
-    <input
-      value={alias}
-      disabled={clienteExiste === true}
-      maxLength={20}
-      onChange={(e) =>
-        setAlias(e.target.value)
-      }
-      className={`w-full rounded-xl border bg-white p-4 text-black ${
-        aliasDisponible === false
-          ? "border-red-600"
-          : aliasDisponible === true
-          ? "border-green-600"
-          : "border-[var(--border-color)]"
-      } ${
-        clienteExiste
-          ? "cursor-not-allowed opacity-70"
-          : ""
-      }`}
-      placeholder="Tu alias"
-    />
-
-    {verificandoAlias && (
-      <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
-        Verificando disponibilidad...
-      </p>
-    )}
-
-    {!verificandoAlias &&
-      mensajeAlias && (
-        <p
-          className={`mt-2 text-xs font-bold ${
-            aliasDisponible
-              ? "text-green-600"
-              : "text-red-600"
-          }`}
-        >
-          {aliasDisponible
-            ? "✓ "
-            : "✕ "}
-          {mensajeAlias}
+{clienteExiste === true && (
+  <div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p className="text-lg font-bold text-[var(--text-main)]">
+          ¡Hola, {nombre}!
         </p>
+
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {alias}
+        </p>
+      </div>
+
+      {[
+        "habilitada",
+        "habilitado",
+        "sí",
+        "si",
+      ].includes(
+        String(
+          configuracion.puntos?.valor || ""
+        )
+          .trim()
+          .toLowerCase()
+      ) && (
+        <div className="text-right">
+          <p className="text-lg font-black text-red-600">
+            {puntosDisponibles.toLocaleString(
+              "es-UY"
+            )}
+          </p>
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            puntos Kint
+          </p>
+        </div>
       )}
+    </div>
   </div>
 )}
 
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Nombre o Apodo
-  </label>
+{clienteExiste === false && (
+  <>
+    <div className="mb-6">
+      <label className="mb-2 block font-semibold text-[var(--text-main)]">
+        Nombre de usuario público *
+      </label>
 
-  <input
-    value={nombre}
-    onChange={(e) =>
-      setNombre(e.target.value)
-    }
-    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-    placeholder="Tu nombre"
-  />
-</div>
+      <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
+        Este nombre será visible públicamente y quedará asociado
+        a tu correo para futuros pedidos.
+      </p>
+
+      <input
+        value={alias}
+        maxLength={20}
+        onChange={(e) =>
+          setAlias(e.target.value)
+        }
+        className={`w-full rounded-xl border bg-white p-4 text-black ${
+          aliasDisponible === false
+            ? "border-red-600"
+            : aliasDisponible === true
+            ? "border-green-600"
+            : "border-[var(--border-color)]"
+        }`}
+        placeholder="Tu nombre de usuario"
+      />
+
+      {verificandoAlias && (
+        <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+          Verificando disponibilidad...
+        </p>
+      )}
+
+      {!verificandoAlias &&
+        mensajeAlias && (
+          <p
+            className={`mt-2 text-xs font-bold ${
+              aliasDisponible
+                ? "text-green-600"
+                : "text-red-600"
+            }`}
+          >
+            {aliasDisponible
+              ? "✓ Nombre de usuario disponible."
+              : `✕ ${mensajeAlias}`}
+          </p>
+        )}
+    </div>
+
+    <div className="mb-6">
+      <label className="mb-2 block font-semibold text-[var(--text-main)]">
+        Nombre o Apodo *
+      </label>
+
+      <input
+        value={nombre}
+        onChange={(e) =>
+          setNombre(e.target.value)
+        }
+        className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+        placeholder="Tu nombre"
+      />
+    </div>
+  </>
+)}
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">

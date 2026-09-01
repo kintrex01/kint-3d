@@ -1059,6 +1059,67 @@ function obtenerAhorro() {
 
     </div>
 
+    {resultado.puntos?.habilitados && (
+  <div className="mb-6 rounded-2xl border border-[var(--border-color)] p-6">
+    <div className="flex items-end justify-between gap-5">
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          Puntos Kint
+        </p>
+
+        <p className="mt-3 text-3xl font-black text-red-600">
+          {Number(
+            resultado.puntos.disponibles || 0
+          ).toLocaleString("es-UY")}
+        </p>
+
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          puntos disponibles
+        </p>
+      </div>
+
+      {Number(
+        resultado.puntos.disponibles || 0
+      ) > 0 && (
+        <p className="text-right text-sm font-bold text-[var(--text-main)]">
+          Equivalen a $
+          {(
+            Number(
+              resultado.puntos.disponibles || 0
+            ) *
+            Number(
+              resultado.puntos.valor || 1
+            )
+          ).toLocaleString("es-UY")}
+        </p>
+      )}
+    </div>
+
+    {Number(
+      resultado.puntos.disponibles || 0
+    ) <
+      Number(
+        resultado.puntos.minimoUso || 50
+      ) && (
+      <p className="mt-4 text-xs text-[var(--text-muted)]">
+        Te faltan{" "}
+        <strong>
+          {Math.max(
+            0,
+            Number(
+              resultado.puntos.minimoUso || 50
+            ) -
+              Number(
+                resultado.puntos.disponibles || 0
+              )
+          )}
+        </strong>{" "}
+        puntos para poder utilizarlos.
+      </p>
+    )}
+  </div>
+)}
+
     {resultado.fidelidad?.habilitada && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
 
@@ -1078,7 +1139,11 @@ function obtenerAhorro() {
 
       {resultado.fidelidad.proximoHito && (
         <p className="text-sm font-bold text-red-600">
-          Próximo: {resultado.fidelidad.proximoDescuento}% OFF
+          {Number(
+  resultado.fidelidad.proximoHito
+) === 1
+  ? `Próximo: Bono de bienvenida · ${resultado.fidelidad.proximoDescuento}% OFF`
+  : `Próximo: ${resultado.fidelidad.proximoDescuento}% OFF`}
         </p>
       )}
     </div>
@@ -1106,8 +1171,12 @@ function obtenerAhorro() {
             : `faltan ${resultado.fidelidad.faltan} pedidos`}{" "}
           para desbloquear{" "}
           <strong className="text-[var(--text-main)]">
-            {resultado.fidelidad.proximoDescuento}% OFF
-          </strong>
+  {Number(
+    resultado.fidelidad.proximoHito
+  ) === 1
+    ? `tu Bono de bienvenida de ${resultado.fidelidad.proximoDescuento}% OFF`
+    : `${resultado.fidelidad.proximoDescuento}% OFF`}
+</strong>
         </p>
       </>
     ) : (
@@ -1143,9 +1212,15 @@ function obtenerAhorro() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                     <div>
-                      <p className="text-xl font-black text-red-600">
-                        {recompensa.descuento}% OFF
-                      </p>
+  {Number(recompensa.hito) === 1 && (
+    <p className="mb-1 text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+      Bono de bienvenida
+    </p>
+  )}
+
+  <p className="text-xl font-black text-red-600">
+    {recompensa.descuento}% OFF
+  </p>
 
                       <p className="mt-1 font-mono text-sm font-bold tracking-[0.12em]">
                         {recompensa.codigo}
