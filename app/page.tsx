@@ -192,6 +192,35 @@ const elementoResenas: HTMLElement =
         Impresión <span className="text-[var(--blue-main)]">3D</span> para arquitectura, diseño y piezas a medida.
       </p>
 
+{promocion?.activa && (
+  <Link
+    href="/cotizar"
+    className="mt-8 inline-block transition hover:scale-[1.02]"
+  >
+    <div className="drop-shadow-[0_8px_10px_rgba(0,0,0,0.35)]">
+      <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-600">
+        Promoción activa
+      </p>
+
+      <div className="mt-1 flex items-end gap-4">
+        <p className="text-5xl font-black leading-none text-red-600 sm:text-6xl">
+          {promocion.descuento}% OFF
+        </p>
+
+        <span className="mb-1 text-sm font-black uppercase tracking-[0.16em] text-red-600">
+          Cotizar →
+        </span>
+      </div>
+
+      {promocion.mensaje && (
+        <p className="mt-3 text-sm font-semibold text-[var(--text-main)]">
+          {promocion.mensaje}
+        </p>
+      )}
+    </div>
+  </Link>
+)}
+
       <div className="mt-8 grid w-full grid-cols-2 gap-6 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--text-main)] md:flex md:w-[680px] md:items-center md:gap-8">
   <div className="flex items-center gap-3">
     <Layers3 size={28} strokeWidth={1.5}  className="shrink-0 text-[var(--blue-main)]" />
@@ -256,61 +285,6 @@ const elementoResenas: HTMLElement =
     Preguntas frecuentes <span>→</span>
   </Link>
 </div>
-
-{promocion?.activa && (
-  <Link
-    href="/cotizar"
-    className="mt-7 block w-full md:w-[680px]"
-  >
-    <div className="group overflow-hidden rounded-2xl border border-red-600/40 bg-[var(--card-bg)] shadow-[var(--shadow-soft)] backdrop-blur-xl transition hover:-translate-y-1 hover:border-red-600">
-
-      <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-red-600 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white">
-              Promoción activa
-            </span>
-
-            <span className="text-2xl font-black text-red-600">
-              {promocion.descuento}% OFF
-            </span>
-          </div>
-
-          {promocion.mensaje && (
-            <p className="mt-3 max-w-[430px] text-sm leading-6 text-[var(--text-muted)]">
-              {promocion.mensaje}
-            </p>
-          )}
-
-          {(promocion.inicio ||
-            promocion.fin) && (
-            <p className="mt-2 text-[9px] font-bold uppercase tracking-[0.15em] text-[var(--text-muted)]">
-              {promocion.inicio &&
-                `Desde ${promocion.inicio}`}
-
-              {promocion.inicio &&
-                promocion.fin &&
-                " · "}
-
-              {promocion.fin &&
-                `Hasta ${promocion.fin}`}
-            </p>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-red-600">
-          Cotizar ahora
-
-          <span className="text-xl transition-transform group-hover:translate-x-1">
-            →
-          </span>
-        </div>
-
-      </div>
-    </div>
-  </Link>
-)}
 
       <section className="kint-services-section">
   <div className="w-full md:w-[600px]">

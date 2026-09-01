@@ -51,10 +51,54 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
+    const tipo = String(body.tipo || "").trim();
+
+    /*
+     * CONSULTAS DE CLIENTE / ALIAS
+     *
+     * Se procesan antes de crear un pedido,
+     * por lo que no requieren autorización
+     * de imágenes ni ningún otro dato.
+     */
+    if (
+      tipo === "consultar_cliente" ||
+      tipo === "verificar_alias"
+    ) {
+      const text = await llamarAppsScript(
+        {
+          tipo,
+          email: String(body.email || ""),
+          alias: String(body.alias || ""),
+        },
+        tipo === "consultar_cliente"
+          ? "Consulta de cliente"
+          : "Verificación de alias"
+      );
+
+      let data;
+
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          "Apps Script no devolvió JSON. Respuesta: " +
+            text.slice(0, 300)
+        );
+      }
+
+      return Response.json(
+        data,
+        {
+          status: data.ok ? 200 : 400,
+        }
+      );
+    }
+
     const payload = {
       nombre: String(body.nombre || ""),
-      email: String(body.email || ""),
-      telefono: String(body.telefono || ""),
+email: String(body.email || ""),
+alias: String(body.alias || ""),
+telefono: String(body.telefono || ""),
       fechaEntrega: String(body.fechaEntrega || ""),
       escala: String(body.escala || ""),
       color: String(body.color || ""),
@@ -246,7 +290,10 @@ if (archivosRegistrados.length > 0) {
         <h2>Nuevo pedido recibido</h2>
         <p><strong>N° Pedido:</strong> ${data.pedido}</p>
         <p><strong>Nombre:</strong> ${payload.nombre}</p>
-        <p><strong>Email cliente:</strong> ${payload.email}</p>
+
+<p><strong>Alias:</strong> ${payload.alias}</p>
+
+<p><strong>Email cliente:</strong> ${payload.email}</p>
         <p><strong>WhatsApp:</strong> ${payload.telefono}</p>
         <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
         <p><strong>Escala:</strong> ${payload.escala}</p>

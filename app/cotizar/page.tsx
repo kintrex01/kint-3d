@@ -47,8 +47,28 @@ function nombreFilamentoDesdeClave(clave: string) {
 
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefono, setTelefono] = useState("");
+const [email, setEmail] = useState("");
+
+const [alias, setAlias] = useState("");
+const [clienteExiste, setClienteExiste] =
+  useState<boolean | null>(null);
+
+const [estadoCliente, setEstadoCliente] =
+  useState("");
+
+const [consultandoCliente, setConsultandoCliente] =
+  useState(false);
+
+const [aliasDisponible, setAliasDisponible] =
+  useState<boolean | null>(null);
+
+const [mensajeAlias, setMensajeAlias] =
+  useState("");
+
+const [verificandoAlias, setVerificandoAlias] =
+  useState(false);
+
+const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
@@ -92,6 +112,260 @@ const [cargandoConfiguracion, setCargandoConfiguracion] =
 
 const [errorConfiguracion, setErrorConfiguracion] =
   useState("");
+
+
+useEffect(() => {
+  const emailLimpio =
+    email.trim();
+
+  setClienteExiste(null);
+  setEstadoCliente("");
+  setAliasDisponible(null);
+  setMensajeAlias("");
+
+  if (!emailLimpio) {
+    setAlias("");
+    return;
+  }
+
+  /*
+   * Esperamos a que parezca un
+   * correo válido antes de consultar.
+   */
+  const emailValido =
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      emailLimpio
+    );
+
+  if (!emailValido) {
+    setAlias("");
+    return;
+  }
+
+  const controller =
+    new AbortController();
+
+  const temporizador =
+    setTimeout(async () => {
+      setConsultandoCliente(true);
+
+      try {
+        const response =
+          await fetch(
+            "/api/pedidos",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                tipo:
+                  "consultar_cliente",
+                email:
+                  emailLimpio,
+              }),
+              signal:
+                controller.signal,
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok || !data.ok) {
+          throw new Error(
+            data.error ||
+              "No se pudo consultar el cliente."
+          );
+        }
+
+        setEstadoCliente(
+          String(
+            data.estado || ""
+          )
+        );
+
+        /*
+         * Si existe Y ya tiene alias,
+         * lo cargamos y bloqueamos.
+         *
+         * Si existe pero es un cliente
+         * antiguo sin alias, dejamos
+         * que cree uno.
+         */
+        if (
+          data.existe &&
+          String(data.alias || "").trim()
+        ) {
+          setClienteExiste(true);
+
+          setAlias(
+            String(data.alias)
+          );
+
+          setAliasDisponible(true);
+
+          setMensajeAlias(
+            "Alias asociado a este correo."
+          );
+        } else {
+          setClienteExiste(false);
+          setAlias("");
+          setAliasDisponible(null);
+          setMensajeAlias("");
+        }
+
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name ===
+            "AbortError"
+        ) {
+          return;
+        }
+
+        console.error(error);
+
+        setClienteExiste(null);
+        setAlias("");
+        setAliasDisponible(null);
+
+        setMensajeAlias(
+          "No pudimos comprobar este correo."
+        );
+      } finally {
+        setConsultandoCliente(false);
+      }
+    }, 500);
+
+  return () => {
+    clearTimeout(temporizador);
+    controller.abort();
+  };
+}, [email]);
+
+useEffect(() => {
+  /*
+   * Un cliente que ya tiene alias
+   * no necesita comprobarlo otra vez.
+   */
+  if (clienteExiste === true) {
+    return;
+  }
+
+  const aliasLimpio =
+    alias.trim();
+
+  setAliasDisponible(null);
+  setMensajeAlias("");
+
+  if (!aliasLimpio) {
+    return;
+  }
+
+  const cantidad =
+    Array.from(aliasLimpio).length;
+
+  if (cantidad < 3) {
+    setAliasDisponible(false);
+
+    setMensajeAlias(
+      "El alias debe tener al menos 3 caracteres."
+    );
+
+    return;
+  }
+
+  if (cantidad > 20) {
+    setAliasDisponible(false);
+
+    setMensajeAlias(
+      "El alias puede tener como máximo 20 caracteres."
+    );
+
+    return;
+  }
+
+  const controller =
+    new AbortController();
+
+  const temporizador =
+    setTimeout(async () => {
+      setVerificandoAlias(true);
+
+      try {
+        const response =
+          await fetch(
+            "/api/pedidos",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body:
+                JSON.stringify({
+                  tipo:
+                    "verificar_alias",
+                  email:
+                    email.trim(),
+                  alias:
+                    aliasLimpio,
+                }),
+              signal:
+                controller.signal,
+            }
+          );
+
+        const data =
+          await response.json();
+
+        if (!response.ok || !data.ok) {
+          throw new Error(
+            data.error ||
+              "No se pudo verificar el alias."
+          );
+        }
+
+        setAliasDisponible(
+          data.disponible === true
+        );
+
+        setMensajeAlias(
+          data.mensaje || ""
+        );
+
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name ===
+            "AbortError"
+        ) {
+          return;
+        }
+
+        console.error(error);
+
+        setAliasDisponible(false);
+
+        setMensajeAlias(
+          "No pudimos verificar el alias."
+        );
+      } finally {
+        setVerificandoAlias(false);
+      }
+    }, 500);
+
+  return () => {
+    clearTimeout(temporizador);
+    controller.abort();
+  };
+}, [
+  alias,
+  email,
+  clienteExiste,
+]);
 
 useEffect(() => {
   async function cargarConfiguracion() {
@@ -338,11 +612,21 @@ const camposPendientes = [
     completo: Boolean(nombre.trim()),
   },
   {
-    nombre: "Correo electrónico",
-    completo: Boolean(email.trim()),
-  },
-  {
-    nombre: "Escala",
+  nombre: "Correo electrónico",
+  completo:
+    Boolean(email.trim()) &&
+    clienteExiste !== null &&
+    !consultandoCliente,
+},
+{
+  nombre: "Alias",
+  completo:
+    Boolean(alias.trim()) &&
+    aliasDisponible === true &&
+    !verificandoAlias,
+},
+{
+  nombre: "Escala",
     completo: escalaCompleta,
   },
   {
@@ -493,15 +777,74 @@ if (pedidosDeshabilitados) {
 }
 
 
-  if (!nombre.trim()) {
-    alert("Por favor, escribí tu nombre o apodo.");
-    return;
-  }
-
   if (!email.trim()) {
-    alert("Por favor, ingresá un correo electrónico.");
-    return;
-  }
+  alert(
+    "Por favor, ingresá un correo electrónico."
+  );
+  return;
+}
+
+const emailValido =
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    email.trim()
+  );
+
+if (!emailValido) {
+  alert(
+    "Ingresá un correo electrónico válido."
+  );
+  return;
+}
+
+if (
+  consultandoCliente ||
+  clienteExiste === null
+) {
+  alert(
+    "Esperá un momento mientras verificamos tu correo."
+  );
+  return;
+}
+
+if (!nombre.trim()) {
+  alert(
+    "Por favor, escribí tu nombre o apodo."
+  );
+  return;
+}
+
+const estadoClienteNormalizado =
+  estadoCliente
+    .trim()
+    .toLowerCase();
+
+if (
+  estadoClienteNormalizado ===
+    "bloqueado" ||
+  estadoClienteNormalizado ===
+    "bloqueada"
+) {
+  alert(
+    "Este correo se encuentra bloqueado. Contactá a Kint 3D."
+  );
+  return;
+}
+
+if (!alias.trim()) {
+  alert(
+    "Elegí tu alias público."
+  );
+  return;
+}
+
+if (
+  aliasDisponible !== true
+) {
+  alert(
+    "El alias todavía no está disponible o no pudo verificarse."
+  );
+  return;
+}
   if (!aceptaUsoImagenes) {
   alert(
     "Para enviar la cotización tenés que autorizar el uso de imágenes del proyecto."
@@ -606,8 +949,9 @@ if (archivos.length > 0) {
       method: "POST",
       body: JSON.stringify({
         nombre,
-        email,
-        telefono,
+email,
+alias,
+telefono,
         fechaEntrega,
         escala: escalaFinal,
         color: color.join(", "),
@@ -646,8 +990,13 @@ usoImagenesAutorizado: aceptaUsoImagenes,
     }
 
     setNombre("");
-    setEmail("");
-    setTelefono("");
+setEmail("");
+setAlias("");
+setClienteExiste(null);
+setEstadoCliente("");
+setAliasDisponible(null);
+setMensajeAlias("");
+setTelefono("");
     setFechaEntrega("");
     setEscala("");
     setEscalaPersonalizada("");
@@ -794,63 +1143,21 @@ return (
         </h1>
 
         {promocion?.activa && (
-  <section className="mb-8 overflow-hidden rounded-2xl border border-red-600/40 bg-red-600/5">
-    <div className="p-6 sm:p-7">
+  <div className="mb-10 drop-shadow-[0_8px_10px_rgba(0,0,0,0.30)]">
+    <p className="text-[11px] font-black uppercase tracking-[0.28em] text-red-600">
+      Promoción activa
+    </p>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <p className="mt-1 text-5xl font-black leading-none text-red-600 sm:text-6xl">
+      {promocion.descuento}% OFF
+    </p>
 
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-red-600">
-            Promoción activa
-          </p>
-
-          <p className="mt-2 text-3xl font-black text-red-600">
-            {promocion.descuento}% OFF
-          </p>
-
-          {promocion.mensaje && (
-            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-              {promocion.mensaje}
-            </p>
-          )}
-        </div>
-
-        <div className="rounded-xl border border-red-600/30 bg-[var(--card-bg)] px-4 py-3 text-left sm:text-right">
-          <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            Se aplica automáticamente
-          </p>
-
-          <p className="mt-1 text-xs font-bold">
-            No necesitás ingresar ningún código.
-          </p>
-        </div>
-
-      </div>
-
-      <div className="mt-5 border-t border-red-600/20 pt-4">
-        <p className="text-xs leading-6 text-[var(--text-muted)]">
-          Esta promoción quedará asociada a tu solicitud aunque termine antes de que preparemos el presupuesto. Si tenés un código con un descuento mayor, aplicaremos automáticamente el beneficio más conveniente. Las recompensas Kint también podrán utilizarse desde el seguimiento del pedido.
-        </p>
-
-        {(promocion.inicio || promocion.fin) && (
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            {promocion.inicio && (
-              <>Desde {promocion.inicio}</>
-            )}
-
-            {promocion.inicio &&
-              promocion.fin &&
-              " · "}
-
-            {promocion.fin && (
-              <>Hasta {promocion.fin}</>
-            )}
-          </p>
-        )}
-      </div>
-
-    </div>
-  </section>
+    {promocion.mensaje && (
+      <p className="mt-3 text-sm font-semibold text-[var(--text-main)]">
+        {promocion.mensaje}
+      </p>
+    )}
+  </div>
 )}
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-blue-300/70 bg-blue-50/80 shadow-[0_10px_35px_rgba(29,79,154,0.08)] dark:border-blue-800/70 dark:bg-blue-950/25">
@@ -899,16 +1206,108 @@ return (
 </section>
 
         <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Nombre o Apodo
-          </label>
-          <input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-            placeholder="Tu nombre"
-          />
-        </div>
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Correo electrónico *
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    Lo utilizaremos para identificarte y enviarte actualizaciones de tus pedidos.
+  </p>
+
+  <input
+    type="email"
+    value={email}
+    onChange={(e) =>
+      setEmail(e.target.value)
+    }
+    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    placeholder="ejemplo@gmail.com"
+  />
+
+  {consultandoCliente && (
+    <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+      Comprobando cliente...
+    </p>
+  )}
+</div>
+
+{clienteExiste !== null && (
+  <div className="mb-6">
+    <label className="mb-2 block font-semibold text-[var(--text-main)]">
+      Alias público *
+    </label>
+
+    {clienteExiste ? (
+      <p className="mb-3 text-sm text-[var(--text-muted)]">
+        Este es el alias único asociado a tu correo.
+      </p>
+    ) : (
+      <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
+        Elegí un alias de entre 3 y 20 caracteres.
+        Quedará asociado a este correo y se utilizará
+        en tus futuros pedidos.
+      </p>
+    )}
+
+    <input
+      value={alias}
+      disabled={clienteExiste === true}
+      maxLength={20}
+      onChange={(e) =>
+        setAlias(e.target.value)
+      }
+      className={`w-full rounded-xl border bg-white p-4 text-black ${
+        aliasDisponible === false
+          ? "border-red-600"
+          : aliasDisponible === true
+          ? "border-green-600"
+          : "border-[var(--border-color)]"
+      } ${
+        clienteExiste
+          ? "cursor-not-allowed opacity-70"
+          : ""
+      }`}
+      placeholder="Tu alias"
+    />
+
+    {verificandoAlias && (
+      <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+        Verificando disponibilidad...
+      </p>
+    )}
+
+    {!verificandoAlias &&
+      mensajeAlias && (
+        <p
+          className={`mt-2 text-xs font-bold ${
+            aliasDisponible
+              ? "text-green-600"
+              : "text-red-600"
+          }`}
+        >
+          {aliasDisponible
+            ? "✓ "
+            : "✕ "}
+          {mensajeAlias}
+        </p>
+      )}
+  </div>
+)}
+
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Nombre o Apodo
+  </label>
+
+  <input
+    value={nombre}
+    onChange={(e) =>
+      setNombre(e.target.value)
+    }
+    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    placeholder="Tu nombre"
+  />
+</div>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -992,24 +1391,6 @@ return (
   </p>
 </div>
         </div>
-
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Correo electrónico *
-  </label>
-
-  <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Lo utilizaremos para enviarte presupuestos y actualizaciones del pedido.
-  </p>
-
-  <input
-    type="email"
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-    placeholder="ejemplo@gmail.com"
-  />
-</div>
 
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
