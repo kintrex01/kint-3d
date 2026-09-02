@@ -387,9 +387,9 @@ useEffect(() => {
 useEffect(() => {
   async function cargarConfiguracion() {
     try {
-      const response = await fetch("/api/configuracion", {
-        cache: "no-store",
-      });
+      const response = await fetch(
+  "/api/configuracion"
+);;
 
       const data = await response.json();
 

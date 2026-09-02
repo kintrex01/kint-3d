@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --page-bg: #f7fbff;
@@ -13,21 +14,57 @@
   --shadow-main: 0 24px 70px rgba(29, 79, 154, 0.16);
   --button-light: rgba(255, 255, 255, 0.72);
   --shadow-soft: 0 18px 45px rgba(29, 79, 154, 0.14);
+    /* PALETA KINT - COMPONENTES */
+
+  --kint-wine: #7d0018;
+  --kint-wine-dark: #340a13;
+
+  --kint-blue-deep: #25435d;
+  --kint-blue-mid: #4c6c81;
+  --kint-blue-soft: #87a4b5;
+  --kint-blue-pale: #b9d3e2;
+
+  --kint-panel: #ffffff;
+  --kint-panel-soft: #eef4f8;
+  --kint-panel-border: rgba(37, 67, 93, 0.22);
+
+  --kint-selected-bg: rgba(185, 211, 226, 0.32);
+  --kint-selected-border: #4c6c81;
+
+  --kint-info: #25435d;
+  --kint-highlight: #25435d;
+
+  --kint-input-bg: rgba(255, 255, 255, 0.96);
+  --kint-action-text: #ffffff;
 }
 
 .dark {
-  --page-bg: #020b12;
-  --card-bg: rgba(2, 17, 29, 0.78);
-  --glass-bg: rgba(2, 17, 29, 0.55);
-  --text-main: #ffffff;
-  --text-muted: #dbeafe;
-  --blue-main: #1976d2;
-  --blue-soft: #9ed8ff;
-  --blue-border: #2f7fd0;
-  --border-color: rgba(93, 156, 219, 0.42);
-  --shadow-main: 0 24px 80px rgba(0, 0, 0, 0.45);
-  --button-light: rgba(2, 17, 29, 0.38);
-  --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.35);
+  --page-bg: #010003;
+  --card-bg: rgba(1, 0, 3, 0.88);
+  --glass-bg: rgba(5, 11, 20, 0.72);
+  --text-main: #f3f8fc;
+  --text-muted: #93abc0;
+  --blue-main: #4c6c81;
+  --blue-soft: #87a4b5;
+  --blue-border: #4c6c81;
+  --border-color: rgba(76, 108, 129, 0.34);
+  --shadow-main: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --button-light: rgba(255, 255, 255, 0.03);
+  --shadow-soft: 0 18px 45px rgba(0, 0, 0, 0.28);
+    /* PALETA KINT - COMPONENTES */
+
+  --kint-panel: #07111b;
+  --kint-panel-soft: #0b1824;
+  --kint-panel-border: rgba(76, 108, 129, 0.40);
+
+  --kint-selected-bg: rgba(37, 67, 93, 0.22);
+  --kint-selected-border: #87a4b5;
+
+  --kint-info: #87a4b5;
+  --kint-highlight: #b9d3e2;
+
+  --kint-input-bg: rgba(1, 0, 3, 0.72);
+  --kint-action-text: #b9d3e2;
 }
 
 html {
@@ -339,4 +376,198 @@ html:not(.dark) .kint-services-card {
   html {
   scroll-behavior: smooth;
 }
+}
+
+/* =========================================================
+   SEGUIMIENTO — CORRECCIÓN MODO CLARO
+   ========================================================= */
+
+/*
+ * PRESUPUESTO ELEGIDO
+ */
+
+html:not(.dark) .seguimiento-presupuesto-elegido {
+  background:
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #eef4f8 100%
+    ) !important;
+
+  border-color:
+    rgba(76, 108, 129, 0.42) !important;
+
+  border-left-color:
+    #4c6c81 !important;
+
+  box-shadow:
+    0 16px 38px
+    rgba(37, 67, 93, 0.10) !important;
+}
+
+html:not(.dark)
+.seguimiento-presupuesto-elegido p {
+  color: #06152f !important;
+}
+
+html:not(.dark)
+.seguimiento-presupuesto-elegido
+p:first-child {
+  color: #4c6c81 !important;
+}
+
+
+/*
+ * PUNTOS KINT
+ */
+
+html:not(.dark) .seguimiento-puntos {
+  background:
+    linear-gradient(
+      135deg,
+      #edf4f8 0%,
+      #ffffff 100%
+    ) !important;
+
+  border-color:
+    rgba(76, 108, 129, 0.40) !important;
+
+  box-shadow:
+    0 12px 32px
+    rgba(37, 67, 93, 0.08) !important;
+}
+
+html:not(.dark)
+.seguimiento-puntos p {
+  color: #12315c;
+}
+
+/*
+ * Número de puntos.
+ * El número grande hereda el azul profundo.
+ */
+
+html:not(.dark)
+.seguimiento-puntos
+.text-3xl {
+  color: #25435d !important;
+}
+
+
+/*
+ * INPUT DE PUNTOS
+ */
+
+html:not(.dark)
+.seguimiento-puntos input {
+  background: #ffffff !important;
+
+  color: #06152f !important;
+
+  border-color:
+    rgba(76, 108, 129, 0.45) !important;
+
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.9);
+}
+
+html:not(.dark)
+.seguimiento-puntos
+input::placeholder {
+  color: #6f8798 !important;
+}
+
+html:not(.dark)
+.seguimiento-puntos
+input:focus {
+  border-color:
+    #4c6c81 !important;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(76, 108, 129, 0.10);
+}
+
+
+/*
+ * BOTÓN APLICAR PUNTOS
+ *
+ * Usamos "input + button" para NO afectar
+ * el botón Quitar puntos.
+ */
+
+html:not(.dark)
+.seguimiento-puntos
+input + button {
+  background:
+    #7d0018 !important;
+
+  border-color:
+    #7d0018 !important;
+
+  color:
+    #ffffff !important;
+}
+
+html:not(.dark)
+.seguimiento-puntos
+input + button:hover:not(:disabled) {
+  background:
+    #340a13 !important;
+
+  border-color:
+    #340a13 !important;
+}
+
+html:not(.dark)
+.seguimiento-puntos
+input + button:disabled {
+  background:
+    #e2eaf0 !important;
+
+  border-color:
+    #b2c4cf !important;
+
+  color:
+    #637d8e !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   TARJETAS DE PAGO — MODO CLARO
+   ========================================================= */
+
+/*
+ * Evita que textos marcados con dark:
+ * se activen por el tema del sistema.
+ *
+ * El @custom-variant de arriba es lo que
+ * realmente corrige este comportamiento.
+ */
+
+html:not(.dark) button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/*
+ * Mantener contrastes generales del modo claro.
+ */
+
+html:not(.dark) {
+  --page-bg: #f7fbff;
+
+  --text-main: #06152f;
+
+  --text-muted: #294b70;
+
+  --border-color:
+    rgba(76, 108, 129, 0.32);
+
+  --kint-info: #4c6c81;
+
+  --kint-highlight: #25435d;
 }

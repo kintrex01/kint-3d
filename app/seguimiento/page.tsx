@@ -24,6 +24,16 @@ const [mostrarSaldo, setMostrarSaldo] = useState(false);
 const [modoOscuro, setModoOscuro] = useState(false);
 const [codigoDescuentoInput, setCodigoDescuentoInput] = useState("");
 const [aplicandoDescuento, setAplicandoDescuento] = useState(false);
+const [presupuestoSeleccionando, setPresupuestoSeleccionando] =
+  useState<number | null>(null);
+const [puntosACanjear, setPuntosACanjear] =
+  useState("");
+
+const [procesandoPuntos, setProcesandoPuntos] =
+  useState(false);
+
+const [mensajePuntos, setMensajePuntos] =
+  useState("");
 const [archivoReemplazando, setArchivoReemplazando] =
   useState("");
 
@@ -557,6 +567,332 @@ async function aplicarCodigoDescuento() {
   setAplicandoDescuento(false);
 }
 
+async function usarPuntosKint() {
+  const cantidad = Math.floor(
+    Number(
+      puntosACanjear || 0
+    )
+  );
+
+  const minimo = Number(
+    resultado?.puntos
+      ?.minimoUso || 50
+  );
+
+  const disponibles = Number(
+    resultado?.puntos
+      ?.disponibles || 0
+  );
+
+  const valorPunto = Number(
+    resultado?.puntos
+      ?.valor || 1
+  );
+
+  /*
+   * resultado.precio YA contiene
+   * la promoción/código aplicado.
+   *
+   * Ej:
+   * Original $3.200
+   * Promo 20% -> resultado.precio $2.560
+   */
+  const precioActual = Number(
+    resultado?.precio || 0
+  );
+
+  const maximoPorPedido =
+    valorPunto > 0
+      ? Math.floor(
+          precioActual /
+          valorPunto
+        )
+      : 0;
+
+  const maximo = Math.min(
+    disponibles,
+    maximoPorPedido
+  );
+
+  if (
+    !Number.isInteger(cantidad) ||
+    cantidad <= 0
+  ) {
+    setError(
+      "Ingresá una cantidad válida de puntos."
+    );
+    return;
+  }
+
+  if (cantidad < minimo) {
+    setError(
+      `El mínimo para utilizar es de ${minimo} puntos.`
+    );
+    return;
+  }
+
+  if (
+    cantidad >
+    disponibles
+  ) {
+    setError(
+      "No tenés suficientes puntos disponibles."
+    );
+    return;
+  }
+
+  if (cantidad > maximo) {
+    setError(
+      `Podés utilizar como máximo ${maximo} puntos en este pedido.`
+    );
+    return;
+  }
+
+  setProcesandoPuntos(true);
+  setError("");
+  setMensajePuntos("");
+
+  try {
+    const response =
+      await fetch(
+        "/api/puntos",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            accion: "usar",
+            pedido,
+            codigo,
+            puntos: cantidad,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudieron utilizar los puntos."
+      );
+    }
+
+    setPuntosACanjear("");
+
+    setMensajePuntos(
+      data.cubiertoConPuntos
+        ? "Los Puntos Kint cubrieron todo el importe restante."
+        : `Aplicaste ${data.puntosUtilizados} puntos correctamente.`
+    );
+
+    await actualizarPedidoSilenciosamente();
+
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "Error al utilizar Puntos Kint."
+    );
+  } finally {
+    setProcesandoPuntos(false);
+  }
+}
+
+async function usarPuntosSaldoKint() {
+  const cantidad =
+    Math.floor(
+      Number(
+        puntosACanjear || 0
+      )
+    );
+
+  const minimo =
+    Number(
+      resultado?.puntos
+        ?.minimoUso || 50
+    );
+
+  const disponibles =
+    Number(
+      resultado?.puntos
+        ?.disponibles || 0
+    );
+
+  const valorPunto =
+    Number(
+      resultado?.puntos
+        ?.valor || 1
+    );
+
+  const saldoPendiente =
+    Number(
+      resultado
+        ?.saldoPendiente || 0
+    );
+
+  const maximo =
+    Math.min(
+      disponibles,
+      Math.floor(
+        saldoPendiente /
+        valorPunto
+      )
+    );
+
+  if (
+    !Number.isInteger(
+      cantidad
+    ) ||
+    cantidad <= 0
+  ) {
+    setError(
+      "Ingresá una cantidad válida de puntos."
+    );
+    return;
+  }
+
+  if (
+    cantidad < minimo
+  ) {
+    setError(
+      `El mínimo para utilizar es de ${minimo} puntos.`
+    );
+    return;
+  }
+
+  if (
+    cantidad > maximo
+  ) {
+    setError(
+      `Podés utilizar como máximo ${maximo} puntos sobre el saldo pendiente.`
+    );
+    return;
+  }
+
+  setProcesandoPuntos(true);
+  setError("");
+  setMensajePuntos("");
+
+  try {
+    const response =
+      await fetch(
+        "/api/puntos",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            accion:
+              "usar_saldo",
+            pedido,
+            codigo,
+            puntos:
+              cantidad,
+          }),
+        }
+      );
+
+    const data =
+      await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudieron aplicar los puntos al saldo."
+      );
+    }
+
+    setPuntosACanjear("");
+
+    setMensajePuntos(
+      data.saldoCubierto
+        ? "Los puntos cubrieron todo el saldo pendiente."
+        : `Aplicaste ${data.puntosUtilizados} puntos. Nuevo saldo: $${Number(
+            data.saldoNuevo || 0
+          ).toLocaleString(
+            "es-UY"
+          )}.`
+    );
+
+    await actualizarPedidoSilenciosamente();
+
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "Error al aplicar puntos al saldo."
+    );
+  } finally {
+    setProcesandoPuntos(false);
+  }
+}
+
+async function quitarPuntosKint() {
+  const cantidad = Number(
+    resultado?.puntosUtilizadosPedido || 0
+  );
+
+  if (cantidad <= 0) {
+    return;
+  }
+
+  const confirmar = window.confirm(
+    `¿Querés quitar los ${cantidad} puntos aplicados?\n\nLos puntos volverán a tu saldo disponible.`
+  );
+
+  if (!confirmar) {
+    return;
+  }
+
+  setProcesandoPuntos(true);
+  setError("");
+  setMensajePuntos("");
+
+  try {
+    const response = await fetch(
+      "/api/puntos",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          accion: "quitar",
+          pedido,
+          codigo,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+          "No se pudieron quitar los puntos."
+      );
+    }
+
+    setMensajePuntos(
+      `${data.reintegrados || cantidad} puntos volvieron a tu saldo.`
+    );
+
+    await actualizarPedidoSilenciosamente();
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "Error al quitar los puntos."
+    );
+  } finally {
+    setProcesandoPuntos(false);
+  }
+}
+
 async function confirmarMetodoPago() {
   if (!modalidadPago) {
     setError("Seleccioná si querés pagar seña o total.");
@@ -741,19 +1077,63 @@ function obtenerAhorro() {
     resultado?.precioOriginal || 0
   );
 
-  const final = Number(
-    resultado?.precio || 0
-  );
+  const porcentaje =
+    obtenerPorcentajeDescuento();
 
   if (
     !original ||
-    !final ||
-    final >= original
+    porcentaje <= 0
   ) {
     return 0;
   }
 
-  return original - final;
+  return Math.round(
+    original *
+      (
+        porcentaje /
+        100
+      )
+  );
+}
+
+function datosTecnicosPresupuesto(
+  presupuesto: any
+) {
+  const tiempo = String(
+    presupuesto?.tiempoImpresion || ""
+  ).trim();
+
+  const filamento =
+    presupuesto?.filamentoEstimado;
+
+  const tieneFilamento =
+    filamento !== "" &&
+    filamento !== null &&
+    filamento !== undefined;
+
+  const partes: string[] = [];
+
+  if (tiempo) {
+    partes.push(tiempo);
+  }
+
+  if (tieneFilamento) {
+    partes.push(
+      `${Number(
+        filamento
+      ).toLocaleString("es-UY")} g`
+    );
+  }
+
+  if (!partes.length) {
+    return null;
+  }
+
+  return (
+    <p className="mt-3 text-xs font-bold text-[var(--kint-info)]">
+  {partes.join(" · ")}
+</p>
+  );
 }
 
   return (
@@ -810,7 +1190,7 @@ function obtenerAhorro() {
         )}
 
 {resultado && (
-  <div className="mt-12 w-full max-w-4xl rounded-3xl border border-[var(--border-color)] px-6 py-10 text-left sm:px-10">
+  <div className="mt-12 w-full max-w-4xl px-6 py-10 text-left sm:px-10">
     <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Número de pedido
     </p>
@@ -1059,68 +1439,75 @@ function obtenerAhorro() {
 
     </div>
 
-    {resultado.puntos?.habilitados && (
-  <div className="mb-6 rounded-2xl border border-[var(--border-color)] p-6">
-    <div className="flex items-end justify-between gap-5">
-      <div>
-        <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-          Puntos Kint
-        </p>
 
-        <p className="mt-3 text-3xl font-black text-red-600">
-          {Number(
-            resultado.puntos.disponibles || 0
-          ).toLocaleString("es-UY")}
-        </p>
 
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          puntos disponibles
-        </p>
-      </div>
-
-      {Number(
-        resultado.puntos.disponibles || 0
-      ) > 0 && (
-        <p className="text-right text-sm font-bold text-[var(--text-main)]">
-          Equivalen a $
-          {(
-            Number(
-              resultado.puntos.disponibles || 0
-            ) *
-            Number(
-              resultado.puntos.valor || 1
-            )
-          ).toLocaleString("es-UY")}
-        </p>
-      )}
-    </div>
-
-    {Number(
-      resultado.puntos.disponibles || 0
-    ) <
-      Number(
-        resultado.puntos.minimoUso || 50
-      ) && (
-      <p className="mt-4 text-xs text-[var(--text-muted)]">
-        Te faltan{" "}
-        <strong>
-          {Math.max(
-            0,
-            Number(
-              resultado.puntos.minimoUso || 50
-            ) -
-              Number(
-                resultado.puntos.disponibles || 0
-              )
-          )}
-        </strong>{" "}
-        puntos para poder utilizarlos.
+{resultado.estado === "Recibido" &&
+  Array.isArray(
+    resultado.beneficios?.codigos
+  ) &&
+  resultado.beneficios.codigos.length > 0 && (
+    <div className="mb-6 rounded-2xl border border-[var(--border-color)] p-6">
+      <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
+        Beneficios disponibles
       </p>
-    )}
-  </div>
-)}
 
-    {resultado.fidelidad?.habilitada && (
+      <div className="mt-5 space-y-3">
+        {resultado.beneficios.codigos.map(
+          (
+            beneficio: any,
+            index: number
+          ) => (
+            <div
+              key={`${beneficio.codigo}-${index}`}
+              className="rounded-xl border border-[var(--border-color)] p-4"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-lg font-black text-red-600">
+                    {beneficio.descuento}% OFF
+                  </p>
+
+                  <p className="mt-1 font-mono text-sm font-bold uppercase">
+                    {beneficio.codigo}
+                  </p>
+
+                  {beneficio.nombre && (
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      {beneficio.nombre}
+                    </p>
+                  )}
+
+                  {beneficio.vencimiento && (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Vence {beneficio.vencimiento}
+                    </p>
+                  )}
+                </div>
+
+                {resultado.estado === "Recibido" &&
+                  !resultado.codigoDescuento && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCodigoDescuentoInput(
+                          beneficio.codigo
+                        )
+                      }
+                      className="rounded-xl border border-red-600 px-4 py-3 text-[10px] font-black uppercase tracking-[0.15em] text-red-600 transition hover:bg-red-600 hover:text-white"
+                    >
+                      Usar beneficio
+                    </button>
+                  )}
+              </div>
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  )}
+
+    {resultado.fidelidad?.habilitada &&
+  !resultado.puntos?.habilitados && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
 
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -1284,115 +1671,146 @@ function obtenerAhorro() {
 ].includes(resultado.estado) && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
     <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-      Pago
-    </p>
+  {resultado.estado === "Presupuestado"
+    ? "Presupuesto"
+    : "Pago"}
+</p>
 
     <div className="mb-8">
       {resultado.precioOriginal &&
-  resultado.precioOriginal !== resultado.precio &&
-  (!resultado.presupuestos ||
+  resultado.precioOriginal !==
+    resultado.precio &&
+  (
+    !resultado.presupuestos ||
     resultado.presupuestos.length === 0 ||
     resultado.presupuestos.some(
       (p: any) =>
-        String(p.seleccionado).toLowerCase() === "sí"
-    )) && (
-    <div className="mb-6 space-y-4">
+        String(
+          p.seleccionado
+        ).toLowerCase() === "sí"
+    )
+  ) && (
+    <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+      <span className="font-bold text-[var(--text-muted)] line-through">
+        $
+        {Number(
+          resultado.precioOriginal
+        ).toLocaleString("es-UY")}
+      </span>
 
-      <div>
-        <p className="mb-1 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-          Precio original
-        </p>
-
-        <p className="text-xl font-bold line-through text-[var(--text-muted)]">
-          $
-          {Number(
-            resultado.precioOriginal
-          ).toLocaleString("es-UY")}
-        </p>
-      </div>
-
-      {obtenerPorcentajeDescuento() > 0 && (
-        <div className="rounded-2xl border border-red-600/30 bg-red-600/5 p-5">
-
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--text-muted)]">
-            Beneficio aplicado
-          </p>
-
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <p className="text-lg font-black text-red-600">
-              {obtenerNombreBeneficio()}
-            </p>
-
-            <span className="rounded-full bg-red-600 px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
-              {obtenerPorcentajeDescuento()}% OFF
-            </span>
-          </div>
-
-          {resultado.origenDescuento ===
-            "promocion_global" &&
-            resultado.promocionMensaje && (
-              <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">
-                {resultado.promocionMensaje}
-              </p>
-            )}
-
-          {(resultado.origenDescuento ===
-            "codigo_normal" ||
-            resultado.origenDescuento ===
-              "fidelidad") &&
-            resultado.codigoDescuento && (
-              <p className="mt-3 font-mono text-sm font-bold uppercase tracking-[0.12em]">
-                {resultado.codigoDescuento}
-              </p>
-            )}
-
-          {obtenerAhorro() > 0 && (
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-green-600">
-              Ahorrás $
-              {obtenerAhorro().toLocaleString(
-                "es-UY"
-              )}
-            </p>
-          )}
-
-        </div>
+      {obtenerPorcentajeDescuento() >
+        0 && (
+        <span className="font-black text-[var(--kint-info)]">
+          {obtenerNombreBeneficio()} ·{" "}
+          {obtenerPorcentajeDescuento()}% OFF
+        </span>
       )}
 
-      <div className="h-px w-full bg-[var(--border-color)]" />
+      {obtenerAhorro() > 0 && (
+        <span className="font-bold text-green-600">
+          Ahorrás $
+          {obtenerAhorro().toLocaleString(
+            "es-UY"
+          )}
+        </span>
+      )}
     </div>
   )}
 
 {resultado.estado === "Presupuestado" &&
   resultado.presupuestos?.length > 0 && (
-    <div className="mb-8 rounded-2xl border border-[var(--border-color)] p-5">
-      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
-        Opciones de presupuesto
+    <div className="mb-8">
+  <div className="mb-5">
+    <p className="text-sm font-black uppercase tracking-[0.2em]">
+      Tu presupuesto
+    </p>
+
+    {!resultado.presupuestos.some(
+      (p: any) =>
+        String(
+          p.seleccionado
+        ).toLowerCase() === "sí"
+    ) && (
+      <p className="mt-2 text-sm text-[var(--text-muted)]">
+        Elegí la opción que preferís para continuar.
       </p>
+    )}
+  </div>
 
       {resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí") ? (
         resultado.presupuestos
           .filter((p: any) => String(p.seleccionado).toLowerCase() === "sí")
           .map((presupuesto: any, index: number) => (
-            <div
-              key={index}
-              className="rounded-xl border border-[var(--border-color)] p-4"
-            >
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                Presupuesto elegido
-              </p>
+<div
+  key={index}
+  className="
+    rounded-2xl
+    border border-[#87A4B5]/55
+    border-l-2 border-l-[#4C6C81]
+    bg-[#eef4f8]
+    p-6
+    shadow-[0_14px_34px_rgba(37,67,93,0.10)]
 
-              <p className="mt-3 font-bold">
-                {presupuesto.opcion}
-              </p>
+    dark:border-[#4C6C81]/45
+    dark:border-l-[#B9D3E2]
+    dark:bg-[#010003]
+    dark:shadow-[0_18px_45px_rgba(0,0,0,0.22)]
+  "
+>
+  <p className="
+    text-[10px]
+    font-black
+    uppercase
+    tracking-[0.22em]
+    text-[#4C6C81]
 
-              <p className="mt-2 text-sm">
-                {presupuesto.descripcion}
-              </p>
+    dark:text-[#B9D3E2]
+  ">
+    Presupuesto elegido
+  </p>
 
-              <p className="mt-3 text-lg font-bold text-[var(--text-muted)]">
-                ${presupuesto.precio}
-              </p>
-            </div>
+  <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="min-w-0">
+      <p className="
+        text-xl
+        font-black
+        text-[#06152f]
+
+        dark:text-white
+      ">
+        {presupuesto.opcion}
+      </p>
+
+      <p className="
+        mt-2
+        text-sm
+        text-[#25435D]
+
+        dark:text-[#B9D3E2]/85
+      ">
+        {presupuesto.descripcion}
+      </p>
+
+      {datosTecnicosPresupuesto(
+        presupuesto
+      )}
+    </div>
+
+    <p className="
+      shrink-0
+      text-3xl
+      font-black
+      text-[#25435D]
+
+      dark:text-[#B9D3E2]
+    ">
+      $
+      {Number(
+        presupuesto.precio
+      ).toLocaleString("es-UY")}
+    </p>
+  </div>
+</div>
           ))
       ) : (
         <div className="space-y-4">
@@ -1408,6 +1826,10 @@ function obtenerAhorro() {
               <p className="mt-2 text-sm text-[var(--text-muted)]">
                 {presupuesto.descripcion}
               </p>
+
+              {datosTecnicosPresupuesto(
+  presupuesto
+)}
 
               {Number(presupuesto.descuento || resultado.descuento || 0) > 0 ? (
   <div className="mt-3">
@@ -1445,41 +1867,64 @@ function obtenerAhorro() {
               <button
                 type="button"
                 onClick={async () => {
+  if (
+    presupuestoSeleccionando !== null
+  ) {
+    return;
+  }
 
-console.log("PRESUPUESTO ENVIADO:");
-console.log({
-  pedido: resultado.pedido,
-  codigo,
-  index,
-  opcion: presupuesto.opcion,
-  descripcion: presupuesto.descripcion,
-  precioOriginal: presupuesto.precioOriginal,
-  precio: presupuesto.precio,
-});
+  setPresupuestoSeleccionando(index);
+  setError("");
 
-                  const response = await fetch("/api/seleccionar-presupuesto", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-  pedido: resultado.pedido,
-  codigo,
-  index,
-}),
-                  });
+  try {
+    const response = await fetch(
+      "/api/seleccionar-presupuesto",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          pedido: resultado.pedido,
+          codigo,
+          index,
+        }),
+      }
+    );
 
-                  const data = await response.json();
+    const data =
+      await response.json();
 
-                  if (data.ok) {
-  await actualizarPedidoSilenciosamente();
-} else {
-  alert(data.error || "Error al seleccionar presupuesto.");
+    if (
+      !response.ok ||
+      !data.ok
+    ) {
+      throw new Error(
+        data.error ||
+          "Error al seleccionar presupuesto."
+      );
+    }
+
+    await actualizarPedidoSilenciosamente();
+
+  } catch (error: any) {
+    setError(
+      error?.message ||
+        "No se pudo seleccionar el presupuesto."
+    );
+  } finally {
+    setPresupuestoSeleccionando(null);
+  }
+}}
+disabled={
+  presupuestoSeleccionando !== null
 }
-                }}
-                className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white"
+                className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-50"
               >
-                Elegir presupuesto
+                {presupuestoSeleccionando === index
+  ? "Seleccionando..."
+  : "Elegir presupuesto"}
               </button>
             </div>
           ))}
@@ -1497,9 +1942,14 @@ console.log({
     </p>
 
     <p className="text-4xl font-black text-red-600">
-      {resultado.precio && resultado.precio !== "Pendiente"
-        ? `$${resultado.precio}`
-        : "Pendiente"}
+      {resultado.precio !== "" &&
+resultado.precio !== null &&
+resultado.precio !== undefined &&
+resultado.precio !== "Pendiente"
+  ? `$${Number(
+      resultado.precio
+    ).toLocaleString("es-UY")}`
+  : "Pendiente"}
     </p>
   </>
 )}
@@ -1511,7 +1961,9 @@ console.log({
     resultado.presupuestos.length === 0 ||
     resultado.presupuestos.some(
       (p: any) =>
-        String(p.seleccionado).toLowerCase() === "sí"
+        String(
+          p.seleccionado
+        ).toLowerCase() === "sí"
     )) && (
     <div className="space-y-6">
       <div>
@@ -1520,95 +1972,236 @@ console.log({
         </p>
 
         <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
-          Revisá cuánto tenés que transferir ahora
-          y cuánto quedará pendiente.
+          Revisá cuánto tenés que transferir
+          ahora y cuánto quedará pendiente.
         </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          {["Seña 20%", "Pago total"].map((opcion) => {
-            const precioFinal =
-              Number(resultado.precio) || 0;
+      <div className="grid gap-4 sm:grid-cols-2">
+  {[
+    "Seña 20%",
+    "Pago total",
+  ].map((opcion) => {
+    const precioFinal =
+      Number(
+        resultado.precio
+      ) || 0;
 
-            const esSena =
-              opcion === "Seña 20%";
+    const esSena =
+      opcion === "Seña 20%";
 
-            const importe =
-              esSena
-                ? Math.round(precioFinal * 0.2)
-                : precioFinal;
+    const importe =
+      esSena
+        ? Math.round(
+            precioFinal * 0.2
+          )
+        : precioFinal;
 
-            const saldo =
-              precioFinal - importe;
+    const saldo =
+      precioFinal - importe;
 
-            return (
-              <button
-                key={opcion}
-                type="button"
-                onClick={() =>
-                  setModalidadPago(opcion)
-                }
-                className={`rounded-2xl border p-5 text-left transition ${
-                  modalidadPago === opcion
-                    ? "border-red-600 bg-[#ffe5e5] text-black"
-                    : "border-[var(--border-color)] hover:border-red-600"
-                }`}
-              >
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-red-600">
-                  {esSena
-                    ? "Pagar seña 20%"
-                    : "Pagar el total"}
-                </p>
+    const seleccionada =
+      modalidadPago === opcion;
 
-                <p className="mt-4 text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  Total del pedido
-                </p>
+    return (
+      <button
+        key={opcion}
+        type="button"
+        onClick={() =>
+          setModalidadPago(
+            opcion
+          )
+        }
+       className={`
+  relative
+  overflow-hidden
+  rounded-2xl
+  border
+  p-5
+  text-left
+  transition-all
 
-                <p className="mt-1 text-xl font-black">
-                  $
-                  {precioFinal.toLocaleString("es-UY")}
-                </p>
+  ${
+    seleccionada
+      ? `
+        border-[#4C6C81]/70
+        bg-[#e4edf2]
+        ring-1 ring-[#4C6C81]/15
+        shadow-[0_12px_28px_rgba(37,67,93,0.10)]
+        hover:border-[#7D0018]/35
+        hover:bg-[#f2e8eb]
+        hover:shadow-[0_14px_32px_rgba(125,0,24,0.10)]
 
-                <div className="mt-5 rounded-xl border-2 border-red-600 bg-white px-4 py-4 text-black">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">
-                    {esSena
-                      ? "Seña a transferir ahora"
-                      : "Total a transferir ahora"}
-                  </p>
+        dark:border-[#87A4B5]/65
+        dark:bg-[#25435D]/20
+        dark:ring-[#87A4B5]/20
+        dark:shadow-[0_18px_45px_rgba(0,0,0,0.22)]
+        dark:hover:border-[#C76D7C]/70
+dark:hover:bg-[#C76D7C]/[0.10]
+dark:hover:shadow-[0_18px_45px_rgba(199,109,124,0.16)]
+      `
+      : `
+        border-[#87A4B5]/55
+        bg-white
+        hover:-translate-y-0.5
+        hover:border-[#7D0018]/35
+        hover:bg-[#f8eef1]
+        hover:shadow-[0_14px_32px_rgba(125,0,24,0.08)]
 
-                  <p className="mt-2 text-3xl font-black text-red-600">
-                    $
-                    {importe.toLocaleString("es-UY")}
-                  </p>
-                </div>
+        dark:border-[#4C6C81]/40
+        dark:bg-white/[0.015]
+        dark:hover:border-[#C76D7C]/70
+dark:hover:bg-[#C76D7C]/[0.10]
+dark:hover:shadow-[0_18px_45px_rgba(199,109,124,0.16)]
+      `
+  }
+`}
+      >
+        {seleccionada && (
+          <span className="
+            absolute
+            right-4
+            top-4
+            rounded-full
+            border border-[#4C6C81]/35
+            bg-[#dce8ef]
+            px-3
+            py-1
+            text-[8px]
+            font-black
+            uppercase
+            tracking-[0.14em]
+            text-[#25435D]
 
-                <div className="mt-4 border-t border-[var(--border-color)] pt-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                    Saldo pendiente
-                  </p>
+            dark:border-[#87A4B5]/40
+            dark:bg-[#25435D]/85
+            dark:text-[#B9D3E2]
+          ">
+            Elegido
+          </span>
+        )}
 
-                  <p className="mt-1 text-xl font-bold">
-                    $
-                    {saldo.toLocaleString("es-UY")}
-                  </p>
-                </div>
+        <p className="
+          pr-20
+          text-xs
+          font-black
+          uppercase
+          tracking-[0.22em]
+          text-[#06152f]
 
-                {esSena && (
-                  <p className="mt-4 text-xs leading-5 text-[var(--text-muted)]">
-                    Podés pagar el saldo más adelante
-                    desde esta misma página, incluso
-                    cuando el pedido figure como Terminado.
-                  </p>
-                )}
-                            </button>
-            );
-          })}
+          dark:text-white
+        ">
+          {esSena
+            ? "Pagar seña 20%"
+            : "Pagar el total"}
+        </p>
+
+        <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+          {esSena
+            ? "Pagás una parte ahora y completás el resto más adelante."
+            : "Completás el pago del pedido en un solo paso."}
+        </p>
+
+        <div
+          className={`
+            mt-5
+            rounded-xl
+            border
+            px-4
+            py-4
+
+            ${
+              seleccionada
+                ? `
+                  border-[#4C6C81]/55
+                  bg-[#dce7ee]
+
+                  dark:border-[#7D0018]/50
+                  dark:bg-[#340A13]
+                `
+                : `
+                  border-[#87A4B5]/55
+                  bg-[#e9f0f4]
+
+                  dark:border-[#4C6C81]/35
+                  dark:bg-[#25435D]/10
+                `
+            }
+          `}
+        >
+          <p className="
+            text-[10px]
+            font-black
+            uppercase
+            tracking-[0.18em]
+            text-[#4C6C81]
+
+            dark:text-[#87A4B5]
+          ">
+            Transferís ahora
+          </p>
+
+          <p className="
+            mt-2
+            text-3xl
+            font-black
+            text-[#25435D]
+
+            dark:text-[#B9D3E2]
+          ">
+            $
+            {importe.toLocaleString(
+              "es-UY"
+            )}
+          </p>
         </div>
+
+        <div className="mt-4 border-t border-[var(--border-color)] pt-4">
+          <p className="
+            text-[10px]
+            font-bold
+            uppercase
+            tracking-[0.18em]
+            text-[#4C6C81]
+
+            dark:text-[#87A4B5]
+          ">
+            Saldo pendiente
+          </p>
+
+          <p className="mt-1 text-xl font-black">
+            $
+            {saldo.toLocaleString(
+              "es-UY"
+            )}
+          </p>
+        </div>
+
+        {esSena && (
+  <p className="mt-4 text-xs leading-5 text-[var(--text-muted)]">
+    Podés completar el saldo
+    más adelante desde esta
+    misma página.
+  </p>
+)}
+      </button>
+    );
+  })}
+</div>
 
         <button
           type="button"
-          onClick={confirmarMetodoPago}
-          disabled={!modalidadPago || guardandoMetodo}
-          className="mt-5 w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={
+            confirmarMetodoPago
+          }
+          disabled={
+            !modalidadPago ||
+            guardandoMetodo
+          }
+          className={`mt-6 w-full rounded-2xl border px-6 py-4 text-xs font-black uppercase tracking-[0.25em] transition-all ${
+  modalidadPago
+    ? "border-[#7D0018] bg-gradient-to-r from-[#340A13] to-[#7D0018] text-[#B9D3E2] shadow-[0_12px_35px_rgba(52,10,19,0.35)] hover:-translate-y-0.5 hover:shadow-[0_16px_45px_rgba(52,10,19,0.42)]"
+    : "cursor-not-allowed border-[#87A4B5]/50 bg-[#eef4f8] text-[#4C6C81] opacity-70 dark:border-[#4C6C81]/35 dark:bg-white/[0.02] dark:text-[#87A4B5] dark:opacity-45"
+}`}
         >
           {guardandoMetodo
             ? "Guardando..."
@@ -1616,10 +2209,9 @@ console.log({
             ? `Confirmar ${modalidadPago}`
             : "Seleccioná una opción para continuar"}
         </button>
-
       </div>
     </div>
-)}
+  )}
 
     {resultado.metodoPago === "Transferencia" &&
       !resultado.comprobante &&
@@ -1639,7 +2231,7 @@ Cuenta: 26557312<br />
             Concepto: {resultado.pedido}
           </p>
 
-          <div className="mb-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-5 text-black">
+          <div className="mb-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-5 text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
   <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
     {resultado.modalidad === "Seña 20%"
   ? "Seña a transferir"
@@ -1674,7 +2266,354 @@ Cuenta: 26557312<br />
   )}
 </div>
 
-          <div className="rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
+        {resultado.puntos?.habilitados &&
+  Number(
+    resultado.precioOriginal || 0
+  ) > 0 && (
+    <div className="
+      mt-6
+      rounded-2xl
+      border border-[#87A4B5]/55
+      bg-[#eef4f8]
+      p-5
+      shadow-[0_10px_26px_rgba(37,67,93,0.08)]
+
+      dark:border-[#4C6C81]/40
+      dark:bg-[#010003]
+      dark:shadow-none
+    ">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="
+            text-xs
+            font-black
+            uppercase
+            tracking-[0.2em]
+            text-[#06152f]
+
+            dark:text-white
+          ">
+            Puntos Kint
+          </p>
+
+          <div className="mt-2 flex items-end gap-2">
+            <p className="
+              text-3xl
+              font-black
+              leading-none
+              text-[#25435D]
+
+              dark:text-[#B9D3E2]
+            ">
+              {Number(
+                resultado.puntos
+                  .disponibles || 0
+              ).toLocaleString(
+                "es-UY"
+              )}
+            </p>
+
+            <p className="pb-0.5 text-xs font-semibold text-[var(--text-muted)]">
+              puntos disponibles
+            </p>
+          </div>
+        </div>
+
+        <p className="
+          text-xs
+          font-black
+          text-[#4C6C81]
+
+          dark:text-[#87A4B5]
+        ">
+          1 punto = $
+          {Number(
+            resultado.puntos
+              .valor || 1
+          ).toLocaleString(
+            "es-UY"
+          )}
+        </p>
+      </div>
+
+      {Number(
+        resultado
+          .puntosUtilizadosPedido ||
+          0
+      ) > 0 ? (
+        <div className="mt-5">
+          <p className="text-sm">
+            Usaste{" "}
+            <strong className="text-[#7D0018] dark:text-red-500">
+              {Number(
+                resultado
+                  .puntosUtilizadosPedido
+              ).toLocaleString(
+                "es-UY"
+              )}{" "}
+              puntos
+            </strong>
+          </p>
+
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            Descuento aplicado: $
+            {(
+              Number(
+                resultado
+                  .puntosUtilizadosPedido
+              ) *
+              Number(
+                resultado.puntos
+                  .valor || 1
+              )
+            ).toLocaleString(
+              "es-UY"
+            )}
+          </p>
+
+          <button
+            type="button"
+            onClick={
+              quitarPuntosKint
+            }
+            disabled={
+              procesandoPuntos
+            }
+            className="
+              mt-4
+              text-xs
+              font-black
+              uppercase
+              tracking-[0.15em]
+              text-[#7D0018]
+              transition
+              hover:underline
+              disabled:opacity-50
+
+              dark:text-red-500
+            "
+          >
+            {procesandoPuntos
+              ? "Procesando..."
+              : "Quitar puntos"}
+          </button>
+        </div>
+      ) : Number(
+          resultado.puntos
+            .disponibles || 0
+        ) >=
+        Number(
+          resultado.puntos
+            .minimoUso || 50
+        ) ? (
+        <>
+          <p className="mt-4 text-xs leading-5 text-[var(--text-muted)]">
+            Podés usar tus puntos además
+del descuento o promoción
+aplicada al pedido.
+          </p>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              value={
+                puntosACanjear
+              }
+              onChange={(e) =>
+                setPuntosACanjear(
+                  e.target.value.replace(
+                    /[^0-9]/g,
+                    ""
+                  )
+                )
+              }
+              inputMode="numeric"
+              placeholder={`Mínimo ${
+                resultado.puntos
+                  .minimoUso || 50
+              } puntos`}
+              className="
+                min-w-0
+                flex-1
+                rounded-xl
+                border border-[#87A4B5]/60
+                bg-white
+                px-4
+                py-3
+                text-sm
+                font-bold
+                text-[#06152f]
+                outline-none
+                transition
+                placeholder:text-[#4C6C81]/70
+                focus:border-[#4C6C81]
+
+                dark:border-[#4C6C81]/40
+                dark:bg-[#010003]/70
+                dark:text-[#B9D3E2]
+                dark:placeholder:text-[#87A4B5]/55
+                dark:focus:border-[#87A4B5]
+              "
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                void usarPuntosKint()
+              }
+              disabled={
+                procesandoPuntos ||
+                !puntosACanjear
+              }
+              className="
+                rounded-xl
+                border border-[#7D0018]
+                bg-[#7D0018]
+                px-6
+                py-3
+                text-xs
+                font-black
+                uppercase
+                tracking-[0.15em]
+                text-white
+                transition
+                hover:bg-[#340A13]
+
+                disabled:cursor-not-allowed
+                disabled:border-[#87A4B5]/60
+                disabled:bg-[#dfe8ed]
+                disabled:text-[#4C6C81]
+                disabled:opacity-100
+
+                dark:bg-[#340A13]
+                dark:text-[#B9D3E2]
+                dark:hover:bg-[#7D0018]
+
+                dark:disabled:border-[#4C6C81]/40
+                dark:disabled:bg-[#340A13]
+                dark:disabled:text-[#87A4B5]
+                dark:disabled:opacity-40
+              "
+            >
+              {procesandoPuntos
+                ? "Aplicando..."
+                : "Aplicar puntos"}
+            </button>
+          </div>
+
+          {puntosACanjear && (
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+              <p>
+                Ahorro{" "}
+                <strong className="text-green-600">
+                  $
+                  {(
+                    Number(
+                      puntosACanjear
+                    ) *
+                    Number(
+                      resultado.puntos
+                        .valor || 1
+                    )
+                  ).toLocaleString(
+                    "es-UY"
+                  )}
+                </strong>
+              </p>
+
+              <p>
+  {resultado.modalidad === "Seña 20%"
+    ? "Nueva seña "
+    : "Nuevo total "}
+
+  <strong className="text-green-600">
+    $
+    {(() => {
+      const nuevoTotal = Math.max(
+        0,
+        Number(
+  resultado.precio || 0
+) -
+          Number(
+            puntosACanjear || 0
+          ) *
+            Number(
+              resultado.puntos?.valor || 1
+            )
+      );
+
+      const nuevoImporte =
+        resultado.modalidad === "Seña 20%"
+          ? Math.round(
+              nuevoTotal * 0.2
+            )
+          : nuevoTotal;
+
+      return nuevoImporte.toLocaleString(
+        "es-UY"
+      );
+    })()}
+  </strong>
+</p>
+
+              <p className="text-[var(--text-muted)]">
+                Máximo{" "}
+                <strong>
+                  {Math.min(
+                    Number(
+                      resultado.puntos
+                        .disponibles || 0
+                    ),
+                    Math.floor(
+                     Number(
+  resultado.precio || 0
+) /
+                        Number(
+                          resultado.puntos
+                            .valor || 1
+                        )
+                    )
+                  ).toLocaleString(
+                    "es-UY"
+                  )}
+                </strong>{" "}
+                puntos
+              </p>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="mt-4 text-sm text-[var(--text-muted)]">
+          Te faltan{" "}
+          <strong>
+            {Math.max(
+              0,
+              Number(
+                resultado.puntos
+                  .minimoUso || 50
+              ) -
+                Number(
+                  resultado.puntos
+                    .disponibles || 0
+                )
+            )}
+          </strong>{" "}
+          puntos para poder
+          utilizarlos.
+        </p>
+      )}
+
+      {mensajePuntos && (
+        <p className="mt-4 text-sm font-bold text-green-600">
+          {mensajePuntos}
+        </p>
+      )}
+    </div>
+  )}
+
+
+
+
+          <div className="seguimiento-presupuesto-elegido rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
               Subir comprobante
             </p>
@@ -1704,7 +2643,7 @@ Cuenta: 26557312<br />
                 type="button"
                 onClick={subirComprobante}
                 disabled={subiendoArchivo}
-                className="mt-6 rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+                className="seguimiento-puntos mt-6 rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
               >
                 {subiendoArchivo ? "Enviando..." : "Enviar comprobante"}
               </button>
@@ -1792,6 +2731,209 @@ Cuenta: 26557312<br />
             ).toLocaleString("es-UY")}
           </p>
 
+          {resultado.puntos?.habilitados &&
+  Number(
+    resultado.puntos
+      .disponibles || 0
+  ) >=
+    Number(
+      resultado.puntos
+        .minimoUso || 50
+    ) && (
+    <div className="
+      mb-6
+      rounded-2xl
+      border border-[#87A4B5]/55
+      bg-[#eef4f8]
+      p-5
+
+      dark:border-[#4C6C81]/40
+      dark:bg-[#010003]
+    ">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="
+            text-xs
+            font-black
+            uppercase
+            tracking-[0.2em]
+          ">
+            Usar Puntos Kint
+          </p>
+
+          <p className="mt-2 text-sm text-[var(--text-muted)]">
+            Tenés{" "}
+            <strong className="
+              text-[#25435D]
+              dark:text-[#B9D3E2]
+            ">
+              {Number(
+                resultado.puntos
+                  .disponibles || 0
+              ).toLocaleString(
+                "es-UY"
+              )}
+            </strong>{" "}
+            puntos disponibles
+          </p>
+        </div>
+
+        <p className="
+          text-xs
+          font-black
+          text-[#4C6C81]
+          dark:text-[#87A4B5]
+        ">
+          1 punto = $
+          {Number(
+            resultado.puntos
+              .valor || 1
+          ).toLocaleString(
+            "es-UY"
+          )}
+        </p>
+      </div>
+
+      <p className="mt-4 text-xs leading-5 text-[var(--text-muted)]">
+  Podés usar tus puntos además
+  del descuento o promoción
+  aplicada al pedido.
+</p>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <input
+          value={
+            puntosACanjear
+          }
+          onChange={(e) =>
+            setPuntosACanjear(
+              e.target.value.replace(
+                /[^0-9]/g,
+                ""
+              )
+            )
+          }
+          inputMode="numeric"
+          placeholder={`Hasta ${Math.min(
+            Number(
+              resultado.puntos
+                .disponibles || 0
+            ),
+            Math.floor(
+              Number(
+                resultado
+                  .saldoPendiente ||
+                  0
+              ) /
+                Number(
+                  resultado.puntos
+                    .valor || 1
+                )
+            )
+          ).toLocaleString(
+            "es-UY"
+          )} puntos`}
+          className="
+            min-w-0
+            flex-1
+            rounded-xl
+            border border-[#87A4B5]/60
+            bg-white
+            px-4
+            py-3
+            text-sm
+            font-bold
+            text-[#06152f]
+            outline-none
+
+            dark:border-[#4C6C81]/40
+            dark:bg-[#010003]
+            dark:text-[#B9D3E2]
+          "
+        />
+
+        <button
+          type="button"
+          onClick={() =>
+            void usarPuntosSaldoKint()
+          }
+          disabled={
+            procesandoPuntos ||
+            !puntosACanjear
+          }
+          className="
+            rounded-xl
+            border border-[#7D0018]
+            bg-[#7D0018]
+            px-6
+            py-3
+            text-xs
+            font-black
+            uppercase
+            tracking-[0.15em]
+            text-white
+            transition
+
+            hover:bg-[#340A13]
+
+            disabled:cursor-not-allowed
+            disabled:opacity-40
+          "
+        >
+          {procesandoPuntos
+            ? "Aplicando..."
+            : "Usar puntos"}
+        </button>
+      </div>
+
+      {puntosACanjear && (
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-xs">
+          <p>
+            Usás{" "}
+            <strong>
+              {Number(
+                puntosACanjear
+              ).toLocaleString(
+                "es-UY"
+              )}{" "}
+              puntos
+            </strong>
+          </p>
+
+          <p>
+            Nuevo saldo{" "}
+            <strong className="text-green-600">
+              $
+              {Math.max(
+                0,
+                Number(
+                  resultado
+                    .saldoPendiente ||
+                    0
+                ) -
+                  Number(
+                    puntosACanjear
+                  ) *
+                    Number(
+                      resultado
+                        .puntos
+                        .valor || 1
+                    )
+              ).toLocaleString(
+                "es-UY"
+              )}
+            </strong>
+          </p>
+        </div>
+      )}
+
+      {mensajePuntos && (
+        <p className="mt-4 text-sm font-bold text-green-600">
+          {mensajePuntos}
+        </p>
+      )}
+    </div>
+  )}
+
           <p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
             Podés completar este saldo cuando quieras desde esta misma página.
             Cuando el pedido figure como Terminado, podés volver acá,
@@ -1860,7 +3002,7 @@ Cuenta: 26557312<br />
       </p>
 
       {resultado.saldoConfirmado === "Sí" ? (
-        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
           <p className="text-3xl font-black text-green-600">
             ✓
           </p>
@@ -1869,12 +3011,48 @@ Cuenta: 26557312<br />
             Pago completado correctamente
           </p>
 
-          <p className="mt-3 text-sm font-semibold">
-            Total pagado: ${resultado.precio}
-          </p>
+          <div className="mt-4 space-y-1 text-sm font-semibold">
+  <p>
+    Transferido: $
+    {Number(
+      resultado.importe || 0
+    ).toLocaleString("es-UY")}
+  </p>
+
+  {Number(
+    resultado.puntosUtilizadosPedido || 0
+  ) > 0 && (
+    <p>
+      Cubierto con Puntos Kint: $
+      {(
+        Number(
+          resultado.puntosUtilizadosPedido || 0
+        ) *
+        Number(
+          resultado.puntos?.valor || 1
+        )
+      ).toLocaleString("es-UY")}
+    </p>
+  )}
+
+  <p className="pt-2 font-black">
+    Total cubierto: $
+    {(
+      Number(
+        resultado.importe || 0
+      ) +
+      Number(
+        resultado.puntosUtilizadosPedido || 0
+      ) *
+        Number(
+          resultado.puntos?.valor || 1
+        )
+    ).toLocaleString("es-UY")}
+  </p>
+</div>
         </div>
       ) : resultado.comprobanteSaldo ? (
-        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
           <p className="text-3xl font-black text-green-600">
             ✓
           </p>
@@ -1891,7 +3069,7 @@ Cuenta: 26557312<br />
           "Pago realizado correctamente" ||
         resultado.estadoPago ===
           "Seña realizada correctamente" ? (
-        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black">
+        <div className="rounded-2xl border border-green-600 bg-green-50 px-6 py-5 text-center text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
           <p className="text-3xl font-black text-green-600">
             ✓
           </p>
@@ -2204,6 +3382,7 @@ Cuenta: 26557312<br />
   );
 }
 export default function Seguimiento() {
+
   return (
     <Suspense fallback={<div>Cargando...</div>}>
       <SeguimientoContent />
