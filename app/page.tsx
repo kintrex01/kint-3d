@@ -597,50 +597,45 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   <EstadisticasInicio />
 </div>
 
-<section className="relative z-20 px-6 pt-20 pb-10">
-  <div className="mx-auto max-w-6xl">
-    <div className="grid overflow-hidden rounded-[2rem] border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-main)] md:grid-cols-[1.15fr_0.85fr]">
+<section className="relative z-20 px-6 py-12">
+  <div className="mx-auto max-w-5xl">
+    <div className="grid overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)] md:grid-cols-[380px_1fr]">
 
-      <div className="relative min-h-[320px] overflow-hidden md:min-h-[480px]">
+      <div className="relative h-[220px] overflow-hidden md:h-[280px]">
         <img
           src="/colores/coleccion-colores-kint.jpg"
-          alt="Muestras de colores de filamento para impresión 3D en Kint 3D Uruguay"
-          className="absolute inset-0 h-full w-full object-cover"
+          alt="Colores de filamento para impresión 3D en Kint 3D Uruguay"
+          className="h-full w-full object-cover"
         />
       </div>
 
-      <div className="flex flex-col justify-center p-8 sm:p-10 md:p-12">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-600">
-          Colores para tu proyecto
+      <div className="flex flex-col justify-center p-7 md:p-9">
+        <p className="text-[9px] font-black uppercase tracking-[0.28em] text-red-600">
+          Colores disponibles
         </p>
 
-        <h2 className="mt-4 text-3xl font-black leading-tight text-[var(--text-main)] sm:text-4xl">
-          Más opciones para cada impresión.
+        <h2 className="mt-3 text-2xl font-black text-[var(--text-main)]">
+          Elegí el color de tu impresión.
         </h2>
 
-        <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
-          Elegí entre distintos colores y acabados para adaptar
-          cada impresión a tu proyecto. También podés combinar
-          varios colores dentro de un mismo pedido.
+        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
+          Más de 15 colores y distintos acabados para adaptar
+          cada pieza a tu proyecto.
         </p>
 
-        <div className="mt-7 flex items-end gap-3">
-          <span className="text-4xl font-black text-[var(--blue-main)]">
-            15+
-          </span>
+        <div className="mt-5 flex flex-wrap items-center gap-5">
+          <Link
+            href="/cotizar"
+            className="inline-flex items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--blue-main)] transition hover:text-red-600"
+          >
+            Ver colores y cotizar
+            <span>→</span>
+          </Link>
 
-          <span className="pb-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
-            colores disponibles
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            15+ colores
           </span>
         </div>
-
-        <Link
-          href="/cotizar"
-          className="mt-8 inline-flex w-fit items-center gap-4 rounded-xl bg-[var(--blue-main)] px-7 py-4 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:-translate-y-1 hover:bg-red-600"
-        >
-          Ver colores y cotizar
-          <span>→</span>
-        </Link>
       </div>
 
     </div>
