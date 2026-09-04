@@ -597,6 +597,56 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   <EstadisticasInicio />
 </div>
 
+<section className="relative z-20 px-6 pt-20 pb-10">
+  <div className="mx-auto max-w-6xl">
+    <div className="grid overflow-hidden rounded-[2rem] border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-main)] md:grid-cols-[1.15fr_0.85fr]">
+
+      <div className="relative min-h-[320px] overflow-hidden md:min-h-[480px]">
+        <img
+          src="/colores/coleccion-colores-kint.jpg"
+          alt="Muestras de colores de filamento para impresión 3D en Kint 3D Uruguay"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </div>
+
+      <div className="flex flex-col justify-center p-8 sm:p-10 md:p-12">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-600">
+          Colores para tu proyecto
+        </p>
+
+        <h2 className="mt-4 text-3xl font-black leading-tight text-[var(--text-main)] sm:text-4xl">
+          Más opciones para cada impresión.
+        </h2>
+
+        <p className="mt-5 text-sm leading-7 text-[var(--text-muted)]">
+          Elegí entre distintos colores y acabados para adaptar
+          cada impresión a tu proyecto. También podés combinar
+          varios colores dentro de un mismo pedido.
+        </p>
+
+        <div className="mt-7 flex items-end gap-3">
+          <span className="text-4xl font-black text-[var(--blue-main)]">
+            15+
+          </span>
+
+          <span className="pb-1 text-xs font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            colores disponibles
+          </span>
+        </div>
+
+        <Link
+          href="/cotizar"
+          className="mt-8 inline-flex w-fit items-center gap-4 rounded-xl bg-[var(--blue-main)] px-7 py-4 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:-translate-y-1 hover:bg-red-600"
+        >
+          Ver colores y cotizar
+          <span>→</span>
+        </Link>
+      </div>
+
+    </div>
+  </div>
+</section>
+
       <section className="relative z-20 px-6 pt-40 pb-24 bg-transparent">
         <div className="mx-auto max-w-6xl text-center">
           <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
