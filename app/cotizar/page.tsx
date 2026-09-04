@@ -28,19 +28,6 @@ type Configuracion = Record<
   OpcionConfiguracion
 >;
 
-const IMAGENES_FILAMENTO: Record<string, string | null> = {
-  filamento_amarillo: "/colores/Amarillo.png",
-  filamento_blanco: "/colores/Blanco.png",
-  filamento_celeste: null,
-  filamento_cristal: "/colores/Cristal.png",
-  filamento_negro: "/colores/Negro.png",
-  filamento_oro: "/colores/Oro.png",
-  filamento_rojo: "/colores/Rojo.png",
-  filamento_verde_bosque: "/colores/Verde Bosque.png",
-  filamento_verde: "/colores/Verde.png",
-  filamento_violeta: "/colores/Violeta.png",
-};
-
 function nombreFilamentoDesdeClave(clave: string) {
   return clave
     .replace(/^filamento_/, "")
@@ -51,6 +38,48 @@ function nombreFilamentoDesdeClave(clave: string) {
         palabra.slice(1)
     )
     .join(" ");
+}
+
+function ImagenFilamento({
+  nombre,
+  habilitado,
+}: {
+  nombre: string;
+  habilitado: boolean;
+}) {
+  const [intento, setIntento] =
+    useState(0);
+
+  const fuentes = [
+    `/colores/${nombre}.png`,
+    `/colores/${nombre}.jpg`,
+    `/colores/${nombre}.jpeg`,
+  ];
+
+  if (intento >= fuentes.length) {
+    return (
+      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-center text-[11px] font-medium text-[var(--text-muted)] opacity-70">
+        Próximamente
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={fuentes[intento]}
+      alt={nombre}
+      onError={() =>
+        setIntento(
+          (actual) => actual + 1
+        )
+      }
+      className={`mx-auto h-24 w-24 object-contain ${
+        !habilitado
+          ? "grayscale-[35%] brightness-90"
+          : ""
+      }`}
+    />
+  );
 }
 
 export default function Cotizar() {
@@ -509,9 +538,6 @@ const boquilla04Habilitada =
         nombre: nombreFilamentoDesdeClave(clave),
 
         clave,
-
-        img:
-          IMAGENES_FILAMENTO[clave] ?? null,
 
         habilitado: [
           "habilitada",
@@ -1645,21 +1671,10 @@ return (
           : "border-[var(--border-color)] hover:border-red-600"
       }`}
     >
-      {item.img ? (
-        <img
-          src={item.img}
-          alt={item.nombre}
-          className={`mx-auto h-24 w-24 object-contain ${
-            !item.habilitado
-              ? "grayscale-[35%] brightness-90"
-              : ""
-          }`}
-        />
-      ) : (
-        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-center text-[11px] font-medium text-[var(--text-muted)] opacity-70">
-          Próximamente
-        </div>
-      )}
+      <ImagenFilamento
+  nombre={item.nombre}
+  habilitado={item.habilitado}
+/>
 
       <p className="mt-2 text-center text-sm font-semibold">
         {item.nombre}
