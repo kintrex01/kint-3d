@@ -15,6 +15,14 @@ type OpcionConfiguracion = {
   comentario: string;
 };
 
+type BeneficioCodigo = {
+  codigo: string;
+  descuento: number;
+  vencimiento: string;
+  origen: string;
+  nombre: string;
+};
+
 type Configuracion = Record<
   string,
   OpcionConfiguracion
@@ -70,6 +78,11 @@ const [verificandoAlias, setVerificandoAlias] =
 
   const [puntosDisponibles, setPuntosDisponibles] =
   useState(0);
+
+  const [
+  beneficiosDisponibles,
+  setBeneficiosDisponibles,
+] = useState<BeneficioCodigo[]>([]);
 
 const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
@@ -127,6 +140,7 @@ setAliasDisponible(null);
 setMensajeAlias("");
 setNombre("");
 setPuntosDisponibles(0);
+setBeneficiosDisponibles([]);
 
 
   if (!emailLimpio) {
@@ -177,16 +191,24 @@ setPuntosDisponibles(0);
           );
 
         const data =
-          await response.json();
+  await response.json();
 
-        if (!response.ok || !data.ok) {
-          throw new Error(
-            data.error ||
-              "No se pudo consultar el cliente."
-          );
-        }
+if (!response.ok || !data.ok) {
+  throw new Error(
+    data.error ||
+      "No se pudo consultar el cliente."
+  );
+}
 
-        setEstadoCliente(
+setBeneficiosDisponibles(
+  Array.isArray(
+    data.beneficios?.codigos
+  )
+    ? data.beneficios.codigos
+    : []
+);
+
+setEstadoCliente(
           String(
             data.estado || ""
           )
@@ -245,12 +267,13 @@ setPuntosDisponibles(0);
         console.error(error);
 
         setClienteExiste(null);
-        setAlias("");
-        setAliasDisponible(null);
+setAlias("");
+setAliasDisponible(null);
+setBeneficiosDisponibles([]);
 
-        setMensajeAlias(
-          "No pudimos comprobar este correo."
-        );
+setMensajeAlias(
+  "No pudimos comprobar este correo."
+);
       } finally {
         setConsultandoCliente(false);
       }
@@ -1022,9 +1045,10 @@ setTelefono("");
     setArmado("");
     setAlisado("No requiero este servicio");
     setBoquilla("");
-    setComentarios("");
-    setCodigoDescuento("");
-    setPedidoPrioritario(false);
+setComentarios("");
+setCodigoDescuento("");
+setBeneficiosDisponibles([]);
+setPedidoPrioritario(false);
     setArchivos([]);
     setArchivoPesadoWhatsapp(false);
     setAceptaUsoImagenes(false);
@@ -2008,10 +2032,66 @@ return (
 
   <input
     value={codigoDescuento}
-    onChange={(e) => setCodigoDescuento(e.target.value.toUpperCase())}
+    onChange={(e) =>
+      setCodigoDescuento(
+        e.target.value.toUpperCase()
+      )
+    }
     className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
     placeholder="Ej: KINT10"
   />
+
+  {beneficiosDisponibles.length > 0 && (
+    <div className="mt-3 rounded-xl border border-[#87A4B5]/45 bg-[#B9D3E2]/10 p-4">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[#4C6C81] dark:text-[#87A4B5]">
+        Tenés beneficios disponibles
+      </p>
+
+      <div className="mt-3 space-y-2">
+        {beneficiosDisponibles.map(
+          (beneficio) => (
+            <div
+              key={beneficio.codigo}
+              className="flex items-center justify-between gap-4 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] px-4 py-3"
+            >
+              <div className="min-w-0">
+                <p className="font-black text-[var(--text-main)]">
+                  {beneficio.codigo}
+                </p>
+
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {beneficio.descuento}% OFF
+                  {beneficio.vencimiento
+                    ? ` · vence ${beneficio.vencimiento}`
+                    : ""}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setCodigoDescuento(
+                    beneficio.codigo
+                  )
+                }
+                className="shrink-0 rounded-lg border border-[#4C6C81]/50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#25435D] transition hover:bg-[#B9D3E2]/30 dark:text-[#B9D3E2]"
+              >
+                Usar
+              </button>
+            </div>
+          )
+        )}
+      </div>
+
+      {promocion?.activa && (
+        <p className="mt-3 text-[11px] leading-5 text-[var(--text-muted)]">
+          Si la promoción actual es mejor,
+          aplicaremos automáticamente el
+          beneficio más conveniente.
+        </p>
+      )}
+    </div>
+  )}
 </div>
 
         <div className="mb-8">
