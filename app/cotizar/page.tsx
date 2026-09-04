@@ -131,6 +131,37 @@ const [telefono, setTelefono] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
+  const [
+  pedidoRepetidoOrigen,
+  setPedidoRepetidoOrigen,
+] = useState("");
+
+const [
+  codigoRepetidoOrigen,
+  setCodigoRepetidoOrigen,
+] = useState("");
+
+const [
+  archivosRepetidos,
+  setArchivosRepetidos,
+] = useState<
+  {
+    tipo: string;
+    nombre: string;
+    link: string;
+    id: string;
+  }[]
+>([]);
+
+const [
+  cargandoRepeticion,
+  setCargandoRepeticion,
+] = useState(false);
+
+const [
+  errorRepeticion,
+  setErrorRepeticion,
+] = useState("");
 const [aceptaUsoImagenes, setAceptaUsoImagenes] =
   useState(false);
 
@@ -470,6 +501,205 @@ setPromocion(data.promocion || null);
   cargarConfiguracion();
 }, []);
 
+useEffect(() => {
+  if (cargandoConfiguracion) {
+    return;
+  }
+
+  const parametros =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  const pedido =
+    String(
+      parametros.get(
+        "repetirPedido"
+      ) || ""
+    ).trim();
+
+  const codigo =
+    String(
+      parametros.get(
+        "codigo"
+      ) || ""
+    ).trim();
+
+  if (!pedido || !codigo) {
+    return;
+  }
+
+  let cancelado = false;
+
+  async function cargarPedidoAnterior() {
+    setCargandoRepeticion(true);
+    setErrorRepeticion("");
+
+    try {
+      const response =
+        await fetch(
+          `/api/pedidos?tipo=repetir_pedido&pedido=${encodeURIComponent(
+            pedido
+          )}&codigo=${encodeURIComponent(
+            codigo
+          )}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !data.ok
+      ) {
+        throw new Error(
+          data.error ||
+            "No se pudo cargar el pedido anterior."
+        );
+      }
+
+      if (cancelado) {
+        return;
+      }
+
+      const datos =
+        data.datos || {};
+
+      setPedidoRepetidoOrigen(
+        String(
+          data.pedidoOrigen ||
+            pedido
+        )
+      );
+
+      setCodigoRepetidoOrigen(
+        codigo
+      );
+
+      setEmail(
+        String(
+          datos.email || ""
+        )
+      );
+
+      setTelefono(
+        String(
+          datos.telefono || ""
+        )
+      );
+
+      const escalaAnterior =
+        String(
+          datos.escala || ""
+        )
+          .replace(/^'/, "")
+          .trim();
+
+      const escalasNormales = [
+        "1:50",
+        "1:75",
+        "1:100",
+        "1:200",
+        "1:250",
+        "1:500",
+        "1:1000",
+        "No es necesario",
+      ];
+
+      if (
+        escalasNormales.includes(
+          escalaAnterior
+        )
+      ) {
+        setEscala(
+          escalaAnterior
+        );
+
+        setEscalaPersonalizada(
+          ""
+        );
+      } else if (
+        /^1:\d+(?:[.,]\d+)?$/.test(
+          escalaAnterior
+        )
+      ) {
+        setEscala(
+          "Otra escala"
+        );
+
+        setEscalaPersonalizada(
+          escalaAnterior.replace(
+            /^1:/,
+            ""
+          )
+        );
+      }
+
+      setColor(
+        String(
+          datos.color || ""
+        )
+          .split(",")
+          .map(
+            (item) =>
+              item.trim()
+          )
+          .filter(Boolean)
+      );
+
+      setArmado(
+        String(
+          datos.armado || ""
+        )
+      );
+
+      setAlisado(
+        String(
+          datos.alisado ||
+            "No requiero este servicio"
+        )
+      );
+
+      setBoquilla(
+        String(
+          datos.boquilla || ""
+        )
+      );
+
+      setArchivosRepetidos(
+        Array.isArray(
+          data.archivos
+        )
+          ? data.archivos
+          : []
+      );
+
+    } catch (error) {
+      console.error(error);
+
+      setErrorRepeticion(
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el pedido anterior."
+      );
+
+    } finally {
+      if (!cancelado) {
+        setCargandoRepeticion(false);
+      }
+    }
+  }
+
+  cargarPedidoAnterior();
+
+  return () => {
+    cancelado = true;
+  };
+
+}, [cargandoConfiguracion]);
 
 const estadoAceptarPedidos = String(
   configuracion.aceptar_pedidos?.valor || ""
@@ -1014,10 +1244,17 @@ if (archivos.length > 0) {
     const response = await fetch("/api/pedidos", {
       method: "POST",
       body: JSON.stringify({
-        nombre,
-email,
-alias,
-telefono,
+  nombre,
+  email,
+  alias,
+  telefono,
+
+  repetirPedidoOrigen:
+    pedidoRepetidoOrigen,
+
+  repetirCodigoOrigen:
+    codigoRepetidoOrigen,
+
         fechaEntrega,
         escala: escalaFinal,
         color: color.join(", "),
@@ -1075,6 +1312,12 @@ setComentarios("");
 setCodigoDescuento("");
 setBeneficiosDisponibles([]);
 setPedidoPrioritario(false);
+
+setPedidoRepetidoOrigen("");
+setCodigoRepetidoOrigen("");
+setArchivosRepetidos([]);
+setErrorRepeticion("");
+
     setArchivos([]);
     setArchivoPesadoWhatsapp(false);
     setAceptaUsoImagenes(false);
@@ -1224,6 +1467,58 @@ return (
       <p className="mt-3 text-sm font-semibold text-[var(--text-main)]">
         {promocion.mensaje}
       </p>
+    )}
+  </div>
+)}
+
+{cargandoRepeticion && (
+  <div className="mb-8 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-5">
+    <p className="font-bold text-[var(--text-main)]">
+      Cargando pedido anterior...
+    </p>
+  </div>
+)}
+
+{errorRepeticion && (
+  <div className="mb-8 rounded-2xl border border-red-600 bg-red-600/10 p-5">
+    <p className="font-bold text-red-600">
+      {errorRepeticion}
+    </p>
+  </div>
+)}
+
+{pedidoRepetidoOrigen && (
+  <div className="mb-8 rounded-2xl border border-[#87A4B5]/50 bg-[#B9D3E2]/10 p-5">
+    <p className="text-xs font-black uppercase tracking-[0.16em] text-[#4C6C81] dark:text-[#87A4B5]">
+      Volver a pedir
+    </p>
+
+    <p className="mt-2 font-black text-[var(--text-main)]">
+      Pedido {pedidoRepetidoOrigen}
+    </p>
+
+    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+      Cargamos la configuración de tu pedido anterior.
+      Revisala antes de enviar la nueva cotización.
+    </p>
+
+    {archivosRepetidos.length > 0 && (
+      <div className="mt-4">
+        <p className="text-xs font-bold text-[var(--text-main)]">
+          Archivos que se reutilizarán:
+        </p>
+
+        {archivosRepetidos.map(
+          (archivo, index) => (
+            <p
+              key={index}
+              className="mt-1 text-xs text-[var(--text-muted)]"
+            >
+              • {archivo.nombre}
+            </p>
+          )
+        )}
+      </div>
     )}
   </div>
 )}

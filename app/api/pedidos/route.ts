@@ -47,6 +47,162 @@ async function llamarAppsScript(
   }
 }
 
+async function llamarAppsScriptGet(
+  parametros: Record<string, string>,
+  etapa: string
+) {
+  const baseUrl =
+    process.env.GOOGLE_APPS_SCRIPT_URL;
+
+  if (!baseUrl) {
+    throw new Error(
+      "Falta configurar GOOGLE_APPS_SCRIPT_URL en Vercel."
+    );
+  }
+
+  try {
+    const url =
+      new URL(baseUrl);
+
+    Object.entries(
+      parametros
+    ).forEach(
+      ([clave, valor]) => {
+        url.searchParams.set(
+          clave,
+          valor
+        );
+      }
+    );
+
+    const response =
+      await fetch(
+        url.toString(),
+        {
+          cache: "no-store",
+          redirect: "follow",
+        }
+      );
+
+    const text =
+      await response.text();
+
+    if (!response.ok) {
+      throw new Error(
+        `Apps Script respondió ${response.status}: ${text.slice(
+          0,
+          200
+        )}`
+      );
+    }
+
+    return text;
+
+  } catch (error: any) {
+    throw new Error(
+      `${etapa}: no se pudo conectar con Google Apps Script. ${
+        error?.message ||
+        "Error desconocido"
+      }`
+    );
+  }
+}
+
+export async function GET(
+  request: Request
+) {
+  try {
+    const url =
+      new URL(request.url);
+
+    const tipo =
+      String(
+        url.searchParams.get(
+          "tipo"
+        ) || ""
+      ).trim();
+
+    if (
+      tipo !==
+      "repetir_pedido"
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Consulta no válida.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const pedido =
+      String(
+        url.searchParams.get(
+          "pedido"
+        ) || ""
+      ).trim();
+
+    const codigo =
+      String(
+        url.searchParams.get(
+          "codigo"
+        ) || ""
+      ).trim();
+
+    const text =
+      await llamarAppsScriptGet(
+        {
+          tipo:
+            "repetir_pedido",
+          pedido,
+          codigo,
+        },
+        "Volver a pedir"
+      );
+
+    let data;
+
+    try {
+      data =
+        JSON.parse(text);
+    } catch {
+      throw new Error(
+        "Apps Script no devolvió JSON. Respuesta: " +
+          text.slice(
+            0,
+            300
+          )
+      );
+    }
+
+    return Response.json(
+      data,
+      {
+        status:
+          data.ok
+            ? 200
+            : 400,
+      }
+    );
+
+  } catch (error: any) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          error?.message ||
+          "No se pudo cargar el pedido anterior.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -114,10 +270,20 @@ telefono: String(body.telefono || ""),
       archivoNombre: String(body.archivoNombre || ""),
       archivoLink: String(body.archivoLink || ""),
       archivoId: String(body.archivoId || ""),
-      archivosOriginales: Array.isArray(body.archivosOriginales)
+      archivosOriginales: Array.isArray(
+  body.archivosOriginales
+)
   ? body.archivosOriginales
   : [],
-    };
+
+repetirPedidoOrigen: String(
+  body.repetirPedidoOrigen || ""
+),
+
+repetirCodigoOrigen: String(
+  body.repetirCodigoOrigen || ""
+),
+};
 
 if (!payload.usoImagenesAutorizado) {
   return Response.json(
@@ -129,7 +295,51 @@ if (!payload.usoImagenesAutorizado) {
     { status: 400 }
   );
 }
-    
+let pedidoAnterior: any =
+  null;
+
+if (
+  payload.repetirPedidoOrigen &&
+  payload.repetirCodigoOrigen
+) {
+  const textAnterior =
+    await llamarAppsScriptGet(
+      {
+        tipo:
+          "repetir_pedido",
+
+        pedido:
+          payload
+            .repetirPedidoOrigen,
+
+        codigo:
+          payload
+            .repetirCodigoOrigen,
+      },
+      "Validación del pedido anterior"
+    );
+
+  try {
+    pedidoAnterior =
+      JSON.parse(
+        textAnterior
+      );
+  } catch {
+    throw new Error(
+      "No se pudo validar el pedido anterior."
+    );
+  }
+
+  if (
+    !pedidoAnterior.ok
+  ) {
+    throw new Error(
+      pedidoAnterior.error ||
+        "No se pudo validar el pedido anterior."
+    );
+  }
+}    
+
     const text = await llamarAppsScript(
   {
     ...payload,
@@ -165,6 +375,100 @@ if (!payload.usoImagenesAutorizado) {
     : [];
 
 const archivosRegistrados = [];
+if (
+  pedidoAnterior &&
+  Array.isArray(
+    pedidoAnterior.archivos
+  )
+) {
+  for (
+    const archivo of
+      pedidoAnterior.archivos
+  ) {
+    const rutaAnterior =
+      String(
+        archivo.id || ""
+      ).trim();
+
+    const nombreAnterior =
+      String(
+        archivo.nombre || ""
+      ).trim();
+
+    /*
+     * Los archivos actuales de
+     * Supabase tienen una ruta
+     * tipo:
+     *
+     * KNT-0001/uuid/modelo.stl
+     */
+    if (
+      !rutaAnterior ||
+      !rutaAnterior.includes("/")
+    ) {
+      continue;
+    }
+
+    const nombreBase =
+      nombreAnterior
+        .replace(
+          /^KNT-\d+-/i,
+          ""
+        )
+        .trim() ||
+      "archivo";
+
+    const nombreNuevo =
+      `${data.pedido}-${nombreBase}`;
+
+    const rutaNueva =
+      `${data.pedido}/${randomUUID()}/${nombreNuevo}`;
+
+    const {
+      error: copyError,
+    } =
+      await supabase.storage
+        .from(
+          "kint-archivos"
+        )
+        .copy(
+          rutaAnterior,
+          rutaNueva
+        );
+
+    if (copyError) {
+      throw new Error(
+        "No se pudo copiar el archivo del pedido anterior: " +
+          copyError.message
+      );
+    }
+
+    const linkNuevo =
+      supabase.storage
+        .from(
+          "kint-archivos"
+        )
+        .getPublicUrl(
+          rutaNueva
+        )
+        .data.publicUrl;
+
+    archivosRegistrados.push({
+      tipo:
+        archivo.tipo ||
+        "Original",
+
+      nombreArchivo:
+        nombreNuevo,
+
+      link:
+        linkNuevo,
+
+      idDrive:
+        rutaNueva,
+    });
+  }
+}
 
 for (const archivo of archivosOriginales) {
   const archivoId = String(
