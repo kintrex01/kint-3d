@@ -12,8 +12,37 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Kint 3D",
-  description: "Impresión 3D profesional",
+  metadataBase: new URL("https://kint3d.com"),
+
+  title: {
+    default:
+      "Kint 3D | Impresión 3D y Maquetas en Uruguay",
+    template:
+      "%s | Kint 3D",
+  },
+
+  description:
+    "Servicio de impresión 3D en Uruguay para piezas, prototipos y maquetas. Cotizá online y utilizá herramientas gratuitas de escala e imprimibilidad.",
+
+  alternates: {
+    canonical: "/",
+  },
+
+  openGraph: {
+    title:
+      "Kint 3D | Impresión 3D y Maquetas en Uruguay",
+    description:
+      "Impresión 3D, maquetas, piezas, prototipos y herramientas gratuitas para preparar modelos en Uruguay.",
+    url: "https://kint3d.com",
+    siteName: "Kint 3D",
+    locale: "es_UY",
+    type: "website",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
