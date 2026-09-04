@@ -30,6 +30,9 @@ const [topKint, setTopKint] =
 const [topKintHabilitado, setTopKintHabilitado] =
   useState(false);
 
+  const [mostrarColores, setMostrarColores] =
+  useState(false);
+
 const [promocion, setPromocion] =
   useState<{
     activa: boolean;
@@ -531,6 +534,8 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   </Link>
 </div>
 
+
+
       <section className="kint-services-section">
   <div className="w-full md:w-[600px]">
     <div className="kint-services-card px-0 py-0">
@@ -597,50 +602,8 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   <EstadisticasInicio />
 </div>
 
-<section className="relative z-20 px-6 py-12">
-  <div className="mx-auto max-w-5xl">
-    <div className="grid overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)] md:grid-cols-[380px_1fr]">
 
-      <div className="relative h-[220px] overflow-hidden md:h-[280px]">
-        <img
-          src="/colores/coleccion-colores-kint.jpg"
-          alt="Colores de filamento para impresión 3D en Kint 3D Uruguay"
-          className="h-full w-full object-cover"
-        />
-      </div>
 
-      <div className="flex flex-col justify-center p-7 md:p-9">
-        <p className="text-[9px] font-black uppercase tracking-[0.28em] text-red-600">
-          Colores disponibles
-        </p>
-
-        <h2 className="mt-3 text-2xl font-black text-[var(--text-main)]">
-          Elegí el color de tu impresión.
-        </h2>
-
-        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
-          Más de 15 colores y distintos acabados para adaptar
-          cada pieza a tu proyecto.
-        </p>
-
-        <div className="mt-5 flex flex-wrap items-center gap-5">
-          <Link
-            href="/cotizar"
-            className="inline-flex items-center gap-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--blue-main)] transition hover:text-red-600"
-          >
-            Ver colores y cotizar
-            <span>→</span>
-          </Link>
-
-          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            15+ colores
-          </span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
 
       <section className="relative z-20 px-6 pt-40 pb-24 bg-transparent">
         <div className="mx-auto max-w-6xl text-center">
@@ -707,9 +670,159 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
       {/* El fondo animado termina aquí, junto con toda la portada. */}
 </section>
 
+<div className="relative z-20 border-t border-[var(--border-color)] pt-14">
+  <div className="mx-auto w-full max-w-[900px] px-6">
+<Link
+  href="/cotizar"
+  className="group block w-full"
+>
+  <div
+    className="
+      grid
+      overflow-hidden
+      rounded-[22px]
+      border
+      border-[var(--border-color)]
+      bg-white/55
+      shadow-[0_14px_45px_rgba(37,67,93,0.10)]
+      backdrop-blur-xl
+      transition-all
+      duration-300
+
+      hover:-translate-y-1
+      hover:border-[var(--blue-soft)]
+      hover:shadow-[0_20px_55px_rgba(37,67,93,0.16)]
+
+      dark:bg-[#07172b]/55
+
+      sm:grid-cols-[220px_1fr]
+    "
+  >
+    {/* FOTO */}
+    <div className="relative h-[145px] overflow-hidden sm:h-full">
+      <img
+        src="/colores/colores-filamentos.png"
+        alt="Muestras reales de colores de filamento para impresión 3D en Kint 3D"
+        className="
+          h-full
+          w-full
+          object-cover
+          transition-transform
+          duration-700
+          group-hover:scale-[1.035]
+        "
+      />
+
+      <div
+        className="
+          pointer-events-none
+          absolute
+          inset-0
+          bg-gradient-to-r
+          from-transparent
+          via-transparent
+          to-white/15
+          dark:to-[#07172b]/20
+        "
+      />
+    </div>
+
+    {/* CONTENIDO */}
+    <div className="flex items-center justify-between gap-5 px-6 py-5">
+      <div className="min-w-0">
+
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-[var(--text-muted)]">
+            Paleta Kint
+          </p>
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h3 className="text-xl font-black text-[var(--text-main)]">
+            15+ colores disponibles
+          </h3>
+
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--blue-main)]">
+            Muestras reales
+          </span>
+        </div>
+
+        <p className="mt-1.5 text-[13px] leading-5 text-[var(--text-muted)]">
+          Elegí uno o combiná varios colores al preparar tu cotización.
+        </p>
+
+        {/* PALETA VISUAL */}
+        <div className="mt-4 flex items-center gap-1.5">
+          {[
+            "#E7E7E3",
+            "#FFFFFF",
+            "#9DA3A8",
+            "#44484C",
+            "#151515",
+            "#82513D",
+            "#C6A152",
+            "#F0D400",
+            "#E31B23",
+            "#687361",
+            "#148C67",
+            "#20BCA3",
+            "#B88BD2",
+            "#592478",
+            "#1689E8",
+          ].map((tono, index) => (
+            <span
+              key={index}
+              className="
+                h-3
+                w-3
+                rounded-full
+                border
+                border-black/10
+                shadow-sm
+              "
+              style={{
+                backgroundColor: tono,
+              }}
+            />
+          ))}
+        </div>
+
+      </div>
+
+      <span
+        className="
+          flex
+          h-10
+          w-10
+          shrink-0
+          items-center
+          justify-center
+          rounded-full
+          border
+          border-[var(--border-color)]
+          text-lg
+          text-[var(--blue-main)]
+          transition-all
+          duration-300
+
+          group-hover:border-[var(--blue-main)]
+          group-hover:bg-[var(--blue-main)]
+          group-hover:text-white
+        "
+      >
+        →
+      </span>
+    </div>
+  </div>
+</Link>
+  </div>
+</div>
+
       <section
   id="resenas"
-  className="border-t border-[var(--border-color)] px-6 py-24"
+  className="px-6 py-24"
 >
   <div className="mx-auto max-w-6xl text-center">
     <p className="mb-4 text-sm font-bold uppercase tracking-[0.45em] text-red-600">
