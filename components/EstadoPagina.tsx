@@ -117,6 +117,11 @@ export default function EstadoPagina() {
     };
   }, []);
 
+  // El panel de admin no muestra avisos públicos.
+  if (pathname.startsWith("/admin")) {
+    return null;
+  }
+
   const estadoPaginaExiste =
     Boolean(configuracion?.estado_pagina);
 

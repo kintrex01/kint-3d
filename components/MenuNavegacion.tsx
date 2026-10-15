@@ -365,7 +365,8 @@ export default function MenuNavegacion() {
 
   const ocultarMenu =
     pathname.startsWith("/editar-resena") ||
-    pathname.startsWith("/resena");
+    pathname.startsWith("/resena") ||
+    pathname.startsWith("/admin");
 
   useEffect(() => {
     if (!abierto) {
