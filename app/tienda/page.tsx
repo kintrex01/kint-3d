@@ -30,6 +30,7 @@ import {
 } from "react";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import ThemeToggle from "@/components/ThemeToggle";
+import CalendarioEntrega from "@/components/CalendarioEntrega";
 
 type Foto = {
   url: string;
@@ -867,6 +868,7 @@ export default function TiendaPage() {
   const [reintento, setReintento] = useState(0);
 
   const [fechaEntrega, setFechaEntrega] = useState("");
+  const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [modalidad, setModalidad] = useState<Modalidad | "">("");
   const [comprobante, setComprobante] = useState<File | null>(null);
@@ -1223,6 +1225,8 @@ export default function TiendaPage() {
     ? "Comprobando el nombre de usuario..."
     : clienteExiste === false && aliasDisponible !== true
     ? mensajeAlias || "Elegí otro nombre de usuario."
+    : fechaEntrega && diasBloqueados.includes(fechaEntrega)
+    ? "Ese día no hacemos entregas. Elegí otra fecha."
     : fechaEntrega && fechaEntrega < hoy
     ? "La fecha de entrega no puede ser anterior a hoy."
     : "";
@@ -2186,7 +2190,7 @@ export default function TiendaPage() {
                     </label>
                   )}
 
-                  <label className="block">
+                  <div>
                     <span className={CLASE_ETIQUETA}>
                       Fecha de entrega (opcional)
                     </span>
@@ -2194,16 +2198,12 @@ export default function TiendaPage() {
                       Indicá para cuándo los necesitás. Si no tenés
                       una fecha exacta, podés dejar este campo vacío.
                     </span>
-                    <input
-                      type="date"
-                      value={fechaEntrega}
-                      min={hoy}
-                      onChange={(evento) =>
-                        setFechaEntrega(evento.target.value)
-                      }
-                      className={`${CLASE_INPUT} dark:[color-scheme:dark]`}
+                    <CalendarioEntrega
+                      valor={fechaEntrega}
+                      onCambiar={setFechaEntrega}
+                      onBloqueados={setDiasBloqueados}
                     />
-                  </label>
+                  </div>
 
                   <label className="block">
                     <span className={CLASE_ETIQUETA}>
