@@ -571,3 +571,42 @@ html:not(.dark) {
 
   --kint-highlight: #25435d;
 }
+/* BOTÓN DE LA TIENDA EN EL INICIO: destacado en rojo */
+
+.kint-soft-btn.kint-tienda-btn {
+  border: 1px solid rgba(220, 38, 38, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(220, 38, 38, 0.18),
+    0 12px 32px rgba(220, 38, 38, 0.28);
+  animation: kint-tienda-brillo 2.8s ease-in-out infinite;
+}
+
+html:not(.dark) .kint-soft-btn.kint-tienda-btn {
+  border: 1px solid rgba(220, 38, 38, 0.75);
+  box-shadow: 0 14px 34px rgba(220, 38, 38, 0.2);
+}
+
+.kint-tienda-btn > span {
+  color: #dc2626;
+}
+
+.kint-tienda-badge {
+  border-radius: 999px;
+  background: #dc2626;
+  padding: 3px 8px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: #ffffff;
+}
+
+@keyframes kint-tienda-brillo {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18), 0 12px 32px rgba(220, 38, 38, 0.22); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12), 0 14px 40px rgba(220, 38, 38, 0.4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kint-soft-btn.kint-tienda-btn {
+    animation: none;
+  }
+}

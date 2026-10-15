@@ -512,9 +512,25 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
     Consultar pedido <span>→</span>
   </Link>
 
+  {/*
+    * Tienda destacada: borde y brillo rojos + etiqueta "Nuevo".
+    * Se usa <b> y no <span>, porque .kint-soft-btn span
+    * agranda todos los span a 24px (es el estilo de la flecha).
+    */}
+  <Link
+    href="/tienda"
+    className="kint-soft-btn kint-tienda-btn"
+  >
+    <div className="flex items-center gap-3">
+      Tienda de llaveros
+      <b className="kint-tienda-badge">Nuevo</b>
+    </div>
+    <span>→</span>
+  </Link>
+
   <Link
     href="/tutorial"
-    className="kint-soft-btn md:col-span-2"
+    className="kint-soft-btn"
   >
     Guía para preparar mi modelo <span>→</span>
   </Link>

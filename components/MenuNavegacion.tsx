@@ -12,6 +12,7 @@ import {
   Package,
   Ruler,
   Send,
+  ShoppingBag,
   X,
 } from "lucide-react";
 import {
@@ -100,6 +101,12 @@ const enlacesPrincipales: EnlaceMenu[] = [
     nombre: "Cotizar impresión",
     href: "/cotizar",
     icono: Send,
+  },
+  {
+    nombre: "Tienda de llaveros",
+    href: "/tienda",
+    icono: ShoppingBag,
+    etiqueta: "Nuevo",
   },
   {
     nombre: "Consultar pedido",
