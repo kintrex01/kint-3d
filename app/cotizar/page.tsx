@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import CalendarioEntrega from "@/components/CalendarioEntrega";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1811,12 +1812,13 @@ return (
             Indicá para cuándo necesitás la pieza. Si no tenés una fecha exacta,
             podés dejar este campo vacío.
           </p>
-          <input
-            type="date"
-            value={fechaEntrega}
-            onChange={(e) => setFechaEntrega(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-          />
+          {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
+          <div className="rounded-2xl bg-[var(--kint-panel)]">
+            <CalendarioEntrega
+              valor={fechaEntrega}
+              onCambiar={setFechaEntrega}
+            />
+          </div>
         </div>
 
 {pedidoUrgenteHabilitado && (
