@@ -79,6 +79,10 @@ export default function LoginAdmin() {
               value={contrasena}
               onChange={(evento) => setContrasena(evento.target.value)}
               autoComplete="current-password"
+              // En el celular: sin mayúscula automática ni autocorrector.
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
               className="w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 pr-12 text-base text-[var(--text-main)] outline-none focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#1f3f85]/20"
             />

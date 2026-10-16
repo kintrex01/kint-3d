@@ -76,12 +76,13 @@ export function tokenValido(token: string | undefined) {
 }
 
 export function contrasenaCorrecta(intento: string) {
-  const correcta = process.env.ADMIN_PASSWORD || "";
+  // Sin espacios de los costados: el teclado del celular a veces agrega uno.
+  const correcta = (process.env.ADMIN_PASSWORD || "").trim();
 
   // Sin contraseña configurada no se puede entrar.
   if (correcta.length < 8) return false;
 
-  return iguales(intento, correcta);
+  return iguales(intento.trim(), correcta);
 }
 
 export async function sesionActiva() {
