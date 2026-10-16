@@ -19,6 +19,7 @@ type ItemEntrada = {
   producto?: unknown;
   cantidad?: unknown;
   cadena?: unknown;
+  color?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
             producto: String(item?.producto || ""),
             cantidad: Number(item?.cantidad) || 0,
             cadena: String(item?.cadena || ""),
+            color: String(item?.color || ""),
           }))
       : [];
 

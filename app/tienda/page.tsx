@@ -2296,7 +2296,11 @@ export default function TiendaPage() {
                       <button
                         key={opcion}
                         type="button"
-                        onClick={() => setModalidad(opcion)}
+                        onClick={() => {
+                          // Otro monto: es otra compra para el anti-duplicados.
+                          if (opcion !== modalidad) setIdCompra("");
+                          setModalidad(opcion);
+                        }}
                         aria-pressed={elegida}
                         className={`rounded-2xl border p-4 text-left transition-all ${
                           elegida
