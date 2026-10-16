@@ -34,6 +34,8 @@ export async function POST(request: Request) {
         nombre: String(body?.nombre || "").slice(0, 80),
         alias: String(body?.alias || "").slice(0, 40),
         telefono: String(body?.telefono || "").slice(0, 24),
+        // Aparecer o no en el ranking Top Kint (solo al guardar).
+        topKint: typeof body?.topKint === "boolean" ? body.topKint : undefined,
       }),
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       cache: "no-store",

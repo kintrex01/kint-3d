@@ -940,7 +940,7 @@ const camposPendientes = [
     !consultandoCliente,
 },
 {
-  nombre: "Alias",
+  nombre: "Nombre público",
   completo:
     Boolean(alias.trim()) &&
     aliasDisponible === true &&
@@ -1153,7 +1153,7 @@ if (
 
 if (!alias.trim()) {
   alert(
-    "Elegí tu alias público."
+    "Elegí tu nombre público."
   );
   return;
 }
@@ -1666,12 +1666,13 @@ return (
   <>
     <div className="mb-6">
       <label className="mb-2 block font-semibold text-[var(--text-main)]">
-        Nombre de usuario público *
+        Nombre público *
       </label>
 
       <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
-        Este nombre será visible públicamente y quedará asociado
-        a tu correo para futuros pedidos.
+        Es el nombre que se ve en tus reseñas y en el ranking Top Kint
+        (tu correo y tu celular nunca se muestran). Queda asociado a tu
+        cuenta y lo podés cambiar en Ajustes.
       </p>
 
       <input
@@ -1687,7 +1688,7 @@ return (
             ? "border-green-600"
             : "border-[var(--border-color)]"
         }`}
-        placeholder="Tu nombre de usuario"
+        placeholder="Ej.: Vale Arquitecta"
       />
 
       {verificandoAlias && (
@@ -1706,7 +1707,7 @@ return (
             }`}
           >
             {aliasDisponible
-              ? "✓ Nombre de usuario disponible."
+              ? "✓ Nombre público disponible."
               : `✕ ${mensajeAlias}`}
           </p>
         )}

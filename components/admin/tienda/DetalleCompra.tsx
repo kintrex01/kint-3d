@@ -110,6 +110,11 @@ export function DetalleCompra({
                 <span className="font-bold">
                   {linea.cantidad} × {linea.producto}
                 </span>
+                {linea.variante && (
+                  <span className="block text-xs font-bold text-[var(--text-main)]">
+                    Variante: {linea.variante}
+                  </span>
+                )}
                 {linea.color && (
                   <span className="block text-xs text-[var(--text-muted)]">
                     Color {linea.color}

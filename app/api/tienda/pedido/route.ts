@@ -21,6 +21,7 @@ type ItemEntrada = {
   producto?: unknown;
   cantidad?: unknown;
   cadena?: unknown;
+  variante?: unknown;
   // Formato anterior: un solo color como texto.
   color?: unknown;
   colores?: unknown;
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
               producto: String(item?.producto || ""),
               cantidad: Number(item?.cantidad) || 0,
               cadena: String(item?.cadena || ""),
+            variante: String(item?.variante || "").slice(0, 60),
               colores,
               // Para versiones de Apps Script que solo leen "color".
               color: colores[0] || "",

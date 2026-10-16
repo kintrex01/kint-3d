@@ -25,6 +25,7 @@ export type LineaCompraTienda = {
   cantidad: number;
   cadena: string;
   color?: string;
+  variante?: string;
   comentario?: string;
   subtotal: number;
 };
@@ -397,9 +398,10 @@ export default function SeguimientoTienda({
                 <strong>
                   {linea.cantidad} × {linea.producto}
                 </strong>
-                {(linea.color || linea.cadena) && (
+                {(linea.variante || linea.color || linea.cadena) && (
                   <span className="block text-xs text-[var(--text-muted)]">
                     {[
+                      linea.variante || "",
                       linea.color ? `Color ${linea.color}` : "",
                       linea.cadena ? `Cadena ${linea.cadena}` : "",
                     ]

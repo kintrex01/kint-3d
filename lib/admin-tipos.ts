@@ -141,6 +141,7 @@ export type LineaCompraTienda = {
   cantidad: number;
   cadena: string;
   color?: string; // columna "Colores" de Tienda, si existe
+  variante?: string; // columna "Variante" de Tienda, si existe
   subtotal: number;
 };
 
@@ -177,6 +178,8 @@ export type ProductoAdmin = {
   colores: string[]; // los de la foto (columna "Colores" de Productos)
   minColores: number; // 0 = vacío (la tienda usa 1)
   maxColores: number; // 0 = vacío (la tienda usa 2)
+  // "Entero", "Mordido"...: el cliente tiene que elegir una ([] = sin variantes).
+  variantes: string[];
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };

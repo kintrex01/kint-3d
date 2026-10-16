@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
+  ArrowUpDown,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -61,6 +62,11 @@ type Producto = {
   minColores: number;
   maxColores: number;
   resenas: ResenaProducto[];
+  // "Entero, Mordido, Con relleno": si hay, el cliente tiene que elegir una.
+  variantes: string[];
+  // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
+  orden: number;
+  vendidos: number;
 };
 
 type ResenaProducto = {
@@ -85,6 +91,8 @@ type Catalogo = {
 
 type LineaCarrito = {
   producto: string;
+  // Variante elegida ("" si el producto no tiene).
+  variante: string;
   cadena: string;
   // Los elegidos o, si no tocó nada, los de las fotos.
   colores: string[];
@@ -93,6 +101,7 @@ type LineaCarrito = {
 };
 
 type OpcionesLinea = {
+  variante: string;
   cadena: string;
   colores: string[];
   comentario: string;
@@ -222,12 +231,14 @@ function redondear(valor: number) {
  */
 function claveLinea(linea: {
   producto: string;
+  variante?: string;
   cadena: string;
   colores?: string[];
   comentario?: string;
 }) {
   return JSON.stringify([
     linea.producto,
+    linea.variante || "",
     linea.cadena,
     linea.colores || [],
     linea.comentario || "",
@@ -236,6 +247,7 @@ function claveLinea(linea: {
 
 /* "Colores Rojo + Negro · Cadena Plateada · “comentario”" para mostrar una línea. */
 function detalleLinea(linea: {
+  variante?: string;
   cadena: string;
   colores?: string[];
   comentario?: string;
@@ -243,6 +255,7 @@ function detalleLinea(linea: {
   const colores = linea.colores || [];
 
   return [
+    linea.variante || "",
     colores.length
       ? `${colores.length > 1 ? "Colores" : "Color"} ${colores.join(" + ")}`
       : "",
@@ -404,13 +417,20 @@ function ajustarCarrito(
 
     const cantidad = Math.floor(Number(linea?.cantidad) || 0);
 
-    if (!cadenaValida || !coloresValidos || cantidad < 1) continue;
+    // Producto con variantes: la línea tiene que traer una que siga existiendo.
+    const variante = String(linea?.variante || "");
+    const varianteValida = producto.variantes.length
+      ? producto.variantes.includes(variante)
+      : variante === "";
+
+    if (!cadenaValida || !coloresValidos || !varianteValida || cantidad < 1) continue;
 
     const existente = resultado.find(
       (otra) =>
         claveLinea(otra) ===
         claveLinea({
           producto: producto.nombre,
+          variante,
           cadena,
           colores,
           comentario,
@@ -427,6 +447,7 @@ function ajustarCarrito(
 
     resultado.push({
       producto: producto.nombre,
+      variante,
       cadena,
       colores,
       comentario,
@@ -516,6 +537,9 @@ function normalizarCatalogo(data: any): Catalogo {
               1,
               Math.min(Math.floor(Number(producto.minColores) || 1), maxColores)
             ),
+            variantes: listaDeTextos(producto.variantes),
+            orden: Number(producto.orden) || 0,
+            vendidos: Number(producto.vendidos) || 0,
             resenas: Array.isArray(producto.resenas)
               ? producto.resenas
                   .map((resena) => ({
@@ -536,8 +560,8 @@ function normalizarCatalogo(data: any): Catalogo {
  * Grupo del precio por mayor: mismo producto y mismos colores
  * (la cadena puede variar). Igual que kintTiendaArmarLineas_.
  */
-function grupoMayor(producto: string, colores: string[]) {
-  return `${producto}::${[...colores]
+function grupoMayor(producto: string, colores: string[], variante = "") {
+  return `${producto}::${variante.toLocaleLowerCase("es")}::${[...colores]
     .map((color) => color.toLocaleLowerCase("es"))
     .sort()
     .join("+")}`;
@@ -912,6 +936,7 @@ function TarjetaProducto({
 
   const cadenaElegida = producto.cadenas.includes(cadena) ? cadena : "";
   const faltaCadena = producto.cadenas.length > 0 && !cadenaElegida;
+  const conVariantes = producto.variantes.length > 0;
 
   const indice = Math.min(indiceFoto, Math.max(0, fotos.length - 1));
   const fotoActual = fotos[indice];
@@ -1053,15 +1078,20 @@ function TarjetaProducto({
 
           <button
             type="button"
-            disabled={deshabilitada || faltaCadena}
+            disabled={deshabilitada || (faltaCadena && !conVariantes)}
             title={faltaCadena ? "Elegí la cadena" : undefined}
             onClick={() => {
+              // Con variantes, se elige en la ficha (es obligatorio).
+              if (conVariantes) {
+                onAbrir(indice);
+                return;
+              }
               onAgregar(cadenaElegida, cantidad);
               setAgregado(true);
               setCantidad(1);
             }}
             className={`flex h-10 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
-              deshabilitada || faltaCadena ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
+              deshabilitada || (faltaCadena && !conVariantes) ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
             }`}
           >
             {agregado ? (
@@ -1069,6 +1099,8 @@ function TarjetaProducto({
                 <Check size={15} strokeWidth={2.8} />
                 Agregado
               </>
+            ) : conVariantes ? (
+              "Elegir variante"
             ) : faltaCadena ? (
               "Elegí la cadena"
             ) : (
@@ -1531,7 +1563,7 @@ function FichaProducto({
   catalogo: Catalogo;
   enCarrito: number;
   // Unidades ya en el carrito con esos colores (cuentan para el por mayor).
-  enCarritoConColores: (colores: string[]) => number;
+  enCarritoConColores: (colores: string[], variante: string) => number;
   deshabilitada: boolean;
   fotoInicial: number;
   // Devuelve el error si no se pudo agregar ("" si salió bien).
@@ -1546,6 +1578,8 @@ function FichaProducto({
   const [visor, setVisor] = useState(false);
 
   // Cadena sin elegir y colores de la foto hasta que el cliente los cambie.
+  // Variante: obligatoria si el producto tiene.
+  const [variante, setVariante] = useState("");
   const [cadena, setCadena] = useState("");
   const [elegirColores, setElegirColores] = useState(false);
   const [colores, setColores] = useState<string[]>([]);
@@ -1655,9 +1689,13 @@ function FichaProducto({
       ? `Elegí ${maxColores} ${maxColores === 1 ? "color" : "colores"}.`
       : `Elegí de ${minColores} a ${maxColores} colores.`;
 
-  // Por mayor: mismo producto y mismos colores (la cadena puede variar).
+  const varianteElegida = producto.variantes.includes(variante) ? variante : "";
+  const faltaVariante = producto.variantes.length > 0 && !varianteElegida;
+
+  // Por mayor: mismo producto, variante y colores (la cadena puede variar).
   const coloresEfectivos = elegirColores && colores.length ? colores : coloresDefecto;
-  const unidadesProducto = enCarritoConColores(coloresEfectivos) + cantidad;
+  const unidadesProducto =
+    enCarritoConColores(coloresEfectivos, varianteElegida) + cantidad;
   const precioAplicado = precioUnitario(
     producto,
     unidadesProducto,
@@ -1667,6 +1705,8 @@ function FichaProducto({
 
   const aviso = deshabilitada
     ? "La tienda está en pausa: por ahora no se pueden agregar productos."
+    : faltaVariante
+    ? "Elegí la variante."
     : faltaCadena
     ? `Elegí la cadena (${producto.cadenas.join(" o ")}).`
     : faltanColores
@@ -1706,6 +1746,7 @@ function FichaProducto({
     if (aviso) return;
 
     const mensaje = onAgregar({
+      variante: varianteElegida,
       cadena: cadenaElegida,
       colores: coloresElegidos,
       comentario: comentario.trim(),
@@ -1896,6 +1937,48 @@ function FichaProducto({
                 <ShoppingBag size={12} strokeWidth={2.4} />
                 Ya tenés {enCarrito} en el carrito
               </p>
+            )}
+
+            {/* Variante: obligatoria, igual que la cadena. */}
+            {producto.variantes.length > 0 && (
+              <fieldset className="mt-6">
+                <legend className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                  Elegí la variante
+                  {faltaVariante && (
+                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] tracking-[0.12em] text-white">
+                      Obligatorio
+                    </span>
+                  )}
+                </legend>
+
+                <div className="flex flex-wrap gap-2">
+                  {producto.variantes.map((opcion) => {
+                    const activa = opcion === varianteElegida;
+
+                    return (
+                      <button
+                        key={opcion}
+                        type="button"
+                        aria-pressed={activa}
+                        onClick={() => {
+                          setError("");
+                          setVariante(opcion);
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-bold transition ${
+                          activa
+                            ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] text-[var(--text-main)]"
+                            : faltaVariante
+                            ? "border-dashed border-red-500/70 text-[var(--text-main)] hover:border-red-600 hover:bg-red-500/5"
+                            : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                        }`}
+                      >
+                        {opcion}
+                        {activa && <Check size={14} strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
             )}
 
             {/* Cadena: obligatoria, se marca en rojo hasta que la elija. */}
@@ -2279,7 +2362,168 @@ function esCancelacion(error: unknown) {
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* Orden y cantidad por fila                                           */
+/* ------------------------------------------------------------------ */
+
+type Orden = "destacados" | "vendidos" | "valorados" | "recientes" | "precio" | "nombre";
+
+const ORDENES: { valor: Orden; texto: string }[] = [
+  { valor: "destacados", texto: "Destacados" },
+  { valor: "vendidos", texto: "Más vendidos" },
+  { valor: "valorados", texto: "Mejor valorados" },
+  { valor: "recientes", texto: "Más nuevos" },
+  { valor: "precio", texto: "Precio" },
+  { valor: "nombre", texto: "Nombre (A-Z)" },
+];
+
+const CLASES_COLUMNAS: Record<number, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2",
+  3: "grid-cols-2 lg:grid-cols-3",
+  4: "grid-cols-2 lg:grid-cols-4",
+};
+
+const CLAVE_VISTA = "kint-tienda-vista-v1";
+
+function promedioResenas(producto: Producto) {
+  if (!producto.resenas.length) return 0;
+  return (
+    producto.resenas.reduce((suma, resena) => suma + resena.estrellas, 0) /
+    producto.resenas.length
+  );
+}
+
+/* Ordena una copia; "invertido" da vuelta el sentido natural de cada orden. */
+function ordenarProductos(productos: Producto[], orden: Orden, invertido: boolean) {
+  const lista = [...productos];
+  const comparar: Record<Orden, (a: Producto, b: Producto) => number> = {
+    destacados: (a, b) => a.orden - b.orden,
+    vendidos: (a, b) => b.vendidos - a.vendidos || a.orden - b.orden,
+    valorados: (a, b) =>
+      promedioResenas(b) - promedioResenas(a) ||
+      b.resenas.length - a.resenas.length ||
+      a.orden - b.orden,
+    recientes: (a, b) => b.orden - a.orden,
+    precio: (a, b) => a.precio - b.precio || a.orden - b.orden,
+    nombre: (a, b) => a.nombre.localeCompare(b.nombre, "es"),
+  };
+  lista.sort(comparar[orden]);
+  return invertido ? lista.reverse() : lista;
+}
+
+function leerVista(): { orden: Orden; invertido: boolean; columnas: number } {
+  const porDefecto = { orden: "destacados" as Orden, invertido: false, columnas: 0 };
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CLAVE_VISTA) || "null");
+    if (!guardada) return porDefecto;
+    return {
+      orden: ORDENES.some((opcion) => opcion.valor === guardada.orden)
+        ? guardada.orden
+        : "destacados",
+      invertido: guardada.invertido === true,
+      columnas: [1, 2, 3, 4].includes(guardada.columnas) ? guardada.columnas : 0,
+    };
+  } catch {
+    return porDefecto;
+  }
+}
+
+/* Barra arriba de los productos: ordenar, sentido y productos por fila. */
+function BarraVista({
+  orden,
+  invertido,
+  columnas,
+  onCambiar,
+}: {
+  orden: Orden;
+  invertido: boolean;
+  columnas: number;
+  onCambiar: (vista: { orden?: Orden; invertido?: boolean; columnas?: number }) => void;
+}) {
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <label className="sr-only" htmlFor="orden-tienda">
+          Ordenar productos
+        </label>
+        <select
+          id="orden-tienda"
+          value={orden}
+          onChange={(evento) => onCambiar({ orden: evento.target.value as Orden, invertido: false })}
+          className="h-10 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-3 text-sm font-bold text-[var(--text-main)] outline-none focus:border-[var(--kint-selected-border)]"
+        >
+          {ORDENES.map((opcion) => (
+            <option key={opcion.valor} value={opcion.valor}>
+              {opcion.texto}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => onCambiar({ invertido: !invertido })}
+          aria-label={invertido ? "Orden normal" : "Dar vuelta el orden"}
+          title={invertido ? "Orden normal" : "Dar vuelta el orden"}
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border text-[var(--text-main)] transition ${
+            invertido
+              ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)]"
+              : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] hover:border-[var(--kint-selected-border)]"
+          }`}
+        >
+          <ArrowUpDown size={16} />
+        </button>
+      </div>
+
+      <div
+        role="group"
+        aria-label="Productos por fila"
+        className="flex items-center gap-1 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-1"
+      >
+        {[1, 2, 3, 4].map((cantidad) => (
+          <button
+            key={cantidad}
+            type="button"
+            aria-pressed={columnas === cantidad}
+            onClick={() => onCambiar({ columnas: columnas === cantidad ? 0 : cantidad })}
+            title={`${cantidad} por fila`}
+            className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black transition ${
+              cantidad > 2 ? "hidden lg:block" : ""
+            } ${
+              columnas === cantidad
+                ? "bg-[var(--blue-main)] text-white"
+                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+            }`}
+          >
+            {cantidad}
+          </button>
+        ))}
+        <span className="px-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+          por fila
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function TiendaPage() {
+  const [vista, setVista] = useState<{ orden: Orden; invertido: boolean; columnas: number }>(() =>
+    typeof window === "undefined"
+      ? { orden: "destacados", invertido: false, columnas: 0 }
+      : leerVista()
+  );
+
+  function cambiarVista(cambio: Partial<typeof vista>) {
+    setVista((actual) => {
+      const nueva = { ...actual, ...cambio };
+      try {
+        localStorage.setItem(CLAVE_VISTA, JSON.stringify(nueva));
+      } catch {
+        // Sin localStorage: solo dura esta visita.
+      }
+      return nueva;
+    });
+  }
+
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorCatalogo, setErrorCatalogo] = useState("");
@@ -2545,7 +2789,7 @@ export default function TiendaPage() {
         setVerificacion({
           clave: claveAlias,
           disponible: false,
-          mensaje: "No pudimos verificar el nombre de usuario.",
+          mensaje: "No pudimos verificar el nombre público.",
           fallo: true,
         });
       }
@@ -2620,7 +2864,7 @@ export default function TiendaPage() {
 
     for (const linea of carrito) {
       if (!productosPorNombre.has(linea.producto)) continue;
-      const grupo = grupoMayor(linea.producto, linea.colores);
+      const grupo = grupoMayor(linea.producto, linea.colores, linea.variante);
       mapa.set(grupo, (mapa.get(grupo) || 0) + linea.cantidad);
     }
 
@@ -2636,7 +2880,7 @@ export default function TiendaPage() {
 
             const precio = precioUnitario(
               producto,
-              unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores)) || 0,
+              unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores, linea.variante)) || 0,
               catalogo
             );
 
@@ -2660,7 +2904,7 @@ export default function TiendaPage() {
     ? Array.from(
         new Map(
           carrito.map((linea) => [
-            grupoMayor(linea.producto, linea.colores),
+            grupoMayor(linea.producto, linea.colores, linea.variante),
             linea,
           ])
         ).entries()
@@ -2726,11 +2970,11 @@ export default function TiendaPage() {
     : necesitaTelefono && !telefonoValido(telefono)
     ? "Escribí tu celular (por ejemplo 099 123 456)."
     : clienteExiste === false && !aliasLimpio
-    ? "Elegí tu nombre de usuario."
+    ? "Elegí tu nombre público."
     : clienteExiste === false && verificandoAlias
-    ? "Comprobando el nombre de usuario..."
+    ? "Comprobando el nombre público..."
     : clienteExiste === false && aliasDisponible !== true
-    ? mensajeAlias || "Elegí otro nombre de usuario."
+    ? mensajeAlias || "Elegí otro nombre público."
     : fechaEntrega && diasBloqueados.includes(fechaEntrega)
     ? "Ese día no hacemos entregas. Elegí otra fecha."
     : fechaEntrega && fechaEntrega < hoy
@@ -2834,6 +3078,7 @@ export default function TiendaPage() {
 
     const nueva = {
       producto: producto.nombre,
+      variante: opciones.variante,
       cadena: opciones.cadena,
       // Sin elegir: van los de las fotos (así se ven en el carrito y la hoja).
       colores: opciones.colores.length
@@ -2982,6 +3227,7 @@ export default function TiendaPage() {
           total,
           items: lineas.map((linea) => ({
             producto: linea.producto,
+            variante: linea.variante,
             cadena: linea.cadena,
             colores: linea.colores,
             comentario: linea.comentario,
@@ -3352,8 +3598,20 @@ export default function TiendaPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 2xl:grid-cols-3">
-                {catalogo.productos.map((producto) => (
+              <>
+              <BarraVista
+                orden={vista.orden}
+                invertido={vista.invertido}
+                columnas={vista.columnas}
+                onCambiar={cambiarVista}
+              />
+              <div
+                className={`grid gap-5 ${
+                  CLASES_COLUMNAS[vista.columnas] ||
+                  "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
+                }`}
+              >
+                {ordenarProductos(catalogo.productos, vista.orden, vista.invertido).map((producto) => (
                   <TarjetaProducto
                     key={producto.nombre}
                     producto={producto}
@@ -3369,6 +3627,7 @@ export default function TiendaPage() {
                     }
                     onAgregar={(cadena, cantidad) =>
                       agregarAlCarrito(producto, {
+                        variante: "",
                         cadena,
                         colores: [],
                         comentario: "",
@@ -3378,6 +3637,7 @@ export default function TiendaPage() {
                   />
                 ))}
               </div>
+              </>
             )}
           </section>
         )}
@@ -3738,11 +3998,12 @@ export default function TiendaPage() {
                   {clienteExiste === false && (
                     <label className="block">
                       <span className={CLASE_ETIQUETA}>
-                        Nombre de usuario público
+                        Nombre público
                       </span>
                       <span className="mb-2 block text-[11px] leading-4 text-[var(--text-muted)]">
-                        Es tu cuenta Kint: queda asociada a tu correo
-                        para tus próximos pedidos y compras.
+                        Es el que se ve en tus reseñas y en el ranking
+                        Top Kint (tu correo y tu celular nunca se
+                        muestran). Lo podés cambiar en Ajustes.
                       </span>
                       <input
                         type="text"
@@ -4049,8 +4310,8 @@ export default function TiendaPage() {
           catalogo={catalogo}
           fotoInicial={ficha.foto}
           enCarrito={unidadesPorProducto.get(fichaProducto.nombre) || 0}
-          enCarritoConColores={(colores) =>
-            unidadesPorGrupo.get(grupoMayor(fichaProducto.nombre, colores)) || 0
+          enCarritoConColores={(colores, variante) =>
+            unidadesPorGrupo.get(grupoMayor(fichaProducto.nombre, colores, variante)) || 0
           }
           deshabilitada={!tiendaAbierta || enviando}
           onAgregar={(opciones) =>

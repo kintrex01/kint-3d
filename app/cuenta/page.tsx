@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   ChevronRight,
   Coins,
@@ -14,6 +13,8 @@ import {
   Mail,
   Package,
   ShoppingBag,
+  Star,
+  ThumbsUp,
   UserRound,
 } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -37,6 +38,15 @@ type PedidoCuenta = {
   link: string;
 };
 
+type ResenaCuenta = {
+  pedido: string;
+  fecha: string;
+  estrellas: number;
+  comentario: string;
+  publicada: boolean;
+  likes: number;
+};
+
 type Cuenta = {
   email: string;
   nombre: string;
@@ -48,6 +58,7 @@ type Cuenta = {
   puntosAcumulados: number;
   valorPunto: number;
   gastado: number;
+  resenas?: ResenaCuenta[];
   cantidadPedidos: number;
   cantidadCompras: number;
   pedidos: PedidoCuenta[];
@@ -76,7 +87,7 @@ function fecha(iso: string) {
     : dia.toLocaleDateString("es-UY", { day: "numeric", month: "short", year: "numeric" });
 }
 
-async function llamar(cuerpo: Record<string, string>) {
+async function llamar(cuerpo: Record<string, string | boolean>) {
   const response = await fetch("/api/cuenta", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -180,14 +191,8 @@ export default function CuentaPage() {
 
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-4 pb-20 pt-8 text-[var(--text-main)] sm:px-6">
-      <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-main)]"
-        >
-          <ArrowLeft size={16} />
-          Inicio
-        </Link>
+      {/* "‹ Inicio" ya lo pone la web arriba a la izquierda. */}
+      <div className="mx-auto flex max-w-2xl justify-end">
         <ThemeToggle />
       </div>
 
@@ -306,6 +311,7 @@ function PanelCuenta({
   const [nombre, setNombre] = useState(cuenta.nombre);
   const [alias, setAlias] = useState(cuenta.alias);
   const [telefono, setTelefono] = useState(cuenta.telefono);
+  const [topKint, setTopKint] = useState(cuenta.topKint);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -313,7 +319,8 @@ function PanelCuenta({
   const cambios =
     nombre.trim() !== cuenta.nombre ||
     alias.trim() !== cuenta.alias ||
-    telefono.trim() !== cuenta.telefono;
+    telefono.trim() !== cuenta.telefono ||
+    topKint !== cuenta.topKint;
 
   async function guardar() {
     setGuardando(true);
@@ -327,11 +334,13 @@ function PanelCuenta({
         nombre: nombre.trim(),
         alias: alias.trim(),
         telefono: telefono.trim(),
+        topKint,
       });
       onGuardada(data.cuenta);
       setNombre(data.cuenta.nombre);
       setAlias(data.cuenta.alias);
       setTelefono(data.cuenta.telefono);
+      setTopKint(data.cuenta.topKint);
       setMensaje("¡Listo! Guardamos tus cambios.");
     } catch (errorGuardar: unknown) {
       setError(errorGuardar instanceof Error ? errorGuardar.message : "No pudimos guardar.");
@@ -340,7 +349,8 @@ function PanelCuenta({
     }
   }
 
-  const valorPuntos = cuenta.puntos * (cuenta.valorPunto || 1);
+  const puntos = Number(cuenta.puntos) || 0;
+  const valorPuntos = puntos * (Number(cuenta.valorPunto) || 1);
 
   return (
     <div className="mt-8 space-y-5">
@@ -367,7 +377,7 @@ function PanelCuenta({
         <div className="relative mt-5 grid grid-cols-3 gap-2">
           <div className="rounded-2xl bg-white/[0.08] p-3 ring-1 ring-white/10">
             <Coins size={16} className="text-amber-300" />
-            <p className="mt-1 text-xl font-black tabular-nums">{cuenta.puntos}</p>
+            <p className="mt-1 text-xl font-black tabular-nums">{puntos}</p>
             <p className="text-[11px] leading-tight text-sky-100/80">
               Puntos Kint{valorPuntos > 0 ? ` · ${pesos(valorPuntos)}` : ""}
             </p>
@@ -384,7 +394,7 @@ function PanelCuenta({
           </div>
         </div>
 
-        {cuenta.puntos > 0 && (
+        {puntos > 0 && (
           <p className="relative mt-4 text-xs leading-5 text-sky-100/90">
             Usá tus puntos en tu próximo pedido de maqueta: se descuentan del precio.
           </p>
@@ -405,7 +415,10 @@ function PanelCuenta({
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
-              Alias (tu nombre de usuario público, 3 a 20 caracteres)
+              Nombre público
+            </span>
+            <span className="mb-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
+              Es el que se ve en tus reseñas y en el ranking Top Kint (3 a 20 caracteres).
             </span>
             <input value={alias} onChange={(evento) => setAlias(evento.target.value)} autoComplete="username" autoCapitalize="none" maxLength={20} className={CLASE_INPUT} />
           </label>
@@ -415,6 +428,30 @@ function PanelCuenta({
             </span>
             <input value={telefono} onChange={(evento) => setTelefono(evento.target.value)} type="tel" inputMode="tel" autoComplete="tel" placeholder="099 123 456" maxLength={24} className={CLASE_INPUT} />
           </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={topKint}
+            onClick={() => setTopKint((actual) => !actual)}
+            className="flex w-full items-center justify-between gap-4 rounded-xl border border-[var(--kint-panel-border)] px-4 py-3 text-left transition hover:border-[var(--kint-selected-border)]"
+          >
+            <span className="min-w-0">
+              <span className="flex items-center gap-2 text-sm font-bold">
+                <Crown size={15} className="text-amber-500" />
+                Aparecer en el ranking Top Kint
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                Con tu nombre público, junto a los clientes que más imprimen.
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className={`relative h-6 w-11 shrink-0 rounded-full transition ${topKint ? "bg-emerald-600" : "bg-[#87A4B5]/45"}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${topKint ? "left-[22px]" : "left-0.5"}`} />
+            </span>
+          </button>
+
           <div>
             <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Correo</span>
             <p className="rounded-xl bg-[var(--kint-panel-soft)] px-4 py-3 text-sm text-[var(--text-muted)]">
@@ -487,6 +524,36 @@ function PanelCuenta({
           </ul>
         )}
       </div>
+
+      {(cuenta.resenas || []).length > 0 && (
+        <div className={`${CLASE_PANEL} p-6`}>
+          <p className="text-sm font-black">Tus reseñas</p>
+          <ul className="mt-3 space-y-3">
+            {(cuenta.resenas || []).map((resena) => (
+              <li key={`${resena.pedido}-${resena.fecha}`} className="rounded-2xl border border-[var(--kint-panel-border)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="flex items-center gap-0.5 text-amber-500" aria-label={`${resena.estrellas} de 5 estrellas`}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} size={14} className={n <= resena.estrellas ? "fill-current" : "opacity-30"} />
+                    ))}
+                  </span>
+                  <span className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                    <span className="inline-flex items-center gap-1 font-bold text-[var(--text-main)]">
+                      <ThumbsUp size={13} />
+                      {resena.likes} me gusta
+                    </span>
+                    {resena.publicada ? "Publicada" : "En revisión"}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6">{resena.comentario}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {[resena.pedido, fecha(resena.fecha)].filter(Boolean).join(" · ")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <button type="button" onClick={onSalir} className="mx-auto flex items-center gap-2 text-sm font-bold text-[var(--text-muted)] hover:text-red-600">
         <LogOut size={15} />

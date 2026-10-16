@@ -8,6 +8,7 @@ import {
   Pencil,
   Plus,
   Wrench,
+  X,
 } from "lucide-react";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
@@ -43,13 +44,19 @@ type Formulario = {
   cadenas: string[];
   colores: string[];
   minColores: string;
+  variantes: string[];
   maxColores: string;
   activo: boolean;
 };
 
 type Errores = Partial<
   Record<
-    "nombre" | "precio" | "precioMayor" | "precioGranMayor" | "limitesColores",
+    | "nombre"
+    | "precio"
+    | "precioMayor"
+    | "precioGranMayor"
+    | "limitesColores"
+    | "variantes",
     string
   >
 >;
@@ -64,6 +71,7 @@ const FORMULARIO_NUEVO: Formulario = {
   cadenas: [],
   colores: [],
   minColores: "",
+  variantes: [],
   maxColores: "",
   activo: true,
 };
@@ -81,6 +89,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     cadenas: [...(producto.cadenas || [])],
     colores: [...(producto.colores || [])],
     minColores: producto.minColores ? String(producto.minColores) : "",
+    variantes: [...(producto.variantes || [])],
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
@@ -96,6 +105,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     cadenas: producto.cadenas,
     colores: producto.colores || [],
     minColores: producto.minColores || 0,
+    variantes: producto.variantes || [],
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
@@ -163,6 +173,23 @@ function validar(formulario: Formulario, productos: ProductoAdmin[]) {
     errores.limitesColores = "Usá números enteros (vacío = 1 a 2 colores).";
   } else if (minimo && maximo && minimo > maximo) {
     errores.limitesColores = "El mínimo no puede ser mayor que el máximo.";
+  }
+
+  // Variantes: ninguna, o 2 o más con título distinto (sin comas).
+  const variantes = formulario.variantes.map((variante) => variante.trim());
+  if (variantes.length) {
+    if (variantes.some((variante) => !variante)) {
+      errores.variantes = "Ponele título a cada variante (o quitá las vacías).";
+    } else if (variantes.length < 2) {
+      errores.variantes = "Con variantes, tienen que ser al menos 2.";
+    } else if (variantes.some((variante) => /[,;]/.test(variante))) {
+      errores.variantes = "Los títulos no pueden tener comas.";
+    } else if (
+      new Set(variantes.map((variante) => variante.toLocaleLowerCase("es"))).size !==
+      variantes.length
+    ) {
+      errores.variantes = "Hay dos variantes con el mismo título.";
+    }
   }
 
   return errores;
@@ -241,6 +268,12 @@ function TarjetaProducto({
             {mayor || "Sin precio por mayor"}
           </p>
         </div>
+
+        {(producto.variantes || []).length > 0 && (
+          <p className="text-xs font-semibold text-[var(--text-muted)]">
+            {producto.variantes.length} variantes: {producto.variantes.join(" · ")}
+          </p>
+        )}
 
         {(producto.cadenas.length > 0 || (producto.colores || []).length > 0) && (
           <div className="flex flex-wrap gap-1">
@@ -515,6 +548,7 @@ export default function ProductosAdmin() {
       cadenas: formulario.cadenas,
       colores: formulario.colores,
       minColores: numero(formulario.minColores),
+      variantes: formulario.variantes.map((variante) => variante.trim()).filter(Boolean),
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
@@ -799,6 +833,70 @@ export default function ProductosAdmin() {
                 </p>
               </div>
             )}
+
+            <fieldset>
+              <legend className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
+                Variantes (opcional)
+              </legend>
+              <p className="mb-2 text-[11px] leading-4 text-[var(--text-muted)]">
+                Si las cargás, el cliente tiene que elegir una para comprar
+                (por ejemplo: Chocolate entero, mordido o con relleno).
+              </p>
+
+              {formulario.variantes.length > 0 && (
+                <ul className="mb-2 space-y-2">
+                  {formulario.variantes.map((variante, indice) => (
+                    <li key={indice} className="flex gap-2">
+                      <input
+                        className={claseInput}
+                        value={variante}
+                        onChange={(evento) =>
+                          cambiar({
+                            variantes: formulario.variantes.map((actual, otro) =>
+                              otro === indice ? evento.target.value : actual
+                            ),
+                          })
+                        }
+                        placeholder={`Variante ${indice + 1}`}
+                        aria-label={`Título de la variante ${indice + 1}`}
+                        maxLength={40}
+                        aria-invalid={Boolean(intentado && errores.variantes && !variante.trim())}
+                      />
+                      <Boton
+                        onClick={() =>
+                          cambiar({
+                            variantes: formulario.variantes.filter((_, otro) => otro !== indice),
+                          })
+                        }
+                        icono={<X size={16} />}
+                        aria-label={`Quitar la variante ${indice + 1}`}
+                        className="w-11 shrink-0 px-0"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <Boton
+                icono={<Plus size={15} />}
+                onClick={() =>
+                  cambiar({
+                    // La primera vez se arrancan 2 (con una sola no tiene sentido).
+                    variantes: formulario.variantes.length
+                      ? [...formulario.variantes, ""]
+                      : ["", ""],
+                  })
+                }
+              >
+                Agregar variante
+              </Boton>
+
+              {intentado && errores.variantes && (
+                <p className="mt-1.5 text-[11px] font-semibold text-red-600 dark:text-red-400">
+                  {errores.variantes}
+                </p>
+              )}
+            </fieldset>
 
             <EditorOpciones
               titulo="Cadenas"
