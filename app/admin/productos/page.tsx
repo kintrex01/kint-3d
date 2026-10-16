@@ -45,6 +45,7 @@ type Formulario = {
   colores: string[];
   minColores: string;
   variantes: string[];
+  descripcion: string;
   maxColores: string;
   activo: boolean;
 };
@@ -72,6 +73,7 @@ const FORMULARIO_NUEVO: Formulario = {
   colores: [],
   minColores: "",
   variantes: [],
+  descripcion: "",
   maxColores: "",
   activo: true,
 };
@@ -90,6 +92,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     colores: [...(producto.colores || [])],
     minColores: producto.minColores ? String(producto.minColores) : "",
     variantes: [...(producto.variantes || [])],
+    descripcion: producto.descripcion || "",
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
@@ -106,6 +109,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     colores: producto.colores || [],
     minColores: producto.minColores || 0,
     variantes: producto.variantes || [],
+    descripcion: producto.descripcion || "",
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
@@ -170,7 +174,7 @@ function validar(formulario: Formulario, productos: ProductoAdmin[]) {
       (valor) => Number.isInteger(valor) && valor >= 0 && valor <= 20
     )
   ) {
-    errores.limitesColores = "Usá números enteros (vacío = 1 a 2 colores).";
+    errores.limitesColores = "Usá números enteros (vacíos = colores fijos de la foto).";
   } else if (minimo && maximo && minimo > maximo) {
     errores.limitesColores = "El mínimo no puede ser mayor que el máximo.";
   }
@@ -549,6 +553,7 @@ export default function ProductosAdmin() {
       colores: formulario.colores,
       minColores: numero(formulario.minColores),
       variantes: formulario.variantes.map((variante) => variante.trim()).filter(Boolean),
+      descripcion: formulario.descripcion.trim(),
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
@@ -829,10 +834,24 @@ export default function ProductosAdmin() {
                 >
                   {intentado && errores.limitesColores
                     ? errores.limitesColores
-                    : "Cuántos colores puede elegir el cliente si cambia los de la foto. Vacío = 1 a 2."}
+                    : "Cuántos colores puede elegir el cliente si cambia los de la foto. Vacíos = no puede cambiarlos (va con los de la foto)."}
                 </p>
               </div>
             )}
+
+            <Campo
+              etiqueta="Descripción (opcional)"
+              ayuda="Se ve en la tienda, abajo del precio. Ej.: Incluye 2 llaveros: casco y portaplanos."
+            >
+              <textarea
+                className={`${claseInput} min-h-20 resize-y py-2.5`}
+                value={formulario.descripcion}
+                onChange={(evento) => cambiar({ descripcion: evento.target.value })}
+                maxLength={500}
+                rows={3}
+                placeholder="Contale al cliente qué incluye o qué lo hace especial"
+              />
+            </Campo>
 
             <fieldset>
               <legend className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">

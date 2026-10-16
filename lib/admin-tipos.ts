@@ -180,6 +180,7 @@ export type ProductoAdmin = {
   maxColores: number; // 0 = vacío (la tienda usa 2)
   // "Entero", "Mordido"...: el cliente tiene que elegir una ([] = sin variantes).
   variantes: string[];
+  descripcion: string; // texto corto que se ve en la tienda ("" = sin descripción)
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };

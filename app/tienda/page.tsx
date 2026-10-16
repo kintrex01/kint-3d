@@ -64,6 +64,8 @@ type Producto = {
   resenas: ResenaProducto[];
   // "Entero, Mordido, Con relleno": si hay, el cliente tiene que elegir una.
   variantes: string[];
+  // Texto corto del panel ("Incluye 2 llaveros: casco y portaplanos").
+  descripcion: string;
   // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
   orden: number;
   vendidos: number;
@@ -520,10 +522,10 @@ function normalizarCatalogo(data: any): Catalogo {
             ...listaDeTextos(producto.colores),
             ...coloresDefecto,
           ]);
-          const maxColores = Math.max(
-            1,
-            Math.min(Math.floor(Number(producto.maxColores) || 2), colores.length || 1)
-          );
+          // 0 = colores fijos (en el panel no hay mín. ni máx.).
+          const maxPedido = Math.floor(Number(producto.maxColores) || 0);
+          const maxColores =
+            maxPedido > 0 ? Math.min(maxPedido, colores.length || maxPedido) : 0;
 
           return {
             ...producto,
@@ -533,11 +535,11 @@ function normalizarCatalogo(data: any): Catalogo {
             colores,
             coloresDefecto,
             maxColores,
-            minColores: Math.max(
-              1,
-              Math.min(Math.floor(Number(producto.minColores) || 1), maxColores)
-            ),
+            minColores: maxColores
+              ? Math.max(1, Math.min(Math.floor(Number(producto.minColores) || 1), maxColores))
+              : 0,
             variantes: listaDeTextos(producto.variantes),
+            descripcion: String(producto.descripcion || "").trim(),
             orden: Number(producto.orden) || 0,
             vendidos: Number(producto.vendidos) || 0,
             resenas: Array.isArray(producto.resenas)
@@ -1037,6 +1039,11 @@ function TarjetaProducto({
               {producto.nombre}
             </button>
           </h3>
+          {producto.descripcion && (
+            <p className="line-clamp-2 text-[11px] leading-4 text-[var(--text-muted)]">
+              {producto.descripcion}
+            </p>
+          )}
           <p className="mt-1 text-base font-black text-red-600">
             {pesos(producto.precio)}
           </p>
@@ -1075,6 +1082,12 @@ function TarjetaProducto({
           </p>
         </div>
 
+        {producto.descripcion && (
+          <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-[var(--text-muted)]">
+            {producto.descripcion}
+          </p>
+        )}
+
         <PreciosMayorCompactos
           producto={producto}
           mayorDesde={mayorDesde}
@@ -1093,12 +1106,12 @@ function TarjetaProducto({
           onClick={() => onAbrir(indice)}
           className="mt-4 inline-flex w-fit items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--blue-main)] underline-offset-4 hover:underline"
         >
-          {producto.colores.length ? (
+          {producto.maxColores > 0 ? (
             <Palette size={14} strokeWidth={2.2} />
           ) : (
             <Maximize2 size={13} strokeWidth={2.4} />
           )}
-          {producto.colores.length
+          {producto.maxColores > 0
             ? "Ver detalles y cambiar colores"
             : "Ver detalles"}
         </button>
@@ -1961,6 +1974,12 @@ function FichaProducto({
               )}
             </div>
 
+            {producto.descripcion && (
+              <p className="mt-3 whitespace-pre-line rounded-xl bg-[var(--kint-panel-soft)] px-3.5 py-2.5 text-sm leading-6 text-[var(--text-main)]">
+                {producto.descripcion}
+              </p>
+            )}
+
             <PreciosPorCantidad
               producto={producto}
               mayorDesde={catalogo.mayorDesde}
@@ -2090,14 +2109,16 @@ function FichaProducto({
                       </p>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={alternarColores}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kint-panel-border)] px-3 py-1.5 text-xs font-bold text-[var(--blue-main)] transition hover:border-[var(--kint-selected-border)]"
-                    >
-                      <Palette size={14} />
-                      {coloresDefecto.length ? "Cambiar" : "Elegir"}
-                    </button>
+                    {maxColores > 0 && (
+                      <button
+                        type="button"
+                        onClick={alternarColores}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kint-panel-border)] px-3 py-1.5 text-xs font-bold text-[var(--blue-main)] transition hover:border-[var(--kint-selected-border)]"
+                      >
+                        <Palette size={14} />
+                        {coloresDefecto.length ? "Cambiar" : "Elegir"}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div>
