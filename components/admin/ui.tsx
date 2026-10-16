@@ -340,6 +340,7 @@ export function Interruptor({
   deshabilitado?: boolean;
   etiqueta: string;
 }) {
+  // El botón mide 44px para el dedo; el riel visible es más chico.
   return (
     <button
       type="button"
@@ -348,15 +349,19 @@ export function Interruptor({
       aria-label={etiqueta}
       disabled={deshabilitado}
       onClick={() => onCambiar(!activo)}
-      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:opacity-50 ${
-        activo ? "bg-emerald-500" : "bg-slate-400/40"
-      }`}
+      className="group -my-2 inline-flex h-11 w-14 shrink-0 items-center justify-center disabled:opacity-50"
     >
       <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
-          activo ? "translate-x-6" : "translate-x-1"
+        className={`relative inline-flex h-7 w-12 items-center rounded-full transition ${
+          activo ? "bg-emerald-500" : "bg-slate-400/40"
         }`}
-      />
+      >
+        <span
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${
+            activo ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </span>
     </button>
   );
 }
