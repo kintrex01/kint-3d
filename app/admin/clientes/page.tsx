@@ -7,6 +7,7 @@ import {
   Crown,
   LoaderCircle,
   Mail,
+  MessageCircle,
   Search,
   UserCheck,
   Users,
@@ -24,6 +25,7 @@ import {
   Tarjeta,
   Vacio,
   claseInput,
+  linkWhatsapp,
   useAvisos,
 } from "@/components/admin/ui";
 import { HistorialCliente } from "@/components/admin/clientes/HistorialCliente";
@@ -280,6 +282,26 @@ function TarjetaCliente({
         <Mail size={15} className="shrink-0" />
         <span className="truncate">{cliente.email}</span>
       </a>
+
+      {cliente.telefono ? (
+        <a
+          href={linkWhatsapp(
+            cliente.telefono,
+            `Hola ${cliente.nombre.split(" ")[0] || ""}, te escribo de Kint 3D.`
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex min-h-11 max-w-full items-center gap-2 text-sm font-semibold text-emerald-700 hover:underline dark:text-emerald-400"
+        >
+          <MessageCircle size={15} className="shrink-0" />
+          <span className="truncate">WhatsApp {cliente.telefono}</span>
+        </a>
+      ) : (
+        <p className="flex min-h-9 items-center gap-2 text-xs text-[var(--text-muted)]">
+          <MessageCircle size={14} className="shrink-0" />
+          Sin celular (se lo pedimos en su próximo pedido)
+        </p>
+      )}
 
       <div className="mt-1 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--kint-panel-border)] pt-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">

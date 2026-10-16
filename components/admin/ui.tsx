@@ -616,10 +616,14 @@ export function useAvisos() {
 
 /* Link de WhatsApp a partir de un número uruguayo cualquiera. */
 export function linkWhatsapp(numero: string, texto = "") {
-  let digitos = String(numero || "").replace(/\D/g, "");
+  const crudo = String(numero || "").trim();
+  let digitos = crudo.replace(/\D/g, "");
   if (!digitos) return "";
-  if (digitos.startsWith("0")) digitos = digitos.slice(1);
-  if (!digitos.startsWith("598")) digitos = `598${digitos}`;
+  // "+54 9 11…": ya trae el país. Si no, es de Uruguay (099…, 99…).
+  if (!crudo.startsWith("+")) {
+    if (digitos.startsWith("0")) digitos = digitos.slice(1);
+    if (!digitos.startsWith("598")) digitos = `598${digitos}`;
+  }
   return `https://wa.me/${digitos}${
     texto ? `?text=${encodeURIComponent(texto)}` : ""
   }`;

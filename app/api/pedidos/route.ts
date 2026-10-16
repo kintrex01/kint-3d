@@ -256,7 +256,10 @@ email: String(body.email || ""),
 alias: String(body.alias || ""),
 telefono: String(body.telefono || ""),
       fechaEntrega: String(body.fechaEntrega || ""),
-      fechaEntregaHasta: String(body.fechaEntregaHasta || ""),
+      // Días que le sirven (el primero es fechaEntrega).
+      fechasEntrega: Array.isArray(body.fechasEntrega)
+        ? (body.fechasEntrega as unknown[]).slice(0, 10).map((dia) => String(dia || "").slice(0, 10))
+        : [],
       escala: String(body.escala || ""),
       color: String(body.color || ""),
       armado: String(body.armado || ""),
@@ -602,8 +605,8 @@ if (archivosRegistrados.length > 0) {
         <p><strong>WhatsApp:</strong> ${payload.telefono}</p>
         <p><strong>Fecha entrega:</strong> ${
           payload.fechaEntrega
-            ? payload.fechaEntregaHasta
-              ? `entre ${payload.fechaEntrega} y ${payload.fechaEntregaHasta}`
+            ? payload.fechasEntrega.length > 1
+              ? payload.fechasEntrega.join(", ")
               : payload.fechaEntrega
             : "Sin fecha"
         }</p>

@@ -2,6 +2,7 @@
 
 import {
   CalendarDays,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -11,10 +12,12 @@ import {
 import { useEffect, useState } from "react";
 
 /*
- * Calendario para elegir la fecha de entrega.
+ * Calendario para elegir el día o los días de entrega.
  *
  * - Empieza plegado: un botón "Elegir fecha (opcional)" lo abre.
- * - Un día o, si el padre pasa onCambiarHasta, "entre dos fechas".
+ * - Con onCambiarDias el cliente toca uno o varios días sueltos
+ *   ("me sirve el lunes, el miércoles o el viernes"): quedan en verde.
+ *   `valor` es siempre el primero (el que va a la columna de entrega).
  * - Rojo, no se puede elegir: días sin entrega que carga el dueño
  *   (hoja "Días sin entrega" o panel de admin).
  * - Ámbar, se puede elegir: sábados, domingos y feriados (no hay
@@ -34,10 +37,8 @@ type Calendario = {
   feriados: Feriado[];
 };
 
-type Modo = "dia" | "rango";
-
-/* Mismo tope que valida Apps Script. */
-export const MAX_DIAS_RANGO = 31;
+/* Mismo tope que valida Apps Script (kintEntregasTextoDias_). */
+export const MAX_DIAS_ENTREGA = 10;
 
 const MESES = [
   "Enero",
@@ -80,34 +81,31 @@ function diaSemana(iso: string) {
   return new Date(Date.UTC(anio, mes, dia)).getUTCDay();
 }
 
-function diasEntre(desde: string, hasta: string) {
-  const a = partes(desde);
-  const b = partes(hasta);
-  return Math.round(
-    (Date.UTC(b.anio, b.mes, b.dia) - Date.UTC(a.anio, a.mes, a.dia)) /
-      86400000,
-  );
-}
-
 export function describirFecha(iso: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "";
   const { mes, dia } = partes(iso);
   return `${DIAS_LARGOS[diaSemana(iso)]} ${dia} de ${MESES[mes].toLowerCase()}`;
 }
 
-/* "el lunes 20 de octubre" o "entre el lunes 20 y el miércoles 22 de octubre". */
-export function describirEntrega(desde: string, hasta = "") {
-  if (!desde) return "";
-  if (!hasta || hasta === desde) return `el ${describirFecha(desde)}`;
+/*
+ * "el lunes 20 de octubre" o, con varios días,
+ * "el lunes 20, el miércoles 22 o el viernes 24 de octubre".
+ */
+export function describirDias(dias: string[]) {
+  const lista = [...dias].sort();
+  if (!lista.length) return "";
+  if (lista.length === 1) return `el ${describirFecha(lista[0])}`;
 
-  const a = partes(desde);
-  const b = partes(hasta);
-  const inicio =
-    a.mes === b.mes && a.anio === b.anio
-      ? `${DIAS_LARGOS[diaSemana(desde)]} ${a.dia}`
-      : describirFecha(desde);
+  const mismoMes = lista.every(
+    (iso) => iso.slice(0, 7) === lista[0].slice(0, 7)
+  );
+  const corto = (iso: string) =>
+    mismoMes ? `${DIAS_LARGOS[diaSemana(iso)]} ${partes(iso).dia}` : describirFecha(iso);
 
-  return `entre el ${inicio} y el ${describirFecha(hasta)}`;
+  const textos = lista.map((iso, indice) =>
+    indice === lista.length - 1 ? describirFecha(iso) : corto(iso)
+  );
+  return `el ${textos.slice(0, -1).join(", el ")} o el ${textos[textos.length - 1]}`;
 }
 
 /* Si el calendario no carga, se usa el selector de fecha del navegador. */
@@ -119,30 +117,30 @@ function hoyISO() {
 export default function CalendarioEntrega({
   valor,
   onCambiar,
-  hasta = "",
-  onCambiarHasta,
+  dias,
+  onCambiarDias,
   onBloqueados,
 }: {
-  /* Fecha elegida (o el "desde" del rango). */
+  /* Fecha elegida (con varios días, el primero). */
   valor: string;
   onCambiar: (fecha: string) => void;
-  /* Con onCambiarHasta se puede elegir "entre dos fechas". */
-  hasta?: string;
-  onCambiarHasta?: (fecha: string) => void;
+  /* Con onCambiarDias se pueden elegir varios días sueltos. */
+  dias?: string[];
+  onCambiarDias?: (dias: string[]) => void;
   /* Avisa al padre qué días están bloqueados (para validar). */
   onBloqueados?: (fechas: string[]) => void;
 }) {
   const [calendario, setCalendario] = useState<Calendario | null>(null);
   const [error, setError] = useState(false);
   const [abierto, setAbierto] = useState(false);
-  const [modo, setModo] = useState<Modo>(hasta ? "rango" : "dia");
   const [aviso, setAviso] = useState("");
   const [mesVisible, setMesVisible] = useState<{
     anio: number;
     mes: number;
   } | null>(null);
 
-  const permiteRango = Boolean(onCambiarHasta);
+  const varios = Boolean(onCambiarDias);
+  const elegidos = varios ? [...(dias || [])].sort() : valor ? [valor] : [];
 
   useEffect(() => {
     let activo = true;
@@ -178,20 +176,20 @@ export default function CalendarioEntrega({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function quitar() {
-    onCambiar("");
-    onCambiarHasta?.("");
-    setAviso("");
+  function aplicar(nuevos: string[]) {
+    const ordenados = [...nuevos].sort();
+    onCambiarDias?.(ordenados);
+    onCambiar(ordenados[0] || "");
   }
 
-  function cambiarModo(nuevo: Modo) {
-    setModo(nuevo);
+  function quitar() {
     setAviso("");
-    if (nuevo === "dia") onCambiarHasta?.("");
+    if (varios) aplicar([]);
+    else onCambiar("");
   }
 
   /* Resumen + botón que despliega el calendario. */
-  const resumen = valor ? describirEntrega(valor, hasta) : "";
+  const resumen = elegidos.length ? describirDias(elegidos) : "";
   const boton = (
     <div className="flex items-stretch gap-2">
       <button
@@ -199,12 +197,15 @@ export default function CalendarioEntrega({
         onClick={() => setAbierto((actual) => !actual)}
         aria-expanded={abierto}
         className={`flex min-h-12 flex-1 items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${
-          valor
-            ? "border-[var(--blue-main)]/50 bg-[var(--kint-selected-bg)] font-bold text-[var(--text-main)]"
+          elegidos.length
+            ? "border-emerald-600/50 bg-emerald-500/10 font-bold text-[var(--text-main)]"
             : "border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
         }`}
       >
-        <CalendarDays size={18} className="shrink-0 text-[var(--blue-main)]" />
+        <CalendarDays
+          size={18}
+          className={`shrink-0 ${elegidos.length ? "text-emerald-600" : "text-[var(--blue-main)]"}`}
+        />
         <span className="min-w-0 flex-1 first-letter:uppercase">
           {resumen || "Elegir fecha (opcional)"}
         </span>
@@ -214,7 +215,7 @@ export default function CalendarioEntrega({
         />
       </button>
 
-      {valor && (
+      {elegidos.length > 0 && (
         <button
           type="button"
           onClick={quitar}
@@ -233,7 +234,11 @@ export default function CalendarioEntrega({
         type="date"
         value={valor}
         min={hoyISO()}
-        onChange={(evento) => onCambiar(evento.target.value)}
+        onChange={(evento) =>
+          varios
+            ? aplicar(evento.target.value ? [evento.target.value] : [])
+            : onCambiar(evento.target.value)
+        }
         className="w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 text-sm text-[var(--text-main)] outline-none dark:[color-scheme:dark]"
       />
     );
@@ -253,18 +258,19 @@ export default function CalendarioEntrega({
   }
 
   const bloqueados = new Map(
-    calendario.bloqueados.map((dia) => [dia.fecha, dia.motivo]),
+    calendario.bloqueados.map((dia) => [dia.fecha, dia.motivo])
   );
   const feriados = new Map(
-    calendario.feriados.map((dia) => [dia.fecha, dia.nombre]),
+    calendario.feriados.map((dia) => [dia.fecha, dia.nombre])
   );
 
   const inicio = partes(calendario.desde);
   const fin = partes(calendario.hasta);
+  const primero = elegidos[0];
   const actual =
     mesVisible ||
-    (valor && valor >= calendario.desde && valor <= calendario.hasta
-      ? { anio: partes(valor).anio, mes: partes(valor).mes }
+    (primero && primero >= calendario.desde && primero <= calendario.hasta
+      ? { anio: partes(primero).anio, mes: partes(primero).mes }
       : { anio: inicio.anio, mes: inicio.mes });
 
   const indiceMes = actual.anio * 12 + actual.mes;
@@ -277,7 +283,7 @@ export default function CalendarioEntrega({
   }
 
   const diasDelMes = new Date(
-    Date.UTC(actual.anio, actual.mes + 1, 0),
+    Date.UTC(actual.anio, actual.mes + 1, 0)
   ).getUTCDate();
   // Semana empezando en lunes.
   const desplazamiento =
@@ -286,7 +292,7 @@ export default function CalendarioEntrega({
   const celdas: (string | null)[] = [
     ...Array.from({ length: desplazamiento }, () => null),
     ...Array.from({ length: diasDelMes }, (_, indice) =>
-      aISO(actual.anio, actual.mes, indice + 1),
+      aISO(actual.anio, actual.mes, indice + 1)
     ),
   ];
 
@@ -295,58 +301,31 @@ export default function CalendarioEntrega({
     return semana === 0 || semana === 6 || feriados.has(iso);
   };
 
-  const enRango = modo === "rango" && permiteRango;
-  const esperandoHasta = enRango && Boolean(valor) && !hasta;
-
   function elegir(iso: string) {
     setAviso("");
 
-    if (!enRango) {
+    if (!varios) {
       onCambiar(iso);
-      onCambiarHasta?.("");
       setAbierto(false);
       return;
     }
 
-    // Primer toque (o uno anterior al "desde"): empieza un rango nuevo.
-    if (!valor || hasta || iso <= valor) {
-      onCambiar(iso);
-      onCambiarHasta?.("");
+    if (elegidos.includes(iso)) {
+      aplicar(elegidos.filter((dia) => dia !== iso));
       return;
     }
 
-    if (diasEntre(valor, iso) > MAX_DIAS_RANGO) {
-      setAviso(`El rango puede ser de hasta ${MAX_DIAS_RANGO} días.`);
+    if (elegidos.length >= MAX_DIAS_ENTREGA) {
+      setAviso(`Podés elegir hasta ${MAX_DIAS_ENTREGA} días.`);
       return;
     }
 
-    onCambiarHasta?.(iso);
-    setAbierto(false);
+    aplicar([...elegidos, iso]);
   }
 
-  // Días sin entrega dentro del rango elegido (solo aviso).
-  const bloqueadosEnRango =
-    valor && hasta
-      ? calendario.bloqueados
-          .map((dia) => dia.fecha)
-          .filter((fecha) => fecha > valor && fecha < hasta)
-      : [];
-
-  const rangoConFacultad =
-    valor && hasta
-      ? Array.from({ length: diasEntre(valor, hasta) + 1 }, (_, indice) => {
-          const { anio, mes, dia } = partes(valor);
-          const fecha = new Date(Date.UTC(anio, mes, dia + indice));
-          return aISO(
-            fecha.getUTCFullYear(),
-            fecha.getUTCMonth(),
-            fecha.getUTCDate(),
-          );
-        }).some((fecha) => !sinFacultad(fecha) && !bloqueados.has(fecha))
-      : true;
-
-  const elegidoSinFacultad =
-    valor && (hasta ? !rangoConFacultad : sinFacultad(valor));
+  // Todos los días elegidos son sin facultad: se coordina el envío.
+  const todosSinFacultad =
+    elegidos.length > 0 && elegidos.every((dia) => sinFacultad(dia));
 
   return (
     <div className="space-y-2">
@@ -354,43 +333,11 @@ export default function CalendarioEntrega({
 
       {abierto && (
         <div className="rounded-2xl border border-[var(--kint-panel-border)] p-3">
-          {permiteRango && (
-            <div
-              role="group"
-              aria-label="Tipo de fecha"
-              className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-[var(--kint-panel-soft)] p-1"
-            >
-              {(
-                [
-                  ["dia", "Un día"],
-                  ["rango", "Entre dos fechas"],
-                ] as const
-              ).map(([opcion, texto]) => (
-                <button
-                  key={opcion}
-                  type="button"
-                  aria-pressed={modo === opcion}
-                  onClick={() => cambiarModo(opcion)}
-                  className={`h-9 rounded-lg text-xs font-black transition ${
-                    modo === opcion
-                      ? "bg-[var(--kint-panel)] text-[var(--text-main)] shadow-sm"
-                      : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                  }`}
-                >
-                  {texto}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {enRango && (
-            <p
-              className="mb-2 text-center text-xs text-[var(--text-muted)]"
-              aria-live="polite"
-            >
-              {esperandoHasta
-                ? "Ahora tocá el último día que te sirve."
-                : "Tocá el primer día que te sirve."}
+          {varios && (
+            <p className="mb-3 rounded-xl bg-[var(--kint-panel-soft)] px-3 py-2 text-center text-xs font-semibold leading-5 text-[var(--text-main)]">
+              Tocá el día o los días en que te sirve que te entreguemos. Si te
+              sirven varios (por ejemplo lunes, miércoles y viernes), marcalos
+              todos.
             </p>
           )}
 
@@ -443,10 +390,7 @@ export default function CalendarioEntrega({
               const motivo = bloqueados.get(iso);
               const bloqueado = bloqueados.has(iso);
               const gris = sinFacultad(iso);
-              const extremo =
-                iso === valor || (Boolean(hasta) && iso === hasta);
-              const intermedio =
-                Boolean(valor && hasta) && iso > valor && iso < hasta;
+              const elegido = elegidos.includes(iso);
               const esHoy = iso === calendario.desde;
 
               const titulo = bloqueado
@@ -462,23 +406,28 @@ export default function CalendarioEntrega({
                   onClick={() => elegir(iso)}
                   title={titulo}
                   aria-label={`${describirFecha(iso)}${titulo ? ` (${titulo})` : ""}`}
-                  aria-pressed={extremo}
+                  aria-pressed={elegido}
                   className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-bold transition ${
-                    extremo
-                      ? "bg-[var(--blue-main)] text-white shadow-md"
+                    elegido
+                      ? "bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30"
                       : bloqueado
-                        ? "cursor-not-allowed bg-red-600/15 text-red-600 line-through decoration-2 dark:text-red-400"
-                        : fueraDeRango
-                          ? "cursor-default text-[var(--text-muted)] opacity-25"
-                          : intermedio
-                            ? "bg-[var(--blue-main)]/15 text-[var(--text-main)] ring-1 ring-[var(--blue-main)]/25"
-                            : gris
-                              ? "bg-amber-500/15 text-amber-800 hover:ring-1 hover:ring-amber-500/60 dark:text-amber-300"
-                              : "text-[var(--text-main)] hover:bg-[var(--kint-selected-bg)] hover:ring-1 hover:ring-[var(--kint-selected-border)]"
-                  } ${esHoy && !extremo ? "ring-1 ring-[var(--blue-main)]/50" : ""}`}
+                      ? "cursor-not-allowed bg-red-600/15 text-red-600 line-through decoration-2 dark:text-red-400"
+                      : fueraDeRango
+                      ? "cursor-default text-[var(--text-muted)] opacity-25"
+                      : gris
+                      ? "bg-amber-500/15 text-amber-800 hover:ring-1 hover:ring-amber-500/60 dark:text-amber-300"
+                      : "text-[var(--text-main)] hover:bg-emerald-500/10 hover:ring-1 hover:ring-emerald-600/40"
+                  } ${esHoy && !elegido ? "ring-1 ring-[var(--blue-main)]/50" : ""}`}
                 >
-                  {partes(iso).dia}
-                  {gris && !extremo && !bloqueado && !fueraDeRango && (
+                  {elegido ? (
+                    <span className="flex items-center gap-0.5">
+                      {partes(iso).dia}
+                      <Check size={10} strokeWidth={4} />
+                    </span>
+                  ) : (
+                    partes(iso).dia
+                  )}
+                  {gris && !elegido && !bloqueado && !fueraDeRango && (
                     <span
                       aria-hidden="true"
                       className="absolute bottom-1 h-1 w-1 rounded-full bg-amber-500"
@@ -490,6 +439,10 @@ export default function CalendarioEntrega({
           </div>
 
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] font-bold text-[var(--text-muted)]">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" />
+              Elegido
+            </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-red-600/40" />
               Sin entregas
@@ -508,22 +461,25 @@ export default function CalendarioEntrega({
               {aviso}
             </p>
           )}
+
+          {varios && elegidos.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setAbierto(false)}
+              className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-emerald-700"
+            >
+              <Check size={15} strokeWidth={3} />
+              Listo ({elegidos.length} {elegidos.length === 1 ? "día" : "días"})
+            </button>
+          )}
         </div>
       )}
 
-      {elegidoSinFacultad && (
+      {todosSinFacultad && (
         <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 dark:text-amber-300">
-          {hasta
+          {elegidos.length > 1
             ? "En esos días no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp."
             : "Ese día no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp."}
-        </p>
-      )}
-
-      {bloqueadosEnRango.length > 0 && (
-        <p className="rounded-lg bg-red-600/10 px-3 py-2 text-xs font-semibold leading-5 text-red-700 dark:text-red-300">
-          {bloqueadosEnRango.length === 1
-            ? `El ${describirFecha(bloqueadosEnRango[0])} no hay entregas: te lo entregamos otro día del rango.`
-            : "Hay días sin entregas dentro del rango: te lo entregamos en otro de esos días."}
         </p>
       )}
     </div>

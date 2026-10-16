@@ -2212,8 +2212,16 @@ type ConsultaCliente = {
   nombre: string;
   alias: string;
   bloqueado: boolean;
+  // La cuenta ya tiene celular guardado (no se muestra el número).
+  tieneTelefono: boolean;
   error: string;
 };
+
+/* Celular válido: 8 a 15 dígitos (Apps Script lo normaliza a +598...). */
+function telefonoValido(texto: string) {
+  const digitos = texto.replace(/\D/g, "");
+  return digitos.length >= 8 && digitos.length <= 15;
+}
 
 type VerificacionAlias = {
   clave: string;
@@ -2282,6 +2290,8 @@ export default function TiendaPage() {
 
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
+  // Celular: solo se pide a cuentas nuevas o que todavía no lo tienen.
+  const [telefono, setTelefono] = useState("");
   const [alias, setAlias] = useState("");
   const [consulta, setConsulta] =
     useState<ConsultaCliente | null>(null);
@@ -2290,8 +2300,8 @@ export default function TiendaPage() {
   const [reintento, setReintento] = useState(0);
 
   const [fechaEntrega, setFechaEntrega] = useState("");
-  // "Entre dos fechas": último día que le sirve ("" = un solo día).
-  const [fechaEntregaHasta, setFechaEntregaHasta] = useState("");
+  // Días que le sirven para la entrega (fechaEntrega = el primero).
+  const [diasEntrega, setDiasEntrega] = useState<string[]>([]);
   const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [modalidad, setModalidad] = useState<Modalidad | "">("");
@@ -2454,6 +2464,7 @@ export default function TiendaPage() {
           bloqueado: /^bloquead[oa]$/i.test(
             String(data.estado || "").trim()
           ),
+          tieneTelefono: data.tieneTelefono === true,
           error: "",
         });
       } catch (errorConsulta: unknown) {
@@ -2465,6 +2476,7 @@ export default function TiendaPage() {
           nombre: "",
           alias: "",
           bloqueado: false,
+          tieneTelefono: false,
           error: "No pudimos comprobar tu correo.",
         });
       }
@@ -2555,6 +2567,10 @@ export default function TiendaPage() {
     : null;
   const mensajeAlias =
     errorLargoAlias || verificacionActual?.mensaje || "";
+
+  const necesitaTelefono =
+    clienteExiste === false ||
+    (clienteExiste === true && !consultaActual?.tieneTelefono);
 
   // Un cliente con cuenta pero sin nombre cargado lo completa.
   const necesitaNombre =
@@ -2707,6 +2723,8 @@ export default function TiendaPage() {
     ? "Este correo se encuentra bloqueado. Contactá a Kint 3D."
     : necesitaNombre && !nombre.trim()
     ? "Completá tu nombre."
+    : necesitaTelefono && !telefonoValido(telefono)
+    ? "Escribí tu celular (por ejemplo 099 123 456)."
     : clienteExiste === false && !aliasLimpio
     ? "Elegí tu nombre de usuario."
     : clienteExiste === false && verificandoAlias
@@ -2953,12 +2971,13 @@ export default function TiendaPage() {
         },
         body: JSON.stringify({
           nombre: nombreFinal,
+          telefono: necesitaTelefono ? telefono.trim() : "",
           email: emailLimpio,
           alias: aliasFinal,
           idCompra: id,
           comentario: comentario.trim(),
           fechaEntrega,
-          fechaEntregaHasta,
+          fechasEntrega: diasEntrega,
           modalidad,
           total,
           items: lineas.map((linea) => ({
@@ -3019,7 +3038,7 @@ export default function TiendaPage() {
       setComprobante(null);
       setComentario("");
       setFechaEntrega("");
-      setFechaEntregaHasta("");
+      setDiasEntrega([]);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (errorCompra: unknown) {
       setError(
@@ -3692,6 +3711,30 @@ export default function TiendaPage() {
                     </label>
                   )}
 
+                  {necesitaTelefono && (
+                    <label className="block">
+                      <span className={CLASE_ETIQUETA}>
+                        Celular (WhatsApp)
+                      </span>
+                      <span className="mb-2 block text-[11px] leading-4 text-[var(--text-muted)]">
+                        Lo usamos solo para coordinar tu entrega. Queda
+                        guardado en tu cuenta.
+                      </span>
+                      <input
+                        type="tel"
+                        value={telefono}
+                        onChange={(evento) =>
+                          setTelefono(evento.target.value)
+                        }
+                        autoComplete="tel"
+                        inputMode="tel"
+                        placeholder="099 123 456"
+                        maxLength={24}
+                        className={CLASE_INPUT}
+                      />
+                    </label>
+                  )}
+
                   {clienteExiste === false && (
                     <label className="block">
                       <span className={CLASE_ETIQUETA}>
@@ -3743,8 +3786,8 @@ export default function TiendaPage() {
                     <CalendarioEntrega
                       valor={fechaEntrega}
                       onCambiar={setFechaEntrega}
-                      hasta={fechaEntregaHasta}
-                      onCambiarHasta={setFechaEntregaHasta}
+                      dias={diasEntrega}
+                      onCambiarDias={setDiasEntrega}
                       onBloqueados={setDiasBloqueados}
                     />
                   </div>

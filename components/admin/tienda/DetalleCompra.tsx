@@ -8,6 +8,7 @@
 import {
   CheckCircle2,
   Mail,
+  MessageCircle,
   ReceiptText,
   Trash2,
   Undo2,
@@ -22,6 +23,7 @@ import {
   Chip,
   Interruptor,
   fechaDia,
+  linkWhatsapp,
   pesos,
   textoDiasHasta,
   tonoEstado,
@@ -173,10 +175,28 @@ export function DetalleCompra({
             Sin comprobante
           </span>
         )}
-        {compra.email ? (
-          <a href={`mailto:${compra.email}`} className={claseEnlaceBoton}>
+        {compra.telefono ? (
+          // Lo más rápido: WhatsApp al celular de su cuenta.
+          <a
+            href={linkWhatsapp(
+              compra.telefono,
+              `Hola ${compra.cliente.split(" ")[0] || ""}, te escribo de Kint 3D por tu compra ${compra.pedido}.`
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${claseEnlaceBoton} border-emerald-600/50 text-emerald-700 dark:text-emerald-400`}
+          >
+            <MessageCircle size={16} />
+            WhatsApp
+          </a>
+        ) : compra.email ? (
+          // Abre tu programa de correo con un mail nuevo para el cliente.
+          <a
+            href={`mailto:${compra.email}?subject=${encodeURIComponent(`Tu compra ${compra.pedido} en Kint 3D`)}`}
+            className={claseEnlaceBoton}
+          >
             <Mail size={16} />
-            Correo
+            Escribir correo
           </a>
         ) : (
           <span
@@ -184,10 +204,22 @@ export function DetalleCompra({
             className={`${claseEnlaceBoton} cursor-not-allowed opacity-50`}
           >
             <Mail size={16} />
-            Sin correo
+            Sin contacto
           </span>
         )}
       </div>
+
+      {compra.telefono && compra.email && (
+        <p className="-mt-2 text-center text-xs text-[var(--text-muted)]">
+          Celular {compra.telefono} ·{" "}
+          <a
+            href={`mailto:${compra.email}?subject=${encodeURIComponent(`Tu compra ${compra.pedido} en Kint 3D`)}`}
+            className="font-bold text-[var(--blue-main)] hover:underline dark:text-[var(--blue-soft)]"
+          >
+            o escribile un correo
+          </a>
+        </p>
+      )}
 
       {/* Acciones */}
       <div className="space-y-4 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-4 py-4">

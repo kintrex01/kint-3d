@@ -94,6 +94,10 @@ const [clienteExiste, setClienteExiste] =
 const [estadoCliente, setEstadoCliente] =
   useState("");
 
+// La cuenta ya tiene celular guardado (consultar_cliente no muestra el número).
+const [tieneTelefono, setTieneTelefono] =
+  useState(false);
+
 const [consultandoCliente, setConsultandoCliente] =
   useState(false);
 
@@ -116,8 +120,8 @@ const [verificandoAlias, setVerificandoAlias] =
 
 const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
-  // "Entre dos fechas": último día que le sirve ("" = un solo día).
-  const [fechaEntregaHasta, setFechaEntregaHasta] = useState("");
+  // Días que le sirven para la entrega (fechaEntrega = el primero).
+  const [diasEntrega, setDiasEntrega] = useState<string[]>([]);
   const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
   const [color, setColor] = useState<string[]>([]);
@@ -275,6 +279,10 @@ setEstadoCliente(
           String(
             data.estado || ""
           )
+        );
+
+        setTieneTelefono(
+          data.tieneTelefono === true
         );
 
         /*
@@ -905,10 +913,24 @@ const alisadoCompleto =
   !alisadoHabilitado ||
   Boolean(alisado);
 
+/* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
+const necesitaTelefono =
+  clienteExiste === false ||
+  (clienteExiste === true && !tieneTelefono);
+
+const telefonoCompleto = (() => {
+  const digitos = telefono.replace(/\D/g, "");
+  return digitos.length >= 8 && digitos.length <= 15;
+})();
+
 const camposPendientes = [
   {
     nombre: "Nombre o apodo",
     completo: Boolean(nombre.trim()),
+  },
+  {
+    nombre: "Celular (WhatsApp)",
+    completo: !necesitaTelefono || telefonoCompleto,
   },
   {
   nombre: "Correo electrónico",
@@ -1259,7 +1281,7 @@ if (archivos.length > 0) {
     codigoRepetidoOrigen,
 
         fechaEntrega,
-        fechaEntregaHasta,
+        fechasEntrega: diasEntrega,
         escala: escalaFinal,
         color: color.join(", "),
         armado: armadoHabilitado
@@ -1306,7 +1328,7 @@ setMensajeAlias("");
 setPuntosDisponibles(0);
 setTelefono("");
     setFechaEntrega("");
-    setFechaEntregaHasta("");
+    setDiasEntrega([]);
     setEscala("");
     setEscalaPersonalizada("");
     setColor([]);
@@ -1792,15 +1814,25 @@ return (
 
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    WhatsApp (opcional)
+    {necesitaTelefono ? (
+      <>
+        Celular (WhatsApp) <span className="text-red-600">*</span>
+      </>
+    ) : (
+      "Celular (opcional)"
+    )}
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Si preferís que te contactemos por WhatsApp.
+    {necesitaTelefono
+      ? "Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta."
+      : "Ya tenemos tu celular. Si querés cambiarlo, escribí el nuevo."}
   </p>
 
   <input
     type="tel"
+    inputMode="tel"
+    autoComplete="tel"
     value={telefono}
     onChange={(e) => setTelefono(e.target.value)}
     className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
@@ -1821,8 +1853,8 @@ return (
             <CalendarioEntrega
               valor={fechaEntrega}
               onCambiar={setFechaEntrega}
-              hasta={fechaEntregaHasta}
-              onCambiarHasta={setFechaEntregaHasta}
+              dias={diasEntrega}
+              onCambiarDias={setDiasEntrega}
             />
           </div>
         </div>

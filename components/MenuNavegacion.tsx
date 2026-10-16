@@ -12,6 +12,7 @@ import {
   Package,
   Ruler,
   Send,
+  Settings,
   ShoppingBag,
   X,
 } from "lucide-react";
@@ -157,6 +158,15 @@ const enlacesKint: EnlaceMenu[] = [
   icono: IconoInstagram,
   externo: true,
 },
+];
+
+/* Al final del menú: la cuenta del cliente (Ajustes). */
+const enlacesCuenta: EnlaceMenu[] = [
+  {
+    nombre: "Ajustes de mi cuenta",
+    href: "/cuenta",
+    icono: Settings,
+  },
 ];
 
 function GrupoMenu({
@@ -588,6 +598,13 @@ abierto
             <GrupoMenu
               titulo="Conocer Kint 3D"
               enlaces={enlacesKint}
+              pathname={pathname}
+              cerrar={cerrarMenu}
+            />
+
+            <GrupoMenu
+              titulo="Mi cuenta"
+              enlaces={enlacesCuenta}
               pathname={pathname}
               cerrar={cerrarMenu}
             />

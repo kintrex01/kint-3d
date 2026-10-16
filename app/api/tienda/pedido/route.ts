@@ -128,12 +128,15 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         tipo: "pedido_tienda",
         nombre: String(body.nombre || ""),
+        telefono: String(body.telefono || "").slice(0, 24),
         email: String(body.email || ""),
         alias: String(body.alias || ""),
         idCompra: String(body.idCompra || ""),
         comentario: String(body.comentario || ""),
         fechaEntrega: String(body.fechaEntrega || ""),
-        fechaEntregaHasta: String(body.fechaEntregaHasta || ""),
+        fechasEntrega: Array.isArray(body.fechasEntrega)
+          ? (body.fechasEntrega as unknown[]).slice(0, 10).map((dia) => String(dia || "").slice(0, 10))
+          : [],
         modalidad: String(body.modalidad || ""),
         total: Number(body.total),
         items,

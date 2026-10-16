@@ -154,6 +154,7 @@ export type CompraTienda = {
   modalidad: "Seña" | "Completo" | string;
   estado: EstadoTienda | string;
   pagoConfirmado: boolean;
+  telefono?: string; // celular de la cuenta (Clientes › Teléfono), "099 123 456"
   comprobante: string;
   comprobanteSaldo?: string; // columna "Comprobante saldo" (lo sube el cliente desde el seguimiento)
   total: number; // suma de las líneas
@@ -254,6 +255,7 @@ export type HistorialCliente = {
 
 export type ClienteAdmin = {
   email: string;
+  telefono?: string; // "099 123 456" ("" si no cargó)
   nombre: string;
   alias: string;
   estado: string; // "Activo" | "Bloqueado"
