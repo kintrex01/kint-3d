@@ -900,10 +900,13 @@ function TarjetaProducto({
   granMayorDesde,
   enCarrito,
   deshabilitada,
+  compacta = false,
   onAbrir,
   onAgregar,
 }: {
   producto: Producto;
+  // Con 2 o más por fila: foto, nombre, precio y "Ver opciones" (se elige en la ficha).
+  compacta?: boolean;
   maxUnidades: number;
   mayorDesde: number;
   granMayorDesde: number;
@@ -1023,6 +1026,38 @@ function TarjetaProducto({
         )}
       </div>
 
+      {compacta ? (
+        <div className="flex flex-1 flex-col gap-0.5 p-3 pb-3 sm:p-4 [&>button:last-child]:mt-3">
+          <h3 className="text-sm font-black leading-tight sm:text-base">
+            <button
+              type="button"
+              onClick={() => onAbrir(indice)}
+              className="text-left underline-offset-4 hover:underline"
+            >
+              {producto.nombre}
+            </button>
+          </h3>
+          <p className="mt-1 text-base font-black text-red-600">
+            {pesos(producto.precio)}
+          </p>
+          {producto.precioMayor > 0 && (
+            <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+              Desde {mayorDesde}: {pesos(producto.precioMayor)} c/u
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={deshabilitada}
+            onClick={() => onAbrir(indice)}
+            className={`mt-auto flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border px-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all ${
+              deshabilitada ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
+            }`}
+          >
+            <ShoppingBag size={14} strokeWidth={2.2} />
+            Ver opciones
+          </button>
+        </div>
+      ) : (
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-black leading-tight">
@@ -1112,6 +1147,7 @@ function TarjetaProducto({
           </button>
         </div>
       </div>
+      )}
     </article>
   );
 }
@@ -3619,6 +3655,7 @@ export default function TiendaPage() {
                     mayorDesde={catalogo.mayorDesde}
                     granMayorDesde={catalogo.granMayorDesde}
                     deshabilitada={!tiendaAbierta || enviando}
+                    compacta={vista.columnas >= 2}
                     enCarrito={
                       unidadesPorProducto.get(producto.nombre) || 0
                     }
