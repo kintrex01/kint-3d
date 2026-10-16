@@ -109,6 +109,7 @@ export type LineaCompraTienda = {
   producto: string;
   cantidad: number;
   cadena: string;
+  color?: string; // columna "Colores" de Tienda, si existe
   subtotal: number;
 };
 
@@ -140,6 +141,7 @@ export type ProductoAdmin = {
   precioGranMayor: number; // 0 = sin precio gran por mayor
   foto: string; // contenido crudo de la celda Foto ("" = carpeta automática)
   cadenas: string[];
+  colores: string[]; // solo si Productos tiene "Colores disponibles"
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };
@@ -279,7 +281,12 @@ export type AccionesAdmin = {
 
   admin_productos_listar: {
     pedido: SinDatos;
-    respuesta: { productos: ProductoAdmin[]; cadenasOpciones: string[] };
+    respuesta: {
+      productos: ProductoAdmin[];
+      cadenasOpciones: string[];
+      coloresOpciones: string[];
+      hayColores: boolean; // existe la columna "Colores disponibles"
+    };
   };
   /* nombreOriginal vacío = producto nuevo. */
   admin_producto_guardar: {

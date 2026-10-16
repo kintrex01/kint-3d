@@ -47,6 +47,8 @@ type Producto = {
   fotoId: string;
   fotos: Foto[];
   cadenas: string[];
+  // Vacío = el producto no se elige por color.
+  colores: string[];
 };
 
 type Catalogo = {
@@ -63,6 +65,7 @@ type Catalogo = {
 type LineaCarrito = {
   producto: string;
   cadena: string;
+  color: string;
   cantidad: number;
 };
 
@@ -180,8 +183,19 @@ function redondear(valor: number) {
 function claveLinea(linea: {
   producto: string;
   cadena: string;
+  color?: string;
 }) {
-  return `${linea.producto}::${linea.cadena}`;
+  return `${linea.producto}::${linea.cadena}::${linea.color || ""}`;
+}
+
+/* "Color Azul · Cadena Plateada" para mostrar una línea. */
+function detalleLinea(linea: { cadena: string; color?: string }) {
+  return [
+    linea.color ? `Color ${linea.color}` : "",
+    linea.cadena ? `Cadena ${linea.cadena}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function urlFoto(foto?: Foto) {
@@ -262,14 +276,20 @@ function ajustarCarrito(
       ? producto.cadenas.includes(cadena)
       : cadena === "";
 
+    const color = String(linea?.color || "");
+
+    const colorValido = producto.colores.length
+      ? producto.colores.includes(color)
+      : color === "";
+
     const cantidad = Math.floor(Number(linea?.cantidad) || 0);
 
-    if (!cadenaValida || cantidad < 1) continue;
+    if (!cadenaValida || !colorValido || cantidad < 1) continue;
 
     const existente = resultado.find(
       (otra) =>
         claveLinea(otra) ===
-        claveLinea({ producto: producto.nombre, cadena })
+        claveLinea({ producto: producto.nombre, cadena, color })
     );
 
     if (existente) {
@@ -283,6 +303,7 @@ function ajustarCarrito(
     resultado.push({
       producto: producto.nombre,
       cadena,
+      color,
       cantidad: Math.min(catalogo.maxUnidades, cantidad),
     });
   }
@@ -315,6 +336,8 @@ async function pedirCatalogo(): Promise<Catalogo> {
           ...producto,
           precioMayor: Number(producto.precioMayor) || 0,
           precioGranMayor: Number(producto.precioGranMayor) || 0,
+          cadenas: Array.isArray(producto.cadenas) ? producto.cadenas : [],
+          colores: Array.isArray(producto.colores) ? producto.colores : [],
         }))
       : [],
   };
@@ -529,6 +552,58 @@ function BotonCopiar({ texto }: { texto: string }) {
   );
 }
 
+/* Chips para elegir cadena o color (no se muestra si no hay opciones). */
+function SelectorOpciones({
+  titulo,
+  opciones,
+  elegida,
+  onElegir,
+}: {
+  titulo: string;
+  opciones: string[];
+  elegida: string;
+  onElegir: (opcion: string) => void;
+}) {
+  if (!opciones.length) return null;
+
+  return (
+    <fieldset className="mt-4">
+      <legend className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+        {titulo}
+      </legend>
+
+      <div className="flex flex-wrap gap-2">
+        {opciones.map((opcion) => {
+          const activa = opcion === elegida;
+
+          return (
+            <button
+              key={opcion}
+              type="button"
+              onClick={() => onElegir(opcion)}
+              aria-pressed={activa}
+              className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                activa
+                  ? "border-[var(--kint-selected-border)] bg-[var(--kint-selected-bg)] text-[var(--text-main)] ring-1 ring-[#4C6C81]/20"
+                  : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-red-600/40"
+              }`}
+            >
+              {activa && (
+                <Check
+                  size={12}
+                  strokeWidth={3}
+                  className="-ml-0.5 mr-1 inline align-[-1px]"
+                />
+              )}
+              {opcion}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
 function TarjetaProducto({
   producto,
   maxUnidades,
@@ -542,13 +617,14 @@ function TarjetaProducto({
   mayorDesde: number;
   enCarrito: number;
   deshabilitada: boolean;
-  onAgregar: (cadena: string, cantidad: number) => void;
+  onAgregar: (cadena: string, color: string, cantidad: number) => void;
 }) {
   const fotos = fotosDe(producto);
 
   const [cadena, setCadena] = useState(
     producto.cadenas[0] || ""
   );
+  const [color, setColor] = useState(producto.colores[0] || "");
   const [cantidad, setCantidad] = useState(1);
   const [indiceFoto, setIndiceFoto] = useState(0);
   const [fotosRotas, setFotosRotas] = useState<number[]>([]);
@@ -568,6 +644,10 @@ function TarjetaProducto({
   const cadenaElegida = producto.cadenas.includes(cadena)
     ? cadena
     : producto.cadenas[0] || "";
+
+  const colorElegido = producto.colores.includes(color)
+    ? color
+    : producto.colores[0] || "";
 
   const indice = Math.min(indiceFoto, Math.max(0, fotos.length - 1));
   const fotoActual = fotos[indice];
@@ -670,42 +750,19 @@ function TarjetaProducto({
           </p>
         )}
 
-        {producto.cadenas.length > 0 && (
-          <fieldset className="mt-4">
-            <legend className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
-              Cadena
-            </legend>
+        <SelectorOpciones
+          titulo="Color"
+          opciones={producto.colores}
+          elegida={colorElegido}
+          onElegir={setColor}
+        />
 
-            <div className="flex flex-wrap gap-2">
-              {producto.cadenas.map((opcion) => {
-                const elegida = opcion === cadenaElegida;
-
-                return (
-                  <button
-                    key={opcion}
-                    type="button"
-                    onClick={() => setCadena(opcion)}
-                    aria-pressed={elegida}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
-                      elegida
-                        ? "border-[var(--kint-selected-border)] bg-[var(--kint-selected-bg)] text-[var(--text-main)] ring-1 ring-[#4C6C81]/20"
-                        : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-red-600/40"
-                    }`}
-                  >
-                    {elegida && (
-                      <Check
-                        size={12}
-                        strokeWidth={3}
-                        className="-ml-0.5 mr-1 inline align-[-1px]"
-                      />
-                    )}
-                    {opcion}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-        )}
+        <SelectorOpciones
+          titulo="Cadena"
+          opciones={producto.cadenas}
+          elegida={cadenaElegida}
+          onElegir={setCadena}
+        />
 
         <div className="mt-auto flex items-center gap-3 pt-5">
           <SelectorCantidad
@@ -719,7 +776,7 @@ function TarjetaProducto({
             type="button"
             disabled={deshabilitada}
             onClick={() => {
-              onAgregar(cadenaElegida, cantidad);
+              onAgregar(cadenaElegida, colorElegido, cantidad);
               setAgregado(true);
               setCantidad(1);
             }}
@@ -1320,11 +1377,12 @@ export default function TiendaPage() {
   function agregarAlCarrito(
     producto: Producto,
     cadena: string,
+    color: string,
     cantidad: number
   ) {
     if (enviando) return;
 
-    const clave = claveLinea({ producto: producto.nombre, cadena });
+    const clave = claveLinea({ producto: producto.nombre, cadena, color });
 
     if (
       carrito.length >= MAX_LINEAS &&
@@ -1360,6 +1418,7 @@ export default function TiendaPage() {
         {
           producto: producto.nombre,
           cadena,
+          color,
           cantidad: Math.min(maxUnidades, cantidad),
         },
       ];
@@ -1449,6 +1508,7 @@ export default function TiendaPage() {
           items: lineas.map((linea) => ({
             producto: linea.producto,
             cadena: linea.cadena,
+            color: linea.color,
             cantidad: linea.cantidad,
           })),
           archivoBase64: archivo.base64,
@@ -1580,9 +1640,9 @@ export default function TiendaPage() {
                   <strong>
                     {linea.cantidad} × {linea.producto}
                   </strong>
-                  {linea.cadena && (
+                  {detalleLinea(linea) && (
                     <span className="block text-xs text-[var(--text-muted)]">
-                      Cadena {linea.cadena}
+                      {detalleLinea(linea)}
                     </span>
                   )}
                 </span>
@@ -1821,8 +1881,8 @@ export default function TiendaPage() {
                         (suma, linea) => suma + linea.cantidad,
                         0
                       )}
-                    onAgregar={(cadena, cantidad) =>
-                      agregarAlCarrito(producto, cadena, cantidad)
+                    onAgregar={(cadena, color, cantidad) =>
+                      agregarAlCarrito(producto, cadena, color, cantidad)
                     }
                   />
                 ))}
@@ -1947,8 +2007,8 @@ export default function TiendaPage() {
                                 {linea.producto}
                               </p>
                               <p className="text-xs text-[var(--text-muted)]">
-                                {linea.cadena
-                                  ? `Cadena ${linea.cadena} · `
+                                {detalleLinea(linea)
+                                  ? `${detalleLinea(linea)} · `
                                   : ""}
                                 {linea.mayorista && (
                                   <s className="mr-1 opacity-60">

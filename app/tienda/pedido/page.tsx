@@ -24,6 +24,7 @@ type Linea = {
   producto: string;
   cantidad: number;
   cadena: string;
+  color?: string;
   subtotal: number;
 };
 
@@ -299,9 +300,14 @@ export default function SeguimientoTienda() {
                       <strong>
                         {linea.cantidad} × {linea.producto}
                       </strong>
-                      {linea.cadena && (
+                      {(linea.color || linea.cadena) && (
                         <span className="block text-xs text-[var(--text-muted)]">
-                          Cadena {linea.cadena}
+                          {[
+                            linea.color ? `Color ${linea.color}` : "",
+                            linea.cadena ? `Cadena ${linea.cadena}` : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </span>
                       )}
                     </span>

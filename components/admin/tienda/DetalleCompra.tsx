@@ -30,9 +30,8 @@ const claseEnlaceBoton =
   "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-4 text-sm font-bold text-[var(--text-main)] transition hover:border-[var(--kint-selected-border)] active:scale-[0.98]";
 
 export function textoLinea(linea: CompraTienda["lineas"][number]) {
-  return `${linea.cantidad} × ${linea.producto}${
-    linea.cadena ? ` (${linea.cadena})` : ""
-  }`;
+  const detalle = [linea.color, linea.cadena].filter(Boolean).join(", ");
+  return `${linea.cantidad} × ${linea.producto}${detalle ? ` (${detalle})` : ""}`;
 }
 
 export function textoModalidad(compra: CompraTienda) {
@@ -106,6 +105,11 @@ export function DetalleCompra({
                 <span className="font-bold">
                   {linea.cantidad} × {linea.producto}
                 </span>
+                {linea.color && (
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    Color {linea.color}
+                  </span>
+                )}
                 {linea.cadena && (
                   <span className="block text-xs text-[var(--text-muted)]">
                     Cadena {linea.cadena}

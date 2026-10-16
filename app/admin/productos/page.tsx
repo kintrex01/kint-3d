@@ -41,6 +41,7 @@ type Formulario = {
   precioGranMayor: string;
   foto: string;
   cadenas: string[];
+  colores: string[];
   activo: boolean;
 };
 
@@ -56,6 +57,7 @@ const FORMULARIO_NUEVO: Formulario = {
   precioGranMayor: "",
   foto: "",
   cadenas: [],
+  colores: [],
   activo: true,
 };
 
@@ -70,6 +72,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
       : "",
     foto: producto.foto || "",
     cadenas: [...(producto.cadenas || [])],
+    colores: [...(producto.colores || [])],
     activo: producto.activo,
   };
 }
@@ -82,6 +85,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     precioGranMayor: producto.precioGranMayor,
     foto: producto.foto,
     cadenas: producto.cadenas,
+    colores: producto.colores || [],
     activo: producto.activo,
   };
 }
@@ -214,8 +218,13 @@ function TarjetaProducto({
           </p>
         </div>
 
-        {producto.cadenas.length > 0 && (
+        {(producto.cadenas.length > 0 || (producto.colores || []).length > 0) && (
           <div className="flex flex-wrap gap-1">
+            {(producto.colores || []).map((color) => (
+              <Chip key={`color-${color}`} tono="violeta">
+                {color}
+              </Chip>
+            ))}
             {producto.cadenas.map((cadena) => (
               <Chip key={cadena} tono="azul">
                 {cadena}
@@ -247,6 +256,97 @@ function TarjetaProducto({
   );
 }
 
+/* Chips para elegir opciones (cadenas o colores) + campo para agregar otra. */
+function EditorOpciones({
+  titulo,
+  opciones,
+  elegidas,
+  onCambiar,
+}: {
+  titulo: string;
+  opciones: string[];
+  elegidas: string[];
+  onCambiar: (elegidas: string[]) => void;
+}) {
+  const [nueva, setNueva] = useState("");
+  const todas = [
+    ...opciones,
+    ...elegidas.filter((opcion) => !opciones.includes(opcion)),
+  ];
+
+  function alternar(opcion: string) {
+    onCambiar(
+      elegidas.includes(opcion)
+        ? elegidas.filter((actual) => actual !== opcion)
+        : [...elegidas, opcion]
+    );
+  }
+
+  function agregar() {
+    const limpia = nueva.trim().replace(/[,;]/g, " ").replace(/\s+/g, " ");
+    if (!limpia) return;
+    const existente =
+      todas.find((opcion) => mismoNombre(opcion, limpia)) || limpia;
+    if (!elegidas.includes(existente)) onCambiar([...elegidas, existente]);
+    setNueva("");
+  }
+
+  return (
+    <fieldset>
+      <legend className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
+        {titulo}
+      </legend>
+      {todas.length > 0 && (
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {todas.map((opcion) => {
+            const elegida = elegidas.includes(opcion);
+            return (
+              <button
+                key={opcion}
+                type="button"
+                onClick={() => alternar(opcion)}
+                aria-pressed={elegida}
+                className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-bold transition ${
+                  elegida
+                    ? "border-[#1f3f85] bg-[#1f3f85] text-white"
+                    : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                }`}
+              >
+                {elegida && <Check size={12} strokeWidth={3} />}
+                {opcion}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <input
+          className={claseInput}
+          value={nueva}
+          onChange={(evento) => setNueva(evento.target.value)}
+          onKeyDown={(evento) => {
+            if (evento.key === "Enter") {
+              evento.preventDefault();
+              agregar();
+            }
+          }}
+          placeholder="Agregar otra"
+          aria-label={`Agregar ${titulo.toLowerCase()}`}
+          maxLength={40}
+          enterKeyHint="done"
+        />
+        <Boton
+          onClick={agregar}
+          disabled={!nueva.trim()}
+          icono={<Plus size={16} />}
+          aria-label={`Agregar ${titulo.toLowerCase()}`}
+          className="w-11 shrink-0 px-0"
+        />
+      </div>
+    </fieldset>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
@@ -259,12 +359,13 @@ export default function ProductosAdmin() {
   );
   const productos = datos?.productos || [];
   const cadenasOpciones = datos?.cadenasOpciones || [];
+  const coloresOpciones = datos?.coloresOpciones || [];
+  const hayColores = Boolean(datos?.hayColores);
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [cambiando, setCambiando] = useState<string[]>([]);
   const pendientes = useRef(new Map<string, boolean>());
   const [formulario, setFormulario] = useState<Formulario | null>(null);
-  const [nuevaCadena, setNuevaCadena] = useState("");
   const [intentado, setIntentado] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
@@ -310,6 +411,8 @@ export default function ProductosAdmin() {
             : item
         ),
         cadenasOpciones: actual?.cadenasOpciones || [],
+        coloresOpciones: actual?.coloresOpciones || [],
+        hayColores: Boolean(actual?.hayColores),
       }));
       avisar(
         activo
@@ -334,7 +437,6 @@ export default function ProductosAdmin() {
 
   function abrir(producto?: ProductoAdmin) {
     setFormulario(producto ? aFormulario(producto) : { ...FORMULARIO_NUEVO });
-    setNuevaCadena("");
     setIntentado(false);
   }
 
@@ -344,29 +446,6 @@ export default function ProductosAdmin() {
 
   function cambiar(cambio: Partial<Formulario>) {
     setFormulario((actual) => (actual ? { ...actual, ...cambio } : actual));
-  }
-
-  function alternarCadena(cadena: string) {
-    if (!formulario) return;
-    cambiar({
-      cadenas: formulario.cadenas.includes(cadena)
-        ? formulario.cadenas.filter((actual) => actual !== cadena)
-        : [...formulario.cadenas, cadena],
-    });
-  }
-
-  function agregarCadena() {
-    if (!formulario) return;
-    const cadena = nuevaCadena.trim().replace(/[,;]/g, " ").replace(/\s+/g, " ");
-    if (!cadena) return;
-    const existente =
-      [...cadenasOpciones, ...formulario.cadenas].find((opcion) =>
-        mismoNombre(opcion, cadena)
-      ) || cadena;
-    if (!formulario.cadenas.includes(existente)) {
-      cambiar({ cadenas: [...formulario.cadenas, existente] });
-    }
-    setNuevaCadena("");
   }
 
   const errores = formulario ? validar(formulario, productos) : {};
@@ -391,6 +470,7 @@ export default function ProductosAdmin() {
       precioGranMayor: numero(formulario.precioGranMayor),
       foto: formulario.foto.trim(),
       cadenas: formulario.cadenas,
+      colores: formulario.colores,
       activo: formulario.activo,
     };
 
@@ -401,11 +481,16 @@ export default function ProductosAdmin() {
         producto,
       });
       setDatos((actual) => {
-        const opciones = [...(actual?.cadenasOpciones || [])];
-        for (const cadena of producto.cadenas) {
-          if (!opciones.includes(cadena)) opciones.push(cadena);
-        }
-        return { productos: respuesta.productos, cadenasOpciones: opciones };
+        const sumar = (base: string[], nuevas: string[]) => [
+          ...base,
+          ...nuevas.filter((opcion) => !base.includes(opcion)),
+        ];
+        return {
+          productos: respuesta.productos,
+          cadenasOpciones: sumar(actual?.cadenasOpciones || [], producto.cadenas),
+          coloresOpciones: sumar(actual?.coloresOpciones || [], producto.colores),
+          hayColores: Boolean(actual?.hayColores),
+        };
       });
       avisar(esNuevo ? "Producto creado." : "Cambios guardados.");
       setFormulario(null);
@@ -420,15 +505,6 @@ export default function ProductosAdmin() {
       setGuardando(false);
     }
   }
-
-  const opcionesFormulario = formulario
-    ? [
-        ...cadenasOpciones,
-        ...formulario.cadenas.filter(
-          (cadena) => !cadenasOpciones.includes(cadena)
-        ),
-      ]
-    : [];
 
   return (
     <>
@@ -627,58 +703,22 @@ export default function ProductosAdmin() {
               cambia en Configuración › Tienda. Vacío = no tiene ese precio.
             </p>
 
-            <fieldset>
-              <legend className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
-                Cadenas
-              </legend>
-              {opcionesFormulario.length > 0 && (
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {opcionesFormulario.map((cadena) => {
-                    const elegida = formulario.cadenas.includes(cadena);
-                    return (
-                      <button
-                        key={cadena}
-                        type="button"
-                        onClick={() => alternarCadena(cadena)}
-                        aria-pressed={elegida}
-                        className={`inline-flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-bold transition ${
-                          elegida
-                            ? "border-[#1f3f85] bg-[#1f3f85] text-white"
-                            : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
-                        }`}
-                      >
-                        {elegida && <Check size={12} strokeWidth={3} />}
-                        {cadena}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <input
-                  className={claseInput}
-                  value={nuevaCadena}
-                  onChange={(evento) => setNuevaCadena(evento.target.value)}
-                  onKeyDown={(evento) => {
-                    if (evento.key === "Enter") {
-                      evento.preventDefault();
-                      agregarCadena();
-                    }
-                  }}
-                  placeholder="Agregar otra"
-                  aria-label="Agregar otra cadena"
-                  maxLength={40}
-                  enterKeyHint="done"
-                />
-                <Boton
-                  onClick={agregarCadena}
-                  disabled={!nuevaCadena.trim()}
-                  icono={<Plus size={16} />}
-                  aria-label="Agregar cadena"
-                  className="w-11 shrink-0 px-0"
-                />
-              </div>
-            </fieldset>
+            {hayColores && (
+              <EditorOpciones
+                titulo="Colores"
+                opciones={coloresOpciones}
+                elegidas={formulario.colores}
+                onCambiar={(colores) => cambiar({ colores })}
+              />
+            )}
+
+            <EditorOpciones
+              titulo="Cadenas"
+              opciones={cadenasOpciones}
+              elegidas={formulario.cadenas}
+              onCambiar={(cadenas) => cambiar({ cadenas })}
+            />
+
 
             <Campo
               etiqueta="Foto (opcional)"
