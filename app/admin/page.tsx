@@ -14,7 +14,10 @@ import {
   Settings,
   ShoppingBag,
   Star,
+  Sparkles,
   Timer,
+  TrendingDown,
+  TrendingUp,
   Wallet,
   Wrench,
   type LucideIcon,
@@ -23,10 +26,10 @@ import { useDatosAdmin } from "@/lib/admin-cliente";
 import {
   ESTADOS_PEDIDO,
   type EntregaAgenda,
+  type MetricasAdmin,
   type ResumenAdmin,
 } from "@/lib/admin-tipos";
 import {
-  Boton,
   CajaError,
   Chip,
   Esqueleto,
@@ -34,6 +37,7 @@ import {
   TituloSeccion,
   Vacio,
   fechaDia,
+  pesos,
   textoEstado,
   tonoEstado,
   type Tono,
@@ -52,6 +56,181 @@ function saludo(hora: number | undefined) {
   if (hora >= 5 && hora < 12) return "Buen día";
   if (hora >= 12 && hora < 20) return "Buenas tardes";
   return "Buenas noches";
+}
+
+/* ------------------------------------------------------------------ */
+/* Banner con métricas                                                 */
+/* ------------------------------------------------------------------ */
+
+/* Variación contra el mes anterior: +12% / -5% / null si no hay base. */
+function variacion(actual: number, anterior: number) {
+  if (!(anterior > 0)) return null;
+  return Math.round(((actual - anterior) / anterior) * 100);
+}
+
+function Banner({
+  titulo,
+  fecha,
+  metricas,
+  accion,
+}: {
+  titulo: string;
+  fecha: string;
+  metricas?: MetricasAdmin | null;
+  accion: React.ReactNode;
+}) {
+  const cambio = metricas
+    ? variacion(metricas.ventasMes, metricas.ventasMesAnterior)
+    : null;
+
+  return (
+    <section className="relative mb-6 overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#1f3f85_0%,#132a5e_55%,#0a1838_100%)] p-5 text-white shadow-[0_18px_50px_rgba(15,35,80,0.35)] sm:p-7">
+      {/* Brillos decorativos */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-sky-400/25 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-red-500/20 blur-3xl"
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-sky-100">
+            <Sparkles size={12} />
+            Kint 3D
+          </p>
+          <h1 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">
+            {titulo}
+          </h1>
+          <p className="mt-1 min-h-5 text-sm text-sky-100/80 first-letter:uppercase">
+            {fecha}
+          </p>
+        </div>
+        {accion}
+      </div>
+
+      {metricas && (
+        <div className="relative mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+          <div className="col-span-2 rounded-2xl bg-white/[0.08] p-4 ring-1 ring-white/10 backdrop-blur sm:col-span-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-sky-100/80">
+              Ventas del mes
+            </p>
+            <p className="mt-1 text-3xl font-black tabular-nums">
+              {pesos(metricas.ventasMes)}
+            </p>
+            {cambio !== null && (
+              <p
+                className={`mt-1 inline-flex items-center gap-1 text-xs font-bold ${
+                  cambio >= 0 ? "text-emerald-300" : "text-red-300"
+                }`}
+              >
+                {cambio >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                {cambio >= 0 ? "+" : ""}
+                {cambio}% vs. el mes pasado
+              </p>
+            )}
+            {cambio === null && (
+              <p className="mt-1 text-xs text-sky-100/70">Pagos confirmados</p>
+            )}
+          </div>
+          <DatoBanner
+            titulo="Maquetas este mes"
+            valor={metricas.pedidosMes}
+            icono={Package}
+          />
+          <DatoBanner
+            titulo="Compras en la tienda"
+            valor={metricas.comprasMes}
+            icono={ShoppingBag}
+          />
+        </div>
+      )}
+    </section>
+  );
+}
+
+function DatoBanner({
+  titulo,
+  valor,
+  icono: Icono,
+}: {
+  titulo: string;
+  valor: number;
+  icono: LucideIcon;
+}) {
+  return (
+    <div className="rounded-2xl bg-white/[0.08] p-4 ring-1 ring-white/10 backdrop-blur">
+      <Icono size={18} className="text-sky-200" />
+      <p className="mt-2 text-2xl font-black tabular-nums">{valor}</p>
+      <p className="text-[11px] font-bold leading-tight text-sky-100/80">
+        {titulo}
+      </p>
+    </div>
+  );
+}
+
+/* Barras de las últimas 8 semanas (maquetas + tienda apiladas). */
+function GraficoSemanas({ metricas }: { metricas: MetricasAdmin }) {
+  const semanas = metricas.semanas || [];
+  const maximo = Math.max(1, ...semanas.map((s) => s.maquetas + s.tienda));
+  const total = semanas.reduce((suma, s) => suma + s.maquetas + s.tienda, 0);
+
+  return (
+    <Tarjeta className="p-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-black">
+          {total} {total === 1 ? "pedido" : "pedidos"} en 8 semanas
+        </p>
+        <div className="flex items-center gap-3 text-[11px] font-bold text-[var(--text-muted)]">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-[#1f3f85] dark:bg-sky-400" />
+            Maquetas
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm bg-red-500" />
+            Tienda
+          </span>
+        </div>
+      </div>
+
+      <div className="flex h-36 items-end gap-2" role="img" aria-label="Pedidos por semana">
+        {semanas.map((semana, indice) => {
+          const actual = indice === semanas.length - 1;
+          const suma = semana.maquetas + semana.tienda;
+          return (
+            <div key={semana.desde} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1">
+              <span className="text-[10px] font-black tabular-nums text-[var(--text-muted)]">
+                {suma || ""}
+              </span>
+              <div
+                className="flex w-full max-w-10 flex-col-reverse overflow-hidden rounded-md bg-[var(--kint-panel-soft)]"
+                style={{ height: `${Math.max(6, (suma / maximo) * 100)}%` }}
+                title={`Semana del ${fechaDia(semana.desde)}: ${semana.maquetas} maquetas, ${semana.tienda} tienda`}
+              >
+                <div
+                  className="bg-[#1f3f85] transition-all dark:bg-sky-400"
+                  style={{ height: suma ? `${(semana.maquetas / suma) * 100}%` : 0 }}
+                />
+                <div
+                  className="bg-red-500 transition-all"
+                  style={{ height: suma ? `${(semana.tienda / suma) * 100}%` : 0 }}
+                />
+              </div>
+              <span
+                className={`truncate text-[10px] font-bold ${
+                  actual ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
+                }`}
+              >
+                {actual ? "Hoy" : fechaDia(semana.desde).replace(/^\w+\.?\s*/, "")}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </Tarjeta>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -463,29 +642,22 @@ export default function InicioAdmin() {
 
   return (
     <>
-      <div className="mb-5 flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-black leading-tight sm:text-3xl">
-            {saludo(ahora?.hora)}
-          </h1>
-          <p className="mt-1 min-h-5 text-sm first-letter:uppercase text-[var(--text-muted)]">
-            {fechaHoy}
-          </p>
-        </div>
-        <Boton
-          variante="fantasma"
-          onClick={recargar}
-          disabled={cargando || recargando}
-          aria-label="Actualizar"
-          className="w-11 px-0"
-          icono={
-            <RefreshCw
-              size={17}
-              className={recargando ? "animate-spin" : undefined}
-            />
-          }
-        />
-      </div>
+      <Banner
+        titulo={`${saludo(ahora?.hora)}, Alexander`}
+        fecha={fechaHoy}
+        metricas={resumen?.metricas}
+        accion={
+          <button
+            type="button"
+            onClick={recargar}
+            disabled={cargando || recargando}
+            aria-label="Actualizar"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-50"
+          >
+            <RefreshCw size={17} className={recargando ? "animate-spin" : undefined} />
+          </button>
+        }
+      />
 
       {cargando ? (
         <Esqueleto filas={5} />
@@ -503,11 +675,48 @@ export default function InicioAdmin() {
             </p>
           )}
           <TituloSeccion>Para hacer hoy</TituloSeccion>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {pendientesDe(resumen).map((item) => (
-              <TarjetaPendiente key={item.titulo} item={item} />
-            ))}
-          </div>
+          {(() => {
+            const todos = pendientesDe(resumen);
+            const conAlgo = todos.filter((item) => item.cantidad > 0);
+            const alDia = todos.filter((item) => item.cantidad === 0);
+
+            return (
+              <>
+                {conAlgo.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {conAlgo.map((item) => (
+                      <TarjetaPendiente key={item.titulo} item={item} />
+                    ))}
+                  </div>
+                ) : (
+                  <Tarjeta className="flex items-center gap-3 p-4">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                      <Check size={20} strokeWidth={3} />
+                    </span>
+                    <span>
+                      <span className="block font-black">¡Todo al día!</span>
+                      <span className="text-sm text-[var(--text-muted)]">
+                        No hay pagos, compras ni reseñas esperándote.
+                      </span>
+                    </span>
+                  </Tarjeta>
+                )}
+                {conAlgo.length > 0 && alDia.length > 0 && (
+                  <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+                    <Check size={13} className="mr-1 inline align-[-2px] text-emerald-600" />
+                    Al día: {alDia.map((item) => item.titulo.toLowerCase()).join(" · ")}
+                  </p>
+                )}
+              </>
+            );
+          })()}
+
+          {resumen.metricas && (
+            <>
+              <TituloSeccion>Últimas 8 semanas</TituloSeccion>
+              <GraficoSemanas metricas={resumen.metricas} />
+            </>
+          )}
 
           <div className="mt-4 grid grid-cols-3 gap-2">
             {ATAJOS.map((atajo) => {

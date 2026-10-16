@@ -611,6 +611,35 @@ export default function DetallePedidoAdmin({
         onEnviar={() => pedirEstado("Presupuestado")}
       />
 
+      {pedido.extras && pedido.extras.length > 0 && (
+        <>
+          <TituloSeccion>Extras de la tienda</TituloSeccion>
+          <Tarjeta className="divide-y divide-[var(--kint-panel-border)]">
+            {pedido.extras.map((extra) => (
+              <div
+                key={`${extra.producto}-${extra.cadena}`}
+                className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="font-black">
+                    {extra.cantidad} × {extra.producto}
+                  </span>
+                  <span className="block text-xs text-[var(--text-muted)]">
+                    {[extra.cadena && `Cadena ${extra.cadena}`, extra.colores]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
+                <span className="shrink-0 font-black">{pesos(extra.subtotal)}</span>
+              </div>
+            ))}
+            <p className="px-4 py-2.5 text-xs text-[var(--text-muted)]">
+              Ya están sumados al precio del pedido. Imprimilos junto con la maqueta.
+            </p>
+          </Tarjeta>
+        </>
+      )}
+
       {/* Pago */}
       <TituloSeccion>Pago</TituloSeccion>
       {pago ? (

@@ -116,6 +116,17 @@ export type PedidoDetalle = PedidoResumen & {
   fotoFinal: string; // S (link)
   presupuestos: OpcionPresupuesto[];
   archivos: ArchivoPedido[];
+  // Productos de la tienda sumados al presupuesto (hoja Extras).
+  extras?: ExtraPedido[];
+};
+
+export type ExtraPedido = {
+  producto: string;
+  cadena: string;
+  colores: string;
+  cantidad: number;
+  precio: number;
+  subtotal: number;
 };
 
 /* ------------------------------------------------------------------ */
@@ -206,6 +217,26 @@ export type ResenaAdmin = {
   aprobada: boolean; // G
   mostrarProyecto: boolean; // H
   fotos: string[];
+  // Foto final del pedido (Pedidos › S), si tiene: la del proyecto.
+  fotoProyecto?: string;
+};
+
+export type ItemHistorialCliente = {
+  tipo: "maqueta" | "tienda";
+  pedido: string;
+  fecha: string; // ISO ("" si no tiene)
+  estado: string;
+  monto: number;
+  pagado: boolean;
+  detalle?: string; // tienda: "2 × Casco, 1 × Portaplanos"
+};
+
+export type HistorialCliente = {
+  email: string;
+  gastado: number; // solo pagos confirmados
+  pedidos: number;
+  compras: number;
+  items: ItemHistorialCliente[];
 };
 
 export type ClienteAdmin = {
@@ -249,6 +280,15 @@ export type ResumenAdmin = {
     cuotaCorreos: number; // MailApp.getRemainingDailyQuota()
     activadores: { funcion: string; tipo: string }[];
   };
+  metricas?: MetricasAdmin | null;
+};
+
+export type MetricasAdmin = {
+  ventasMes: number; // pagos confirmados (maquetas + tienda) de pedidos de este mes
+  ventasMesAnterior: number;
+  pedidosMes: number; // maquetas que entraron este mes
+  comprasMes: number; // compras de la tienda de este mes
+  semanas: { desde: string; maquetas: number; tienda: number }[]; // 8, la última = esta semana
 };
 
 /* ------------------------------------------------------------------ */
@@ -390,6 +430,10 @@ export type AccionesAdmin = {
     pedido: { id: string; aprobada?: boolean; mostrarProyecto?: boolean };
     respuesta: { resena: ResenaAdmin };
   };
+  admin_cliente_historial: {
+    pedido: { email: string };
+    respuesta: HistorialCliente;
+  };
   admin_resena_borrar: {
     pedido: { id: string };
     respuesta: { id: string; pedido: string };
@@ -433,6 +477,7 @@ export const ACCIONES_ADMIN = [
   "admin_resenas_listar",
   "admin_resena_moderar",
   "admin_resena_borrar",
+  "admin_cliente_historial",
   "admin_clientes_buscar",
   "admin_cliente_estado",
 ] as const satisfies readonly TipoAccionAdmin[];

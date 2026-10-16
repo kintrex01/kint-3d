@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import ExtrasPresupuesto from "@/components/ExtrasPresupuesto";
 import SeguimientoTienda, {
   buscarCompraTienda,
   esPedidoTienda,
@@ -2061,6 +2062,20 @@ resultado.precio !== "Pendiente"
   </>
 )}
 </div>
+
+{/* Oferta: productos de la tienda como extra, después de elegir la opción y antes de pagar. */}
+{resultado.estado === "Presupuestado" &&
+  (!resultado.metodoPago ||
+    resultado.metodoPago === "Sin seleccionar") &&
+  resultado.presupuestos?.some(
+    (p: any) => String(p.seleccionado).toLowerCase() === "sí"
+  ) && (
+    <ExtrasPresupuesto
+      pedido={resultado.pedido}
+      codigo={codigo}
+      onCambio={() => void actualizarPedidoSilenciosamente()}
+    />
+  )}
 
 {(!resultado.metodoPago ||
   resultado.metodoPago === "Sin seleccionar") &&

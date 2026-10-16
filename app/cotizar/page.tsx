@@ -116,6 +116,8 @@ const [verificandoAlias, setVerificandoAlias] =
 
 const [telefono, setTelefono] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
+  // "Entre dos fechas": último día que le sirve ("" = un solo día).
+  const [fechaEntregaHasta, setFechaEntregaHasta] = useState("");
   const [escala, setEscala] = useState("");
   const [escalaPersonalizada, setEscalaPersonalizada] = useState("");
   const [color, setColor] = useState<string[]>([]);
@@ -1257,6 +1259,7 @@ if (archivos.length > 0) {
     codigoRepetidoOrigen,
 
         fechaEntrega,
+        fechaEntregaHasta,
         escala: escalaFinal,
         color: color.join(", "),
         armado: armadoHabilitado
@@ -1303,6 +1306,7 @@ setMensajeAlias("");
 setPuntosDisponibles(0);
 setTelefono("");
     setFechaEntrega("");
+    setFechaEntregaHasta("");
     setEscala("");
     setEscalaPersonalizada("");
     setColor([]);
@@ -1817,6 +1821,8 @@ return (
             <CalendarioEntrega
               valor={fechaEntrega}
               onCambiar={setFechaEntrega}
+              hasta={fechaEntregaHasta}
+              onCambiarHasta={setFechaEntregaHasta}
             />
           </div>
         </div>

@@ -256,6 +256,7 @@ email: String(body.email || ""),
 alias: String(body.alias || ""),
 telefono: String(body.telefono || ""),
       fechaEntrega: String(body.fechaEntrega || ""),
+      fechaEntregaHasta: String(body.fechaEntregaHasta || ""),
       escala: String(body.escala || ""),
       color: String(body.color || ""),
       armado: String(body.armado || ""),
@@ -599,7 +600,13 @@ if (archivosRegistrados.length > 0) {
 
 <p><strong>Email cliente:</strong> ${payload.email}</p>
         <p><strong>WhatsApp:</strong> ${payload.telefono}</p>
-        <p><strong>Fecha entrega:</strong> ${payload.fechaEntrega || "Sin fecha"}</p>
+        <p><strong>Fecha entrega:</strong> ${
+          payload.fechaEntrega
+            ? payload.fechaEntregaHasta
+              ? `entre ${payload.fechaEntrega} y ${payload.fechaEntregaHasta}`
+              : payload.fechaEntrega
+            : "Sin fecha"
+        }</p>
         <p><strong>Escala:</strong> ${payload.escala}</p>
         <p><strong>Color:</strong> ${payload.color}</p>
         <p><strong>Armado:</strong> ${payload.armado}</p>

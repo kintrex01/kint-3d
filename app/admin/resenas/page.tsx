@@ -317,6 +317,20 @@ function TarjetaResena({
             </div>
           </div>
         )}
+
+        {fotos.length === 0 && resena.fotoProyecto && srcFoto(resena.fotoProyecto) && (
+          <div className="mt-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+              <ImageIcon size={13} />
+              Foto del proyecto ·{" "}
+              {resena.mostrarProyecto ? "se ve en la web" : "no se ve en la web"}
+            </p>
+            <Miniatura
+              link={resena.fotoProyecto}
+              src={srcFoto(resena.fotoProyecto)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="divide-y divide-[var(--kint-panel-border)] border-t border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)]/50">

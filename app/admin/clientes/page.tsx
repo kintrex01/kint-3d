@@ -26,6 +26,7 @@ import {
   claseInput,
   useAvisos,
 } from "@/components/admin/ui";
+import { HistorialCliente } from "@/components/admin/clientes/HistorialCliente";
 
 const MESES = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -299,6 +300,8 @@ function TarjetaCliente({
           {bloqueado ? "Desbloquear" : "Bloquear"}
         </Boton>
       </div>
+
+      <HistorialCliente email={cliente.email} />
     </Tarjeta>
   );
 }

@@ -2290,6 +2290,8 @@ export default function TiendaPage() {
   const [reintento, setReintento] = useState(0);
 
   const [fechaEntrega, setFechaEntrega] = useState("");
+  // "Entre dos fechas": último día que le sirve ("" = un solo día).
+  const [fechaEntregaHasta, setFechaEntregaHasta] = useState("");
   const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [modalidad, setModalidad] = useState<Modalidad | "">("");
@@ -2956,6 +2958,7 @@ export default function TiendaPage() {
           idCompra: id,
           comentario: comentario.trim(),
           fechaEntrega,
+          fechaEntregaHasta,
           modalidad,
           total,
           items: lineas.map((linea) => ({
@@ -3016,6 +3019,7 @@ export default function TiendaPage() {
       setComprobante(null);
       setComentario("");
       setFechaEntrega("");
+      setFechaEntregaHasta("");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (errorCompra: unknown) {
       setError(
@@ -3739,6 +3743,8 @@ export default function TiendaPage() {
                     <CalendarioEntrega
                       valor={fechaEntrega}
                       onCambiar={setFechaEntrega}
+                      hasta={fechaEntregaHasta}
+                      onCambiarHasta={setFechaEntregaHasta}
                       onBloqueados={setDiasBloqueados}
                     />
                   </div>

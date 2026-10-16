@@ -133,6 +133,7 @@ export async function POST(request: Request) {
         idCompra: String(body.idCompra || ""),
         comentario: String(body.comentario || ""),
         fechaEntrega: String(body.fechaEntrega || ""),
+        fechaEntregaHasta: String(body.fechaEntregaHasta || ""),
         modalidad: String(body.modalidad || ""),
         total: Number(body.total),
         items,
