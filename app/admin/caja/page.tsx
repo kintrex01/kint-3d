@@ -159,7 +159,7 @@ export default function CajaAdmin() {
     setGuardando(true);
     try {
       const { movimiento } = await accionAdmin("admin_caja_guardar", {
-        tipo: formulario.tipo,
+        sentido: formulario.tipo,
         concepto: formulario.concepto.trim(),
         monto,
         fecha: formulario.fecha,

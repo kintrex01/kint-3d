@@ -476,7 +476,7 @@ export type AccionesAdmin = {
   };
   admin_caja_guardar: {
     pedido: {
-      tipo: "ingreso" | "gasto";
+      sentido: "ingreso" | "gasto"; // "tipo" ya es el nombre de la acción
       concepto: string;
       monto: number;
       fecha: string; // yyyy-mm-dd
