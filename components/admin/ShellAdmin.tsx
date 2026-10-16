@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { ProveedorAvisos } from "@/components/admin/ui";
+import { BarraProgreso } from "@/components/admin/ProgresoAdmin";
+import { limpiarCacheAdmin, precargarAdmin } from "@/lib/admin-cliente";
 
 type Enlace = {
   href: string;
@@ -81,14 +83,65 @@ function BotonTema() {
 
 export async function cerrarSesionAdmin() {
   await fetch("/api/admin/logout", { method: "POST" }).catch(() => null);
+  limpiarCacheAdmin();
   window.location.href = "/admin/login";
 }
 
 export default function ShellAdmin({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/admin";
   const router = useRouter();
+  const esLogin = pathname === "/admin/login";
 
-  if (pathname === "/admin/login") {
+  /* Página desde la que se tocó un enlace: hasta que cambie, se muestra la barra. */
+  const [navegandoDesde, setNavegandoDesde] = useState<string | null>(null);
+  const navegando = navegandoDesde !== null && navegandoDesde === pathname;
+
+  useEffect(() => {
+    /* En captura: Link de Next cancela el clic antes de que llegue al documento. */
+    function alClic(evento: MouseEvent) {
+      if (
+        evento.button !== 0 ||
+        evento.metaKey ||
+        evento.ctrlKey ||
+        evento.shiftKey ||
+        evento.altKey
+      ) {
+        return;
+      }
+      const enlace = (evento.target as Element | null)?.closest?.("a");
+      if (!enlace || enlace.target === "_blank" || enlace.hasAttribute("download")) {
+        return;
+      }
+      const destino = new URL(enlace.href, window.location.href);
+      if (
+        destino.origin !== window.location.origin ||
+        !destino.pathname.startsWith("/admin") ||
+        destino.pathname === window.location.pathname
+      ) {
+        return;
+      }
+      setNavegandoDesde(window.location.pathname);
+    }
+
+    document.addEventListener("click", alClic, true);
+    return () => document.removeEventListener("click", alClic, true);
+  }, []);
+
+  /* Por si la navegación no llega a ocurrir. */
+  useEffect(() => {
+    if (!navegandoDesde) return;
+    const temporizador = window.setTimeout(() => setNavegandoDesde(null), 8000);
+    return () => window.clearTimeout(temporizador);
+  }, [navegandoDesde]);
+
+  /* Al entrar: trae en segundo plano inicio, maquetas, tienda y calendario. */
+  useEffect(() => {
+    if (esLogin) return;
+    const temporizador = window.setTimeout(precargarAdmin, 600);
+    return () => window.clearTimeout(temporizador);
+  }, [esLogin]);
+
+  if (esLogin) {
     return <ProveedorAvisos>{children}</ProveedorAvisos>;
   }
 
@@ -100,6 +153,7 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
 
   return (
     <ProveedorAvisos>
+      <BarraProgreso navegando={navegando} />
       <div className="min-h-screen bg-[var(--page-bg)] text-[var(--text-main)] lg:pl-64">
         {/* Lateral (compu) */}
         <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-4 py-6 lg:flex">
@@ -159,7 +213,10 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--kint-panel-border)] bg-[var(--page-bg)]/90 px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] backdrop-blur-xl lg:hidden">
           <button
             type="button"
-            onClick={() => router.push("/admin")}
+            onClick={() => {
+              if (pathname !== "/admin") setNavegandoDesde(pathname);
+              router.push("/admin");
+            }}
             className="text-left"
           >
             <span className="kint-logo-font block text-base leading-tight">

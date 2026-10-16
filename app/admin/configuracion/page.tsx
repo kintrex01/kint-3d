@@ -17,6 +17,7 @@ import {
   claseInput,
   useAvisos,
 } from "@/components/admin/ui";
+import { unidadConfig } from "@/components/admin/unidadesConfig";
 
 /* ------------------------------------------------------------------ */
 /* Textos                                                              */
@@ -331,7 +332,8 @@ export default function ConfiguracionAdmin() {
             )
           ) : (
             secciones.map((seccion, indice) => (
-              <section key={seccion.titulo}>
+              // La hoja puede repetir un título de sección.
+              <section key={`${seccion.titulo}-${indice}`}>
                 <div className={indice === 0 ? "-mt-4" : ""}>
                   <TituloSeccion>{seccion.titulo}</TituloSeccion>
                 </div>
@@ -531,12 +533,30 @@ function EditorValor({
     );
   }
 
+  /* Unidad a la vista ("%" antes del número, "días" después). */
+  const unidad = unidadConfig(fila, descripcion(fila.clave));
+  const textoUnidad = [unidad.prefijo, unidad.sufijo].filter(Boolean).join(" ");
+
   const anchoInput =
     fila.tipo === "numero"
-      ? "w-28"
+      ? unidad.sufijo && unidad.sufijo.length > 4
+        ? "w-40"
+        : "w-32"
       : fila.tipo === "fecha"
       ? "w-44"
       : "min-w-0 flex-1";
+  const espacioPrefijo = unidad.prefijo
+    ? unidad.prefijo.length > 1
+      ? "pl-11"
+      : "pl-8"
+    : "";
+  const espacioSufijo = unidad.sufijo
+    ? unidad.sufijo.length > 4
+      ? "pr-20"
+      : "pr-14"
+    : "";
+  const claseUnidad =
+    "pointer-events-none absolute top-1/2 -translate-y-1/2 text-sm font-black text-[var(--text-muted)]";
 
   return (
     <form
@@ -547,21 +567,35 @@ function EditorValor({
       }}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          type={fila.tipo === "fecha" ? "date" : "text"}
-          inputMode={fila.tipo === "numero" ? "decimal" : undefined}
-          value={borrador}
-          disabled={guardando}
-          aria-label={fila.etiqueta}
-          aria-invalid={Boolean(error)}
-          onChange={(evento) => {
-            setBorrador(evento.target.value);
-            setError("");
-          }}
-          className={`${claseInput} h-11 ${anchoInput} ${
-            error ? "border-red-500" : ""
-          }`}
-        />
+        <div className={`relative ${anchoInput}`}>
+          {unidad.prefijo && (
+            <span aria-hidden="true" className={`${claseUnidad} left-3.5`}>
+              {unidad.prefijo}
+            </span>
+          )}
+          <input
+            type={fila.tipo === "fecha" ? "date" : "text"}
+            inputMode={fila.tipo === "numero" ? "decimal" : undefined}
+            value={borrador}
+            disabled={guardando}
+            aria-label={
+              textoUnidad ? `${fila.etiqueta} (${textoUnidad})` : fila.etiqueta
+            }
+            aria-invalid={Boolean(error)}
+            onChange={(evento) => {
+              setBorrador(evento.target.value);
+              setError("");
+            }}
+            className={`${claseInput} h-11 ${espacioPrefijo} ${espacioSufijo} ${
+              error ? "border-red-500" : ""
+            }`}
+          />
+          {unidad.sufijo && (
+            <span aria-hidden="true" className={`${claseUnidad} right-3.5`}>
+              {unidad.sufijo}
+            </span>
+          )}
+        </div>
         {cambiado && (
           <>
             <Boton type="submit" variante="principal" cargando={guardando}>

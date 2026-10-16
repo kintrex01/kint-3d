@@ -370,9 +370,22 @@ export function Interruptor({
 /* Estados de carga                                                     */
 /* ------------------------------------------------------------------ */
 
+/* Primera carga de una pantalla: texto claro + bloques que laten.
+   Si tarda, avisa que es la planilla (Apps Script a veces demora). */
 export function Esqueleto({ filas = 4 }: { filas?: number }) {
+  const [lento, setLento] = useState(false);
+
+  useEffect(() => {
+    const temporizador = window.setTimeout(() => setLento(true), 5000);
+    return () => window.clearTimeout(temporizador);
+  }, []);
+
   return (
-    <div className="space-y-3" role="status" aria-label="Cargando">
+    <div className="space-y-3" role="status" aria-live="polite">
+      <p className="flex items-center gap-2 px-1 text-sm font-bold text-[var(--text-muted)]">
+        <LoaderCircle size={16} className="animate-spin text-[var(--blue-main)] dark:text-[var(--blue-soft)]" />
+        {lento ? "Sigue cargando, la planilla está tardando un poco…" : "Cargando…"}
+      </p>
       {Array.from({ length: filas }, (_, indice) => (
         <div
           key={indice}

@@ -65,6 +65,11 @@ export type PedidoResumen = {
   pago: PagoPedido | null;
 };
 
+/*
+ * Una fila de la hoja Presupuestos. Su posición en
+ * PedidoDetalle.presupuestos es el `index` que usan las acciones
+ * admin_presupuesto_* (el mismo orden que ve el cliente).
+ */
 export type OpcionPresupuesto = {
   opcion: string;
   descripcion: string;
@@ -75,6 +80,21 @@ export type OpcionPresupuesto = {
   recargo: number; // %
   precioTotal: number;
   seleccionado: boolean;
+};
+
+/* Lo que carga el dueño en el formulario de una opción. */
+export type OpcionPresupuestoEntrada = {
+  opcion: string; // "Recomendada", "Premium", "Barata" o texto libre
+  descripcion: string;
+  tiempo: string; // texto libre, ej. "7 hs 45 minutos"
+  filamento: string; // gramos ("" = sin dato)
+  precioBase: number; // pesos, > 0
+};
+
+/* Para comprobar que la fila no cambió en la hoja mientras se editaba. */
+export type OpcionPresupuestoEsperada = {
+  opcion: string;
+  precioBase: number;
 };
 
 export type ArchivoPedido = {
@@ -266,6 +286,37 @@ export type AccionesAdmin = {
     respuesta: { pedido: PedidoDetalle };
   };
 
+  /* Valores del desplegable "Opción" de Presupuestos (soloLista = la hoja rechaza otros). */
+  admin_presupuesto_opciones: {
+    pedido: SinDatos;
+    respuesta: { opciones: string[]; soloLista: boolean };
+  };
+  /*
+   * Agrega (index null) o edita una opción en Presupuestos, igual que a mano:
+   * calcula recargo urgente y precio total. `confirmar` es obligatorio si el
+   * pedido ya pasó de Presupuestado o el cliente ya eligió una opción.
+   */
+  admin_presupuesto_guardar: {
+    pedido: {
+      pedido: string;
+      index: number | null;
+      opcion: OpcionPresupuestoEntrada;
+      esperado?: OpcionPresupuestoEsperada;
+      confirmar?: boolean;
+    };
+    respuesta: { pedido: PedidoDetalle; aviso: string };
+  };
+  /* Borra una opción (no se puede borrar la elegida por el cliente). */
+  admin_presupuesto_borrar: {
+    pedido: {
+      pedido: string;
+      index: number;
+      esperado?: OpcionPresupuestoEsperada;
+      confirmar?: boolean;
+    };
+    respuesta: { pedido: PedidoDetalle; aviso: string };
+  };
+
   admin_tienda_listar: {
     pedido: SinDatos;
     respuesta: { compras: CompraTienda[] };
@@ -345,6 +396,9 @@ export const ACCIONES_ADMIN = [
   "admin_pago_confirmar",
   "admin_saldo_confirmar",
   "admin_pedido_entrega",
+  "admin_presupuesto_opciones",
+  "admin_presupuesto_guardar",
+  "admin_presupuesto_borrar",
   "admin_tienda_listar",
   "admin_tienda_estado",
   "admin_tienda_pago",

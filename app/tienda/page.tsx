@@ -12,8 +12,11 @@ import {
   KeyRound,
   LoaderCircle,
   MapPin,
+  Maximize2,
   MessageCircle,
   Minus,
+  PackageSearch,
+  Palette,
   Plus,
   RefreshCw,
   ShoppingBag,
@@ -21,9 +24,13 @@ import {
   Upload,
   UserRound,
   X,
+  ZoomIn,
+  ZoomOut,
+  Star,
 } from "lucide-react";
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -47,8 +54,20 @@ type Producto = {
   fotoId: string;
   fotos: Foto[];
   cadenas: string[];
-  // Vacío = el producto no se elige por color.
+  // Todos los colores que se pueden elegir (vacío = no se elige color).
   colores: string[];
+  // Los de las fotos: se compran esos si el cliente no los cambia.
+  coloresDefecto: string[];
+  minColores: number;
+  maxColores: number;
+  resenas: ResenaProducto[];
+};
+
+type ResenaProducto = {
+  nombre: string;
+  estrellas: number;
+  comentario: string;
+  fecha: string; // yyyy-mm-dd
 };
 
 type Catalogo = {
@@ -59,13 +78,24 @@ type Catalogo = {
   // Desde cuántas unidades de un producto rige cada precio por mayor.
   mayorDesde: number;
   granMayorDesde: number;
+  // Desplegable "Colores" de la hoja Tienda: para productos sin colores propios.
+  coloresGlobales: string[];
   productos: Producto[];
 };
 
 type LineaCarrito = {
   producto: string;
   cadena: string;
-  color: string;
+  // Los elegidos o, si no tocó nada, los de las fotos.
+  colores: string[];
+  comentario: string;
+  cantidad: number;
+};
+
+type OpcionesLinea = {
+  cadena: string;
+  colores: string[];
+  comentario: string;
   cantidad: number;
 };
 
@@ -122,6 +152,12 @@ const WHATSAPP = "https://wa.me/59892023382";
 
 /* Mismo tope que KINT_TIENDA_MAX_LINEAS en Apps Script. */
 const MAX_LINEAS = 30;
+
+/* Mismo tope que kintTiendaArmarLineas_ (Apps Script). */
+const MAX_COMENTARIO_PIEZA = 300;
+
+/* Cuánto se agranda la foto en el visor. */
+const ZOOM_VISOR = 2.5;
 
 const TEXTO_ENTREGA =
   "La entrega es gratis en FADU, de lunes a viernes de mañana. Si necesitás envío, lo coordinamos por WhatsApp y te avisamos el costo antes.";
@@ -180,22 +216,89 @@ function redondear(valor: number) {
   return Math.round(valor * 100) / 100;
 }
 
+/*
+ * Mismo modelo + misma cadena + mismos colores + mismo comentario
+ * = una sola línea (igual que la agrupación de Apps Script).
+ */
 function claveLinea(linea: {
   producto: string;
   cadena: string;
-  color?: string;
+  colores?: string[];
+  comentario?: string;
 }) {
-  return `${linea.producto}::${linea.cadena}::${linea.color || ""}`;
+  return JSON.stringify([
+    linea.producto,
+    linea.cadena,
+    linea.colores || [],
+    linea.comentario || "",
+  ]);
 }
 
-/* "Color Azul · Cadena Plateada" para mostrar una línea. */
-function detalleLinea(linea: { cadena: string; color?: string }) {
+/* "Colores Rojo + Negro · Cadena Plateada · “comentario”" para mostrar una línea. */
+function detalleLinea(linea: {
+  cadena: string;
+  colores?: string[];
+  comentario?: string;
+}) {
+  const colores = linea.colores || [];
+
   return [
-    linea.color ? `Color ${linea.color}` : "",
+    colores.length
+      ? `${colores.length > 1 ? "Colores" : "Color"} ${colores.join(" + ")}`
+      : "",
     linea.cadena ? `Cadena ${linea.cadena}` : "",
+    linea.comentario ? `“${linea.comentario}”` : "",
   ]
     .filter(Boolean)
     .join(" · ");
+}
+
+/*
+ * Muestra de color para los nombres más comunes ("Azul", "Rojo mate"...).
+ * Si el nombre no se reconoce, el chip va sin muestra.
+ */
+const MUESTRAS_COLOR: Record<string, string> = {
+  rojo: "#dc2626",
+  bordo: "#7f1d1d",
+  negro: "#111111",
+  blanco: "#ffffff",
+  gris: "#9ca3af",
+  "gris claro": "#d1d5db",
+  // Filamento translúcido: brillo en vez de un color plano.
+  cristal: "linear-gradient(135deg,#ffffff 0%,#dbeafe 45%,#f8fafc 55%,#bfdbfe 100%)",
+  arena: "#d6c3a0",
+  "verde aguamarina": "#2dd4bf",
+  plateado: "#c0c4c8",
+  plata: "#c0c4c8",
+  dorado: "#d4a62a",
+  oro: "#d4a62a",
+  azul: "#2563eb",
+  "azul marino": "#1e3a8a",
+  celeste: "#7dd3fc",
+  turquesa: "#14b8a6",
+  verde: "#16a34a",
+  "verde agua": "#5eead4",
+  amarillo: "#facc15",
+  naranja: "#f97316",
+  rosa: "#f472b6",
+  rosado: "#f472b6",
+  fucsia: "#d946ef",
+  violeta: "#8b5cf6",
+  lila: "#c4b5fd",
+  morado: "#7e22ce",
+  marron: "#8b5a2b",
+  beige: "#e8d8b8",
+  crema: "#f5ecd7",
+};
+
+function muestraColor(nombre: string) {
+  const clave = nombre
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+
+  return MUESTRAS_COLOR[clave] || MUESTRAS_COLOR[clave.split(/\s+/)[0]] || "";
 }
 
 function urlFoto(foto?: Foto) {
@@ -262,7 +365,10 @@ function ajustarCarrito(
   const resultado: LineaCarrito[] = [];
 
   for (const entrada of lineas) {
-    const linea = entrada as Partial<LineaCarrito> | null;
+    // Los carritos guardados antes de los colores opcionales traen "color" (texto).
+    const linea = entrada as
+      | (Partial<LineaCarrito> & { color?: unknown })
+      | null;
 
     const producto = catalogo.productos.find(
       (opcion) => opcion.nombre === linea?.producto
@@ -276,20 +382,36 @@ function ajustarCarrito(
       ? producto.cadenas.includes(cadena)
       : cadena === "";
 
-    const color = String(linea?.color || "");
+    const colores = Array.isArray(linea?.colores)
+      ? linea.colores.map((color) => String(color || "")).filter(Boolean)
+      : linea?.color
+      ? [String(linea.color)]
+      : [];
 
-    const colorValido = producto.colores.length
-      ? producto.colores.includes(color)
-      : color === "";
+    // Un color que ya no se ofrece saca la línea, como una cadena vieja.
+    const coloresValidos =
+      (colores.length <= producto.maxColores ||
+        mismosColores(colores, producto.coloresDefecto)) &&
+      new Set(colores).size === colores.length &&
+      colores.every((color) => producto.colores.includes(color));
+
+    const comentario = String(linea?.comentario || "")
+      .trim()
+      .slice(0, MAX_COMENTARIO_PIEZA);
 
     const cantidad = Math.floor(Number(linea?.cantidad) || 0);
 
-    if (!cadenaValida || !colorValido || cantidad < 1) continue;
+    if (!cadenaValida || !coloresValidos || cantidad < 1) continue;
 
     const existente = resultado.find(
       (otra) =>
         claveLinea(otra) ===
-        claveLinea({ producto: producto.nombre, cadena, color })
+        claveLinea({
+          producto: producto.nombre,
+          cadena,
+          colores,
+          comentario,
+        })
     );
 
     if (existente) {
@@ -303,7 +425,8 @@ function ajustarCarrito(
     resultado.push({
       producto: producto.nombre,
       cadena,
-      color,
+      colores,
+      comentario,
       cantidad: Math.min(catalogo.maxUnidades, cantidad),
     });
   }
@@ -324,6 +447,8 @@ async function pedirCatalogo(): Promise<Catalogo> {
     );
   }
 
+  const coloresGlobales = listaDeTextos(data.coloresGlobales);
+
   return {
     abierta: data.abierta !== false,
     mensaje: String(data.mensaje || ""),
@@ -331,16 +456,63 @@ async function pedirCatalogo(): Promise<Catalogo> {
     maxUnidades: Number(data.maxUnidades) || 200,
     mayorDesde: Number(data.mayorDesde) || 10,
     granMayorDesde: Number(data.granMayorDesde) || 0,
+    coloresGlobales,
     productos: Array.isArray(data.productos)
-      ? (data.productos as Producto[]).map((producto) => ({
-          ...producto,
-          precioMayor: Number(producto.precioMayor) || 0,
-          precioGranMayor: Number(producto.precioGranMayor) || 0,
-          cadenas: Array.isArray(producto.cadenas) ? producto.cadenas : [],
-          colores: Array.isArray(producto.colores) ? producto.colores : [],
-        }))
+      ? (data.productos as Producto[]).map((producto) => {
+          const coloresDefecto = listaDeTextos(producto.coloresDefecto);
+          const colores = listaDeTextos([
+            ...listaDeTextos(producto.colores),
+            ...coloresDefecto,
+          ]);
+          const maxColores = Math.max(
+            1,
+            Math.min(Math.floor(Number(producto.maxColores) || 2), colores.length || 1)
+          );
+
+          return {
+            ...producto,
+            precioMayor: Number(producto.precioMayor) || 0,
+            precioGranMayor: Number(producto.precioGranMayor) || 0,
+            cadenas: Array.isArray(producto.cadenas) ? producto.cadenas : [],
+            colores,
+            coloresDefecto,
+            maxColores,
+            minColores: Math.max(
+              1,
+              Math.min(Math.floor(Number(producto.minColores) || 1), maxColores)
+            ),
+            resenas: Array.isArray(producto.resenas)
+              ? producto.resenas
+                  .map((resena) => ({
+                    nombre: String(resena?.nombre || ""),
+                    estrellas: Math.max(1, Math.min(5, Number(resena?.estrellas) || 5)),
+                    comentario: String(resena?.comentario || ""),
+                    fecha: String(resena?.fecha || ""),
+                  }))
+                  .filter((resena) => resena.comentario)
+              : [],
+          };
+        })
       : [],
   };
+}
+
+/* Mismos colores sin importar el orden. */
+function mismosColores(a: string[], b: string[]) {
+  return a.length === b.length && a.every((color) => b.includes(color));
+}
+
+/* Lista de textos sin vacíos ni repetidos. */
+function listaDeTextos(valor: unknown): string[] {
+  if (!Array.isArray(valor)) return [];
+
+  return Array.from(
+    new Set(
+      valor
+        .map((texto) => String(texto ?? "").trim())
+        .filter(Boolean)
+    )
+  );
 }
 
 /*
@@ -604,27 +776,78 @@ function SelectorOpciones({
   );
 }
 
+/* Precios por mayor que existen para un producto, de menor a mayor cantidad. */
+function tramosMayor(
+  producto: Producto,
+  mayorDesde: number,
+  granMayorDesde: number
+) {
+  const tramos: { desde: number; precio: number }[] = [];
+
+  if (producto.precioMayor > 0) {
+    tramos.push({ desde: mayorDesde, precio: producto.precioMayor });
+  }
+
+  if (granMayorDesde && producto.precioGranMayor > 0) {
+    tramos.push({ desde: granMayorDesde, precio: producto.precioGranMayor });
+  }
+
+  return tramos;
+}
+
+/* Precios por mayor en chips compactos (no se muestra si no hay). */
+function PreciosMayorCompactos({
+  producto,
+  mayorDesde,
+  granMayorDesde,
+}: {
+  producto: Producto;
+  mayorDesde: number;
+  granMayorDesde: number;
+}) {
+  const tramos = tramosMayor(producto, mayorDesde, granMayorDesde);
+
+  if (!tramos.length) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {tramos.map((tramo) => (
+        <span
+          key={tramo.desde}
+          className="inline-flex w-fit items-center rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400"
+        >
+          Desde {tramo.desde}: {pesos(tramo.precio)} c/u
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function TarjetaProducto({
   producto,
   maxUnidades,
   mayorDesde,
+  granMayorDesde,
   enCarrito,
   deshabilitada,
+  onAbrir,
   onAgregar,
 }: {
   producto: Producto;
   maxUnidades: number;
   mayorDesde: number;
+  granMayorDesde: number;
   enCarrito: number;
   deshabilitada: boolean;
-  onAgregar: (cadena: string, color: string, cantidad: number) => void;
+  // Abre la ficha en la foto que se está viendo.
+  onAbrir: (indiceFoto: number) => void;
+  // Agregado rápido: sin colores (a elección del taller) ni comentario.
+  onAgregar: (cadena: string, cantidad: number) => void;
 }) {
   const fotos = fotosDe(producto);
 
-  const [cadena, setCadena] = useState(
-    producto.cadenas[0] || ""
-  );
-  const [color, setColor] = useState(producto.colores[0] || "");
+  // Sin cadena elegida: el cliente tiene que elegir Plateada o Dorada.
+  const [cadena, setCadena] = useState("");
   const [cantidad, setCantidad] = useState(1);
   const [indiceFoto, setIndiceFoto] = useState(0);
   const [fotosRotas, setFotosRotas] = useState<number[]>([]);
@@ -641,13 +864,8 @@ function TarjetaProducto({
     return () => window.clearTimeout(temporizador);
   }, [agregado]);
 
-  const cadenaElegida = producto.cadenas.includes(cadena)
-    ? cadena
-    : producto.cadenas[0] || "";
-
-  const colorElegido = producto.colores.includes(color)
-    ? color
-    : producto.colores[0] || "";
+  const cadenaElegida = producto.cadenas.includes(cadena) ? cadena : "";
+  const faltaCadena = producto.cadenas.length > 0 && !cadenaElegida;
 
   const indice = Math.min(indiceFoto, Math.max(0, fotos.length - 1));
   const fotoActual = fotos[indice];
@@ -656,25 +874,27 @@ function TarjetaProducto({
   return (
     <article className={`${CLASE_PANEL} group flex flex-col overflow-hidden transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(37,67,93,0.18)]`}>
       <div className="relative aspect-square overflow-hidden bg-[var(--kint-panel-soft)]">
-        {mostrarFoto ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={urlFoto(fotoActual)}
-            alt={producto.nombre}
-            loading="lazy"
-            onError={() =>
-              setFotosRotas((actuales) => [...actuales, indice])
-            }
-            className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-[var(--kint-blue-soft)]">
-            <KeyRound size={46} strokeWidth={1.3} />
-            <span className="text-[10px] font-black uppercase tracking-[0.24em]">
-              Foto en camino
-            </span>
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={() => onAbrir(indice)}
+          aria-label={`Ver detalles de ${producto.nombre}`}
+          className="absolute inset-0 h-full w-full cursor-pointer outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[#87A4B5]/60"
+        >
+          {mostrarFoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={urlFoto(fotoActual)}
+              alt={producto.nombre}
+              loading="lazy"
+              onError={() =>
+                setFotosRotas((actuales) => [...actuales, indice])
+              }
+              className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+            />
+          ) : (
+            <FotoEnCamino />
+          )}
+        </button>
 
         {fotos.length > 1 && (
           <>
@@ -719,13 +939,13 @@ function TarjetaProducto({
         )}
 
         {fotos.length > 1 && (
-          <span className="absolute right-3 top-3 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white backdrop-blur">
+          <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold tabular-nums text-white backdrop-blur">
             {indice + 1}/{fotos.length}
           </span>
         )}
 
         {enCarrito > 0 && (
-          <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--blue-main)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg">
+          <span className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--blue-main)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg">
             <ShoppingBag size={12} strokeWidth={2.4} />
             {enCarrito} en el carrito
           </span>
@@ -735,7 +955,13 @@ function TarjetaProducto({
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-black leading-tight">
-            {producto.nombre}
+            <button
+              type="button"
+              onClick={() => onAbrir(indice)}
+              className="text-left underline-offset-4 hover:underline"
+            >
+              {producto.nombre}
+            </button>
           </h3>
 
           <p className="shrink-0 text-lg font-black text-red-600">
@@ -743,18 +969,10 @@ function TarjetaProducto({
           </p>
         </div>
 
-        {/* Solo se anuncia el primer precio por mayor. */}
-        {producto.precioMayor > 0 && (
-          <p className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
-            Por mayor ({mayorDesde}+): {pesos(producto.precioMayor)} c/u
-          </p>
-        )}
-
-        <SelectorOpciones
-          titulo="Color"
-          opciones={producto.colores}
-          elegida={colorElegido}
-          onElegir={setColor}
+        <PreciosMayorCompactos
+          producto={producto}
+          mayorDesde={mayorDesde}
+          granMayorDesde={granMayorDesde}
         />
 
         <SelectorOpciones
@@ -763,6 +981,21 @@ function TarjetaProducto({
           elegida={cadenaElegida}
           onElegir={setCadena}
         />
+
+        <button
+          type="button"
+          onClick={() => onAbrir(indice)}
+          className="mt-4 inline-flex w-fit items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--blue-main)] underline-offset-4 hover:underline"
+        >
+          {producto.colores.length ? (
+            <Palette size={14} strokeWidth={2.2} />
+          ) : (
+            <Maximize2 size={13} strokeWidth={2.4} />
+          )}
+          {producto.colores.length
+            ? "Ver detalles y cambiar colores"
+            : "Ver detalles"}
+        </button>
 
         <div className="mt-auto flex items-center gap-3 pt-5">
           <SelectorCantidad
@@ -774,14 +1007,15 @@ function TarjetaProducto({
 
           <button
             type="button"
-            disabled={deshabilitada}
+            disabled={deshabilitada || faltaCadena}
+            title={faltaCadena ? "Elegí la cadena" : undefined}
             onClick={() => {
-              onAgregar(cadenaElegida, colorElegido, cantidad);
+              onAgregar(cadenaElegida, cantidad);
               setAgregado(true);
               setCantidad(1);
             }}
             className={`flex h-10 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
-              deshabilitada ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
+              deshabilitada || faltaCadena ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
             }`}
           >
             {agregado ? (
@@ -789,6 +1023,8 @@ function TarjetaProducto({
                 <Check size={15} strokeWidth={2.8} />
                 Agregado
               </>
+            ) : faltaCadena ? (
+              "Elegí la cadena"
             ) : (
               <>
                 <ShoppingBag size={15} strokeWidth={2.2} />
@@ -799,6 +1035,1075 @@ function TarjetaProducto({
         </div>
       </div>
     </article>
+  );
+}
+
+/* Círculos superpuestos con los colores de la foto. */
+function MuestrasColor({ colores }: { colores: string[] }) {
+  return (
+    <span className="flex shrink-0 -space-x-2" aria-hidden="true">
+      {colores.slice(0, 4).map((color) => (
+        <span
+          key={color}
+          className="h-8 w-8 rounded-full border-2 border-[var(--kint-panel)] shadow-sm ring-1 ring-black/10 dark:ring-white/40"
+          style={{
+            background:
+              muestraColor(color) ||
+              "repeating-linear-gradient(45deg,#c9d4dc 0 4px,#eef2f5 4px 8px)",
+          }}
+        />
+      ))}
+    </span>
+  );
+}
+
+function Estrellas({ valor, tamano = 12 }: { valor: number; tamano?: number }) {
+  return (
+    <span className="inline-flex text-amber-500" aria-label={`${valor} de 5 estrellas`}>
+      {[1, 2, 3, 4, 5].map((numero) => (
+        <Star
+          key={numero}
+          size={tamano}
+          strokeWidth={2}
+          className={numero <= Math.round(valor) ? "fill-current" : "opacity-30"}
+        />
+      ))}
+    </span>
+  );
+}
+
+/*
+ * Reseñas del producto al final de la ficha: una línea discreta
+ * ("★★★★★ 4,8 · 3 reseñas") que se despliega si el cliente quiere leerlas.
+ */
+function ResenasProducto({ resenas }: { resenas: ResenaProducto[] }) {
+  if (!resenas.length) return null;
+
+  const promedio =
+    resenas.reduce((suma, resena) => suma + resena.estrellas, 0) / resenas.length;
+
+  return (
+    <details className="group mt-6 border-t border-[var(--kint-panel-border)] pt-4">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-xs text-[var(--text-muted)] [&::-webkit-details-marker]:hidden">
+        <Estrellas valor={promedio} />
+        <span className="font-bold tabular-nums">
+          {promedio.toLocaleString("es-UY", { maximumFractionDigits: 1 })}
+        </span>
+        <span>
+          · {resenas.length} {resenas.length === 1 ? "reseña" : "reseñas"}
+        </span>
+        <ChevronRight
+          size={14}
+          className="ml-auto transition group-open:rotate-90"
+        />
+      </summary>
+
+      <ul className="mt-3 space-y-3">
+        {resenas.map((resena, posicion) => (
+          <li key={`${resena.fecha}-${posicion}`} className="text-xs leading-5">
+            <div className="flex items-center gap-2 text-[var(--text-muted)]">
+              <Estrellas valor={resena.estrellas} tamano={10} />
+              <span className="font-bold text-[var(--text-main)]">{resena.nombre}</span>
+              {resena.fecha && (
+                <span>
+                  {new Date(`${resena.fecha}T12:00:00`).toLocaleDateString("es-UY", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-[var(--text-muted)]">{resena.comentario}</p>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
+/* Mismo aviso que la tarjeta cuando un producto todavía no tiene foto. */
+function FotoEnCamino({ tamano = 46 }: { tamano?: number }) {
+  return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-[var(--kint-blue-soft)]">
+      <KeyRound size={tamano} strokeWidth={1.3} />
+      <span className="text-[10px] font-black uppercase tracking-[0.24em]">
+        Foto en camino
+      </span>
+    </div>
+  );
+}
+
+const SELECTOR_ENFOCABLES =
+  'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/* Tab y Shift+Tab dan la vuelta dentro de la ventana abierta. */
+function atraparFoco(evento: KeyboardEvent, capa: HTMLElement | null) {
+  if (!capa) return;
+
+  const enfocables = Array.from(
+    capa.querySelectorAll<HTMLElement>(SELECTOR_ENFOCABLES)
+  );
+
+  if (!enfocables.length) {
+    evento.preventDefault();
+    return;
+  }
+
+  const primero = enfocables[0];
+  const ultimo = enfocables[enfocables.length - 1];
+  const activo = document.activeElement;
+  const afuera = !capa.contains(activo);
+
+  if (evento.shiftKey && (activo === primero || afuera)) {
+    evento.preventDefault();
+    ultimo.focus();
+  } else if (!evento.shiftKey && (activo === ultimo || afuera)) {
+    evento.preventDefault();
+    primero.focus();
+  }
+}
+
+/* Lista de precios por cantidad; resalta el que corresponde. */
+function TablaPrecios({
+  producto,
+  mayorDesde,
+  granMayorDesde,
+  unidades,
+}: {
+  producto: Producto;
+  mayorDesde: number;
+  granMayorDesde: number;
+  unidades: number;
+}) {
+  const tramos = tramosMayor(producto, mayorDesde, granMayorDesde);
+
+  if (!tramos.length) return null;
+
+  const hasta = tramos[0].desde - 1;
+  const filas = [
+    {
+      desde: 1,
+      etiqueta: hasta <= 1 ? "1 unidad" : `De 1 a ${hasta} unidades`,
+      precio: producto.precio,
+    },
+    ...tramos.map((tramo) => ({
+      desde: tramo.desde,
+      etiqueta: `Desde ${tramo.desde} unidades`,
+      precio: tramo.precio,
+    })),
+  ];
+
+  // Mismo criterio que precioUnitario: el tramo más alto alcanzado.
+  const activa = filas.reduce(
+    (elegida, fila) => (unidades >= fila.desde ? fila.desde : elegida),
+    1
+  );
+
+  return (
+    <div className="mt-5">
+      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+        Precio por cantidad
+      </p>
+
+      <ul className="divide-y divide-[var(--kint-panel-border)] overflow-hidden rounded-2xl border border-[var(--kint-panel-border)]">
+        {filas.map((fila) => {
+          const esActiva = fila.desde === activa;
+
+          return (
+            <li
+              key={fila.desde}
+              className={`flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition ${
+                esActiva
+                  ? "bg-emerald-500/10 font-bold text-emerald-800 dark:text-emerald-300"
+                  : "text-[var(--text-muted)]"
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {fila.etiqueta}
+                {esActiva && (
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white">
+                    Tu precio
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 font-black tabular-nums">
+                {pesos(fila.precio)} c/u
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+
+      <p className="mt-2 text-[11px] leading-4 text-[var(--text-muted)]">
+        Se cuentan todas las unidades de este modelo, con cualquier
+        cadena o color.
+      </p>
+    </div>
+  );
+}
+
+/*
+ * Foto del visor: tocar o hacer clic alterna 1x y 2,5x
+ * (acercando donde se tocó). Con zoom se mueve arrastrando;
+ * sin zoom, deslizar pasa a la foto siguiente o anterior.
+ */
+function ImagenZoom({
+  foto,
+  alt,
+  puedeMover,
+  onMover,
+}: {
+  foto: Foto;
+  alt: string;
+  puedeMover: boolean;
+  onMover: (paso: number) => void;
+}) {
+  const [zoom, setZoom] = useState(false);
+  const [posicion, setPosicion] = useState({ x: 0, y: 0 });
+  const [arrastrando, setArrastrando] = useState(false);
+  const [rota, setRota] = useState(false);
+
+  const refMarco = useRef<HTMLDivElement>(null);
+  const arrastre = useRef<{
+    x: number;
+    y: number;
+    desdeX: number;
+    desdeY: number;
+    movio: boolean;
+  } | null>(null);
+
+  function limitar(x: number, y: number) {
+    const marco = refMarco.current;
+    if (!marco) return { x, y };
+
+    const maxX = (marco.clientWidth * (ZOOM_VISOR - 1)) / 2;
+    const maxY = (marco.clientHeight * (ZOOM_VISOR - 1)) / 2;
+
+    return {
+      x: Math.max(-maxX, Math.min(maxX, x)),
+      y: Math.max(-maxY, Math.min(maxY, y)),
+    };
+  }
+
+  function alternarZoom(clienteX?: number, clienteY?: number) {
+    if (zoom) {
+      setZoom(false);
+      setPosicion({ x: 0, y: 0 });
+      return;
+    }
+
+    const marco = refMarco.current;
+
+    if (marco && clienteX !== undefined && clienteY !== undefined) {
+      // Se acerca al punto tocado: ese punto queda debajo del dedo.
+      const caja = marco.getBoundingClientRect();
+      const relativoX = clienteX - (caja.left + caja.width / 2);
+      const relativoY = clienteY - (caja.top + caja.height / 2);
+
+      setPosicion(
+        limitar(
+          -(ZOOM_VISOR - 1) * relativoX,
+          -(ZOOM_VISOR - 1) * relativoY
+        )
+      );
+    }
+
+    setZoom(true);
+  }
+
+  if (rota) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-white/70">
+        <FotoEnCamino tamano={56} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      <div
+        ref={refMarco}
+        onPointerDown={(evento) => {
+          if (evento.button !== 0) return;
+          evento.currentTarget.setPointerCapture(evento.pointerId);
+          arrastre.current = {
+            x: evento.clientX,
+            y: evento.clientY,
+            desdeX: posicion.x,
+            desdeY: posicion.y,
+            movio: false,
+          };
+          setArrastrando(true);
+        }}
+        onPointerMove={(evento) => {
+          const actual = arrastre.current;
+          if (!actual) return;
+
+          const dx = evento.clientX - actual.x;
+          const dy = evento.clientY - actual.y;
+
+          if (Math.abs(dx) + Math.abs(dy) > 6) actual.movio = true;
+          if (zoom) setPosicion(limitar(actual.desdeX + dx, actual.desdeY + dy));
+        }}
+        onPointerUp={(evento) => {
+          const actual = arrastre.current;
+          arrastre.current = null;
+          setArrastrando(false);
+          if (!actual) return;
+
+          const dx = evento.clientX - actual.x;
+          const dy = evento.clientY - actual.y;
+
+          if (!actual.movio) {
+            alternarZoom(evento.clientX, evento.clientY);
+          } else if (
+            !zoom &&
+            puedeMover &&
+            Math.abs(dx) > 50 &&
+            Math.abs(dx) > Math.abs(dy)
+          ) {
+            onMover(dx < 0 ? 1 : -1);
+          }
+        }}
+        onPointerCancel={() => {
+          arrastre.current = null;
+          setArrastrando(false);
+        }}
+        className={`h-full w-full touch-none select-none overflow-hidden ${
+          zoom
+            ? arrastrando
+              ? "cursor-grabbing"
+              : "cursor-grab"
+            : "cursor-zoom-in"
+        }`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={urlFoto(foto)}
+          alt={alt}
+          draggable={false}
+          onError={() => setRota(true)}
+          style={{
+            transform: `translate(${posicion.x}px, ${posicion.y}px) scale(${
+              zoom ? ZOOM_VISOR : 1
+            })`,
+          }}
+          className={`h-full w-full object-contain ${
+            arrastrando ? "" : "transition-transform duration-200"
+          }`}
+        />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => alternarZoom()}
+        aria-label={zoom ? "Alejar la foto" : "Acercar la foto"}
+        className="absolute bottom-4 right-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition hover:bg-white/25"
+      >
+        {zoom ? <ZoomOut size={20} /> : <ZoomIn size={20} />}
+      </button>
+    </div>
+  );
+}
+
+/* Visor a pantalla completa de las fotos de un producto. */
+function VisorFotos({
+  fotos,
+  indice,
+  nombre,
+  refCapa,
+  onMover,
+  onCerrar,
+}: {
+  fotos: Foto[];
+  indice: number;
+  nombre: string;
+  refCapa: React.RefObject<HTMLDivElement | null>;
+  onMover: (paso: number) => void;
+  onCerrar: () => void;
+}) {
+  const varias = fotos.length > 1;
+
+  return (
+    <div
+      ref={refCapa}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Fotos de ${nombre}`}
+      className="fixed inset-0 z-[260] flex flex-col bg-black/95 text-white"
+    >
+      <div
+        className="flex items-center justify-between gap-3 px-4 pb-3"
+        style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+      >
+        <span className="w-14 text-sm font-bold tabular-nums text-white/80">
+          {varias ? `${indice + 1}/${fotos.length}` : ""}
+        </span>
+
+        <p className="min-w-0 truncate text-sm font-black">{nombre}</p>
+
+        <div className="flex w-14 justify-end">
+          <button
+            type="button"
+            onClick={onCerrar}
+            autoFocus
+            aria-label="Cerrar fotos"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      <div className="relative min-h-0 flex-1">
+        <ImagenZoom
+          key={indice}
+          foto={fotos[indice]}
+          alt={`${nombre}, foto ${indice + 1}`}
+          puedeMover={varias}
+          onMover={onMover}
+        />
+
+        {varias && (
+          <>
+            <button
+              type="button"
+              onClick={() => onMover(-1)}
+              aria-label="Foto anterior"
+              className="absolute left-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25"
+            >
+              <ChevronLeft size={22} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onMover(1)}
+              aria-label="Foto siguiente"
+              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 backdrop-blur transition hover:bg-white/25"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </>
+        )}
+      </div>
+
+      <p
+        className="px-4 pt-3 text-center text-[11px] text-white/60"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
+        Tocá la foto para acercarla y arrastrá para moverla.
+      </p>
+    </div>
+  );
+}
+
+/*
+ * FICHA DEL PRODUCTO
+ * Se abre al tocar la foto o el nombre de una tarjeta: fotos grandes,
+ * precios por cantidad, cadena, colores opcionales (1 o 2) y un
+ * comentario de la pieza. Todo eso viaja con la línea del carrito.
+ */
+function FichaProducto({
+  producto,
+  catalogo,
+  enCarrito,
+  deshabilitada,
+  fotoInicial,
+  onAgregar,
+  onCerrar,
+}: {
+  producto: Producto;
+  catalogo: Catalogo;
+  enCarrito: number;
+  deshabilitada: boolean;
+  fotoInicial: number;
+  // Devuelve el error si no se pudo agregar ("" si salió bien).
+  onAgregar: (opciones: OpcionesLinea) => string;
+  onCerrar: () => void;
+}) {
+  const fotos = fotosDe(producto);
+  const idTitulo = useId();
+
+  const [indiceFoto, setIndiceFoto] = useState(fotoInicial);
+  const [fotosRotas, setFotosRotas] = useState<number[]>([]);
+  const [visor, setVisor] = useState(false);
+
+  // Cadena sin elegir y colores de la foto hasta que el cliente los cambie.
+  const [cadena, setCadena] = useState("");
+  const [elegirColores, setElegirColores] = useState(false);
+  const [colores, setColores] = useState<string[]>([]);
+  const [comentario, setComentario] = useState("");
+  const [cantidad, setCantidad] = useState(1);
+  const [error, setError] = useState("");
+
+  const refDialogo = useRef<HTMLDivElement>(null);
+  const refVisor = useRef<HTMLDivElement>(null);
+  const refGaleria = useRef<HTMLDivElement>(null);
+  const refCerrar = useRef<HTMLButtonElement>(null);
+  const refFotoPrincipal = useRef<HTMLButtonElement>(null);
+  const refOnCerrar = useRef(onCerrar);
+  const toque = useRef<{ x: number; y: number } | null>(null);
+  const ultimoDeslizamiento = useRef(0);
+
+  useEffect(() => {
+    refOnCerrar.current = onCerrar;
+  });
+
+  const total = fotos.length;
+  const indice = Math.min(indiceFoto, Math.max(0, total - 1));
+  const fotoActual = fotos[indice];
+  const mostrarFoto = Boolean(fotoActual) && !fotosRotas.includes(indice);
+
+  function moverFoto(paso: number) {
+    if (total < 2) return;
+    setIndiceFoto((indice + paso + total) % total);
+  }
+
+  function marcarRota(posicion: number) {
+    setFotosRotas((actuales) =>
+      actuales.includes(posicion) ? actuales : [...actuales, posicion]
+    );
+  }
+
+  function abrirVisor() {
+    // Un deslizamiento recién terminado no abre el visor.
+    if (Date.now() - ultimoDeslizamiento.current < 400) return;
+    setVisor(true);
+  }
+
+  function cerrarVisor() {
+    setVisor(false);
+    window.requestAnimationFrame(() => refFotoPrincipal.current?.focus());
+  }
+
+  // Fondo quieto mientras la ficha está abierta; al cerrar, el foco vuelve.
+  useEffect(() => {
+    const anterior = document.activeElement as HTMLElement | null;
+    const overflowAnterior = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    refCerrar.current?.focus();
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      anterior?.focus?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    function alTeclear(evento: KeyboardEvent) {
+      if (evento.key === "Escape") {
+        evento.preventDefault();
+        if (visor) cerrarVisor();
+        else refOnCerrar.current();
+        return;
+      }
+
+      if (evento.key === "Tab") {
+        atraparFoco(
+          evento,
+          visor ? refVisor.current : refDialogo.current
+        );
+        return;
+      }
+
+      if (evento.key === "ArrowLeft" || evento.key === "ArrowRight") {
+        const destino = evento.target as HTMLElement | null;
+
+        if (destino && /^(INPUT|TEXTAREA)$/.test(destino.tagName)) return;
+        if (!visor && !refGaleria.current?.contains(destino)) return;
+
+        evento.preventDefault();
+        moverFoto(evento.key === "ArrowLeft" ? -1 : 1);
+      }
+    }
+
+    document.addEventListener("keydown", alTeclear);
+    return () => document.removeEventListener("keydown", alTeclear);
+  });
+
+  const cadenaElegida = producto.cadenas.includes(cadena) ? cadena : "";
+  const faltaCadena = producto.cadenas.length > 0 && !cadenaElegida;
+
+  const hayColores = producto.colores.length > 0;
+  const { minColores, maxColores, coloresDefecto } = producto;
+  const coloresElegidos = hayColores && elegirColores ? colores : [];
+
+  const faltanColores =
+    hayColores && elegirColores && colores.length < minColores;
+
+  const textoLimiteColores =
+    minColores === maxColores
+      ? `Elegí ${maxColores} ${maxColores === 1 ? "color" : "colores"}.`
+      : `Elegí de ${minColores} a ${maxColores} colores.`;
+
+  const unidadesProducto = enCarrito + cantidad;
+  const precioAplicado = precioUnitario(
+    producto,
+    unidadesProducto,
+    catalogo
+  );
+  const subtotal = redondear(precioAplicado * cantidad);
+
+  const aviso = deshabilitada
+    ? "La tienda está en pausa: por ahora no se pueden agregar llaveros."
+    : faltaCadena
+    ? `Elegí la cadena (${producto.cadenas.join(" o ")}).`
+    : faltanColores
+    ? `${textoLimiteColores} O dejá los colores de la foto.`
+    : "";
+
+  function tocarColor(color: string) {
+    setError("");
+    setColores((actuales) => {
+      if (actuales.includes(color)) {
+        return actuales.filter((otro) => otro !== color);
+      }
+
+      if (maxColores === 1) return [color];
+
+      // Con el máximo ya elegido, el nuevo reemplaza al último.
+      return actuales.length < maxColores
+        ? [...actuales, color]
+        : [...actuales.slice(0, maxColores - 1), color];
+    });
+  }
+
+  function alternarColores() {
+    setError("");
+    setElegirColores((actual) => {
+      // Al abrir, se parte de los colores de la foto (si entran en el máximo).
+      if (!actual) {
+        setColores(
+          coloresDefecto.length <= maxColores ? [...coloresDefecto] : []
+        );
+      }
+      return !actual;
+    });
+  }
+
+  function agregar() {
+    if (aviso) return;
+
+    const mensaje = onAgregar({
+      cadena: cadenaElegida,
+      colores: coloresElegidos,
+      comentario: comentario.trim(),
+      cantidad,
+    });
+
+    if (mensaje) setError(mensaje);
+    else onCerrar();
+  }
+
+  const botonFlecha =
+    "absolute top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/60";
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-stretch justify-center sm:items-center sm:p-6">
+      <div
+        aria-hidden="true"
+        onClick={onCerrar}
+        className="absolute inset-0 bg-[#06152f]/60 backdrop-blur-sm"
+      />
+
+      <div
+        ref={refDialogo}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={idTitulo}
+        className="relative flex h-full w-full flex-col overflow-hidden bg-[var(--kint-panel)] text-[var(--text-main)] shadow-[0_30px_90px_rgba(0,0,0,0.35)] sm:h-auto sm:max-h-[min(92vh,860px)] sm:max-w-4xl sm:rounded-3xl sm:border sm:border-[var(--kint-panel-border)]"
+      >
+        <button
+          ref={refCerrar}
+          type="button"
+          onClick={onCerrar}
+          aria-label="Cerrar detalles"
+          className="absolute right-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/60"
+          style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+        >
+          <X size={20} />
+        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain md:grid md:grid-cols-2 md:overflow-hidden">
+          <div
+            ref={refGaleria}
+            className="bg-[var(--kint-panel-soft)] md:overflow-y-auto"
+          >
+            <div
+              className="relative aspect-square w-full overflow-hidden"
+              onTouchStart={(evento) => {
+                const dedo = evento.touches[0];
+                toque.current = { x: dedo.clientX, y: dedo.clientY };
+              }}
+              onTouchEnd={(evento) => {
+                const inicio = toque.current;
+                toque.current = null;
+                if (!inicio) return;
+
+                const dedo = evento.changedTouches[0];
+                const dx = dedo.clientX - inicio.x;
+                const dy = dedo.clientY - inicio.y;
+
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                  ultimoDeslizamiento.current = Date.now();
+                  moverFoto(dx < 0 ? 1 : -1);
+                }
+              }}
+            >
+              {mostrarFoto ? (
+                <button
+                  ref={refFotoPrincipal}
+                  type="button"
+                  onClick={abrirVisor}
+                  aria-label={`Ampliar la foto ${indice + 1} de ${producto.nombre}`}
+                  className="h-full w-full cursor-zoom-in outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[#87A4B5]/60"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={urlFoto(fotoActual)}
+                    alt={producto.nombre}
+                    draggable={false}
+                    onError={() => marcarRota(indice)}
+                    className="h-full w-full object-cover"
+                  />
+                  <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur">
+                    <ZoomIn size={12} strokeWidth={2.4} />
+                    Ampliar
+                  </span>
+                </button>
+              ) : (
+                <FotoEnCamino tamano={64} />
+              )}
+
+              {total > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => moverFoto(-1)}
+                    aria-label="Foto anterior"
+                    className={`${botonFlecha} left-3`}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => moverFoto(1)}
+                    aria-label="Foto siguiente"
+                    className={`${botonFlecha} right-3`}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+
+                  <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-bold tabular-nums text-white backdrop-blur">
+                    {indice + 1}/{total}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {total > 1 && (
+              <div
+                className="flex gap-2 overflow-x-auto p-3"
+                aria-label="Miniaturas"
+              >
+                {fotos.map((foto, posicion) => (
+                  <button
+                    key={`${foto.url}-${posicion}`}
+                    type="button"
+                    onClick={() => setIndiceFoto(posicion)}
+                    aria-label={`Ver foto ${posicion + 1}`}
+                    aria-current={posicion === indice}
+                    className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 bg-[var(--kint-panel)] transition ${
+                      posicion === indice
+                        ? "border-[var(--blue-main)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    {fotosRotas.includes(posicion) ? (
+                      <span className="flex h-full w-full items-center justify-center text-[var(--kint-blue-soft)]">
+                        <KeyRound size={20} strokeWidth={1.5} />
+                      </span>
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={urlFoto(foto)}
+                        alt=""
+                        loading="lazy"
+                        draggable={false}
+                        onError={() => marcarRota(posicion)}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 sm:p-7 md:overflow-y-auto md:overscroll-contain">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--kint-info)]">
+              Tienda Kint 3D
+            </p>
+
+            <h2
+              id={idTitulo}
+              className="mt-2 pr-10 text-2xl font-black leading-tight sm:text-3xl md:pr-12"
+            >
+              {producto.nombre}
+            </h2>
+
+            <p className="mt-2 text-2xl font-black text-red-600 dark:text-red-500">
+              {pesos(producto.precio)}
+              <span className="ml-1 text-sm font-bold text-[var(--text-muted)]">
+                c/u
+              </span>
+            </p>
+
+            <TablaPrecios
+              producto={producto}
+              mayorDesde={catalogo.mayorDesde}
+              granMayorDesde={catalogo.granMayorDesde}
+              unidades={unidadesProducto}
+            />
+
+            {enCarrito > 0 && (
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--kint-selected-bg)] px-3 py-1 text-[11px] font-bold text-[var(--text-main)]">
+                <ShoppingBag size={12} strokeWidth={2.4} />
+                Ya tenés {enCarrito} en el carrito
+              </p>
+            )}
+
+            <SelectorOpciones
+              titulo="Cadena"
+              opciones={producto.cadenas}
+              elegida={cadenaElegida}
+              onElegir={setCadena}
+            />
+
+            {hayColores && (
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                  Colores
+                </legend>
+
+                {coloresDefecto.length > 0 && (
+                  <div className="mb-3 flex items-center gap-3">
+                    <MuestrasColor colores={coloresDefecto} />
+                    <p className="text-sm">
+                      <span className="font-black">
+                        {coloresDefecto.join(" + ")}
+                      </span>
+                      <span className="block text-xs text-[var(--text-muted)]">
+                        {elegirColores ? "Los de la foto" : "Como en la foto · incluido"}
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={elegirColores}
+                  onClick={alternarColores}
+                  className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--kint-panel-border)] px-4 py-3 text-left transition hover:border-[var(--kint-selected-border)]"
+                >
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2 text-sm font-black">
+                      <Palette
+                        size={16}
+                        className="text-[var(--blue-main)]"
+                      />
+                      {coloresDefecto.length ? "Cambiar colores" : "Elegir colores"}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+                      {elegirColores
+                        ? textoLimiteColores
+                        : coloresDefecto.length
+                        ? "Opcional: elegí otros colores para tu pieza."
+                        : "Color a elección del taller."}
+                    </span>
+                  </span>
+
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${
+                      elegirColores
+                        ? "bg-[var(--blue-main)]"
+                        : "bg-[#87A4B5]/45"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                        elegirColores ? "left-[22px]" : "left-0.5"
+                      }`}
+                    />
+                  </span>
+                </button>
+
+                {elegirColores && (
+                  <div className="mt-4">
+                    <div
+                      role="group"
+                      aria-label="Colores disponibles"
+                      className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] gap-x-2 gap-y-3"
+                    >
+                      {producto.colores.map((color) => {
+                        const orden = colores.indexOf(color);
+                        const activa = orden !== -1;
+                        const muestra = muestraColor(color);
+
+                        return (
+                          <button
+                            key={color}
+                            type="button"
+                            aria-pressed={activa}
+                            aria-label={color}
+                            onClick={() => tocarColor(color)}
+                            className="group flex flex-col items-center gap-1.5 text-center"
+                          >
+                            <span
+                              className={`relative flex h-11 w-11 items-center justify-center rounded-full transition ${
+                                activa
+                                  ? "ring-2 ring-[var(--text-main)] ring-offset-2 ring-offset-[var(--kint-panel)]"
+                                  : "ring-1 ring-[var(--kint-panel-border)] group-hover:ring-[var(--kint-selected-border)]"
+                              }`}
+                            >
+                              <span
+                                aria-hidden="true"
+                                className="h-9 w-9 rounded-full border border-black/15 dark:border-white/35"
+                                style={{
+                                  background:
+                                    muestra ||
+                                    "repeating-linear-gradient(45deg,#c9d4dc 0 4px,#eef2f5 4px 8px)",
+                                }}
+                              />
+                              {activa && maxColores > 1 && (
+                                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--blue-main)] text-[10px] font-black text-white">
+                                  {orden + 1}
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className={`max-w-full break-words text-[11px] leading-tight ${
+                                activa ? "font-black text-[var(--text-main)]" : "font-semibold text-[var(--text-muted)]"
+                              }`}
+                            >
+                              {color}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">
+                      {colores.length
+                        ? `Elegiste: ${colores.join(" + ")}${
+                            colores.length < maxColores
+                              ? ` · podés sumar ${maxColores - colores.length} más`
+                              : ""
+                          }`
+                        : textoLimiteColores}
+                    </p>
+                  </div>
+                )}
+              </fieldset>
+            )}
+
+            <label className="mt-5 block">
+              <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                Comentario (opcional)
+              </span>
+              <textarea
+                value={comentario}
+                onChange={(evento) => {
+                  setError("");
+                  setComentario(evento.target.value);
+                }}
+                placeholder="Algo que quieras aclarar de esta pieza"
+                rows={3}
+                maxLength={MAX_COMENTARIO_PIEZA}
+                className={`${CLASE_INPUT} resize-none`}
+              />
+              <span className="mt-1 block text-right text-[10px] tabular-nums text-[var(--text-muted)]">
+                {comentario.length}/{MAX_COMENTARIO_PIEZA}
+              </span>
+            </label>
+
+            <ResenasProducto resenas={producto.resenas} />
+          </div>
+        </div>
+
+        <div
+          className="border-t border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-5 pt-4 sm:px-7"
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
+          {(error || aviso) && (
+            <p
+              role={error ? "alert" : undefined}
+              className={`mb-3 text-xs font-semibold ${
+                error
+                  ? "text-red-700 dark:text-red-400"
+                  : "text-amber-700 dark:text-amber-400"
+              }`}
+            >
+              {error || aviso}
+            </p>
+          )}
+
+          <div className="flex flex-wrap items-center gap-3">
+            <SelectorCantidad
+              valor={cantidad}
+              maximo={catalogo.maxUnidades}
+              etiqueta={producto.nombre}
+              onCambiar={(valor) => {
+                setError("");
+                setCantidad(valor);
+              }}
+            />
+
+            <div className="min-w-0 flex-1 text-right" aria-live="polite">
+              <p className="text-[11px] text-[var(--text-muted)]">
+                {cantidad} × {pesos(precioAplicado)}
+                {precioAplicado < producto.precio && (
+                  <span className="ml-1 font-bold text-emerald-700 dark:text-emerald-400">
+                    · por mayor
+                  </span>
+                )}
+              </p>
+              <p className="text-xl font-black text-red-600 dark:text-red-500">
+                {pesos(subtotal)}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={agregar}
+              disabled={Boolean(aviso)}
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-2xl border px-5 text-xs font-black uppercase tracking-[0.18em] transition-all sm:w-auto sm:flex-1 ${
+                aviso ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
+              }`}
+            >
+              <ShoppingBag size={16} strokeWidth={2.2} />
+              Agregar al carrito
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {visor && fotos.length > 0 && (
+        <VisorFotos
+          fotos={fotos}
+          indice={indice}
+          nombre={producto.nombre}
+          refCapa={refVisor}
+          onMover={moverFoto}
+          onCerrar={cerrarVisor}
+        />
+      )}
+    </div>
   );
 }
 
@@ -940,6 +2245,27 @@ export default function TiendaPage() {
 
   const [carritoEnPantalla, setCarritoEnPantalla] = useState(false);
   const [hoy] = useState(fechaHoyISO);
+
+  // Ficha abierta (por nombre de producto) y aviso de "agregado".
+  const [ficha, setFicha] = useState<{
+    producto: string;
+    foto: number;
+  } | null>(null);
+  const [avisoAgregado, setAvisoAgregado] = useState<{
+    texto: string;
+    vez: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!avisoAgregado) return;
+
+    const temporizador = window.setTimeout(
+      () => setAvisoAgregado(null),
+      4000
+    );
+
+    return () => window.clearTimeout(temporizador);
+  }, [avisoAgregado]);
 
   const refCarrito = useRef<HTMLElement>(null);
 
@@ -1173,6 +2499,11 @@ export default function TiendaPage() {
     [catalogo]
   );
 
+  // Si el producto deja de estar en el catálogo, la ficha no se muestra.
+  const fichaProducto = ficha
+    ? productosPorNombre.get(ficha.producto)
+    : undefined;
+
   // Unidades por producto, sumando todas sus cadenas.
   const unidadesPorProducto = useMemo(() => {
     const mapa = new Map<string, number>();
@@ -1374,24 +2705,36 @@ export default function TiendaPage() {
     }
   }
 
+  /* Devuelve el error si no se pudo agregar ("" si salió bien). */
   function agregarAlCarrito(
     producto: Producto,
-    cadena: string,
-    color: string,
-    cantidad: number
+    opciones: OpcionesLinea
   ) {
-    if (enviando) return;
+    if (enviando) {
+      return "Esperá a que termine de confirmarse la compra.";
+    }
 
-    const clave = claveLinea({ producto: producto.nombre, cadena, color });
+    const nueva = {
+      producto: producto.nombre,
+      cadena: opciones.cadena,
+      // Sin elegir: van los de las fotos (así se ven en el carrito y la hoja).
+      colores: opciones.colores.length
+        ? opciones.colores
+        : producto.coloresDefecto,
+      comentario: opciones.comentario
+        .trim()
+        .slice(0, MAX_COMENTARIO_PIEZA),
+    };
+    const cantidad = opciones.cantidad;
+    const clave = claveLinea(nueva);
 
     if (
       carrito.length >= MAX_LINEAS &&
       !carrito.some((linea) => claveLinea(linea) === clave)
     ) {
-      setError(
-        `Podés combinar hasta ${MAX_LINEAS} modelos y cadenas distintos por compra. Si necesitás más, hacé una segunda compra.`
-      );
-      return;
+      const mensaje = `Podés combinar hasta ${MAX_LINEAS} modelos, cadenas y colores distintos por compra. Si necesitás más, hacé una segunda compra.`;
+      setError(mensaje);
+      return mensaje;
     }
 
     cambiarCarrito((actual) => {
@@ -1416,15 +2759,27 @@ export default function TiendaPage() {
       return [
         ...actual,
         {
-          producto: producto.nombre,
-          cadena,
-          color,
+          ...nueva,
           cantidad: Math.min(maxUnidades, cantidad),
         },
       ];
     });
 
     setError("");
+    return "";
+  }
+
+  function agregarDesdeFicha(producto: Producto, opciones: OpcionesLinea) {
+    const mensaje = agregarAlCarrito(producto, opciones);
+
+    if (!mensaje) {
+      setAvisoAgregado({
+        texto: `${opciones.cantidad} × ${producto.nombre}`,
+        vez: Date.now(),
+      });
+    }
+
+    return mensaje;
   }
 
   function cambiarCantidad(clave: string, cantidad: number) {
@@ -1508,7 +2863,8 @@ export default function TiendaPage() {
           items: lineas.map((linea) => ({
             producto: linea.producto,
             cadena: linea.cadena,
-            color: linea.color,
+            colores: linea.colores,
+            comentario: linea.comentario,
             cantidad: linea.cantidad,
           })),
           archivoBase64: archivo.base64,
@@ -1532,7 +2888,7 @@ export default function TiendaPage() {
           data.error || "No pudimos confirmar la compra."
         );
 
-        if (/precios|disponible|cadena|cerrad|pausa/i.test(mensaje)) {
+        if (/precios|disponible|cadena|color|cerrad|pausa/i.test(mensaje)) {
           void recargarCatalogo();
         }
 
@@ -1699,7 +3055,17 @@ export default function TiendaPage() {
             </p>
           </div>
 
-          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link
+            href={`/seguimiento?n=${encodeURIComponent(
+              confirmada.pedido
+            )}&e=${encodeURIComponent(confirmada.email)}`}
+            className="mx-auto mt-8 flex max-w-md items-center justify-center gap-2 rounded-2xl border border-[var(--kint-selected-border)] bg-[var(--kint-selected-bg)] px-6 py-4 text-xs font-black uppercase tracking-[0.22em] text-[var(--text-main)] transition hover:-translate-y-0.5"
+          >
+            <PackageSearch size={16} />
+            Seguí tu compra
+          </Link>
+
+          <div className="mt-3 flex flex-col justify-center gap-3 sm:flex-row">
             <button
               type="button"
               onClick={() => setConfirmada(null)}
@@ -1769,7 +3135,7 @@ export default function TiendaPage() {
           </div>
 
           <p className="mt-4 max-w-xl text-base leading-7 text-[var(--text-muted)]">
-            Elegí tu modelo y la cadena que más te guste. Pagás por
+            Elegí tu modelo, la cadena y, si querés, los colores. Pagás por
             transferencia, subís el comprobante y te llega la
             confirmación al correo.
           </p>
@@ -1872,17 +3238,21 @@ export default function TiendaPage() {
                     producto={producto}
                     maxUnidades={maxUnidades}
                     mayorDesde={catalogo.mayorDesde}
+                    granMayorDesde={catalogo.granMayorDesde}
                     deshabilitada={!tiendaAbierta || enviando}
-                    enCarrito={lineas
-                      .filter(
-                        (linea) => linea.producto === producto.nombre
-                      )
-                      .reduce(
-                        (suma, linea) => suma + linea.cantidad,
-                        0
-                      )}
-                    onAgregar={(cadena, color, cantidad) =>
-                      agregarAlCarrito(producto, cadena, color, cantidad)
+                    enCarrito={
+                      unidadesPorProducto.get(producto.nombre) || 0
+                    }
+                    onAbrir={(foto) =>
+                      setFicha({ producto: producto.nombre, foto })
+                    }
+                    onAgregar={(cadena, cantidad) =>
+                      agregarAlCarrito(producto, {
+                        cadena,
+                        colores: [],
+                        comentario: "",
+                        cantidad,
+                      })
                     }
                   />
                 ))}
@@ -2006,10 +3376,12 @@ export default function TiendaPage() {
                               <p className="truncate text-sm font-black">
                                 {linea.producto}
                               </p>
+                              {detalleLinea(linea) && (
+                                <p className="break-words text-xs text-[var(--text-muted)]">
+                                  {detalleLinea(linea)}
+                                </p>
+                              )}
                               <p className="text-xs text-[var(--text-muted)]">
-                                {detalleLinea(linea)
-                                  ? `${detalleLinea(linea)} · `
-                                  : ""}
                                 {linea.mayorista && (
                                   <s className="mr-1 opacity-60">
                                     {pesos(linea.precioLista)}
@@ -2065,7 +3437,7 @@ export default function TiendaPage() {
                         {aviso.faltan === 1 ? "unidad" : "unidades"} más de{" "}
                         <strong>{aviso.producto}</strong> y pagás{" "}
                         <strong>{pesos(aviso.precio)} c/u</strong> (precio
-                        por mayor). Podés combinar cadenas.
+                        por mayor). Podés combinar cadenas y colores.
                       </li>
                     ))}
                   </ul>
@@ -2114,14 +3486,19 @@ export default function TiendaPage() {
                       {pesos(total)}
                     </span>
                   </p>
-                  <p className="truncate text-xs text-[var(--text-muted)]">
-                    {lineas
-                      .map(
-                        (linea) =>
-                          `${linea.cantidad} × ${linea.producto}`
-                      )
-                      .join(", ")}
-                  </p>
+                  <ul className="mt-1 space-y-0.5 text-xs text-[var(--text-muted)]">
+                    {lineas.map((linea) => (
+                      <li
+                        key={claveLinea(linea)}
+                        className="break-words"
+                      >
+                        {linea.cantidad} × {linea.producto}
+                        {detalleLinea(linea)
+                          ? ` · ${detalleLinea(linea)}`
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <button
@@ -2513,6 +3890,49 @@ export default function TiendaPage() {
           </span>
           <span className="text-base font-black">{pesos(total)}</span>
         </button>
+      )}
+
+      {catalogo && fichaProducto && ficha && (
+        <FichaProducto
+          key={fichaProducto.nombre}
+          producto={fichaProducto}
+          catalogo={catalogo}
+          fotoInicial={ficha.foto}
+          enCarrito={unidadesPorProducto.get(fichaProducto.nombre) || 0}
+          deshabilitada={!tiendaAbierta || enviando}
+          onAgregar={(opciones) =>
+            agregarDesdeFicha(fichaProducto, opciones)
+          }
+          onCerrar={() => setFicha(null)}
+        />
+      )}
+
+      {avisoAgregado && (
+        <div
+          key={avisoAgregado.vez}
+          role="status"
+          className="fixed inset-x-4 top-4 z-[170] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-emerald-500/40 bg-[var(--kint-panel)] px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.2)] lg:right-[440px]"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <Check size={17} strokeWidth={2.8} />
+          </span>
+          <p className="min-w-0 flex-1 text-sm">
+            <strong className="block">Agregado al carrito</strong>
+            <span className="block truncate text-xs text-[var(--text-muted)]">
+              {avisoAgregado.texto}
+            </span>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setAvisoAgregado(null);
+              mostrarPanel();
+            }}
+            className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-[var(--blue-main)] underline-offset-4 hover:underline"
+          >
+            Ver carrito
+          </button>
+        </div>
       )}
     </main>
   );

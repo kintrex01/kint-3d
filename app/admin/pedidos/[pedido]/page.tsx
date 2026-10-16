@@ -54,10 +54,13 @@ import {
 import {
   FotoFinal,
   Historial,
-  ListaArchivos,
-  ListaPresupuestos,
   ProgresoEstados,
 } from "@/components/admin/pedidos/partes";
+import { SeccionArchivos } from "@/components/admin/pedidos/ArchivosPedido";
+import {
+  SeccionPresupuesto,
+  estadoPresupuesto,
+} from "@/components/admin/pedidos/PresupuestoPedido";
 
 type Confirmacion = {
   titulo: string;
@@ -89,16 +92,16 @@ function saldoSinCobrar(pedido: PedidoDetalle) {
 function proximoPaso(pedido: PedidoDetalle): ProximoPaso {
   switch (pedido.estado) {
     case "Recibido":
-      return tienePresupuestos(pedido)
+      return estadoPresupuesto(pedido).listo
         ? {
             tipo: "estado",
             estado: "Presupuestado",
-            texto: "Marcar como presupuestado",
+            texto: "Enviar presupuesto al cliente",
           }
         : {
             tipo: "info",
             texto:
-              "Cargá los presupuestos en la hoja Presupuestos. Cuando estén, vas a poder marcarlo como presupuestado desde acá.",
+              "Revisá los archivos y cargá las opciones en «Presupuesto», más abajo. Después lo enviás al cliente desde ahí.",
           };
     case "Presupuestado":
       return {
@@ -132,11 +135,14 @@ function mensajeEstado(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
   let efecto = "";
 
   switch (estado) {
-    case "Presupuestado":
-      efecto = `El cliente recibe un correo con ${pedido.presupuestos.length} ${
-        pedido.presupuestos.length === 1 ? "opción" : "opciones"
-      } de presupuesto para elegir.`;
+    case "Presupuestado": {
+      const presupuesto = estadoPresupuesto(pedido);
+      efecto = `El cliente recibe un correo con ${presupuesto.cantidad} ${
+        presupuesto.cantidad === 1 ? "opción" : "opciones"
+      } de presupuesto para elegir, el precio y cómo pagar.`;
+      if (!presupuesto.listo) advertencias.push(presupuesto.motivo);
       break;
+    }
     case "En impresión":
       efecto = "El cliente recibe un correo avisando que su maqueta está en impresión.";
       break;
@@ -511,6 +517,76 @@ export default function DetallePedidoAdmin({
         </>
       )}
 
+      {/* Datos del pedido */}
+      <TituloSeccion>Datos del pedido</TituloSeccion>
+      <Tarjeta>
+        <dl className="divide-y divide-[var(--kint-panel-border)]">
+          <FilaDato
+            etiqueta="Entrega"
+            accion={
+              !cancelado && (
+                <button
+                  type="button"
+                  onClick={abrirEntrega}
+                  aria-label="Cambiar fecha de entrega"
+                  className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
+                >
+                  <Pencil size={16} />
+                </button>
+              )
+            }
+          >
+            {pedido.entrega ? (
+              <span className={vencida ? "text-red-600 dark:text-red-400" : ""}>
+                {fechaDia(pedido.entrega)}
+                {pedido.estado !== "Entregado" && !cancelado && (
+                  <span className="block text-xs font-normal">
+                    {textoDiasHasta(pedido.entrega)}
+                  </span>
+                )}
+              </span>
+            ) : (
+              <span className="text-[var(--text-muted)]">Sin fecha</span>
+            )}
+          </FilaDato>
+          <FilaDato etiqueta="Escala">{pedido.escala || "—"}</FilaDato>
+          <FilaDato etiqueta="Color">{pedido.color || "—"}</FilaDato>
+          <FilaDato etiqueta="Armado">{pedido.armado || "—"}</FilaDato>
+          <FilaDato etiqueta="Alisado">{pedido.alisado || "—"}</FilaDato>
+          <FilaDato etiqueta="Boquilla">{pedido.boquilla || "—"}</FilaDato>
+          {(pedido.codigoDescuento || pedido.descuento > 0) && (
+            <FilaDato etiqueta="Descuento">
+              {pedido.codigoDescuento && (
+                <span className="font-mono">{pedido.codigoDescuento}</span>
+              )}
+              {pedido.codigoDescuento && pedido.descuento > 0 && " · "}
+              {pedido.descuento > 0 && `${pedido.descuento}%`}
+            </FilaDato>
+          )}
+        </dl>
+        {pedido.comentarios && (
+          <div className="border-t border-[var(--kint-panel-border)] px-4 py-3.5">
+            <p className="text-xs font-bold text-[var(--text-muted)]">Comentarios</p>
+            <p className="mt-1 whitespace-pre-line break-words text-sm">
+              {pedido.comentarios}
+            </p>
+          </div>
+        )}
+      </Tarjeta>
+
+      {/* Archivos y presupuesto: el orden en que trabaja el dueño. */}
+      <TituloSeccion>
+        Archivos{pedido.archivos.length > 0 ? ` (${pedido.archivos.length})` : ""}
+      </TituloSeccion>
+      <SeccionArchivos archivos={pedido.archivos} />
+
+      <TituloSeccion>Presupuesto</TituloSeccion>
+      <SeccionPresupuesto
+        pedido={pedido}
+        onActualizado={(actualizado) => setDatos({ pedido: actualizado })}
+        onEnviar={() => pedirEstado("Presupuestado")}
+      />
+
       {/* Pago */}
       <TituloSeccion>Pago</TituloSeccion>
       {pago ? (
@@ -585,78 +661,6 @@ export default function DetallePedidoAdmin({
         </Tarjeta>
       )}
 
-      {/* Datos del pedido */}
-      <TituloSeccion>Datos del pedido</TituloSeccion>
-      <Tarjeta>
-        <dl className="divide-y divide-[var(--kint-panel-border)]">
-          <FilaDato
-            etiqueta="Entrega"
-            accion={
-              !cancelado && (
-                <button
-                  type="button"
-                  onClick={abrirEntrega}
-                  aria-label="Cambiar fecha de entrega"
-                  className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
-                >
-                  <Pencil size={16} />
-                </button>
-              )
-            }
-          >
-            {pedido.entrega ? (
-              <span className={vencida ? "text-red-600 dark:text-red-400" : ""}>
-                {fechaDia(pedido.entrega)}
-                {pedido.estado !== "Entregado" && !cancelado && (
-                  <span className="block text-xs font-normal">
-                    {textoDiasHasta(pedido.entrega)}
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="text-[var(--text-muted)]">Sin fecha</span>
-            )}
-          </FilaDato>
-          <FilaDato etiqueta="Escala">{pedido.escala || "—"}</FilaDato>
-          <FilaDato etiqueta="Color">{pedido.color || "—"}</FilaDato>
-          <FilaDato etiqueta="Armado">{pedido.armado || "—"}</FilaDato>
-          <FilaDato etiqueta="Alisado">{pedido.alisado || "—"}</FilaDato>
-          <FilaDato etiqueta="Boquilla">{pedido.boquilla || "—"}</FilaDato>
-          {(pedido.codigoDescuento || pedido.descuento > 0) && (
-            <FilaDato etiqueta="Descuento">
-              {pedido.codigoDescuento && (
-                <span className="font-mono">{pedido.codigoDescuento}</span>
-              )}
-              {pedido.codigoDescuento && pedido.descuento > 0 && " · "}
-              {pedido.descuento > 0 && `${pedido.descuento}%`}
-            </FilaDato>
-          )}
-        </dl>
-        {pedido.comentarios && (
-          <div className="border-t border-[var(--kint-panel-border)] px-4 py-3.5">
-            <p className="text-xs font-bold text-[var(--text-muted)]">Comentarios</p>
-            <p className="mt-1 whitespace-pre-line break-words text-sm">
-              {pedido.comentarios}
-            </p>
-          </div>
-        )}
-      </Tarjeta>
-
-      <TituloSeccion>Presupuestos</TituloSeccion>
-      {pedido.presupuestos.length > 0 ? (
-        <ListaPresupuestos presupuestos={pedido.presupuestos} />
-      ) : (
-        <Tarjeta className="px-4 py-4 text-sm text-[var(--text-muted)]">
-          Sin presupuestos cargados. Se cargan en la hoja Presupuestos.
-        </Tarjeta>
-      )}
-
-      {pedido.archivos.length > 0 && (
-        <>
-          <TituloSeccion>Archivos ({pedido.archivos.length})</TituloSeccion>
-          <ListaArchivos archivos={pedido.archivos} />
-        </>
-      )}
 
       {pedido.fotoFinal && (
         <>

@@ -148,8 +148,8 @@ export default function PedidosAdmin() {
   );
 
   function cambiarCancelados(activo: boolean) {
+    /* Cambia la clave: se carga solo (al instante si ya estaba en caché). */
     setIncluirCancelados(activo);
-    recargar();
     if (activo) setFiltro("cancelados");
     else if (filtro === "cancelados") setFiltro("porHacer");
   }

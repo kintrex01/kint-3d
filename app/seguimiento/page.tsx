@@ -3,6 +3,11 @@
 import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import SeguimientoTienda, {
+  buscarCompraTienda,
+  esPedidoTienda,
+  type CompraTienda,
+} from "@/components/SeguimientoTienda";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +17,10 @@ const supabase = createClient(
 function SeguimientoContent() {
   const [pedido, setPedido] = useState("");
   const [codigo, setCodigo] = useState("");
+  // Compras de la tienda (TND): se consultan con número + email.
+  const [email, setEmail] = useState("");
+  const [compraTienda, setCompraTienda] =
+    useState<CompraTienda | null>(null);
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
   const [error, setError] = useState("");
@@ -43,10 +52,50 @@ const [archivoEliminando, setArchivoEliminando] =
   const searchParams = useSearchParams();
 
 useEffect(() => {
-  const pedidoUrl =
-    (searchParams.get("pedido") || "")
-      .trim()
-      .toUpperCase();
+  // Link de los correos de la tienda: ?n=TND-0001&e=email.
+  const numeroUrl = (
+    searchParams.get("n") ||
+    searchParams.get("pedido") ||
+    ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (esPedidoTienda(numeroUrl)) {
+    const emailUrl = (searchParams.get("e") || "").trim();
+
+    void Promise.resolve().then(async () => {
+      setPedido(numeroUrl);
+      setEmail(emailUrl);
+
+      if (!emailUrl) {
+        return;
+      }
+
+      setError("");
+      setResultado(null);
+      setCargando(true);
+
+      try {
+        setCompraTienda(
+          await buscarCompraTienda(numeroUrl, emailUrl)
+        );
+      } catch (error: unknown) {
+        setCompraTienda(null);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "No pudimos buscar tu compra."
+        );
+      } finally {
+        setCargando(false);
+      }
+    });
+
+    return;
+  }
+
+  const pedidoUrl = numeroUrl;
 
   const codigoUrl =
     (searchParams.get("codigo") || "")
@@ -141,17 +190,34 @@ function cambiarTema() {
   async function consultarPedido() {
     setError("");
     setResultado(null);
+    setCompraTienda(null);
 
     if (!pedido.trim()) {
       setError("Ingresá tu número de pedido.");
       return;
     }
 
-    // Las compras de la tienda (TND) se siguen en /tienda/pedido.
-    if (/^\s*tnd/i.test(pedido)) {
-      window.location.href = `/tienda/pedido?n=${encodeURIComponent(
-        pedido.trim().toUpperCase()
-      )}`;
+    // Compras de la tienda (TND): número + email de la compra.
+    if (esPedidoTienda(pedido)) {
+      if (!email.trim()) {
+        setError("Ingresá el email con el que compraste.");
+        return;
+      }
+
+      setCargando(true);
+
+      try {
+        setCompraTienda(await buscarCompraTienda(pedido, email));
+      } catch (error: unknown) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "No pudimos buscar tu compra."
+        );
+      } finally {
+        setCargando(false);
+      }
+
       return;
     }
 
@@ -1164,23 +1230,44 @@ function datosTecnicosPresupuesto(
         <div className="my-8 h-[2px] w-20 bg-red-600" />
 
         <p className="mb-8 max-w-xl text-xs uppercase leading-7 tracking-[0.18em] text-[var(--text-muted)]">
-  Ingresá tu pedido y código de seguimiento.
+  Sirve para pedidos de maquetas (KNT) y compras de la tienda (TND).
+  {" "}
+  {esPedidoTienda(pedido)
+    ? "Ingresá tu número de compra y el email con el que compraste."
+    : "Ingresá tu número de pedido y el código de seguimiento (o tu número TND y tu email)."}
 </p>
 
         <div className="w-full max-w-xl">
           <input
             value={pedido}
             onChange={(e) => setPedido(e.target.value.toUpperCase())}
-            placeholder="Ej: KNT-0026"
+            placeholder="Ej: KNT-0026 o TND-0001"
+            aria-label="Número de pedido"
             className="w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold uppercase tracking-[0.12em] outline-none transition focus:border-red-600"
           />
 
+{esPedidoTienda(pedido) ? (
+  <input
+    type="email"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") void consultarPedido();
+    }}
+    autoComplete="email"
+    placeholder="Email de la compra"
+    aria-label="Email de la compra"
+    className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold tracking-[0.06em] outline-none transition focus:border-red-600"
+  />
+) : (
 <input
   value={codigo}
   onChange={(e) => setCodigo(e.target.value.toUpperCase())}
   placeholder="Código de seguimiento"
+  aria-label="Código de seguimiento"
   className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold uppercase tracking-[0.12em] outline-none transition focus:border-red-600"
 />
+)}
 
           <button
             onClick={consultarPedido}
@@ -1196,6 +1283,10 @@ function datosTecnicosPresupuesto(
             {error}
           </p>
         )}
+
+{compraTienda && !resultado && (
+  <SeguimientoTienda compra={compraTienda} />
+)}
 
 {resultado && (
   <div className="mt-12 w-full max-w-4xl px-6 py-10 text-left sm:px-10">
