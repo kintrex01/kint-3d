@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { use, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
@@ -18,6 +19,7 @@ import {
   Pencil,
   ReceiptText,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import {
@@ -213,8 +215,30 @@ export default function DetallePedidoAdmin({
   const [hojaEstado, setHojaEstado] = useState(false);
   const [hojaEntrega, setHojaEntrega] = useState(false);
   const [fechaNueva, setFechaNueva] = useState("");
+  const [pidiendoCancelar, setPidiendoCancelar] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const router = useRouter();
 
   const pedido = datos?.pedido;
+
+  /* Igual que elegir ❌❌❌ en la hoja: se borra todo y el número queda libre. */
+  async function cancelarPedido() {
+    if (!pedido) return;
+    setCancelando(true);
+    try {
+      const respuesta = await accionAdmin("admin_pedido_cancelar", {
+        pedido: pedido.pedido,
+      });
+      avisar(respuesta.aviso);
+      router.push("/admin/pedidos");
+    } catch (errorAccion) {
+      avisar(
+        errorAccion instanceof Error ? errorAccion.message : "No se pudo cancelar.",
+        "error"
+      );
+      setCancelando(false);
+    }
+  }
 
   async function confirmar() {
     if (!confirmacion) return;
@@ -675,6 +699,37 @@ export default function DetallePedidoAdmin({
           <Historial lineas={pedido.historial} />
         </>
       )}
+
+      {pedido.estado !== "❌❌❌" && (
+        <button
+          type="button"
+          onClick={() => setPidiendoCancelar(true)}
+          className="mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-600/40 text-sm font-bold text-red-600 transition hover:bg-red-600 hover:text-white dark:text-red-400"
+        >
+          <Trash2 size={16} />
+          Cancelar y borrar pedido
+        </button>
+      )}
+
+      <DialogoConfirmar
+        abierto={pidiendoCancelar}
+        titulo={`Cancelar ${pedido.pedido}`}
+        peligro
+        cargando={cancelando}
+        textoConfirmar="Sí, cancelar"
+        mensaje={
+          <div className="space-y-2">
+            <p>
+              Es lo mismo que elegir <strong>❌❌❌</strong> en la hoja: se borran
+              sus archivos, presupuestos, pagos y gestión, y el número{" "}
+              <strong>{pedido.pedido}</strong> queda libre para otro cliente.
+            </p>
+            <p>No se le manda correo al cliente. No se puede deshacer.</p>
+          </div>
+        }
+        onConfirmar={cancelarPedido}
+        onCancelar={() => setPidiendoCancelar(false)}
+      />
 
       {/* Cambiar estado */}
       <Hoja

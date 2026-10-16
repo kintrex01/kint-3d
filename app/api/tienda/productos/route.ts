@@ -35,7 +35,12 @@ export async function GET() {
       );
     }
 
-    return Response.json(data);
+    // CDN de Vercel: responde al instante y renueva en segundo plano.
+    return Response.json(data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=600",
+      },
+    });
   } catch (error: unknown) {
     const mensaje =
       error instanceof Error

@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Mail,
   ReceiptText,
+  Trash2,
   Undo2,
 } from "lucide-react";
 import {
@@ -50,6 +51,7 @@ export function DetalleCompra({
   guardando,
   onPago,
   onEstado,
+  onCancelar,
 }: {
   compra: CompraTienda;
   notificar: boolean;
@@ -57,6 +59,7 @@ export function DetalleCompra({
   guardando: string;
   onPago: (confirmado: boolean) => void;
   onEstado: (estado: EstadoTienda) => void;
+  onCancelar: () => void;
 }) {
   const ocupado = Boolean(guardando);
 
@@ -136,6 +139,18 @@ export function DetalleCompra({
             {compra.comentario}
           </p>
         </div>
+      )}
+
+      {compra.comprobanteSaldo && (
+        <a
+          href={compra.comprobanteSaldo}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${claseEnlaceBoton} w-full border-red-600/40 text-red-700 dark:text-red-300`}
+        >
+          <ReceiptText size={16} />
+          Comprobante del saldo
+        </a>
       )}
 
       <div className="grid grid-cols-2 gap-2">
@@ -236,6 +251,16 @@ export function DetalleCompra({
           </div>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={onCancelar}
+        disabled={ocupado}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-red-600/40 text-sm font-bold text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50 dark:text-red-400"
+      >
+        <Trash2 size={16} />
+        Cancelar y borrar compra
+      </button>
     </div>
   );
 }

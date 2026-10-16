@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { MessageSquareHeart, RefreshCw, Star } from "lucide-react";
+import { ImageIcon, MessageSquareHeart, RefreshCw, Star, Trash2 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { ResenaAdmin } from "@/lib/admin-tipos";
 import {
   Boton,
   CajaError,
   Chip,
+  DialogoConfirmar,
   Encabezado,
   Esqueleto,
   Interruptor,
@@ -27,8 +28,16 @@ function cumpleFiltro(resena: ResenaAdmin, filtro: Filtro) {
   return true;
 }
 
-function idDrive(link: string) {
-  return /[-\w]{25,}/.exec(link || "")?.[0] || "";
+/*
+ * Las fotos que suben los clientes están en Supabase (link directo);
+ * las viejas, en Drive (pasan por /api/imagen-drive).
+ */
+function srcFoto(link: string) {
+  if (/drive\.google\.com|docs\.google\.com/.test(link)) {
+    const id = /[-\w]{25,}/.exec(link)?.[0];
+    return id ? `/api/imagen-drive?id=${encodeURIComponent(id)}` : "";
+  }
+  return /^https?:\/\//.test(link) ? link : "";
 }
 
 export default function ResenasAdmin() {
@@ -40,6 +49,30 @@ export default function ResenasAdmin() {
   const [optimistas, setOptimistas] = useState<Record<string, Cambios>>({});
   /* Reseñas que se movieron de filtro: quedan a la vista hasta cambiar de pestaña. */
   const [fijadas, setFijadas] = useState<Set<string>>(() => new Set());
+  const [porBorrar, setPorBorrar] = useState<ResenaAdmin | null>(null);
+  const [borrando, setBorrando] = useState(false);
+
+  async function borrar() {
+    if (!porBorrar) return;
+    setBorrando(true);
+    try {
+      await accionAdmin("admin_resena_borrar", { id: porBorrar.id });
+      setDatos((actual) =>
+        actual
+          ? { resenas: actual.resenas.filter((item) => item.id !== porBorrar.id) }
+          : actual
+      );
+      avisar("Reseña borrada");
+      setPorBorrar(null);
+    } catch (errorBorrado) {
+      avisar(
+        errorBorrado instanceof Error ? errorBorrado.message : "No se pudo borrar.",
+        "error"
+      );
+    } finally {
+      setBorrando(false);
+    }
+  }
 
   const resenas = (datos?.resenas ?? []).map((resena) => ({
     ...resena,
@@ -177,12 +210,31 @@ export default function ResenasAdmin() {
                   resena={resena}
                   guardando={Boolean(optimistas[resena.id])}
                   onModerar={(cambios) => void moderar(resena, cambios)}
+                  onBorrar={() => setPorBorrar(resena)}
                 />
               ))}
             </div>
           )}
         </>
       )}
+
+      <DialogoConfirmar
+        abierto={Boolean(porBorrar)}
+        titulo="Borrar reseña"
+        peligro
+        cargando={borrando}
+        textoConfirmar="Sí, borrar"
+        mensaje={
+          <p>
+            Se borra la reseña de <strong>{porBorrar?.nombre || "este cliente"}</strong>
+            {porBorrar?.pedido ? ` (${porBorrar.pedido})` : ""} de la hoja y de la
+            web. El cliente va a poder dejar otra con el mismo link. No se puede
+            deshacer.
+          </p>
+        }
+        onConfirmar={() => void borrar()}
+        onCancelar={() => setPorBorrar(null)}
+      />
     </>
   );
 }
@@ -191,15 +243,17 @@ function TarjetaResena({
   resena,
   guardando,
   onModerar,
+  onBorrar,
 }: {
   resena: ResenaAdmin;
   guardando: boolean;
   onModerar: (cambios: Cambios) => void;
+  onBorrar: () => void;
 }) {
   const estrellas = Math.max(0, Math.min(5, Math.round(resena.estrellas)));
   const fotos = (resena.fotos ?? [])
-    .map((link) => ({ link, id: idDrive(link) }))
-    .filter((foto) => foto.id);
+    .map((link) => ({ link, src: srcFoto(link) }))
+    .filter((foto) => foto.src);
 
   return (
     <Tarjeta className="overflow-hidden">
@@ -251,10 +305,16 @@ function TarjetaResena({
         )}
 
         {fotos.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {fotos.map((foto) => (
-              <Miniatura key={foto.link} link={foto.link} id={foto.id} />
-            ))}
+          <div className="mt-3">
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+              <ImageIcon size={13} />
+              {fotos.length === 1 ? "Subió 1 foto" : `Subió ${fotos.length} fotos`} · tocá para verla
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {fotos.map((foto) => (
+                <Miniatura key={foto.link} link={foto.link} src={foto.src} />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -285,14 +345,22 @@ function TarjetaResena({
             onCambiar={(activo) => onModerar({ mostrarProyecto: activo })}
           />
         </label>
+        <button
+          type="button"
+          onClick={onBorrar}
+          disabled={guardando}
+          className="flex min-h-12 w-full items-center justify-center gap-2 px-4 text-sm font-bold text-red-600 transition hover:bg-red-600/10 disabled:opacity-50 dark:text-red-400"
+        >
+          <Trash2 size={15} />
+          Borrar reseña
+        </button>
       </div>
     </Tarjeta>
   );
 }
 
-function Miniatura({ link, id }: { link: string; id: string }) {
+function Miniatura({ link, src }: { link: string; src: string }) {
   const [fallo, setFallo] = useState(false);
-  if (fallo) return null;
 
   return (
     <a
@@ -300,16 +368,21 @@ function Miniatura({ link, id }: { link: string; id: string }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Ver foto completa"
-      className="block h-20 w-20 overflow-hidden rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)]"
+      className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] text-[var(--text-muted)]"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={`/api/imagen-drive?id=${encodeURIComponent(id)}`}
-        alt="Foto de la reseña"
-        loading="lazy"
-        onError={() => setFallo(true)}
-        className="h-full w-full object-cover"
-      />
+      {fallo ? (
+        // No se pudo mostrar: el link igual abre la foto.
+        <ImageIcon size={22} />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt="Foto de la reseña"
+          loading="lazy"
+          onError={() => setFallo(true)}
+          className="h-full w-full object-cover"
+        />
+      )}
     </a>
   );
 }

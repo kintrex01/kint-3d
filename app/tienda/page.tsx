@@ -437,10 +437,28 @@ function ajustarCarrito(
   return resultado;
 }
 
+/*
+ * Último catálogo que vio este navegador: se muestra al instante
+ * mientras llega el nuevo. Los precios los vuelve a validar Apps Script
+ * al comprar, así que uno viejo nunca cobra mal.
+ */
+const CLAVE_CATALOGO = "kint-tienda-catalogo-v1";
+const VIGENCIA_CATALOGO_MS = 24 * 60 * 60 * 1000;
+
+function leerCatalogoGuardado(): Catalogo | null {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(CLAVE_CATALOGO) || "null");
+    if (!guardado || Date.now() - Number(guardado.en) > VIGENCIA_CATALOGO_MS) {
+      return null;
+    }
+    return normalizarCatalogo(guardado.datos);
+  } catch {
+    return null;
+  }
+}
+
 async function pedirCatalogo(): Promise<Catalogo> {
-  const response = await fetch("/api/tienda/productos", {
-    cache: "no-store",
-  });
+  const response = await fetch("/api/tienda/productos");
 
   const data = await response.json().catch(() => null);
 
@@ -450,6 +468,20 @@ async function pedirCatalogo(): Promise<Catalogo> {
     );
   }
 
+  try {
+    localStorage.setItem(
+      CLAVE_CATALOGO,
+      JSON.stringify({ en: Date.now(), datos: data })
+    );
+  } catch {
+    // Sin lugar o sin permiso: solo se pierde el atajo.
+  }
+
+  return normalizarCatalogo(data);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function normalizarCatalogo(data: any): Catalogo {
   const coloresGlobales = listaDeTextos(data.coloresGlobales);
 
   return {
@@ -2299,17 +2331,34 @@ export default function TiendaPage() {
 
   useEffect(() => {
     let activo = true;
+    let mostrado = false;
+
+    // Al instante: el último catálogo guardado (si hay).
+    void Promise.resolve().then(() => {
+      const guardado = leerCatalogoGuardado();
+      if (!activo || !guardado) return;
+      mostrado = true;
+      setCatalogo(guardado);
+      setCarrito(ajustarCarrito(leerCarritoGuardado(), guardado));
+      setIdCompra(leerIdCompraGuardado());
+      setCarritoListo(true);
+      setCargando(false);
+    });
 
     pedirCatalogo()
       .then((nuevo) => {
         if (!activo) return;
         setCatalogo(nuevo);
-        setCarrito(ajustarCarrito(leerCarritoGuardado(), nuevo));
-        setIdCompra(leerIdCompraGuardado());
+        // Si ya se mostraba el guardado, se ajusta el carrito actual.
+        setCarrito((actual) =>
+          ajustarCarrito(mostrado ? actual : leerCarritoGuardado(), nuevo)
+        );
+        if (!mostrado) setIdCompra(leerIdCompraGuardado());
         setCarritoListo(true);
       })
       .catch((errorCarga: unknown) => {
-        if (!activo) return;
+        // Con el catálogo guardado a la vista, un error de red no se muestra.
+        if (!activo || mostrado) return;
         setErrorCatalogo(
           errorCarga instanceof Error
             ? errorCarga.message

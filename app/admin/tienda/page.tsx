@@ -96,6 +96,8 @@ export default function TiendaAdmin() {
   const [notificar, setNotificar] = useState(true);
   const [guardando, setGuardando] = useState("");
   const [porConfirmar, setPorConfirmar] = useState<Cambio | null>(null);
+  const [pidiendoCancelar, setPidiendoCancelar] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
 
   const compras = useMemo(() => datos?.compras ?? [], [datos]);
   const compra = compras.find((item) => item.pedido === abierta) ?? null;
@@ -178,6 +180,9 @@ export default function TiendaAdmin() {
       if (avisarCliente && !respuesta.correoEnviado) {
         avisar("No se pudo mandar el correo al cliente.", "error");
       }
+      if ("puntos" in respuesta && respuesta.puntos) {
+        avisar(`+${respuesta.puntos} Puntos Kint para el cliente`);
+      }
       setPorConfirmar(null);
     } catch (errorAccion) {
       avisar(
@@ -186,6 +191,30 @@ export default function TiendaAdmin() {
       );
     } finally {
       setGuardando("");
+    }
+  }
+
+  /* Borra la compra sin dejar rastro (filas, anti-duplicados y comprobantes). */
+  async function cancelarCompra() {
+    if (!compra) return;
+    setCancelando(true);
+    try {
+      await accionAdmin("admin_tienda_cancelar", { pedido: compra.pedido });
+      setDatos((actual) =>
+        actual
+          ? { compras: actual.compras.filter((item) => item.pedido !== compra.pedido) }
+          : actual
+      );
+      avisar(`${compra.pedido} cancelada y borrada`);
+      setPidiendoCancelar(false);
+      setAbierta(null);
+    } catch (errorAccion) {
+      avisar(
+        errorAccion instanceof Error ? errorAccion.message : "No se pudo cancelar.",
+        "error"
+      );
+    } finally {
+      setCancelando(false);
     }
   }
 
@@ -258,7 +287,7 @@ export default function TiendaAdmin() {
       )}
 
       <Hoja
-        abierta={Boolean(compra) && !porConfirmar}
+        abierta={Boolean(compra) && !porConfirmar && !pidiendoCancelar}
         onCerrar={() => {
           if (!guardando) setAbierta(null);
         }}
@@ -272,6 +301,7 @@ export default function TiendaAdmin() {
             guardando={guardando}
             onPago={(confirmado) => pedirCambio({ tipo: "pago", confirmado })}
             onEstado={(estado) => pedirCambio({ tipo: "estado", estado })}
+            onCancelar={() => setPidiendoCancelar(true)}
           />
         )}
       </Hoja>
@@ -300,6 +330,25 @@ export default function TiendaAdmin() {
           if (porConfirmar) void ejecutar(porConfirmar);
         }}
         onCancelar={() => setPorConfirmar(null)}
+      />
+
+      <DialogoConfirmar
+        abierto={pidiendoCancelar && Boolean(compra)}
+        titulo={`Cancelar ${compra?.pedido ?? ""}`}
+        peligro
+        cargando={cancelando}
+        textoConfirmar="Sí, borrar"
+        mensaje={
+          <div className="space-y-2">
+            <p>
+              Se borran sus filas de la hoja Tienda y los comprobantes en Drive.
+              Si es la última compra, el número queda libre para la próxima.
+            </p>
+            <p>No se le manda correo al cliente. No se puede deshacer.</p>
+          </div>
+        }
+        onConfirmar={() => void cancelarCompra()}
+        onCancelar={() => setPidiendoCancelar(false)}
       />
     </>
   );

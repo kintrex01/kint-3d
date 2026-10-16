@@ -144,6 +144,7 @@ export type CompraTienda = {
   estado: EstadoTienda | string;
   pagoConfirmado: boolean;
   comprobante: string;
+  comprobanteSaldo?: string; // columna "Comprobante saldo" (lo sube el cliente desde el seguimiento)
   total: number; // suma de las líneas
   senaPorcentaje: number; // configuración actual de la tienda
   montoSena: number; // round(total * senaPorcentaje / 100), 0 si es Completo
@@ -269,6 +270,11 @@ export type AccionesAdmin = {
     respuesta: { pedido: PedidoDetalle };
   };
   /* Escribe Q como lo haría el dueño; el correo lo manda revisarEstados. */
+  // Igual que elegir ❌❌❌ en la hoja: se borra todo y el número queda libre.
+  admin_pedido_cancelar: {
+    pedido: { pedido: string };
+    respuesta: { pedido: string; aviso: string };
+  };
   admin_pedido_estado: {
     pedido: { pedido: string; estado: EstadoPedidoEditable };
     respuesta: { pedido: PedidoDetalle; aviso: string };
@@ -325,7 +331,13 @@ export type AccionesAdmin = {
   };
   admin_tienda_estado: {
     pedido: { pedido: string; estado: EstadoTienda; notificar: boolean };
-    respuesta: { compra: CompraTienda; correoEnviado: boolean };
+    // puntos: Puntos Kint acreditados al marcar Entregado (0 si no corresponde).
+    respuesta: { compra: CompraTienda; correoEnviado: boolean; puntos?: number };
+  };
+  // Borra la compra (filas, anti-duplicados y comprobantes): el TND queda libre.
+  admin_tienda_cancelar: {
+    pedido: { pedido: string };
+    respuesta: { pedido: string; filasBorradas: number };
   };
   admin_tienda_pago: {
     pedido: { pedido: string; confirmado: boolean; notificar: boolean };
@@ -378,6 +390,10 @@ export type AccionesAdmin = {
     pedido: { id: string; aprobada?: boolean; mostrarProyecto?: boolean };
     respuesta: { resena: ResenaAdmin };
   };
+  admin_resena_borrar: {
+    pedido: { id: string };
+    respuesta: { id: string; pedido: string };
+  };
 
   admin_clientes_buscar: {
     pedido: { q: string };
@@ -396,6 +412,7 @@ export const ACCIONES_ADMIN = [
   "admin_pedidos_listar",
   "admin_pedido_detalle",
   "admin_pedido_estado",
+  "admin_pedido_cancelar",
   "admin_pago_confirmar",
   "admin_saldo_confirmar",
   "admin_pedido_entrega",
@@ -405,6 +422,7 @@ export const ACCIONES_ADMIN = [
   "admin_tienda_listar",
   "admin_tienda_estado",
   "admin_tienda_pago",
+  "admin_tienda_cancelar",
   "admin_productos_listar",
   "admin_producto_guardar",
   "admin_config_listar",
@@ -414,6 +432,7 @@ export const ACCIONES_ADMIN = [
   "admin_dia_quitar",
   "admin_resenas_listar",
   "admin_resena_moderar",
+  "admin_resena_borrar",
   "admin_clientes_buscar",
   "admin_cliente_estado",
 ] as const satisfies readonly TipoAccionAdmin[];

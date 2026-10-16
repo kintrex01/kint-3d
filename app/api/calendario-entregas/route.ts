@@ -39,7 +39,13 @@ export async function GET() {
       );
     }
 
-    return Response.json(data);
+    // CDN de Vercel: responde al instante. Un día recién bloqueado igual
+    // lo rechaza Apps Script al confirmar la compra o el pedido.
+    return Response.json(data, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
+      },
+    });
   } catch (error: unknown) {
     const mensaje =
       error instanceof Error

@@ -233,7 +233,10 @@ export default function CalendarioEntrega({
         {DIAS_SEMANA.map((dia, indice) => (
           <span
             key={`${dia}-${indice}`}
-            className="pb-1 text-[10px] font-black text-[var(--text-muted)]"
+            className={`pb-1 text-[10px] font-black ${
+              // Sábado y domingo: sin facultad (lunes primero).
+              indice >= 5 ? "text-amber-600 dark:text-amber-400" : "text-[var(--text-muted)]"
+            }`}
           >
             {dia}
           </span>
@@ -272,11 +275,17 @@ export default function CalendarioEntrega({
                   : fueraDeRango
                   ? "cursor-default text-[var(--text-muted)] opacity-25"
                   : gris
-                  ? "bg-[var(--kint-panel-soft)] text-[var(--text-muted)] hover:ring-1 hover:ring-[var(--kint-selected-border)]"
+                  ? "bg-amber-500/15 text-amber-800 hover:ring-1 hover:ring-amber-500/60 dark:text-amber-300"
                   : "text-[var(--text-main)] hover:bg-[var(--kint-selected-bg)] hover:ring-1 hover:ring-[var(--kint-selected-border)]"
               } ${esHoy && !elegido ? "ring-1 ring-[var(--blue-main)]/50" : ""}`}
             >
               {partes(iso).dia}
+              {gris && !elegido && !bloqueado && !fueraDeRango && (
+                <span
+                  aria-hidden="true"
+                  className="absolute bottom-1 h-1 w-1 rounded-full bg-amber-500"
+                />
+              )}
             </button>
           );
         })}
@@ -288,8 +297,8 @@ export default function CalendarioEntrega({
           Sin entregas
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-[var(--kint-panel-soft)] ring-1 ring-[var(--kint-panel-border)]" />
-          Sin facultad (envío a coordinar)
+          <span className="h-2.5 w-2.5 rounded-sm bg-amber-500/40" />
+          Fin de semana o feriado: sin facultad (envío a coordinar)
         </span>
       </div>
 
@@ -298,8 +307,9 @@ export default function CalendarioEntrega({
           <span>
             Elegiste el <strong>{describirFecha(valor)}</strong>
             {elegidoSinFacultad && (
-              <span className="block text-[var(--text-muted)]">
-                Ese día no hay facultad: coordinamos el envío por WhatsApp.
+              <span className="mt-1 block rounded-lg bg-amber-500/15 px-2 py-1 font-semibold text-amber-800 dark:text-amber-300">
+                Ese día no hay facultad: no se entrega en FADU, coordinamos el
+                envío por WhatsApp.
               </span>
             )}
           </span>
