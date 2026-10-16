@@ -146,7 +146,15 @@ function cambiarTema() {
       setError("Ingresá tu número de pedido.");
       return;
     }
-    
+
+    // Las compras de la tienda (TND) se siguen en /tienda/pedido.
+    if (/^\s*tnd/i.test(pedido)) {
+      window.location.href = `/tienda/pedido?n=${encodeURIComponent(
+        pedido.trim().toUpperCase()
+      )}`;
+      return;
+    }
+
     if (!codigo.trim()) {
   setError("Ingresá tu código de seguimiento.");
   return;
