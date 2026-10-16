@@ -142,6 +142,8 @@ export type LineaCompraTienda = {
   cadena: string;
   color?: string; // columna "Colores" de Tienda, si existe
   variante?: string; // columna "Variante" de Tienda, si existe
+  colores?: string[]; // en un personalizado: [borde, letras]
+  comentario?: string; // de la pieza (personalizado: "Texto: … | Fuente: … | Tamaño: …")
   subtotal: number;
 };
 
@@ -182,6 +184,7 @@ export type ProductoAdmin = {
   variantes: string[];
   descripcion: string; // texto corto que se ve en la tienda ("" = sin descripción)
   etiquetas: string[]; // "Llavero", "Clicker", "Combo": filtros de la tienda
+  personalizable: boolean; // el cliente lo arma con su nombre (llavero 3D)
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };

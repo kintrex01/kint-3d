@@ -27,6 +27,7 @@ import {
   X,
   ZoomIn,
   ZoomOut,
+  Sparkles,
   Star,
 } from "lucide-react";
 import {
@@ -36,7 +37,9 @@ import {
   useRef,
   useState,
 } from "react";
+import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
+import { leerPersonalizacion } from "@/lib/llavero/personalizacion";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 
@@ -68,6 +71,8 @@ type Producto = {
   descripcion: string;
   // "Llavero", "Clicker", "Combo": se filtra por estas.
   etiquetas: string[];
+  // El cliente escribe el nombre y lo arma en 3D (components/llavero).
+  personalizable: boolean;
   // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
   orden: number;
   vendidos: number;
@@ -137,6 +142,15 @@ type CompraConfirmada = {
 };
 
 const CLAVE_CARRITO = "kint-tienda-carrito-v1";
+
+const Personalizador = dynamic(() => import("@/components/llavero/Personalizador"), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/60 text-sm font-bold text-white backdrop-blur-sm">
+      Cargando el personalizador…
+    </div>
+  ),
+});
 
 /*
  * El idCompra se guarda junto con el carrito: si la página se recarga
@@ -257,6 +271,18 @@ function detalleLinea(linea: {
   comentario?: string;
 }) {
   const colores = linea.colores || [];
+  const personalizado = leerPersonalizacion(linea.comentario || "");
+
+  if (personalizado) {
+    return [
+      `“${personalizado.texto}”`,
+      `${personalizado.fuente} · ${personalizado.tamano}`,
+      colores.length === 2 ? `Borde ${colores[0]}, letras ${colores[1]}` : "",
+      linea.cadena ? `Cadena ${linea.cadena}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
 
   return [
     linea.variante || "",
@@ -409,8 +435,12 @@ function ajustarCarrito(
       : [];
 
     // Un color que ya no se ofrece saca la línea, como una cadena vieja.
-    const coloresValidos =
-      (colores.length <= producto.maxColores ||
+    const coloresValidos = producto.personalizable
+      ? colores.length === 2 &&
+        colores[0] !== colores[1] &&
+        colores.every((color) => producto.colores.includes(color)) &&
+        Boolean(leerPersonalizacion(String(linea?.comentario || "")))
+      : (colores.length <= producto.maxColores ||
         mismosColores(colores, producto.coloresDefecto)) &&
       new Set(colores).size === colores.length &&
       colores.every((color) => producto.colores.includes(color));
@@ -543,6 +573,7 @@ function normalizarCatalogo(data: any): Catalogo {
             variantes: listaDeTextos(producto.variantes),
             descripcion: String(producto.descripcion || "").trim(),
             etiquetas: listaDeTextos(producto.etiquetas).slice(0, 5),
+            personalizable: producto.personalizable === true,
             orden: Number(producto.orden) || 0,
             vendidos: Number(producto.vendidos) || 0,
             resenas: Array.isArray(producto.resenas)
@@ -1064,8 +1095,12 @@ function TarjetaProducto({
               deshabilitada ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
             }`}
           >
-            <ShoppingBag size={14} strokeWidth={2.2} />
-            Ver opciones
+            {producto.personalizable ? (
+              <Sparkles size={14} strokeWidth={2.2} />
+            ) : (
+              <ShoppingBag size={14} strokeWidth={2.2} />
+            )}
+            {producto.personalizable ? "Personalizar" : "Ver opciones"}
           </button>
         </div>
       ) : (
@@ -1099,6 +1134,22 @@ function TarjetaProducto({
           granMayorDesde={granMayorDesde}
         />
 
+        {producto.personalizable ? (
+          <div className="mt-auto pt-5">
+            <button
+              type="button"
+              disabled={deshabilitada}
+              onClick={() => onAbrir(indice)}
+              className={`flex h-11 w-full items-center justify-center gap-2 rounded-xl border px-3 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                deshabilitada ? CLASE_BOTON_INACTIVO : CLASE_BOTON_PRINCIPAL
+              }`}
+            >
+              <Sparkles size={15} strokeWidth={2.2} />
+              Personalizá con tu nombre
+            </button>
+          </div>
+        ) : (
+        <>
         <SelectorOpciones
           titulo="Cadena"
           opciones={producto.cadenas}
@@ -1164,6 +1215,8 @@ function TarjetaProducto({
             )}
           </button>
         </div>
+        </>
+        )}
       </div>
       )}
     </article>
@@ -2703,6 +2756,7 @@ export default function TiendaPage() {
   const [hoy] = useState(fechaHoyISO);
 
   // Ficha abierta (por nombre de producto) y aviso de "agregado".
+  const [personalizando, setPersonalizando] = useState<string | null>(null);
   const [ficha, setFicha] = useState<{
     producto: string;
     foto: number;
@@ -3777,7 +3831,9 @@ export default function TiendaPage() {
                       unidadesPorProducto.get(producto.nombre) || 0
                     }
                     onAbrir={(foto) =>
-                      setFicha({ producto: producto.nombre, foto })
+                      producto.personalizable
+                        ? setPersonalizando(producto.nombre)
+                        : setFicha({ producto: producto.nombre, foto })
                     }
                     onAgregar={(cadena, cantidad) =>
                       agregarAlCarrito(producto, {
@@ -4474,6 +4530,26 @@ export default function TiendaPage() {
           onCerrar={() => setFicha(null)}
         />
       )}
+
+      {catalogo &&
+        personalizando &&
+        (() => {
+          const producto = catalogo.productos.find((item) => item.nombre === personalizando);
+          if (!producto) return null;
+          return (
+            <Personalizador
+              producto={producto}
+              maxUnidades={maxUnidades}
+              onCerrar={() => setPersonalizando(null)}
+              onAgregar={(opciones) => {
+                if (!tiendaAbierta) return "La tienda está en pausa.";
+                const mensaje = agregarDesdeFicha(producto, { ...opciones, variante: "" });
+                if (!mensaje) setPersonalizando(null);
+                return mensaje;
+              }}
+            />
+          );
+        })()}
 
       {avisoAgregado && (
         <div

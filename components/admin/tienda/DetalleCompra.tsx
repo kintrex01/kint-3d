@@ -28,6 +28,8 @@ import {
   textoDiasHasta,
   tonoEstado,
 } from "@/components/admin/ui";
+import { ArchivosLlavero } from "@/components/admin/tienda/ArchivosLlavero";
+import { leerPersonalizacion } from "@/lib/llavero/personalizacion";
 
 const claseEnlaceBoton =
   "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-4 text-sm font-bold text-[var(--text-main)] transition hover:border-[var(--kint-selected-border)] active:scale-[0.98]";
@@ -125,6 +127,23 @@ export function DetalleCompra({
                     Cadena {linea.cadena}
                   </span>
                 )}
+                {(() => {
+                  const personalizacion = leerPersonalizacion(linea.comentario || "");
+                  if (personalizacion) {
+                    return (
+                      <ArchivosLlavero
+                        pedido={compra.pedido}
+                        personalizacion={personalizacion}
+                        colores={linea.colores || []}
+                      />
+                    );
+                  }
+                  return linea.comentario ? (
+                    <span className="block text-xs italic text-[var(--text-muted)]">
+                      “{linea.comentario}”
+                    </span>
+                  ) : null;
+                })()}
               </span>
               <span className="shrink-0 font-semibold">{pesos(linea.subtotal)}</span>
             </li>

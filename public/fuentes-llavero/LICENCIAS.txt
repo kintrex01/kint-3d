@@ -1,0 +1,10 @@
+Fuentes del llavero personalizado (Google Fonts, vía Fontsource).
+Todas bajo SIL Open Font License 1.1: https://openfontlicense.org
+Se pueden usar para vender productos impresos.
+
+- Rubik (Hubert & Fischer)
+- Fredoka (Milena Brandão)
+- Pacifico (Vernon Adams)
+- Lobster (Pablo Impallari)
+- Bebas Neue (Dharma Type)
+- Luckiest Guy (Astigmatic)

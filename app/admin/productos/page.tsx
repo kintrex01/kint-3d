@@ -52,6 +52,7 @@ type Formulario = {
   variantes: string[];
   descripcion: string;
   etiquetas: string[];
+  personalizable: boolean;
   maxColores: string;
   activo: boolean;
 };
@@ -81,6 +82,7 @@ const FORMULARIO_NUEVO: Formulario = {
   variantes: [],
   descripcion: "",
   etiquetas: [],
+  personalizable: false,
   maxColores: "",
   activo: true,
 };
@@ -101,6 +103,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     variantes: [...(producto.variantes || [])],
     descripcion: producto.descripcion || "",
     etiquetas: [...(producto.etiquetas || [])],
+    personalizable: producto.personalizable === true,
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
@@ -119,6 +122,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     variantes: producto.variantes || [],
     descripcion: producto.descripcion || "",
     etiquetas: producto.etiquetas || [],
+    personalizable: producto.personalizable === true,
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
@@ -281,6 +285,10 @@ function TarjetaProducto({
             {mayor || "Sin precio por mayor"}
           </p>
         </div>
+
+        {producto.personalizable && (
+          <Chip tono="azul">Personalizable · nombre en 3D</Chip>
+        )}
 
         {(producto.etiquetas || []).length > 0 && (
           <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
@@ -811,6 +819,7 @@ export default function ProductosAdmin() {
       variantes: formulario.variantes.map((variante) => variante.trim()).filter(Boolean),
       descripcion: formulario.descripcion.trim(),
       etiquetas: formulario.etiquetas.slice(0, 5),
+      personalizable: formulario.personalizable,
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
@@ -1071,6 +1080,27 @@ export default function ProductosAdmin() {
               titulo="Opciones de compra"
               descripcion="Lo que el cliente elige al agregarlo al carrito."
             >
+              <div
+                className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 transition ${
+                  formulario.personalizable
+                    ? "border-[var(--blue-main)]/50 bg-[var(--blue-main)]/[0.08] dark:border-sky-400/50 dark:bg-sky-400/[0.08]"
+                    : "border-[var(--kint-panel-border)]"
+                }`}
+              >
+                <span>
+                  <span className="block text-sm font-bold">Lo personaliza el cliente</span>
+                  <span className="block text-[11px] leading-4 text-[var(--text-muted)]">
+                    Llavero con nombre: escribe el texto, elige letra, tamaño y 2 colores (borde y
+                    letras) y lo ve en 3D. Vos descargás los STL desde la compra.
+                  </span>
+                </span>
+                <Interruptor
+                  activo={formulario.personalizable}
+                  etiqueta="Lo personaliza el cliente"
+                  onCambiar={(personalizable) => cambiar({ personalizable })}
+                />
+              </div>
+
               <EditorOpciones
                 titulo="Cadenas"
                 opciones={cadenasOpciones}
