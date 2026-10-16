@@ -10,6 +10,7 @@ import { LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, X } from "lucide-rea
 import VisorLlavero from "@/components/llavero/VisorLlavero";
 import { construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
+  BORDES_LLAVERO,
   FUENTES_LLAVERO,
   MAX_LETRAS_LLAVERO,
   TAMANOS_LLAVERO,
@@ -69,6 +70,9 @@ export default function Personalizador({
   const [texto, setTexto] = useState("Antonio");
   const [fuente, setFuente] = useState<string>(FUENTES_LLAVERO[0].nombre);
   const [tamano, setTamano] = useState<string>("Mediano");
+  const [borde, setBorde] = useState<string>("Normal");
+  const [conLinea2, setConLinea2] = useState(false);
+  const [texto2, setTexto2] = useState("");
   const [colorBase, setColorBase] = useState(() =>
     elegirColor(producto.colores, ["azul", "violeta", "negro", "rojo"])
   );
@@ -84,7 +88,10 @@ export default function Personalizador({
   const anterior = useRef<GeometriaLlavero | null>(null);
 
   const errorTexto = errorTextoLlavero(texto);
+  const errorTexto2 = conLinea2 ? errorTextoLlavero(texto2, true) : "";
   const textoParaVer = errorTexto ? "" : texto.trim();
+  // Mientras la segunda línea tiene algo mal, se ve sin ella.
+  const texto2ParaVer = conLinea2 && !errorTexto2 ? texto2.trim() : "";
 
   // Rearma la pieza (con una pausa corta mientras escribe).
   useEffect(() => {
@@ -92,7 +99,7 @@ export default function Personalizador({
     let cancelado = false;
     const espera = window.setTimeout(() => {
       setArmando(true);
-      construirLlavero({ texto: textoParaVer, fuente, tamano })
+      construirLlavero({ texto: textoParaVer, texto2: texto2ParaVer, fuente, tamano, borde })
         .then((nueva) => {
           if (cancelado) {
             nueva.base.dispose();
@@ -116,7 +123,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [textoParaVer, fuente, tamano]);
+  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde]);
 
   useEffect(
     () => () => {
@@ -143,8 +150,8 @@ export default function Personalizador({
   const colores = useMemo(() => producto.colores, [producto.colores]);
 
   function agregar() {
-    if (errorTexto) {
-      setErrorAgregar(errorTexto);
+    if (errorTexto || errorTexto2) {
+      setErrorAgregar(errorTexto || `Segunda línea: ${errorTexto2}`);
       return;
     }
     if (!colorBase || !colorLetras || colorBase === colorLetras) {
@@ -154,7 +161,13 @@ export default function Personalizador({
     const error = onAgregar({
       cadena,
       colores: [colorBase, colorLetras],
-      comentario: formatearPersonalizacion({ texto, fuente, tamano }),
+      comentario: formatearPersonalizacion({
+        texto,
+        texto2: conLinea2 ? texto2 : "",
+        fuente,
+        tamano,
+        borde,
+      }),
       cantidad,
     });
     if (error) setErrorAgregar(error);
@@ -243,9 +256,61 @@ export default function Personalizador({
               )}
             </label>
 
+            {conLinea2 ? (
+              <label className="block">
+                <span className="mb-1.5 flex items-baseline justify-between text-xs font-bold text-[var(--text-muted)]">
+                  <span>Segunda línea</span>
+                  <span className="flex items-center gap-2">
+                    <span className="tabular-nums">
+                      {texto2.length}/{MAX_LETRAS_LLAVERO}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConLinea2(false);
+                        setTexto2("");
+                      }}
+                      className="rounded-md px-1.5 py-0.5 text-[11px] font-black text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                    >
+                      Quitar
+                    </button>
+                  </span>
+                </span>
+                <input
+                  value={texto2}
+                  onChange={(evento) => {
+                    setTexto2(limpiarTextoLlavero(evento.target.value));
+                    setErrorAgregar("");
+                  }}
+                  maxLength={MAX_LETRAS_LLAVERO}
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoFocus
+                  placeholder="Ej.: Arquitecta, una fecha, un apodo"
+                  aria-invalid={Boolean(errorTexto2)}
+                  className="h-12 w-full rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 text-lg font-black text-[var(--text-main)] outline-none transition placeholder:text-sm placeholder:font-semibold placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#87A4B5]/30"
+                />
+                {errorTexto2 && (
+                  <span className="mt-1 block text-[11px] font-semibold text-red-600 dark:text-red-400">{errorTexto2}</span>
+                )}
+              </label>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConLinea2(true)}
+                className="-mt-2 inline-flex h-9 items-center gap-1.5 rounded-full border border-dashed border-[var(--kint-panel-border)] px-3.5 text-xs font-bold text-[var(--text-muted)] transition hover:border-[var(--kint-selected-border)] hover:text-[var(--text-main)]"
+              >
+                <Plus size={14} />
+                Agregar segunda línea
+              </button>
+            )}
+
             <fieldset>
-              <legend className="mb-2 text-xs font-bold text-[var(--text-muted)]">Letra</legend>
-              <div className="grid grid-cols-2 gap-2">
+              <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>Letra</span>
+                <span>{FUENTES_LLAVERO.length} opciones</span>
+              </legend>
+              <div className="grid max-h-[17.5rem] grid-cols-2 gap-2 overflow-y-auto rounded-xl pr-1 [scrollbar-width:thin]">
                 {FUENTES_LLAVERO.map((opcion) => {
                   const elegida = opcion.nombre === fuente;
                   return (
@@ -266,7 +331,9 @@ export default function Personalizador({
                       >
                         {texto.trim() || "Kint"}
                       </span>
-                      <span className="text-[10px] font-bold text-[var(--text-muted)]">{opcion.nombre}</span>
+                      <span className="text-[10px] font-bold text-[var(--text-muted)]">
+                        {opcion.nombre} · {opcion.estilo}
+                      </span>
                     </button>
                   );
                 })}
@@ -292,6 +359,45 @@ export default function Personalizador({
                       <span className={`block text-[10px] font-bold ${elegido ? "text-white/70" : ""}`}>
                         letras de {opcion.alto} mm
                       </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset>
+              <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>Borde alrededor de las letras</span>
+                <span className="text-[var(--text-main)]">{borde}</span>
+              </legend>
+              <div className="grid grid-cols-4 gap-1.5">
+                {BORDES_LLAVERO.map((opcion) => {
+                  const elegido = opcion.nombre === borde;
+                  return (
+                    <button
+                      key={opcion.nombre}
+                      type="button"
+                      aria-pressed={elegido}
+                      onClick={() => setBorde(opcion.nombre)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border py-2.5 text-[11px] font-black transition ${
+                        elegido
+                          ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                          : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                      }`}
+                    >
+                      {/* Dibujito: la letra con un borde de ese grosor. */}
+                      <span
+                        aria-hidden
+                        className="flex h-7 items-center justify-center rounded-md px-1 text-sm font-black leading-none"
+                        style={{
+                          background: colorFilamento(colorBase),
+                          color: colorFilamento(colorLetras),
+                          padding: `${opcion.mm * 1.3}px ${opcion.mm * 2}px`,
+                        }}
+                      >
+                        A
+                      </span>
+                      {opcion.nombre}
                     </button>
                   );
                 })}
@@ -373,7 +479,7 @@ export default function Personalizador({
               <button
                 type="button"
                 onClick={agregar}
-                disabled={Boolean(errorTexto)}
+                disabled={Boolean(errorTexto || errorTexto2)}
                 className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-[0.12em] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${CLASE_BOTON_PRINCIPAL}`}
               >
                 <ShoppingBag size={16} />

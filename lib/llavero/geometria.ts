@@ -3,7 +3,7 @@
  *
  *   1. El texto se pasa a contornos con la fuente elegida (opentype.js).
  *   2. El borde ("nube" alrededor de las letras) es el texto engordado
- *      BORDE mm, con una banda que une las letras sueltas y la oreja del aro.
+ *      ancho de borde elegido (Fino a Extra), con una banda que une las letras sueltas y la oreja del aro.
  *   3. Las dos piezas se extruyen: base de ALTO_BASE mm y letras de
  *      ALTO_LETRAS mm encima (dos colores en la AMS / H2D).
  *
@@ -15,7 +15,7 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { parse, type Font, type Path as RutaFuente } from "opentype.js";
 import * as ClipperLib from "clipper-lib";
-import { FUENTES_LLAVERO, TAMANOS_LLAVERO, type PersonalizacionLlavero } from "./personalizacion";
+import { FUENTES_LLAVERO, TAMANOS_LLAVERO, bordeMm, type PersonalizacionLlavero } from "./personalizacion";
 
 type Contorno = ClipperLib.Path;
 type Contornos = ClipperLib.Paths;
@@ -25,7 +25,7 @@ const PASOS_CURVA = 10;
 
 export const ALTO_BASE = 2;
 export const ALTO_LETRAS = 1;
-const BORDE = 2.3;
+
 const RADIO_OREJA = 4.3;
 const RADIO_AGUJERO = 2;
 
@@ -225,28 +225,55 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   const unidadesMayuscula = caja.y2 > 0 ? caja.y2 : fuente.unitsPerEm * 0.7;
   const tamanoFuente = (altoMayusculas * fuente.unitsPerEm) / unidadesMayuscula;
 
-  const texto = personalizacion.texto.trim() || "Kint";
-  const letras = unir(aplanar(fuente.getPath(texto, 0, 0, tamanoFuente, { kerning: true })));
+  const margen = bordeMm(personalizacion.borde);
+  const textos = [personalizacion.texto.trim() || "Kint", personalizacion.texto2?.trim() || ""].filter(Boolean);
+  // De renglón a renglón: lugar para las patitas de la "g", "p", "y".
+  const interlineado = altoMayusculas * 1.6;
+
+  // Cada renglón centrado en x = 0; el segundo, debajo del primero.
+  const renglones = textos.map((texto, indice) => {
+    const prueba = fuente.getPath(texto, 0, 0, tamanoFuente, { kerning: true }).getBoundingBox();
+    const ruta = fuente.getPath(texto, -(prueba.x1 + prueba.x2) / 2, indice * interlineado, tamanoFuente, {
+      kerning: true,
+    });
+    const contornos = unir(aplanar(ruta));
+    const caja = contornos.length ? limites(contornos) : null;
+    return { contornos, caja, linea: -indice * interlineado };
+  });
+  const letras = unir(renglones.flatMap((renglon) => renglon.contornos));
   if (!letras.length) throw new Error("Esa fuente no tiene esas letras.");
 
-  const borde = limites(letras);
+  // Banda por la mitad de cada renglón: une las letras que quedan sueltas.
+  const rellenos: Contornos = [];
+  for (const renglon of renglones) {
+    if (!renglon.caja) continue;
+    rellenos.push(
+      rectangulo(
+        renglon.caja.minX,
+        renglon.linea + altoMayusculas * 0.22,
+        renglon.caja.maxX,
+        renglon.linea + altoMayusculas * 0.62
+      )
+    );
+  }
+  // Con dos renglones, un puente vertical en el medio los une.
+  if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
+    const medio = Math.min(
+      renglones[0].caja.maxX - renglones[0].caja.minX,
+      renglones[1].caja.maxX - renglones[1].caja.minX
+    ) * 0.35;
+    rellenos.push(rectangulo(-medio, renglones[1].linea + altoMayusculas * 0.3, medio, altoMayusculas * 0.5));
+  }
+  let base = engordar(unir([...letras, ...rellenos]), margen);
 
-  // Banda por la mitad de las letras: une las que quedan sueltas.
-  const banda = rectangulo(
-    borde.minX,
-    altoMayusculas * 0.22,
-    borde.maxX,
-    altoMayusculas * 0.62
-  );
-  let base = engordar(unir([...letras, banda]), BORDE);
-
-  // Oreja con el agujero del aro, a la izquierda y a media altura.
+  // Oreja con el agujero del aro: a la izquierda del primer renglón, a media altura.
+  const primero = renglones[0].caja ?? limites(letras);
   const centroY = altoMayusculas * 0.42;
-  const centroX = borde.minX - BORDE - RADIO_OREJA * 0.45;
+  const centroX = primero.minX - margen - RADIO_OREJA * 0.45;
   base = unir([
     ...base,
     circulo(centroX, centroY, RADIO_OREJA),
-    rectangulo(centroX, centroY - RADIO_OREJA * 0.85, borde.minX + 1, centroY + RADIO_OREJA * 0.85),
+    rectangulo(centroX, centroY - RADIO_OREJA * 0.85, primero.minX + 1, centroY + RADIO_OREJA * 0.85),
   ]);
 
   // La base va llena (sin los huecos de la "o", "a"...) y después se le hace el agujero.

@@ -39,7 +39,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
-import { leerPersonalizacion } from "@/lib/llavero/personalizacion";
+import { leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 
@@ -275,8 +275,8 @@ function detalleLinea(linea: {
 
   if (personalizado) {
     return [
-      `“${personalizado.texto}”`,
-      `${personalizado.fuente} · ${personalizado.tamano}`,
+      `“${textoVisible(personalizado)}”`,
+      `${personalizado.fuente} · ${personalizado.tamano} · borde ${(personalizado.borde || "Normal").toLocaleLowerCase("es")}`,
       colores.length === 2 ? `Borde ${colores[0]}, letras ${colores[1]}` : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]

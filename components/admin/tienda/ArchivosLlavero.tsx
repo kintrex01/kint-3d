@@ -8,7 +8,7 @@
 
 import { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
-import type { PersonalizacionLlavero } from "@/lib/llavero/personalizacion";
+import { textoVisible, type PersonalizacionLlavero } from "@/lib/llavero/personalizacion";
 import { colorFilamento } from "@/lib/colores-filamento";
 
 function nombreArchivo(texto: string) {
@@ -61,9 +61,9 @@ export function ArchivosLlavero({
 
   return (
     <span className="mt-1.5 block rounded-xl bg-[var(--kint-panel-soft)] p-2.5">
-      <span className="block text-base font-black leading-tight">“{personalizacion.texto}”</span>
+      <span className="block text-base font-black leading-tight">“{textoVisible(personalizacion)}”</span>
       <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-        {personalizacion.fuente} · {personalizacion.tamano}
+        {personalizacion.fuente} · {personalizacion.tamano} · borde {personalizacion.borde || "Normal"}
       </span>
       <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
         {[

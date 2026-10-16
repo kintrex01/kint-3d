@@ -3,17 +3,26 @@
  * el panel y Apps Script (kintTiendaPersonalizacion_ usa las mismas listas).
  *
  * La personalización viaja en el comentario de la línea, así:
- *   "Texto: Antonio | Fuente: Pacifico | Tamaño: Mediano"
+ *   "Texto: Antonio | Texto 2: Arquitecto | Fuente: Pacifico | Tamaño: Mediano | Borde: Normal"
+ * ("Texto 2" y "Borde" son opcionales: los pedidos viejos no los traen)
  * y los colores en la lista de colores: [borde, letras].
  */
 
 export const FUENTES_LLAVERO = [
-  { nombre: "Rubik", archivo: "/fuentes-llavero/rubik.woff" },
-  { nombre: "Fredoka", archivo: "/fuentes-llavero/fredoka.woff" },
-  { nombre: "Pacifico", archivo: "/fuentes-llavero/pacifico.woff" },
-  { nombre: "Lobster", archivo: "/fuentes-llavero/lobster.woff" },
-  { nombre: "Bebas Neue", archivo: "/fuentes-llavero/bebas-neue.woff" },
-  { nombre: "Luckiest Guy", archivo: "/fuentes-llavero/luckiest-guy.woff" },
+  { nombre: "Rubik", archivo: "/fuentes-llavero/rubik.woff", estilo: "Redonda gruesa" },
+  { nombre: "Fredoka", archivo: "/fuentes-llavero/fredoka.woff", estilo: "Redonda" },
+  { nombre: "Baloo", archivo: "/fuentes-llavero/baloo.woff", estilo: "Redonda" },
+  { nombre: "Titan One", archivo: "/fuentes-llavero/titan-one.woff", estilo: "Gordita" },
+  { nombre: "Luckiest Guy", archivo: "/fuentes-llavero/luckiest-guy.woff", estilo: "Comic" },
+  { nombre: "Bangers", archivo: "/fuentes-llavero/bangers.woff", estilo: "Comic" },
+  { nombre: "Chewy", archivo: "/fuentes-llavero/chewy.woff", estilo: "Divertida" },
+  { nombre: "Righteous", archivo: "/fuentes-llavero/righteous.woff", estilo: "Retro" },
+  { nombre: "Bebas Neue", archivo: "/fuentes-llavero/bebas-neue.woff", estilo: "Alta" },
+  { nombre: "Pacifico", archivo: "/fuentes-llavero/pacifico.woff", estilo: "Cursiva" },
+  { nombre: "Lobster", archivo: "/fuentes-llavero/lobster.woff", estilo: "Cursiva" },
+  { nombre: "Dancing Script", archivo: "/fuentes-llavero/dancing-script.woff", estilo: "Cursiva fina" },
+  { nombre: "Kaushan Script", archivo: "/fuentes-llavero/kaushan-script.woff", estilo: "Pincel" },
+  { nombre: "Permanent Marker", archivo: "/fuentes-llavero/permanent-marker.woff", estilo: "Marcador" },
 ] as const;
 
 /* Alto de las mayúsculas en mm (la pieza termina ~5 mm más alta por el borde). */
@@ -23,6 +32,14 @@ export const TAMANOS_LLAVERO = [
   { nombre: "Grande", alto: 14 },
 ] as const;
 
+/* Cuánto sobresale el borde alrededor de las letras, en mm. */
+export const BORDES_LLAVERO = [
+  { nombre: "Fino", mm: 1.6 },
+  { nombre: "Normal", mm: 2.3 },
+  { nombre: "Grueso", mm: 3.1 },
+  { nombre: "Extra", mm: 4 },
+] as const;
+
 export const MAX_LETRAS_LLAVERO = 12;
 
 /* Sin "|" ni ":" (separan los campos del comentario). */
@@ -30,18 +47,20 @@ export const TEXTO_LLAVERO_VALIDO = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .'!
 
 export type PersonalizacionLlavero = {
   texto: string;
+  texto2?: string; // segunda línea, opcional
   fuente: string;
   tamano: string;
+  borde?: string; // "Normal" si no viene
 };
 
 export function limpiarTextoLlavero(texto: string) {
   return texto.replace(/\s+/g, " ").trimStart().slice(0, MAX_LETRAS_LLAVERO);
 }
 
-/* "" si está bien; si no, qué corregir. */
-export function errorTextoLlavero(texto: string) {
+/* "" si está bien; si no, qué corregir. La segunda línea puede ir vacía. */
+export function errorTextoLlavero(texto: string, opcional = false) {
   const limpio = texto.trim();
-  if (!limpio) return "Escribí el nombre.";
+  if (!limpio) return opcional ? "" : "Escribí el nombre.";
   if (limpio.length > MAX_LETRAS_LLAVERO) return `Hasta ${MAX_LETRAS_LLAVERO} letras.`;
   if (!TEXTO_LLAVERO_VALIDO.test(limpio)) {
     return "Usá letras, números, espacios y . ' ! ? & -";
@@ -49,8 +68,20 @@ export function errorTextoLlavero(texto: string) {
   return "";
 }
 
+export function bordeMm(nombre?: string) {
+  return (BORDES_LLAVERO.find((borde) => borde.nombre === nombre) ?? BORDES_LLAVERO[1]).mm;
+}
+
 export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero) {
-  return `Texto: ${personalizacion.texto.trim()} | Fuente: ${personalizacion.fuente} | Tamaño: ${personalizacion.tamano}`;
+  return [
+    `Texto: ${personalizacion.texto.trim()}`,
+    personalizacion.texto2?.trim() ? `Texto 2: ${personalizacion.texto2.trim()}` : "",
+    `Fuente: ${personalizacion.fuente}`,
+    `Tamaño: ${personalizacion.tamano}`,
+    `Borde: ${personalizacion.borde || "Normal"}`,
+  ]
+    .filter(Boolean)
+    .join(" | ");
 }
 
 /* Lee el comentario de una línea; null si no es un llavero personalizado. */
@@ -66,5 +97,12 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
   const fuente = FUENTES_LLAVERO.find((opcion) => opcion.nombre === campos["fuente"])?.nombre;
   const tamano = TAMANOS_LLAVERO.find((opcion) => opcion.nombre === campos["tamaño"])?.nombre;
   if (!texto || !fuente || !tamano) return null;
-  return { texto, fuente, tamano };
+
+  const borde = BORDES_LLAVERO.find((opcion) => opcion.nombre === campos["borde"])?.nombre ?? "Normal";
+  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde };
+}
+
+/* "“Antonio / Arquitecto”" para mostrar. */
+export function textoVisible(personalizacion: PersonalizacionLlavero) {
+  return [personalizacion.texto, personalizacion.texto2].filter((linea) => linea?.trim()).join(" / ");
 }
