@@ -221,6 +221,19 @@ export type ResenaAdmin = {
   fotoProyecto?: string;
 };
 
+/* Una fila de "Todos los pedidos" (maqueta o compra de la tienda). */
+export type PedidoGeneral = {
+  tipo: "maqueta" | "tienda";
+  pedido: string;
+  fecha: string; // ISO ("" si no se sabe)
+  cliente: string;
+  email: string;
+  estado: string;
+  monto: number;
+  pagado: boolean;
+  detalle: string;
+};
+
 export type ItemHistorialCliente = {
   tipo: "maqueta" | "tienda";
   pedido: string;
@@ -430,6 +443,15 @@ export type AccionesAdmin = {
     pedido: { id: string; aprobada?: boolean; mostrarProyecto?: boolean };
     respuesta: { resena: ResenaAdmin };
   };
+  admin_todos_listar: {
+    pedido: SinDatos;
+    respuesta: { pedidos: PedidoGeneral[] };
+  };
+  // Borra de todos lados (pedidos de prueba): ver PedidosTodos_Kint3D.js.
+  admin_borrar_pedidos: {
+    pedido: { pedidos: string[] };
+    respuesta: { borrados: string[]; errores: string[] };
+  };
   admin_cliente_historial: {
     pedido: { email: string };
     respuesta: HistorialCliente;
@@ -478,6 +500,8 @@ export const ACCIONES_ADMIN = [
   "admin_resena_moderar",
   "admin_resena_borrar",
   "admin_cliente_historial",
+  "admin_todos_listar",
+  "admin_borrar_pedidos",
   "admin_clientes_buscar",
   "admin_cliente_estado",
 ] as const satisfies readonly TipoAccionAdmin[];

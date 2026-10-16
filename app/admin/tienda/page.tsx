@@ -90,9 +90,14 @@ export default function TiendaAdmin() {
     useDatosAdmin("admin_tienda_listar", {}, "");
   const avisar = useAvisos();
 
-  const [filtro, setFiltro] = useState<Filtro>("Pendiente");
+  // Desde "Todos los pedidos" se llega con ?pedido=TND-0001: se abre esa compra.
+  const [abierta, setAbierta] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("pedido")
+  );
+  const [filtro, setFiltro] = useState<Filtro>(() => (abierta ? "todos" : "Pendiente"));
   const [busqueda, setBusqueda] = useState("");
-  const [abierta, setAbierta] = useState<string | null>(null);
   const [notificar, setNotificar] = useState(true);
   const [guardando, setGuardando] = useState("");
   const [porConfirmar, setPorConfirmar] = useState<Cambio | null>(null);
