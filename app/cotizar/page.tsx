@@ -914,9 +914,9 @@ const alisadoCompleto =
   Boolean(alisado);
 
 /* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
+// Solo se saltea si ya sabemos que la cuenta tiene uno guardado.
 const necesitaTelefono =
-  clienteExiste === false ||
-  (clienteExiste === true && !tieneTelefono);
+  !(clienteExiste === true && tieneTelefono);
 
 const telefonoCompleto = (() => {
   const digitos = telefono.replace(/\D/g, "");
