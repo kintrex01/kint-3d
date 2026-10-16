@@ -8,6 +8,7 @@ import { Encabezado, Tarjeta } from "@/components/admin/ui";
 const DESCRIPCIONES: Record<string, string> = {
   "/admin/todos": "Maquetas y tienda juntos; borrar pedidos de prueba",
   "/admin/caja": "Ingresos, gastos y cuánta plata hay",
+  "/admin/calculadora": "Costo real de una impresión y presupuesto a un pedido",
   "/admin/productos": "Precios, por mayor, cadenas, fotos y activos",
   "/admin/resenas": "Aprobar y ocultar reseñas",
   "/admin/clientes": "Buscar clientes, puntos y bloqueos",

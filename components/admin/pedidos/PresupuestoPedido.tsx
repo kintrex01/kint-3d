@@ -11,6 +11,7 @@
 import { useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  Calculator,
   Check,
   Clock,
   Flame,
@@ -39,6 +40,7 @@ import {
   useAvisos,
 } from "@/components/admin/ui";
 import { estaCancelado } from "@/components/admin/pedidos/utilidades";
+import Calculadora from "@/components/admin/calculadora/Calculadora";
 
 const OPCIONES_RAPIDAS = ["Recomendada", "Premium", "Barata"];
 const ESTADOS_LIBRES = ["Recibido", "Presupuestado"];
@@ -199,6 +201,7 @@ export function SeccionPresupuesto({
     soloLista: boolean;
   } | null>(null);
   const [listaPedida, setListaPedida] = useState(false);
+  const [calculando, setCalculando] = useState(false);
 
   const cancelado = estaCancelado(pedido.estado);
   const { cargadas, vacias } = filasPresupuesto(pedido);
@@ -534,6 +537,20 @@ export function SeccionPresupuesto({
               </Campo>
             </div>
 
+            <button
+              type="button"
+              onClick={() => setCalculando(true)}
+              className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[var(--blue-main)]/50 bg-[var(--kint-selected-bg)] px-3.5 py-3 text-left transition hover:border-[var(--blue-main)]"
+            >
+              <Calculator size={18} className="shrink-0 text-[var(--blue-main)] dark:text-sky-300" />
+              <span className="min-w-0">
+                <span className="block text-sm font-black">Calcular precio</span>
+                <span className="block text-[11px] text-[var(--text-muted)]">
+                  Con gramos y tiempo de Bambu Studio: completa precio, tiempo y filamento.
+                </span>
+              </span>
+            </button>
+
             <Campo
               etiqueta="Precio base"
               ayuda={
@@ -591,6 +608,35 @@ export function SeccionPresupuesto({
           </div>
         }
       />
+      <Hoja
+        abierta={calculando}
+        onCerrar={() => setCalculando(false)}
+        titulo="Calcular precio"
+        ancha
+      >
+        <Calculadora
+          compacta
+          extra={(calculo) => (
+            <Boton
+              variante="principal"
+              tamano="grande"
+              className="w-full"
+              icono={<Check size={16} />}
+              disabled={!(calculo.resultado.redondeado > 0)}
+              onClick={() => {
+                cambiar({
+                  precio: String(calculo.resultado.redondeado),
+                  ...(calculo.tiempo !== "0 min" ? { tiempo: calculo.tiempo } : {}),
+                  ...(calculo.pieza.gramos > 0 ? { filamento: String(Math.round(calculo.pieza.gramos)) } : {}),
+                });
+                setCalculando(false);
+              }}
+            >
+              Usar {pesos(calculo.resultado.redondeado)} en el presupuesto
+            </Boton>
+          )}
+        />
+      </Hoja>
     </>
   );
 }

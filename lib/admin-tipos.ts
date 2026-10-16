@@ -1,3 +1,4 @@
+import type { PerfilCalculadora } from "@/lib/calculadora";
 /*
  * CONTRATO DEL PANEL DE ADMIN
  *
@@ -492,6 +493,15 @@ export type AccionesAdmin = {
     pedido: { id: string };
     respuesta: { borrado: string };
   };
+  // Calculadora: perfiles de costos (Calculadora_Kint3D.js).
+  admin_calc_listar: {
+    pedido: SinDatos;
+    respuesta: { perfiles: PerfilCalculadora[]; activo: string };
+  };
+  admin_calc_guardar: {
+    pedido: { perfiles: PerfilCalculadora[]; activo: string };
+    respuesta: { perfiles: PerfilCalculadora[]; activo: string };
+  };
   admin_cliente_historial: {
     pedido: { email: string };
     respuesta: HistorialCliente;
@@ -545,6 +555,8 @@ export const ACCIONES_ADMIN = [
   "admin_caja_listar",
   "admin_caja_guardar",
   "admin_caja_borrar",
+  "admin_calc_listar",
+  "admin_calc_guardar",
   "admin_clientes_buscar",
   "admin_cliente_estado",
 ] as const satisfies readonly TipoAccionAdmin[];
