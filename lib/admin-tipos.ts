@@ -181,6 +181,7 @@ export type ProductoAdmin = {
   // "Entero", "Mordido"...: el cliente tiene que elegir una ([] = sin variantes).
   variantes: string[];
   descripcion: string; // texto corto que se ve en la tienda ("" = sin descripción)
+  etiquetas: string[]; // "Llavero", "Clicker", "Combo": filtros de la tienda
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };

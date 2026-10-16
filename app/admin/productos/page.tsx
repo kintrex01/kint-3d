@@ -46,6 +46,7 @@ type Formulario = {
   minColores: string;
   variantes: string[];
   descripcion: string;
+  etiquetas: string[];
   maxColores: string;
   activo: boolean;
 };
@@ -74,6 +75,7 @@ const FORMULARIO_NUEVO: Formulario = {
   minColores: "",
   variantes: [],
   descripcion: "",
+  etiquetas: [],
   maxColores: "",
   activo: true,
 };
@@ -93,6 +95,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     minColores: producto.minColores ? String(producto.minColores) : "",
     variantes: [...(producto.variantes || [])],
     descripcion: producto.descripcion || "",
+    etiquetas: [...(producto.etiquetas || [])],
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
@@ -110,6 +113,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     minColores: producto.minColores || 0,
     variantes: producto.variantes || [],
     descripcion: producto.descripcion || "",
+    etiquetas: producto.etiquetas || [],
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
@@ -273,6 +277,12 @@ function TarjetaProducto({
           </p>
         </div>
 
+        {(producto.etiquetas || []).length > 0 && (
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            {producto.etiquetas.join(" · ")}
+          </p>
+        )}
+
         {(producto.variantes || []).length > 0 && (
           <p className="text-xs font-semibold text-[var(--text-muted)]">
             {producto.variantes.length} variantes: {producto.variantes.join(" · ")}
@@ -427,6 +437,10 @@ export default function ProductosAdmin() {
   );
   const productos = datos?.productos || [];
   const cadenasOpciones = datos?.cadenasOpciones || [];
+  // Etiquetas ya usadas en otros productos, para elegirlas con un toque.
+  const etiquetasOpciones = Array.from(
+    new Set(productos.flatMap((producto) => producto.etiquetas || []))
+  ).sort((a, b) => a.localeCompare(b, "es"));
   const coloresOpciones = datos?.coloresOpciones || [];
   const hayColores = Boolean(datos?.hayColores);
   const hayLimitesColores = Boolean(datos?.hayLimitesColores);
@@ -554,6 +568,7 @@ export default function ProductosAdmin() {
       minColores: numero(formulario.minColores),
       variantes: formulario.variantes.map((variante) => variante.trim()).filter(Boolean),
       descripcion: formulario.descripcion.trim(),
+      etiquetas: formulario.etiquetas.slice(0, 5),
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
@@ -838,6 +853,19 @@ export default function ProductosAdmin() {
                 </p>
               </div>
             )}
+
+            <div>
+              <EditorOpciones
+                titulo="Etiquetas (opcional)"
+                opciones={etiquetasOpciones}
+                elegidas={formulario.etiquetas}
+                onCambiar={(etiquetas) => cambiar({ etiquetas: etiquetas.slice(0, 5) })}
+              />
+              <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
+                Qué es: Llavero, Clicker, Combo… En la tienda se puede filtrar por
+                etiqueta. Un producto puede tener varias (hasta 5).
+              </p>
+            </div>
 
             <Campo
               etiqueta="Descripción (opcional)"

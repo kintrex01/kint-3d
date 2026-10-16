@@ -66,6 +66,8 @@ type Producto = {
   variantes: string[];
   // Texto corto del panel ("Incluye 2 llaveros: casco y portaplanos").
   descripcion: string;
+  // "Llavero", "Clicker", "Combo": se filtra por estas.
+  etiquetas: string[];
   // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
   orden: number;
   vendidos: number;
@@ -540,6 +542,7 @@ function normalizarCatalogo(data: any): Catalogo {
               : 0,
             variantes: listaDeTextos(producto.variantes),
             descripcion: String(producto.descripcion || "").trim(),
+            etiquetas: listaDeTextos(producto.etiquetas).slice(0, 5),
             orden: Number(producto.orden) || 0,
             vendidos: Number(producto.vendidos) || 0,
             resenas: Array.isArray(producto.resenas)
@@ -1030,6 +1033,7 @@ function TarjetaProducto({
 
       {compacta ? (
         <div className="flex flex-1 flex-col gap-0.5 p-3 pb-3 sm:p-4 [&>button:last-child]:mt-3">
+          <EtiquetasProducto etiquetas={producto.etiquetas} />
           <h3 className="text-sm font-black leading-tight sm:text-base">
             <button
               type="button"
@@ -1066,6 +1070,7 @@ function TarjetaProducto({
         </div>
       ) : (
       <div className="flex flex-1 flex-col p-5">
+        <EtiquetasProducto etiquetas={producto.etiquetas} className="mb-1" />
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-black leading-tight">
             <button
@@ -1953,6 +1958,7 @@ function FichaProducto({
           </div>
 
           <div className="p-5 sm:p-7 md:overflow-y-auto md:overscroll-contain">
+            <EtiquetasProducto etiquetas={producto.etiquetas} className="mb-1.5 pr-10" />
             <h2
               id={idTitulo}
               className="pr-10 text-2xl font-black leading-tight sm:text-3xl md:pr-12"
@@ -2452,6 +2458,82 @@ function promedioResenas(producto: Producto) {
 }
 
 /* Ordena una copia; "invertido" da vuelta el sentido natural de cada orden. */
+/* "LLAVERO · CLICKER": chiquito y apagado, para no cargar la tarjeta. */
+function EtiquetasProducto({
+  etiquetas,
+  className = "",
+}: {
+  etiquetas: string[];
+  className?: string;
+}) {
+  if (!etiquetas.length) return null;
+  return (
+    <p
+      className={`truncate text-[10px] font-black uppercase tracking-[0.16em] text-[var(--kint-blue-soft)] ${className}`}
+    >
+      {etiquetas.join(" · ")}
+    </p>
+  );
+}
+
+/* Clave para comparar etiquetas sin importar mayúsculas ni tildes. */
+function claveEtiqueta(texto: string) {
+  return texto.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/* Etiquetas de todo el catálogo, las más usadas primero. */
+function etiquetasCatalogo(productos: Producto[]) {
+  const cuenta = new Map<string, { texto: string; cantidad: number }>();
+  for (const producto of productos) {
+    for (const etiqueta of producto.etiquetas) {
+      const clave = claveEtiqueta(etiqueta);
+      const actual = cuenta.get(clave);
+      cuenta.set(clave, { texto: actual?.texto ?? etiqueta, cantidad: (actual?.cantidad ?? 0) + 1 });
+    }
+  }
+  return [...cuenta.entries()]
+    .sort((a, b) => b[1].cantidad - a[1].cantidad || a[1].texto.localeCompare(b[1].texto, "es"))
+    .map(([clave, { texto }]) => ({ clave, texto }));
+}
+
+/* Una fila de botones: "Todo" + cada etiqueta. Solo si hay etiquetas. */
+function FiltroEtiquetas({
+  etiquetas,
+  elegida,
+  onElegir,
+}: {
+  etiquetas: { clave: string; texto: string }[];
+  elegida: string;
+  onElegir: (clave: string) => void;
+}) {
+  if (!etiquetas.length) return null;
+  const opciones = [{ clave: "", texto: "Todo" }, ...etiquetas];
+  return (
+    <div className="-mx-4 mb-3 overflow-x-auto px-4 sm:mx-0 sm:px-0" role="group" aria-label="Filtrar por tipo">
+      <div className="inline-flex gap-1.5">
+        {opciones.map((opcion) => {
+          const activa = opcion.clave === elegida;
+          return (
+            <button
+              key={opcion.clave || "todo"}
+              type="button"
+              aria-pressed={activa}
+              onClick={() => onElegir(opcion.clave)}
+              className={`h-9 whitespace-nowrap rounded-full border px-4 text-xs font-black transition ${
+                activa
+                  ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
+                  : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              }`}
+            >
+              {opcion.texto}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ordenarProductos(productos: Producto[], orden: Orden, invertido: boolean) {
   const lista = [...productos];
   const comparar: Record<Orden, (a: Producto, b: Producto) => number> = {
@@ -2583,6 +2665,7 @@ export default function TiendaPage() {
 
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null);
   const [cargando, setCargando] = useState(true);
+  const [etiqueta, setEtiqueta] = useState("");
   const [errorCatalogo, setErrorCatalogo] = useState("");
 
   const [carrito, setCarrito] = useState<LineaCarrito[]>([]);
@@ -3656,6 +3739,11 @@ export default function TiendaPage() {
               </div>
             ) : (
               <>
+              <FiltroEtiquetas
+                etiquetas={etiquetasCatalogo(catalogo.productos)}
+                elegida={etiqueta}
+                onElegir={setEtiqueta}
+              />
               <BarraVista
                 orden={vista.orden}
                 invertido={vista.invertido}
@@ -3668,7 +3756,15 @@ export default function TiendaPage() {
                   "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
                 }`}
               >
-                {ordenarProductos(catalogo.productos, vista.orden, vista.invertido).map((producto) => (
+                {ordenarProductos(
+                  etiqueta
+                    ? catalogo.productos.filter((producto) =>
+                        producto.etiquetas.some((item) => claveEtiqueta(item) === etiqueta)
+                      )
+                    : catalogo.productos,
+                  vista.orden,
+                  vista.invertido
+                ).map((producto) => (
                   <TarjetaProducto
                     key={producto.nombre}
                     producto={producto}
