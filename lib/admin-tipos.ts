@@ -239,6 +239,18 @@ export type PedidoGeneral = {
   detalle: string;
 };
 
+/* Caja: ingresos (pagos confirmados) y gastos. Ver Caja_Kint3D.js. */
+export type MovimientoCaja = {
+  id: string; // "KNT-0013|sena" (automático) o "M-..." (cargado a mano)
+  fecha: string; // ISO
+  tipo: "ingreso" | "gasto";
+  concepto: string;
+  monto: number;
+  pedido: string;
+  categoria: string;
+  automatico: boolean; // de un pedido: se va solo si se cancela
+};
+
 export type ItemHistorialCliente = {
   tipo: "maqueta" | "tienda";
   pedido: string;
@@ -458,6 +470,24 @@ export type AccionesAdmin = {
     pedido: { pedidos: string[] };
     respuesta: { borrados: string[]; errores: string[] };
   };
+  admin_caja_listar: {
+    pedido: SinDatos;
+    respuesta: { movimientos: MovimientoCaja[]; desde: string };
+  };
+  admin_caja_guardar: {
+    pedido: {
+      tipo: "ingreso" | "gasto";
+      concepto: string;
+      monto: number;
+      fecha: string; // yyyy-mm-dd
+      categoria: string;
+    };
+    respuesta: { movimiento: MovimientoCaja };
+  };
+  admin_caja_borrar: {
+    pedido: { id: string };
+    respuesta: { borrado: string };
+  };
   admin_cliente_historial: {
     pedido: { email: string };
     respuesta: HistorialCliente;
@@ -508,6 +538,9 @@ export const ACCIONES_ADMIN = [
   "admin_cliente_historial",
   "admin_todos_listar",
   "admin_borrar_pedidos",
+  "admin_caja_listar",
+  "admin_caja_guardar",
+  "admin_caja_borrar",
   "admin_clientes_buscar",
   "admin_cliente_estado",
 ] as const satisfies readonly TipoAccionAdmin[];

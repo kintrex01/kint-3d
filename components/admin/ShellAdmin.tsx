@@ -20,6 +20,7 @@ import {
   Star,
   Sun,
   Users,
+  Wallet,
   Wrench,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -40,6 +41,7 @@ export const ENLACES_ADMIN: Enlace[] = [
   { href: "/admin/tienda", texto: "Tienda", icono: ShoppingBag, enBarra: true },
   { href: "/admin/calendario", texto: "Calendario", icono: CalendarDays, enBarra: true },
   { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered },
+  { href: "/admin/caja", texto: "Caja", icono: Wallet },
   { href: "/admin/productos", texto: "Productos", icono: Wrench },
   { href: "/admin/resenas", texto: "Reseñas", icono: Star },
   { href: "/admin/clientes", texto: "Clientes", icono: Users },

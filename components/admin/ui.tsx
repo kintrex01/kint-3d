@@ -91,13 +91,18 @@ export function textoDiasHasta(iso: string) {
 export function Tarjeta({
   children,
   className = "",
+  color = "",
 }: {
   children: ReactNode;
   className?: string;
+  /* Reemplaza el borde y el fondo (ver claseFase). */
+  color?: string;
 }) {
   return (
     <div
-      className={`rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] shadow-[var(--shadow-soft)] ${className}`}
+      className={`rounded-2xl border shadow-[var(--shadow-soft)] ${
+        color || "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
+      } ${className}`}
     >
       {children}
     </div>
@@ -196,7 +201,16 @@ export function Boton({
   );
 }
 
-export type Tono = "azul" | "verde" | "ambar" | "rojo" | "gris" | "violeta";
+export type Tono =
+  | "azul"
+  | "verde"
+  | "ambar"
+  | "rojo"
+  | "gris"
+  | "violeta"
+  | "amarillo"
+  | "naranja"
+  | "lima";
 
 const CLASES_TONO: Record<Tono, string> = {
   azul: "bg-sky-500/12 text-sky-700 ring-sky-500/30 dark:text-sky-300",
@@ -205,6 +219,9 @@ const CLASES_TONO: Record<Tono, string> = {
   rojo: "bg-red-500/12 text-red-700 ring-red-500/30 dark:text-red-300",
   gris: "bg-slate-500/10 text-[var(--text-muted)] ring-slate-500/25",
   violeta: "bg-violet-500/12 text-violet-700 ring-violet-500/30 dark:text-violet-300",
+  amarillo: "bg-yellow-400/15 text-yellow-800 ring-yellow-500/40 dark:text-yellow-300",
+  naranja: "bg-orange-500/12 text-orange-700 ring-orange-500/35 dark:text-orange-300",
+  lima: "bg-lime-500/15 text-lime-800 ring-lime-500/40 dark:text-lime-300",
 };
 
 export function Chip({
@@ -225,28 +242,80 @@ export function Chip({
   );
 }
 
-/* Color de cada estado (maquetas y tienda). */
-export function tonoEstado(estado: string): Tono {
+/*
+ * Fases de un pedido, para pintar las tarjetas: gris azulado solo para lo
+ * que todavía no se tocó; después, un color por paso (maquetas y tienda).
+ */
+export type Fase =
+  | "nuevo"
+  | "presupuestado"
+  | "esperandoPago"
+  | "pagado"
+  | "imprimiendo"
+  | "terminado"
+  | "entregado"
+  | "cancelado";
+
+/* La tienda no tiene "Pago confirmado" como estado: va aparte (pagado). */
+export function faseEstado(estado: string, pagado = false): Fase {
   switch (estado) {
-    case "Recibido":
-    case "Pendiente":
-      return "ambar";
     case "Presupuestado":
+      return "presupuestado";
     case "Método de pago seleccionado":
-      return "violeta";
+      return "esperandoPago";
     case "Pago confirmado":
+      return "pagado";
     case "En impresión":
-      return "azul";
+      return "imprimiendo";
     case "Terminado":
     case "Listo":
-      return "verde";
+      return "terminado";
     case "Entregado":
-      return "gris";
+      return "entregado";
     case "❌❌❌":
-      return "rojo";
+      return "cancelado";
     default:
-      return "gris";
+      return pagado ? "pagado" : "nuevo";
   }
+}
+
+const TONO_FASE: Record<Fase, Tono> = {
+  nuevo: "gris",
+  presupuestado: "violeta",
+  esperandoPago: "amarillo",
+  pagado: "azul",
+  imprimiendo: "naranja",
+  terminado: "lima",
+  entregado: "verde",
+  cancelado: "rojo",
+};
+
+/* Borde, fondo teñido y franja a la izquierda de la tarjeta. */
+const CLASES_FASE: Record<Fase, string> = {
+  nuevo: "",
+  presupuestado:
+    "border-violet-500/45 bg-[color-mix(in_srgb,#8b5cf6_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#8b5cf6]",
+  esperandoPago:
+    "border-yellow-500/50 bg-[color-mix(in_srgb,#eab308_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#eab308]",
+  pagado:
+    "border-sky-500/45 bg-[color-mix(in_srgb,#0ea5e9_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#0ea5e9]",
+  imprimiendo:
+    "border-orange-500/45 bg-[color-mix(in_srgb,#f97316_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#f97316]",
+  terminado:
+    "border-lime-500/50 bg-[color-mix(in_srgb,#84cc16_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#84cc16]",
+  entregado:
+    "border-emerald-500/45 bg-[color-mix(in_srgb,#10b981_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#10b981]",
+  cancelado:
+    "border-red-500/45 bg-[color-mix(in_srgb,#ef4444_9%,var(--kint-panel))] shadow-[inset_4px_0_0_#ef4444]",
+};
+
+export function claseFase(fase: Fase) {
+  return CLASES_FASE[fase];
+}
+
+/* Color del chip de cada estado (el mismo que su tarjeta). */
+export function tonoEstado(estado: string, pagado = false): Tono {
+  return TONO_FASE[faseEstado(estado, pagado)];
 }
 
 export function textoEstado(estado: string) {

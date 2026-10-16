@@ -22,6 +22,8 @@ import {
   Segmentos,
   Tarjeta,
   Vacio,
+  claseFase,
+  faseEstado,
   fechaDia,
   textoDiasHasta,
   textoEstado,
@@ -37,7 +39,7 @@ import {
   saldoPorValidar,
 } from "@/components/admin/pedidos/utilidades";
 
-type Filtro = "porHacer" | "activos" | "entregados" | "cancelados";
+type Filtro = "todos" | "porHacer" | "activos" | "entregados" | "cancelados";
 
 /* Estados en los que el próximo paso es del dueño. */
 const ESTADOS_POR_HACER = [
@@ -59,6 +61,8 @@ function necesitaAtencion(pedido: PedidoResumen) {
 function cumpleFiltro(pedido: PedidoResumen, filtro: Filtro) {
   const cancelado = estaCancelado(pedido.estado);
   switch (filtro) {
+    case "todos":
+      return true;
     case "porHacer":
       return necesitaAtencion(pedido);
     case "activos":
@@ -73,6 +77,10 @@ function cumpleFiltro(pedido: PedidoResumen, filtro: Filtro) {
 /* Lo más urgente primero; los entregados, del más reciente al más viejo. */
 function ordenar(pedidos: PedidoResumen[], filtro: Filtro) {
   const copia = [...pedidos];
+  if (filtro === "todos") {
+    // Los más nuevos arriba (el número crece con cada pedido).
+    return copia.sort((a, b) => b.pedido.localeCompare(a.pedido));
+  }
   if (filtro === "entregados" || filtro === "cancelados") {
     return copia.sort(
       (a, b) =>
@@ -88,6 +96,10 @@ function ordenar(pedidos: PedidoResumen[], filtro: Filtro) {
 }
 
 const VACIOS: Record<Filtro, { titulo: string; texto: string }> = {
+  todos: {
+    titulo: "Sin pedidos",
+    texto: "Cuando entre un pedido nuevo lo vas a ver acá.",
+  },
   porHacer: {
     titulo: "Nada pendiente",
     texto: "No hay pedidos esperando algo de tu parte. ¡Bien ahí!",
@@ -108,7 +120,7 @@ const VACIOS: Record<Filtro, { titulo: string; texto: string }> = {
 
 export default function PedidosAdmin() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
-  const [filtro, setFiltro] = useState<Filtro>("porHacer");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
 
   const { datos, error, cargando, recargando, recargar } = useDatosAdmin(
@@ -121,6 +133,7 @@ export default function PedidosAdmin() {
 
   const cantidades = useMemo(() => {
     const cuenta: Record<Filtro, number> = {
+      todos: 0,
       porHacer: 0,
       activos: 0,
       entregados: 0,
@@ -151,10 +164,11 @@ export default function PedidosAdmin() {
     /* Cambia la clave: se carga solo (al instante si ya estaba en caché). */
     setIncluirCancelados(activo);
     if (activo) setFiltro("cancelados");
-    else if (filtro === "cancelados") setFiltro("porHacer");
+    else if (filtro === "cancelados") setFiltro("todos");
   }
 
   const opciones: { valor: Filtro; texto: string; cantidad?: number }[] = [
+    { valor: "todos", texto: "Todos", cantidad: cantidades.todos },
     { valor: "porHacer", texto: "Por hacer", cantidad: cantidades.porHacer },
     { valor: "activos", texto: "Todos activos", cantidad: cantidades.activos },
     { valor: "entregados", texto: "Entregados", cantidad: cantidades.entregados },
@@ -258,6 +272,7 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
       className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#1f3f85]/40"
     >
       <Tarjeta
+        color={claseFase(faseEstado(pedido.estado))}
         className={`flex items-center gap-3 px-4 py-3.5 transition hover:border-[var(--kint-selected-border)] active:scale-[0.99] ${
           cancelado ? "opacity-70" : ""
         }`}

@@ -244,6 +244,9 @@ const ANILLO_TONO: Record<Tono, string> = {
   rojo: "ring-red-500/45 bg-red-500/[0.06]",
   gris: "ring-slate-500/30",
   violeta: "ring-violet-500/45 bg-violet-500/[0.06]",
+  amarillo: "ring-yellow-500/50 bg-yellow-500/[0.07]",
+  naranja: "ring-orange-500/45 bg-orange-500/[0.06]",
+  lima: "ring-lime-500/50 bg-lime-500/[0.07]",
 };
 
 const TEXTO_TONO: Record<Tono, string> = {
@@ -253,6 +256,9 @@ const TEXTO_TONO: Record<Tono, string> = {
   rojo: "text-red-700 dark:text-red-300",
   gris: "text-[var(--text-muted)]",
   violeta: "text-violet-700 dark:text-violet-300",
+  amarillo: "text-yellow-700 dark:text-yellow-300",
+  naranja: "text-orange-700 dark:text-orange-300",
+  lima: "text-lime-700 dark:text-lime-300",
 };
 
 const BARRA_TONO: Record<Tono, string> = {
@@ -262,6 +268,9 @@ const BARRA_TONO: Record<Tono, string> = {
   rojo: "bg-red-500",
   gris: "bg-slate-400 dark:bg-slate-500",
   violeta: "bg-violet-500",
+  amarillo: "bg-yellow-500",
+  naranja: "bg-orange-500",
+  lima: "bg-lime-500",
 };
 
 type Pendiente = {

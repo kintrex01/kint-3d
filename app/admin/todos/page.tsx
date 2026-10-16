@@ -29,6 +29,9 @@ import {
   fechaHora,
   pesos,
   tonoEstado,
+  claseFase,
+  faseEstado,
+  textoEstado,
   useAvisos,
 } from "@/components/admin/ui";
 
@@ -316,7 +319,9 @@ function FilaPedido({
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-black">{pedido.pedido}</span>
-          <Chip tono={tonoEstado(pedido.estado)}>{pedido.estado}</Chip>
+          <Chip tono={tonoEstado(pedido.estado, pedido.tipo === "tienda" && pedido.pagado)}>
+            {textoEstado(pedido.estado)}
+          </Chip>
         </span>
         <span className="block truncate text-sm font-semibold">
           {pedido.cliente || "Sin nombre"}
@@ -353,7 +358,10 @@ function FilaPedido({
   const clase = `flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
     elegido
       ? "border-red-600/60 bg-red-500/[0.06]"
-      : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] hover:border-[var(--kint-selected-border)]"
+      : `${
+          claseFase(faseEstado(pedido.estado, pedido.tipo === "tienda" && pedido.pagado)) ||
+          "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
+        } hover:border-[var(--kint-selected-border)]`
   }`;
 
   if (seleccionando) {

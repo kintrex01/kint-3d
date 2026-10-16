@@ -15,6 +15,8 @@ import {
   Segmentos,
   Tarjeta,
   Vacio,
+  claseFase,
+  faseEstado,
   fechaDia,
   pesos,
   textoDiasHasta,
@@ -96,7 +98,7 @@ export default function TiendaAdmin() {
       ? null
       : new URLSearchParams(window.location.search).get("pedido")
   );
-  const [filtro, setFiltro] = useState<Filtro>(() => (abierta ? "todos" : "Pendiente"));
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [notificar, setNotificar] = useState(true);
   const [guardando, setGuardando] = useState("");
@@ -375,7 +377,10 @@ function TarjetaCompra({
       onClick={onAbrir}
       className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-[#1f3f85]/40"
     >
-      <Tarjeta className="flex items-center gap-3 px-4 py-3.5 transition hover:border-[var(--kint-selected-border)] active:scale-[0.99]">
+      <Tarjeta
+        color={claseFase(faseEstado(compra.estado, compra.pagoConfirmado))}
+        className="flex items-center gap-3 px-4 py-3.5 transition hover:border-[var(--kint-selected-border)] active:scale-[0.99]"
+      >
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono text-sm font-black tracking-tight">

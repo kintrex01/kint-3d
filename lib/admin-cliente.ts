@@ -48,6 +48,7 @@ const LECTURAS = new Set<string>([
   "admin_presupuesto_opciones",
   "admin_cliente_historial",
   "admin_todos_listar",
+  "admin_caja_listar",
 ]);
 
 export function esLecturaAdmin(tipo: string) {
