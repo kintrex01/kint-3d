@@ -121,8 +121,8 @@ function pasoActual(compra: CompraTienda) {
 
 const MENSAJES = [
   "Recibimos tu compra y tu comprobante. Lo estamos revisando: te avisamos por correo cuando confirmemos el pago.",
-  "Tu pago está confirmado. Estamos imprimiendo tus llaveros.",
-  "¡Tus llaveros están listos! Coordinamos la entrega por WhatsApp o en FADU.",
+  "Tu pago está confirmado. Estamos preparando tu pedido.",
+  "¡Tu pedido está listo! Coordinamos la entrega por WhatsApp o en FADU.",
   "Tu pedido fue entregado. ¡Gracias por comprar en Kint 3D!",
 ];
 

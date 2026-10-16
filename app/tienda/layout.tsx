@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title:
-    "Tienda de llaveros impresos en 3D",
+    "Tienda de productos impresos en 3D",
 
   description:
-    "Llaveros impresos en 3D en Uruguay. Elegí tu modelo y tu cadena, pagá por transferencia y recibí la confirmación al instante.",
+    "Productos impresos en 3D en Uruguay. Elegí tu modelo, pagá por transferencia y recibí la confirmación al instante.",
 
   alternates: {
     canonical:
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
   openGraph: {
     title:
-      "Tienda de llaveros | Kint 3D",
+      "Tienda | Kint 3D",
     description:
-      "Llaveros impresos en 3D en Uruguay. Elegí tu modelo y tu cadena.",
+      "Productos impresos en 3D en Uruguay. Elegí tu modelo y pagá por transferencia.",
     url:
       "https://kint3d.com/tienda",
     type: "website",

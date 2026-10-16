@@ -522,7 +522,7 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
     className="kint-soft-btn kint-tienda-btn"
   >
     <div className="flex items-center gap-3">
-      Tienda de llaveros
+      Tienda
       <b className="kint-tienda-badge">Nuevo</b>
     </div>
     <span>→</span>

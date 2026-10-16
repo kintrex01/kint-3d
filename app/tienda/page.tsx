@@ -163,7 +163,7 @@ const TEXTO_ENTREGA =
   "La entrega es gratis en FADU, de lunes a viernes de mañana. Si necesitás envío, lo coordinamos por WhatsApp y te avisamos el costo antes.";
 
 const TEXTO_SALDO =
-  "El saldo lo pagás por transferencia antes de la entrega. Te avisamos cuando tus llaveros estén listos.";
+  "El saldo lo pagás por transferencia antes de la entrega. Te avisamos cuando tu pedido esté listo.";
 
 /*
  * Vercel corta los cuerpos de más de 4,5 MB:
@@ -186,7 +186,7 @@ const DATOS_BANCARIOS = [
 ];
 
 const PASOS = [
-  "Elegí tus llaveros",
+  "Elegí tus productos",
   "Transferí seña o total",
   "Subí el comprobante",
 ];
@@ -498,6 +498,17 @@ async function pedirCatalogo(): Promise<Catalogo> {
         })
       : [],
   };
+}
+
+/*
+ * Grupo del precio por mayor: mismo producto y mismos colores
+ * (la cadena puede variar). Igual que kintTiendaArmarLineas_.
+ */
+function grupoMayor(producto: string, colores: string[]) {
+  return `${producto}::${[...colores]
+    .map((color) => color.toLocaleLowerCase("es"))
+    .sort()
+    .join("+")}`;
 }
 
 /* Mismos colores sin importar el orden. */
@@ -1191,7 +1202,8 @@ function PreciosPorCantidad({
   );
 
   return (
-    <div className="mt-3 flex flex-wrap gap-2">
+    <div className="mt-3">
+    <div className="flex flex-wrap gap-2">
       {tramos.map((tramo) => (
         <span
           key={tramo.desde}
@@ -1204,6 +1216,10 @@ function PreciosPorCantidad({
           {tramo.desde}+ unidades: {pesos(tramo.precio)} c/u
         </span>
       ))}
+    </div>
+    <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+      Del mismo color. La cadena puede variar.
+    </p>
     </div>
   );
 }
@@ -1473,6 +1489,7 @@ function FichaProducto({
   producto,
   catalogo,
   enCarrito,
+  enCarritoConColores,
   deshabilitada,
   fotoInicial,
   onAgregar,
@@ -1481,6 +1498,8 @@ function FichaProducto({
   producto: Producto;
   catalogo: Catalogo;
   enCarrito: number;
+  // Unidades ya en el carrito con esos colores (cuentan para el por mayor).
+  enCarritoConColores: (colores: string[]) => number;
   deshabilitada: boolean;
   fotoInicial: number;
   // Devuelve el error si no se pudo agregar ("" si salió bien).
@@ -1604,7 +1623,9 @@ function FichaProducto({
       ? `Elegí ${maxColores} ${maxColores === 1 ? "color" : "colores"}.`
       : `Elegí de ${minColores} a ${maxColores} colores.`;
 
-  const unidadesProducto = enCarrito + cantidad;
+  // Por mayor: mismo producto y mismos colores (la cadena puede variar).
+  const coloresEfectivos = elegirColores && colores.length ? colores : coloresDefecto;
+  const unidadesProducto = enCarritoConColores(coloresEfectivos) + cantidad;
   const precioAplicado = precioUnitario(
     producto,
     unidadesProducto,
@@ -1613,7 +1634,7 @@ function FichaProducto({
   const subtotal = redondear(precioAplicado * cantidad);
 
   const aviso = deshabilitada
-    ? "La tienda está en pausa: por ahora no se pueden agregar llaveros."
+    ? "La tienda está en pausa: por ahora no se pueden agregar productos."
     : faltaCadena
     ? `Elegí la cadena (${producto.cadenas.join(" o ")}).`
     : faltanColores
@@ -2526,6 +2547,19 @@ export default function TiendaPage() {
     return mapa;
   }, [carrito, productosPorNombre]);
 
+  // Unidades por producto + colores (lo que decide el precio por mayor).
+  const unidadesPorGrupo = useMemo(() => {
+    const mapa = new Map<string, number>();
+
+    for (const linea of carrito) {
+      if (!productosPorNombre.has(linea.producto)) continue;
+      const grupo = grupoMayor(linea.producto, linea.colores);
+      mapa.set(grupo, (mapa.get(grupo) || 0) + linea.cantidad);
+    }
+
+    return mapa;
+  }, [carrito, productosPorNombre]);
+
   const lineas = useMemo<LineaDetallada[]>(
     () =>
       catalogo
@@ -2535,7 +2569,7 @@ export default function TiendaPage() {
 
             const precio = precioUnitario(
               producto,
-              unidadesPorProducto.get(linea.producto) || 0,
+              unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores)) || 0,
               catalogo
             );
 
@@ -2551,32 +2585,40 @@ export default function TiendaPage() {
             ];
           })
         : [],
-    [carrito, catalogo, productosPorNombre, unidadesPorProducto]
+    [carrito, catalogo, productosPorNombre, unidadesPorGrupo]
   );
 
   // Productos con precio por mayor a los que todavía les faltan unidades.
   const avisosMayor = catalogo
-    ? Array.from(unidadesPorProducto.entries()).flatMap(
-        ([nombreProducto, unidadesProducto]) => {
-          const producto = productosPorNombre.get(nombreProducto);
+    ? Array.from(
+        new Map(
+          carrito.map((linea) => [
+            grupoMayor(linea.producto, linea.colores),
+            linea,
+          ])
+        ).entries()
+      ).flatMap(([grupo, linea]) => {
+        const producto = productosPorNombre.get(linea.producto);
+        const unidadesGrupo = unidadesPorGrupo.get(grupo) || 0;
 
-          if (
-            !producto ||
-            !(producto.precioMayor > 0) ||
-            unidadesProducto >= catalogo.mayorDesde
-          ) {
-            return [];
-          }
-
-          return [
-            {
-              producto: nombreProducto,
-              faltan: catalogo.mayorDesde - unidadesProducto,
-              precio: producto.precioMayor,
-            },
-          ];
+        if (
+          !producto ||
+          !(producto.precioMayor > 0) ||
+          unidadesGrupo >= catalogo.mayorDesde
+        ) {
+          return [];
         }
-      )
+
+        return [
+          {
+            grupo,
+            producto: linea.producto,
+            colores: linea.colores,
+            faltan: catalogo.mayorDesde - unidadesGrupo,
+            precio: producto.precioMayor,
+          },
+        ];
+      })
     : [];
 
   const maxUnidades = catalogo?.maxUnidades || 20;
@@ -3131,7 +3173,7 @@ export default function TiendaPage() {
           </p>
 
           <h1 className="mt-3 max-w-3xl text-4xl font-black leading-[1.05] sm:text-5xl">
-            Llaveros impresos en{" "}
+            Productos impresos en{" "}
             <span className="text-[var(--blue-main)]">3D</span>
           </h1>
 
@@ -3285,7 +3327,7 @@ export default function TiendaPage() {
 
               {unidades > 0 && (
                 <span className="rounded-full bg-[var(--blue-main)] px-2.5 py-1 text-[11px] font-black text-white">
-                  {unidades} {unidades === 1 ? "llavero" : "llaveros"}
+                  {unidades} {unidades === 1 ? "unidad" : "unidades"}
                 </span>
               )}
             </div>
@@ -3347,7 +3389,7 @@ export default function TiendaPage() {
 
             {lineas.length === 0 && (
               <p className="mt-5 rounded-2xl border border-dashed border-[var(--kint-panel-border)] px-4 py-8 text-center text-sm text-[var(--text-muted)]">
-                Todavía no agregaste llaveros.
+                Todavía no agregaste productos.
               </p>
             )}
 
@@ -3437,14 +3479,17 @@ export default function TiendaPage() {
                   <ul className="mb-4 space-y-2">
                     {avisosMayor.map((aviso) => (
                       <li
-                        key={aviso.producto}
+                        key={aviso.grupo}
                         className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs leading-5 text-emerald-800 dark:text-emerald-300"
                       >
                         Sumá <strong>{aviso.faltan}</strong>{" "}
                         {aviso.faltan === 1 ? "unidad" : "unidades"} más de{" "}
-                        <strong>{aviso.producto}</strong> y pagás{" "}
-                        <strong>{pesos(aviso.precio)} c/u</strong> (precio
-                        por mayor). Podés combinar cadenas y colores.
+                        <strong>{aviso.producto}</strong>
+                        {aviso.colores.length > 0 &&
+                          ` ${aviso.colores.join(" + ")}`}{" "}
+                        y pagás <strong>{pesos(aviso.precio)} c/u</strong>{" "}
+                        (precio por mayor). Puede ser con otra cadena, pero
+                        del mismo color.
                       </li>
                     ))}
                   </ul>
@@ -3906,6 +3951,9 @@ export default function TiendaPage() {
           catalogo={catalogo}
           fotoInicial={ficha.foto}
           enCarrito={unidadesPorProducto.get(fichaProducto.nombre) || 0}
+          enCarritoConColores={(colores) =>
+            unidadesPorGrupo.get(grupoMayor(fichaProducto.nombre, colores)) || 0
+          }
           deshabilitada={!tiendaAbierta || enviando}
           onAgregar={(opciones) =>
             agregarDesdeFicha(fichaProducto, opciones)

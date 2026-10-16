@@ -644,7 +644,7 @@ export default function ProductosAdmin() {
                 className={claseInput}
                 value={formulario.nombre}
                 onChange={(evento) => cambiar({ nombre: evento.target.value })}
-                placeholder="Llavero casita"
+                placeholder="Ej.: Llavero casita"
                 maxLength={80}
                 aria-invalid={Boolean(intentado && errores.nombre)}
                 autoFocus={!formulario.nombreOriginal}

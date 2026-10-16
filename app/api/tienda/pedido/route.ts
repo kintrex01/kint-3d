@@ -1,5 +1,5 @@
 /*
- * Compra de la tienda de llaveros.
+ * Compra de la tienda.
  *
  * Ruta propia, separada de /api/comprobante:
  * el comprobante viaja junto con la compra y

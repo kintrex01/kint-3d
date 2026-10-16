@@ -103,7 +103,7 @@ const enlacesPrincipales: EnlaceMenu[] = [
     icono: Send,
   },
   {
-    nombre: "Tienda de llaveros",
+    nombre: "Tienda",
     href: "/tienda",
     icono: ShoppingBag,
     etiqueta: "Nuevo",
