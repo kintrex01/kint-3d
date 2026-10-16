@@ -517,12 +517,14 @@ export function Hoja({
   titulo,
   children,
   pie,
+  ancha = false,
 }: {
   abierta: boolean;
   onCerrar: () => void;
   titulo: string;
   children: ReactNode;
   pie?: ReactNode;
+  ancha?: boolean; // formularios largos: más ancha en la compu
 }) {
   useEffect(() => {
     if (!abierta) return;
@@ -553,7 +555,9 @@ export function Hoja({
         aria-modal="true"
         aria-label={titulo}
         onClick={(evento) => evento.stopPropagation()}
-        className="flex max-h-[92vh] w-full flex-col rounded-t-3xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-main)] shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        className={`flex max-h-[92vh] w-full flex-col rounded-t-3xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-main)] shadow-2xl sm:rounded-3xl ${
+          ancha ? "sm:max-w-2xl" : "sm:max-w-lg"
+        }`}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[var(--kint-panel-border)] px-5 py-4">
           <h2 className="text-base font-black">{titulo}</h2>
@@ -566,7 +570,9 @@ export function Hoja({
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
+        <div className="overflow-y-auto overscroll-contain px-5 py-4 [scrollbar-color:var(--kint-panel-border)_transparent] [scrollbar-width:thin]">
+          {children}
+        </div>
         {pie && (
           <div className="border-t border-[var(--kint-panel-border)] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             {pie}
