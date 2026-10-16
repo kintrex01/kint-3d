@@ -2756,7 +2756,12 @@ export default function TiendaPage() {
   const [hoy] = useState(fechaHoyISO);
 
   // Ficha abierta (por nombre de producto) y aviso de "agregado".
-  const [personalizando, setPersonalizando] = useState<string | null>(null);
+  // kint3d.com/tienda?personalizar=Llavero%20con%20nombre abre el personalizador directo.
+  const [personalizando, setPersonalizando] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("personalizar")
+  );
   const [ficha, setFicha] = useState<{
     producto: string;
     foto: number;

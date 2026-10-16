@@ -50,6 +50,36 @@ function elegirColor(colores: string[], preferidos: string[], evitar = "") {
   return colores.find((color) => color !== evitar) || "";
 }
 
+/* Último diseño, para que no se pierda si cierra sin agregar. */
+const CLAVE_DISENO = "kint-llavero-diseno-v1";
+
+type Diseno = {
+  texto: string;
+  texto2: string;
+  fuente: string;
+  tamano: string;
+  borde: string;
+  colorBase: string;
+  colorLetras: string;
+};
+
+function leerDiseno(): Partial<Diseno> {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(CLAVE_DISENO) || "null");
+    return guardado && typeof guardado === "object" ? guardado : {};
+  } catch {
+    return {};
+  }
+}
+
+function guardarDiseno(diseno: Diseno) {
+  try {
+    localStorage.setItem(CLAVE_DISENO, JSON.stringify(diseno));
+  } catch {
+    // Sin almacenamiento: no pasa nada.
+  }
+}
+
 /* @font-face de las fuentes del llavero, para mostrar cada botón con su letra. */
 const ESTILO_FUENTES = FUENTES_LLAVERO.map(
   (fuente) =>
@@ -67,18 +97,39 @@ export default function Personalizador({
   onAgregar: (opciones: OpcionesPersonalizado) => string;
   onCerrar: () => void;
 }) {
-  const [texto, setTexto] = useState("Antonio");
-  const [fuente, setFuente] = useState<string>(FUENTES_LLAVERO[0].nombre);
-  const [tamano, setTamano] = useState<string>("Mediano");
-  const [borde, setBorde] = useState<string>("Normal");
-  const [conLinea2, setConLinea2] = useState(false);
-  const [texto2, setTexto2] = useState("");
+  // Se arranca con el último diseño (si sus opciones siguen existiendo).
+  const [inicial] = useState(leerDiseno);
+  const [texto, setTexto] = useState(() =>
+    errorTextoLlavero(inicial.texto || "") ? "Antonio" : limpiarTextoLlavero(inicial.texto || "")
+  );
+  const [fuente, setFuente] = useState<string>(() =>
+    FUENTES_LLAVERO.some((opcion) => opcion.nombre === inicial.fuente) ? inicial.fuente! : FUENTES_LLAVERO[0].nombre
+  );
+  const [tamano, setTamano] = useState<string>(() =>
+    TAMANOS_LLAVERO.some((opcion) => opcion.nombre === inicial.tamano) ? inicial.tamano! : "Mediano"
+  );
+  const [borde, setBorde] = useState<string>(() =>
+    BORDES_LLAVERO.some((opcion) => opcion.nombre === inicial.borde) ? inicial.borde! : "Normal"
+  );
+  const [texto2, setTexto2] = useState(() =>
+    inicial.texto2 && !errorTextoLlavero(inicial.texto2, true) ? limpiarTextoLlavero(inicial.texto2) : ""
+  );
+  const [conLinea2, setConLinea2] = useState(() => Boolean(texto2));
   const [colorBase, setColorBase] = useState(() =>
-    elegirColor(producto.colores, ["azul", "violeta", "negro", "rojo"])
+    inicial.colorBase && producto.colores.includes(inicial.colorBase)
+      ? inicial.colorBase
+      : elegirColor(producto.colores, ["azul", "violeta", "negro", "rojo"])
   );
   const [colorLetras, setColorLetras] = useState(() =>
-    elegirColor(producto.colores, ["blanco", "amarillo", "gris claro"], colorBase)
+    inicial.colorLetras && producto.colores.includes(inicial.colorLetras) && inicial.colorLetras !== colorBase
+      ? inicial.colorLetras
+      : elegirColor(producto.colores, ["blanco", "amarillo", "gris claro"], colorBase)
   );
+
+  // Cada cambio queda guardado en este navegador.
+  useEffect(() => {
+    guardarDiseno({ texto, texto2: conLinea2 ? texto2 : "", fuente, tamano, borde, colorBase, colorLetras });
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, colorBase, colorLetras]);
   const [cadena, setCadena] = useState(producto.cadenas[0] || "");
   const [cantidad, setCantidad] = useState(1);
   const [geometria, setGeometria] = useState<GeometriaLlavero | null>(null);
