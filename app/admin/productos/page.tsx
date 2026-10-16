@@ -271,6 +271,13 @@ function TarjetaProducto({
           </p>
         )}
 
+        {!(producto.precio > 0) && (
+          <p className="flex items-start gap-1.5 rounded-lg bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold leading-4 text-red-700 dark:text-red-300">
+            <AlertTriangle size={14} className="mt-px shrink-0" />
+            <span>Sin precio — no aparece en la tienda hasta que le pongas uno.</span>
+          </p>
+        )}
+
         <span className="mt-auto flex items-center gap-1.5 pt-1 text-xs font-bold text-[#1f3f85] dark:text-[var(--blue-soft)]">
           <Pencil size={13} />
           Editar
@@ -486,7 +493,17 @@ export default function ProductosAdmin() {
     evento?.preventDefault();
     if (!formulario || guardando) return;
     setIntentado(true);
-    if (hayErrores) return;
+    if (hayErrores) {
+      // El error puede quedar fuera de la vista (ej. precio, arriba de todo).
+      window.requestAnimationFrame(() => {
+        const campo = document.querySelector<HTMLElement>(
+          '[role="dialog"] [aria-invalid="true"]'
+        );
+        campo?.scrollIntoView({ behavior: "smooth", block: "center" });
+        campo?.focus({ preventScroll: true });
+      });
+      return;
+    }
 
     const esNuevo = !formulario.nombreOriginal;
     const producto: ProductoEntrada = {
@@ -678,7 +695,7 @@ export default function ProductosAdmin() {
                 value={formulario.precio}
                 onChange={(evento) => cambiar({ precio: evento.target.value })}
                 inputMode="decimal"
-                placeholder="60"
+                placeholder="Escribí el precio"
                 aria-invalid={Boolean(intentado && errores.precio)}
               />
             </Campo>
