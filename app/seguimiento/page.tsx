@@ -1285,7 +1285,15 @@ function datosTecnicosPresupuesto(
         )}
 
 {compraTienda && !resultado && (
-  <SeguimientoTienda compra={compraTienda} />
+  <SeguimientoTienda
+    compra={compraTienda}
+    email={email}
+    onActualizar={() =>
+      buscarCompraTienda(compraTienda.pedido, email)
+        .then(setCompraTienda)
+        .catch(() => null)
+    }
+  />
 )}
 
 {resultado && (

@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import {
   Check,
   CircleDollarSign,
+  FileUp,
+  Loader2,
   MapPin,
   MessageCircle,
   PackageCheck,
@@ -36,6 +39,8 @@ export type CompraTienda = {
   total: number;
   montoSena: number;
   saldo: number;
+  // Ya subió el comprobante del saldo (falta validarlo).
+  saldoEnviado?: boolean;
   comentario?: string;
   lineas: LineaCompraTienda[];
 };
@@ -121,10 +126,204 @@ const MENSAJES = [
   "Tu pedido fue entregado. ¡Gracias por comprar en Kint 3D!",
 ];
 
-export default function SeguimientoTienda({
+/* Imagen grande → JPEG de hasta 1800 px (los comprobantes de celular pesan mucho). */
+async function prepararArchivo(archivo: File) {
+  const leer = (blob: Blob) =>
+    new Promise<string>((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onload = () => resolve(String(lector.result).replace(/^data:[^,]*,/, ""));
+      lector.onerror = () => reject(new Error("No pudimos leer el archivo."));
+      lector.readAsDataURL(blob);
+    });
+
+  if (!archivo.type.startsWith("image/") || archivo.size < 900 * 1024) {
+    return { base64: await leer(archivo), nombre: archivo.name };
+  }
+
+  try {
+    const imagen = await createImageBitmap(archivo);
+    const escala = Math.min(1, 1800 / Math.max(imagen.width, imagen.height));
+    const lienzo = document.createElement("canvas");
+    lienzo.width = Math.round(imagen.width * escala);
+    lienzo.height = Math.round(imagen.height * escala);
+    lienzo.getContext("2d")?.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      lienzo.toBlob(resolve, "image/jpeg", 0.85)
+    );
+    if (!blob) throw new Error("sin imagen");
+    return {
+      base64: await leer(blob),
+      nombre: archivo.name.replace(/\.[^.]+$/, "") + ".jpg",
+    };
+  } catch {
+    // HEIC u otro formato que el navegador no dibuja: va tal cual.
+    return { base64: await leer(archivo), nombre: archivo.name };
+  }
+}
+
+/*
+ * Pago del saldo: datos para transferir + subir el comprobante.
+ * Los correos traen un botón que abre esta sección (#pago-saldo).
+ */
+function PagoSaldo({
   compra,
+  email,
+  onEnviado,
 }: {
   compra: CompraTienda;
+  email: string;
+  onEnviado: () => void;
+}) {
+  const [archivo, setArchivo] = useState<File | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+  const [enviado, setEnviado] = useState(Boolean(compra.saldoEnviado));
+  const refSeccion = useRef<HTMLDivElement>(null);
+
+  // Llegó desde el botón del correo: ir directo al saldo.
+  useEffect(() => {
+    if (window.location.hash !== "#pago-saldo") return;
+    const temporizador = window.setTimeout(
+      () => refSeccion.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      300
+    );
+    return () => window.clearTimeout(temporizador);
+  }, []);
+
+  async function enviar() {
+    if (!archivo || enviando) return;
+
+    if (archivo.size > 25 * 1024 * 1024) {
+      setError("El archivo es muy pesado. Probá con una captura o un PDF.");
+      return;
+    }
+
+    setEnviando(true);
+    setError("");
+
+    try {
+      const preparado = await prepararArchivo(archivo);
+      const response = await fetch("/api/tienda/saldo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pedido: compra.pedido,
+          email,
+          archivoBase64: preparado.base64,
+          archivoNombre: preparado.nombre,
+        }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!data?.ok) {
+        throw new Error(data?.error || "No pudimos subir el comprobante.");
+      }
+
+      setEnviado(true);
+      onEnviado();
+    } catch (errorEnvio: unknown) {
+      setError(
+        errorEnvio instanceof Error
+          ? errorEnvio.message
+          : "No pudimos subir el comprobante."
+      );
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  if (enviado) {
+    return (
+      <div
+        id="pago-saldo"
+        ref={refSeccion}
+        className="scroll-mt-6 rounded-3xl border-2 border-emerald-600 bg-emerald-50 p-6 text-black dark:bg-emerald-950/30 dark:text-[var(--text-main)]"
+      >
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400">
+          <Check size={16} strokeWidth={3} />
+          Recibimos el comprobante del saldo
+        </p>
+        <p className="mt-3 text-sm leading-6">
+          Lo revisamos y te avisamos por correo. No hace falta que hagas nada más.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      id="pago-saldo"
+      ref={refSeccion}
+      className="scroll-mt-6 rounded-3xl border-2 border-red-600 bg-red-50 p-6 text-black dark:bg-[#010003] dark:text-[var(--text-main)]"
+    >
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
+        Saldo pendiente
+      </p>
+      <p className="mt-2 text-4xl font-black text-red-600">
+        {pesos(compra.saldo)}
+      </p>
+
+      <p className="mt-4 text-sm font-bold">1. Transferí a esta cuenta</p>
+      <p className="mt-1 text-sm leading-7">
+        {DATOS_BANCARIOS.map(([etiqueta, valor]) => (
+          <span key={etiqueta} className="block">
+            {etiqueta}: {valor}
+          </span>
+        ))}
+        <span className="block">Concepto: {compra.pedido}</span>
+      </p>
+
+      <p className="mt-5 text-sm font-bold">2. Subí el comprobante</p>
+      <label className="mt-2 flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-red-600/50 bg-white/70 px-4 py-3 text-sm transition hover:border-red-600 dark:bg-white/5">
+        <FileUp size={20} className="shrink-0 text-red-600" />
+        <span className="min-w-0 truncate">
+          {archivo ? archivo.name : "Elegí la foto o el PDF de la transferencia"}
+        </span>
+        <input
+          type="file"
+          accept="image/*,.heic,application/pdf"
+          className="sr-only"
+          onChange={(evento) => {
+            setError("");
+            setArchivo(evento.target.files?.[0] || null);
+          }}
+        />
+      </label>
+
+      {error && (
+        <p role="alert" className="mt-3 text-sm font-semibold text-red-700 dark:text-red-400">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="button"
+        onClick={enviar}
+        disabled={!archivo || enviando}
+        className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {enviando ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Enviando…
+          </>
+        ) : (
+          "Enviar comprobante del saldo"
+        )}
+      </button>
+    </div>
+  );
+}
+
+export default function SeguimientoTienda({
+  compra,
+  email,
+  onActualizar,
+}: {
+  compra: CompraTienda;
+  // Email con el que se consultó (para subir el comprobante del saldo).
+  email: string;
+  onActualizar?: () => void;
 }) {
   const paso = pasoActual(compra);
   const lineas = Array.isArray(compra.lineas) ? compra.lineas : [];
@@ -251,26 +450,11 @@ export default function SeguimientoTienda({
       </div>
 
       {compra.saldo > 0 && compra.estado !== "Entregado" && (
-        <div className="rounded-3xl border-2 border-red-600 bg-red-50 p-6 text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
-            Saldo a transferir antes de la entrega
-          </p>
-          <p className="mt-2 text-4xl font-black text-red-600">
-            {pesos(compra.saldo)}
-          </p>
-          <p className="mt-4 text-sm leading-7">
-            {DATOS_BANCARIOS.map(([etiqueta, valor]) => (
-              <span key={etiqueta} className="block">
-                {etiqueta}: {valor}
-              </span>
-            ))}
-            <span className="block">Concepto: {compra.pedido}</span>
-          </p>
-          <p className="mt-3 text-xs leading-5 text-[var(--text-muted)]">
-            Mandanos el comprobante respondiendo el correo de tu compra o por
-            WhatsApp.
-          </p>
-        </div>
+        <PagoSaldo
+          compra={compra}
+          email={email}
+          onEnviado={() => onActualizar?.()}
+        />
       )}
 
       <div className={`${CLASE_PANEL} p-6`}>

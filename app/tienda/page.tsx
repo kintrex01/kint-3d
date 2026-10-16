@@ -269,6 +269,9 @@ const MUESTRAS_COLOR: Record<string, string> = {
   arena: "#d6c3a0",
   "verde aguamarina": "#2dd4bf",
   plateado: "#c0c4c8",
+  // Cadenas: brillo metálico.
+  plateada: "linear-gradient(135deg,#f4f5f7 0%,#a9afb6 55%,#e6e8eb 100%)",
+  dorada: "linear-gradient(135deg,#fdeaa0 0%,#c9971c 55%,#f6d77a 100%)",
   plata: "#c0c4c8",
   dorado: "#d4a62a",
   oro: "#d4a62a",
@@ -1165,7 +1168,8 @@ function atraparFoco(evento: KeyboardEvent, capa: HTMLElement | null) {
 }
 
 /* Lista de precios por cantidad; resalta el que corresponde. */
-function TablaPrecios({
+/* Precios por mayor en chips; el que rige con la cantidad elegida, resaltado. */
+function PreciosPorCantidad({
   producto,
   mayorDesde,
   granMayorDesde,
@@ -1180,65 +1184,26 @@ function TablaPrecios({
 
   if (!tramos.length) return null;
 
-  const hasta = tramos[0].desde - 1;
-  const filas = [
-    {
-      desde: 1,
-      etiqueta: hasta <= 1 ? "1 unidad" : `De 1 a ${hasta} unidades`,
-      precio: producto.precio,
-    },
-    ...tramos.map((tramo) => ({
-      desde: tramo.desde,
-      etiqueta: `Desde ${tramo.desde} unidades`,
-      precio: tramo.precio,
-    })),
-  ];
-
   // Mismo criterio que precioUnitario: el tramo más alto alcanzado.
-  const activa = filas.reduce(
-    (elegida, fila) => (unidades >= fila.desde ? fila.desde : elegida),
-    1
+  const activo = tramos.reduce(
+    (elegido, tramo) => (unidades >= tramo.desde ? tramo.desde : elegido),
+    0
   );
 
   return (
-    <div className="mt-5">
-      <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
-        Precio por cantidad
-      </p>
-
-      <ul className="divide-y divide-[var(--kint-panel-border)] overflow-hidden rounded-2xl border border-[var(--kint-panel-border)]">
-        {filas.map((fila) => {
-          const esActiva = fila.desde === activa;
-
-          return (
-            <li
-              key={fila.desde}
-              className={`flex items-center justify-between gap-3 px-4 py-2.5 text-sm transition ${
-                esActiva
-                  ? "bg-emerald-500/10 font-bold text-emerald-800 dark:text-emerald-300"
-                  : "text-[var(--text-muted)]"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                {fila.etiqueta}
-                {esActiva && (
-                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white">
-                    Tu precio
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 font-black tabular-nums">
-                {pesos(fila.precio)} c/u
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-
-      <p className="mt-2 text-[11px] leading-4 text-[var(--text-muted)]">
-        Se cuentan todas las unidades de este modelo, con cualquier
-        cadena o color.
-      </p>
+    <div className="mt-3 flex flex-wrap gap-2">
+      {tramos.map((tramo) => (
+        <span
+          key={tramo.desde}
+          className={`rounded-full px-3 py-1 text-xs font-bold transition ${
+            tramo.desde === activo
+              ? "bg-emerald-600 text-white"
+              : "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+          }`}
+        >
+          {tramo.desde}+ unidades: {pesos(tramo.precio)} c/u
+        </span>
+      ))}
     </div>
   );
 }
@@ -1534,6 +1499,7 @@ function FichaProducto({
   const [elegirColores, setElegirColores] = useState(false);
   const [colores, setColores] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
+  const [verComentario, setVerComentario] = useState(false);
   const [cantidad, setCantidad] = useState(1);
   const [error, setError] = useState("");
 
@@ -1844,25 +1810,28 @@ function FichaProducto({
           </div>
 
           <div className="p-5 sm:p-7 md:overflow-y-auto md:overscroll-contain">
-            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--kint-info)]">
-              Tienda Kint 3D
-            </p>
-
             <h2
               id={idTitulo}
-              className="mt-2 pr-10 text-2xl font-black leading-tight sm:text-3xl md:pr-12"
+              className="pr-10 text-2xl font-black leading-tight sm:text-3xl md:pr-12"
             >
               {producto.nombre}
             </h2>
 
-            <p className="mt-2 text-2xl font-black text-red-600 dark:text-red-500">
-              {pesos(producto.precio)}
-              <span className="ml-1 text-sm font-bold text-[var(--text-muted)]">
-                c/u
-              </span>
-            </p>
+            <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
+              <p className="text-2xl font-black text-red-600 dark:text-red-500">
+                {pesos(precioAplicado)}
+                <span className="ml-1 text-sm font-bold text-[var(--text-muted)]">
+                  c/u
+                </span>
+              </p>
+              {precioAplicado < producto.precio && (
+                <p className="text-sm font-bold text-[var(--text-muted)] line-through">
+                  {pesos(producto.precio)}
+                </p>
+              )}
+            </div>
 
-            <TablaPrecios
+            <PreciosPorCantidad
               producto={producto}
               mayorDesde={catalogo.mayorDesde}
               granMayorDesde={catalogo.granMayorDesde}
@@ -1876,75 +1845,105 @@ function FichaProducto({
               </p>
             )}
 
-            <SelectorOpciones
-              titulo="Cadena"
-              opciones={producto.cadenas}
-              elegida={cadenaElegida}
-              onElegir={setCadena}
-            />
-
-            {hayColores && (
-              <fieldset className="mt-5">
-                <legend className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
-                  Colores
+            {/* Cadena: obligatoria, se marca en rojo hasta que la elija. */}
+            {producto.cadenas.length > 0 && (
+              <fieldset className="mt-6">
+                <legend className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                  Elegí la cadena
+                  {faltaCadena && (
+                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] tracking-[0.12em] text-white">
+                      Obligatorio
+                    </span>
+                  )}
                 </legend>
 
-                {coloresDefecto.length > 0 && (
-                  <div className="mb-3 flex items-center gap-3">
-                    <MuestrasColor colores={coloresDefecto} />
-                    <p className="text-sm">
-                      <span className="font-black">
-                        {coloresDefecto.join(" + ")}
-                      </span>
-                      <span className="block text-xs text-[var(--text-muted)]">
-                        {elegirColores ? "Los de la foto" : "Como en la foto · incluido"}
-                      </span>
-                    </p>
+                <div className="flex flex-wrap gap-2">
+                  {producto.cadenas.map((opcion) => {
+                    const activa = opcion === cadenaElegida;
+
+                    return (
+                      <button
+                        key={opcion}
+                        type="button"
+                        aria-pressed={activa}
+                        onClick={() => {
+                          setError("");
+                          setCadena(opcion);
+                        }}
+                        className={`inline-flex items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold transition ${
+                          activa
+                            ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] text-[var(--text-main)]"
+                            : faltaCadena
+                            ? "border-dashed border-red-500/70 text-[var(--text-main)] hover:border-red-600 hover:bg-red-500/5"
+                            : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                        }`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="h-4 w-4 rounded-full border border-black/15 dark:border-white/30"
+                          style={{ background: muestraColor(opcion) || "#c0c4c8" }}
+                        />
+                        {opcion}
+                        {activa && <Check size={14} strokeWidth={3} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
+
+            {hayColores && (
+              <div className="mt-6">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                  Colores
+                </p>
+
+                {!elegirColores ? (
+                  <div className="flex items-center gap-3">
+                    {coloresDefecto.length > 0 ? (
+                      <>
+                        <MuestrasColor colores={coloresDefecto} />
+                        <p className="min-w-0 flex-1 text-sm">
+                          <span className="font-bold">
+                            {coloresDefecto.join(" + ")}
+                          </span>
+                          <span className="block text-xs text-[var(--text-muted)]">
+                            Como en la foto
+                          </span>
+                        </p>
+                      </>
+                    ) : (
+                      <p className="min-w-0 flex-1 text-sm text-[var(--text-muted)]">
+                        A elección del taller
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={alternarColores}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kint-panel-border)] px-3 py-1.5 text-xs font-bold text-[var(--blue-main)] transition hover:border-[var(--kint-selected-border)]"
+                    >
+                      <Palette size={14} />
+                      {coloresDefecto.length ? "Cambiar" : "Elegir"}
+                    </button>
                   </div>
-                )}
+                ) : (
+                  <div>
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {colores.length
+                          ? `Elegiste: ${colores.join(" + ")}`
+                          : textoLimiteColores}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={alternarColores}
+                        className="shrink-0 text-xs font-bold text-[var(--blue-main)] underline-offset-4 hover:underline"
+                      >
+                        {coloresDefecto.length ? "Usar los de la foto" : "Cancelar"}
+                      </button>
+                    </div>
 
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={elegirColores}
-                  onClick={alternarColores}
-                  className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--kint-panel-border)] px-4 py-3 text-left transition hover:border-[var(--kint-selected-border)]"
-                >
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-2 text-sm font-black">
-                      <Palette
-                        size={16}
-                        className="text-[var(--blue-main)]"
-                      />
-                      {coloresDefecto.length ? "Cambiar colores" : "Elegir colores"}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                      {elegirColores
-                        ? textoLimiteColores
-                        : coloresDefecto.length
-                        ? "Opcional: elegí otros colores para tu pieza."
-                        : "Color a elección del taller."}
-                    </span>
-                  </span>
-
-                  <span
-                    aria-hidden="true"
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition ${
-                      elegirColores
-                        ? "bg-[var(--blue-main)]"
-                        : "bg-[#87A4B5]/45"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${
-                        elegirColores ? "left-[22px]" : "left-0.5"
-                      }`}
-                    />
-                  </span>
-                </button>
-
-                {elegirColores && (
-                  <div className="mt-4">
                     <div
                       role="group"
                       aria-label="Colores disponibles"
@@ -1998,39 +1997,47 @@ function FichaProducto({
                       })}
                     </div>
 
-                    <p className="mt-3 text-xs text-[var(--text-muted)]">
-                      {colores.length
-                        ? `Elegiste: ${colores.join(" + ")}${
-                            colores.length < maxColores
-                              ? ` · podés sumar ${maxColores - colores.length} más`
-                              : ""
-                          }`
-                        : textoLimiteColores}
-                    </p>
+                    {colores.length > 0 && (
+                      <p className="mt-3 text-xs text-[var(--text-muted)]">
+                        {textoLimiteColores}
+                      </p>
+                    )}
                   </div>
                 )}
-              </fieldset>
+              </div>
             )}
 
-            <label className="mt-5 block">
-              <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
-                Comentario (opcional)
-              </span>
-              <textarea
-                value={comentario}
-                onChange={(evento) => {
-                  setError("");
-                  setComentario(evento.target.value);
-                }}
-                placeholder="Algo que quieras aclarar de esta pieza"
-                rows={3}
-                maxLength={MAX_COMENTARIO_PIEZA}
-                className={`${CLASE_INPUT} resize-none`}
-              />
-              <span className="mt-1 block text-right text-[10px] tabular-nums text-[var(--text-muted)]">
-                {comentario.length}/{MAX_COMENTARIO_PIEZA}
-              </span>
-            </label>
+            {verComentario || comentario ? (
+              <label className="mt-6 block">
+                <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
+                  Comentario
+                </span>
+                <textarea
+                  value={comentario}
+                  onChange={(evento) => {
+                    setError("");
+                    setComentario(evento.target.value);
+                  }}
+                  placeholder="Algo que quieras aclarar de esta pieza"
+                  rows={3}
+                  autoFocus={!comentario}
+                  maxLength={MAX_COMENTARIO_PIEZA}
+                  className={`${CLASE_INPUT} resize-none`}
+                />
+                <span className="mt-1 block text-right text-[10px] tabular-nums text-[var(--text-muted)]">
+                  {comentario.length}/{MAX_COMENTARIO_PIEZA}
+                </span>
+              </label>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setVerComentario(true)}
+                className="mt-6 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--blue-main)] underline-offset-4 hover:underline"
+              >
+                <Plus size={14} />
+                Agregar un comentario
+              </button>
+            )}
 
             <ResenasProducto resenas={producto.resenas} />
           </div>

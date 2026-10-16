@@ -19,8 +19,9 @@ del mismo deployment, así la URL no cambia.
 
 | Hoja | Qué es |
 |---|---|
-| **Productos** | Nombre, Precio, Por Mayor, Gran por mayor, Foto, Cadenas disponibles, Activo. Opcional: **Colores disponibles** (el cliente elige color como la cadena). |
-| **Tienda** | Una fila por línea de cada compra (TND). Las columnas se buscan por **título**: se pueden mover o agregar columnas sin romper nada (ej. "Colores", "Alias"). |
+| **Productos** | Nombre, Precio, Por Mayor, Gran por mayor, Foto, Cadenas disponibles, Activo. **Colores** = los de la foto (se compran esos si el cliente no los cambia). **Min/Max de Colores** = cuántos puede elegir si los cambia (vacío = 1 a 2). |
+| **Tienda** | Una fila por línea de cada compra (TND). Las columnas se buscan por **título**: se pueden mover o agregar columnas sin romper nada (ej. "Colores", "Alias"). **Comprobante saldo** se crea sola cuando un cliente sube el saldo. |
+| **Desplegables de colores** | La lista de colores que ve el cliente sale de los desplegables de "Colores" (Productos y Tienda). Un color nuevo aparece en la tienda en unos 5 minutos. |
 | **Tienda IDs** (oculta) | Memoria anti-duplicados de compras. **No borrar.** |
 | **Días sin entrega** | Fecha + Motivo. Esos días salen en rojo y nadie los puede elegir (tienda y cotizar). |
 | **Configuración → TIENDA** | `Pedidos por mayor` (10) y `Gran pedido por mayor` (20): desde cuántas unidades de un producto rige cada precio. |
@@ -41,4 +42,7 @@ tiene que estar compartida como "Cualquier persona con el enlace" (Lector).
 ## Para clientes
 
 - `/tienda` — compra con cuenta Kint (correo + alias), checkout en pasos, precio por mayor.
-- `/tienda/pedido` — "Seguí tu compra" con número TND + email (el link viene en el correo).
+- `/seguimiento` — Consultar pedido: maquetas (KNT + código) y tienda (TND + email).
+  Si queda saldo, ahí están los datos bancarios y se sube el comprobante: **los correos
+  no llevan datos bancarios**, solo el botón "Pagar saldo pendiente".
+- Al marcar una compra **Entregado**, el correo trae el botón para dejar la reseña.

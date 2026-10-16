@@ -161,7 +161,9 @@ export type ProductoAdmin = {
   precioGranMayor: number; // 0 = sin precio gran por mayor
   foto: string; // contenido crudo de la celda Foto ("" = carpeta automática)
   cadenas: string[];
-  colores: string[]; // solo si Productos tiene "Colores disponibles"
+  colores: string[]; // los de la foto (columna "Colores" de Productos)
+  minColores: number; // 0 = vacío (la tienda usa 1)
+  maxColores: number; // 0 = vacío (la tienda usa 2)
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };
@@ -337,6 +339,7 @@ export type AccionesAdmin = {
       cadenasOpciones: string[];
       coloresOpciones: string[];
       hayColores: boolean; // existe la columna "Colores disponibles"
+      hayLimitesColores: boolean; // existen "Min de Colores" y "Max de Colores"
     };
   };
   /* nombreOriginal vacío = producto nuevo. */

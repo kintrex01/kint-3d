@@ -42,11 +42,16 @@ type Formulario = {
   foto: string;
   cadenas: string[];
   colores: string[];
+  minColores: string;
+  maxColores: string;
   activo: boolean;
 };
 
 type Errores = Partial<
-  Record<"nombre" | "precio" | "precioMayor" | "precioGranMayor", string>
+  Record<
+    "nombre" | "precio" | "precioMayor" | "precioGranMayor" | "limitesColores",
+    string
+  >
 >;
 
 const FORMULARIO_NUEVO: Formulario = {
@@ -58,6 +63,8 @@ const FORMULARIO_NUEVO: Formulario = {
   foto: "",
   cadenas: [],
   colores: [],
+  minColores: "",
+  maxColores: "",
   activo: true,
 };
 
@@ -73,6 +80,8 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     foto: producto.foto || "",
     cadenas: [...(producto.cadenas || [])],
     colores: [...(producto.colores || [])],
+    minColores: producto.minColores ? String(producto.minColores) : "",
+    maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
 }
@@ -86,6 +95,8 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     foto: producto.foto,
     cadenas: producto.cadenas,
     colores: producto.colores || [],
+    minColores: producto.minColores || 0,
+    maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
 }
@@ -139,6 +150,19 @@ function validar(formulario: Formulario, productos: ProductoAdmin[]) {
           ? "No puede ser más caro que el precio por mayor."
           : "No puede ser más caro que el precio normal.";
     }
+  }
+
+  const minimo = numero(formulario.minColores);
+  const maximo = numero(formulario.maxColores);
+
+  if (
+    ![minimo, maximo].every(
+      (valor) => Number.isInteger(valor) && valor >= 0 && valor <= 20
+    )
+  ) {
+    errores.limitesColores = "Usá números enteros (vacío = 1 a 2 colores).";
+  } else if (minimo && maximo && minimo > maximo) {
+    errores.limitesColores = "El mínimo no puede ser mayor que el máximo.";
   }
 
   return errores;
@@ -361,6 +385,7 @@ export default function ProductosAdmin() {
   const cadenasOpciones = datos?.cadenasOpciones || [];
   const coloresOpciones = datos?.coloresOpciones || [];
   const hayColores = Boolean(datos?.hayColores);
+  const hayLimitesColores = Boolean(datos?.hayLimitesColores);
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [cambiando, setCambiando] = useState<string[]>([]);
@@ -413,6 +438,7 @@ export default function ProductosAdmin() {
         cadenasOpciones: actual?.cadenasOpciones || [],
         coloresOpciones: actual?.coloresOpciones || [],
         hayColores: Boolean(actual?.hayColores),
+        hayLimitesColores: Boolean(actual?.hayLimitesColores),
       }));
       avisar(
         activo
@@ -471,6 +497,8 @@ export default function ProductosAdmin() {
       foto: formulario.foto.trim(),
       cadenas: formulario.cadenas,
       colores: formulario.colores,
+      minColores: numero(formulario.minColores),
+      maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
 
@@ -490,6 +518,7 @@ export default function ProductosAdmin() {
           cadenasOpciones: sumar(actual?.cadenasOpciones || [], producto.cadenas),
           coloresOpciones: sumar(actual?.coloresOpciones || [], producto.colores),
           hayColores: Boolean(actual?.hayColores),
+          hayLimitesColores: Boolean(actual?.hayLimitesColores),
         };
       });
       avisar(esNuevo ? "Producto creado." : "Cambios guardados.");
@@ -705,11 +734,53 @@ export default function ProductosAdmin() {
 
             {hayColores && (
               <EditorOpciones
-                titulo="Colores"
+                titulo="Colores de la foto"
                 opciones={coloresOpciones}
                 elegidas={formulario.colores}
                 onCambiar={(colores) => cambiar({ colores })}
               />
+            )}
+
+            {hayLimitesColores && (
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Campo etiqueta="Mín. de colores">
+                    <input
+                      className={claseInput}
+                      value={formulario.minColores}
+                      onChange={(evento) =>
+                        cambiar({ minColores: evento.target.value })
+                      }
+                      inputMode="numeric"
+                      placeholder="1"
+                      aria-invalid={Boolean(intentado && errores.limitesColores)}
+                    />
+                  </Campo>
+                  <Campo etiqueta="Máx. de colores">
+                    <input
+                      className={claseInput}
+                      value={formulario.maxColores}
+                      onChange={(evento) =>
+                        cambiar({ maxColores: evento.target.value })
+                      }
+                      inputMode="numeric"
+                      placeholder="2"
+                      aria-invalid={Boolean(intentado && errores.limitesColores)}
+                    />
+                  </Campo>
+                </div>
+                <p
+                  className={`mt-1.5 text-[11px] leading-4 ${
+                    intentado && errores.limitesColores
+                      ? "font-semibold text-red-600 dark:text-red-400"
+                      : "text-[var(--text-muted)]"
+                  }`}
+                >
+                  {intentado && errores.limitesColores
+                    ? errores.limitesColores
+                    : "Cuántos colores puede elegir el cliente si cambia los de la foto. Vacío = 1 a 2."}
+                </p>
+              </div>
             )}
 
             <EditorOpciones
