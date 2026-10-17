@@ -535,6 +535,19 @@ export type AccionesAdmin = {
     pedido: SinDatos;
     respuesta: VistaRuletaAdmin;
   };
+  admin_puntos_historial: {
+    pedido: { email: string };
+    respuesta: PuntosCliente;
+  };
+  /* sumar: puntos con signo; fijar: el saldo queda en ese número. */
+  admin_puntos_ajustar: {
+    pedido: { email: string; modo: "sumar" | "fijar"; puntos: number; motivo?: string };
+    respuesta: PuntosCliente;
+  };
+  admin_puntos_revertir: {
+    pedido: { email: string; id: string };
+    respuesta: PuntosCliente;
+  };
   admin_ruleta_config_guardar: {
     pedido: { config: ConfigRuleta };
     respuesta: VistaRuletaAdmin;
@@ -573,6 +586,27 @@ export type VistaRuletaAdmin = {
   config: ConfigRuleta;
   hoy: { nombre: string; tipo: string; chance: number; color: string; misterio: boolean }[];
   cambiaEn: string;
+};
+
+/* Un movimiento de la hoja Puntos. */
+export type MovimientoPuntos = {
+  id: string; // PTS-0012
+  fecha: string; // ISO
+  pedido: string;
+  tipo: string; // Ganados | Utilizados | Ajuste | Reversión
+  puntos: number; // con signo
+  saldoAnterior: number;
+  saldoNuevo: number;
+  estado: string; // "Revertido" si se deshizo
+  comentario: string;
+  revertible: boolean;
+};
+
+export type PuntosCliente = {
+  email: string;
+  puntos: number;
+  acumulados: number;
+  movimientos: MovimientoPuntos[];
 };
 
 /* Giros de la ruleta que el dueño le regala a un cliente. */
@@ -626,4 +660,7 @@ export const ACCIONES_ADMIN = [
   "admin_ruleta_giros_guardar",
   "admin_ruleta_config_listar",
   "admin_ruleta_config_guardar",
+  "admin_puntos_historial",
+  "admin_puntos_ajustar",
+  "admin_puntos_revertir",
 ] as const satisfies readonly TipoAccionAdmin[];

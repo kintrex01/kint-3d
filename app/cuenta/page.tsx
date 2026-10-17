@@ -58,6 +58,7 @@ type Cuenta = {
   puntos: number;
   puntosAcumulados: number;
   valorPunto: number;
+  movimientosPuntos?: { fecha: string; tipo: string; puntos: number; saldo: number; estado: string; detalle: string }[];
   gastado: number;
   resenas?: ResenaCuenta[];
   cantidadPedidos: number;
@@ -413,6 +414,53 @@ function PanelCuenta({
           </p>
         )}
       </div>
+
+      {/* Historial de puntos */}
+      {(cuenta.movimientosPuntos?.length ?? 0) > 0 && (
+        <details className={`${CLASE_PANEL} group p-6`}>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-black">
+            <span className="flex items-center gap-2">
+              <Coins size={17} className="text-amber-500" />
+              Historial de puntos
+            </span>
+            <span className="text-xs font-bold text-[var(--text-muted)] group-open:hidden">Ver</span>
+          </summary>
+          <ul className="mt-4 space-y-1.5">
+            {cuenta.movimientosPuntos!.map((movimiento, indice) => {
+              const deshecho = movimiento.estado === "Revertido";
+              return (
+                <li
+                  key={`${movimiento.fecha}-${indice}`}
+                  className={`flex items-center gap-3 rounded-xl bg-[var(--kint-panel-soft)] px-3 py-2 ${deshecho ? "opacity-55" : ""}`}
+                >
+                  <span
+                    className={`w-14 shrink-0 text-right text-sm font-black tabular-nums ${
+                      deshecho ? "line-through" : movimiento.puntos >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    {movimiento.puntos > 0 ? "+" : ""}
+                    {movimiento.puntos}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-bold">
+                      {movimiento.detalle || movimiento.tipo}
+                      {deshecho ? " (anulado)" : ""}
+                    </span>
+                    <span className="block text-[11px] text-[var(--text-muted)]">
+                      {movimiento.fecha
+                        ? new Date(movimiento.fecha).toLocaleDateString("es-UY", { day: "numeric", month: "short", year: "numeric" })
+                        : ""}
+                      {" · "}
+                      {movimiento.tipo}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-muted)]">saldo {movimiento.saldo}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </details>
+      )}
 
       {/* Datos */}
       <div className={`${CLASE_PANEL} p-6`}>

@@ -29,6 +29,7 @@ import {
   useAvisos,
 } from "@/components/admin/ui";
 import { HistorialCliente } from "@/components/admin/clientes/HistorialCliente";
+import { PuntosCliente } from "@/components/admin/clientes/PuntosCliente";
 
 const MESES = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -204,6 +205,17 @@ export default function ClientesAdmin() {
                   key={cliente.email}
                   cliente={cliente}
                   onCambiarEstado={() => setConfirmando(cliente)}
+                  onPuntos={(puntos) =>
+                    setDatos((actual) =>
+                      actual
+                        ? {
+                            clientes: actual.clientes.map((item) =>
+                              item.email === cliente.email ? { ...item, puntos } : item
+                            ),
+                          }
+                        : actual
+                    )
+                  }
                 />
               ))}
             </div>
@@ -242,9 +254,11 @@ export default function ClientesAdmin() {
 function TarjetaCliente({
   cliente,
   onCambiarEstado,
+  onPuntos,
 }: {
   cliente: ClienteAdmin;
   onCambiarEstado: () => void;
+  onPuntos: (puntos: number) => void;
 }) {
   const bloqueado = estaBloqueado(cliente);
   const registro = fechaRegistro(cliente.registro);
@@ -324,6 +338,7 @@ function TarjetaCliente({
       </div>
 
       <HistorialCliente email={cliente.email} />
+      <PuntosCliente email={cliente.email} onPuntos={onPuntos} />
     </Tarjeta>
   );
 }
