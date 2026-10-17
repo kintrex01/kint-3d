@@ -105,6 +105,7 @@ export type ArchivoPedido = {
 };
 
 export type PedidoDetalle = PedidoResumen & {
+  telefonoCuenta?: string; // celular de la cuenta del cliente (Clientes › Teléfono)
   escala: string;
   color: string;
   armado: string;

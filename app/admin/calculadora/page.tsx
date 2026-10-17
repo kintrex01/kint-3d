@@ -37,7 +37,7 @@ export default function CalculadoraAdmin() {
         titulo="Calculadora"
         subtitulo="Calculá el costo real y mandalo como presupuesto a un pedido"
       />
-      <Calculadora extra={(calculo) => <AgregarAPedido calculo={calculo} />} />
+      <Calculadora extraIzquierda={(calculo) => <AgregarAPedido calculo={calculo} />} />
     </>
   );
 }

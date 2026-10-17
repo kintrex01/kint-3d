@@ -699,6 +699,14 @@ export function linkWhatsapp(numero: string, texto = "") {
     if (digitos.startsWith("0")) digitos = digitos.slice(1);
     if (!digitos.startsWith("598")) digitos = `598${digitos}`;
   }
+  // En la compu se abre WhatsApp Web (es el que se usa); en el celular, la app.
+  const celular =
+    typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!celular) {
+    return `https://web.whatsapp.com/send?phone=${digitos}${
+      texto ? `&text=${encodeURIComponent(texto)}` : ""
+    }`;
+  }
   return `https://wa.me/${digitos}${
     texto ? `?text=${encodeURIComponent(texto)}` : ""
   }`;

@@ -389,7 +389,7 @@ export default function DetallePedidoAdmin({
   const cancelado = estaCancelado(pedido.estado);
   const paso = proximoPaso(pedido);
   const whatsapp = linkWhatsapp(
-    pedido.whatsapp,
+    pedido.whatsapp || pedido.telefonoCuenta || "",
     `Hola ${pedido.nombre}, te escribo por tu pedido ${pedido.pedido} de Kint 3D`
   );
   // revisarEstados saltea los pedidos sin email.

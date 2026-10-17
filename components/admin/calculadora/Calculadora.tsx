@@ -34,6 +34,7 @@ import {
   MULTIPLICADORES,
   analizarVenta,
   calcular,
+  precioRecomendado,
   perfilNuevo,
   textoTiempo,
   type AnalisisVenta,
@@ -135,10 +136,13 @@ const PARTES = [
 
 export default function Calculadora({
   extra,
+  extraIzquierda,
   compacta = false,
 }: {
-  /* Debajo del total: "Agregar a un pedido" o "Usar este precio". */
+  /* Debajo del total: "Usar este precio". */
   extra?: (calculo: CalculoActual) => ReactNode;
+  /* Debajo de la pieza (columna izquierda): "Agregar a un pedido". */
+  extraIzquierda?: (calculo: CalculoActual) => ReactNode;
   /* En una hoja: una sola columna. */
   compacta?: boolean;
 }) {
@@ -194,6 +198,7 @@ export default function Calculadora({
   };
   const resultado = perfil ? calcular(perfil, pieza) : null;
   const sinDatos = !(pieza.gramos > 0 || pieza.horas > 0 || pieza.minutos > 0 || pieza.insumos > 0);
+  const recomendado = perfil && !sinDatos ? precioRecomendado(perfil, pieza) : 0;
   const venta =
     perfil && !sinDatos && aNumero(precioVenta) > 0 ? analizarVenta(perfil, pieza, aNumero(precioVenta)) : null;
 
@@ -441,6 +446,8 @@ export default function Calculadora({
             Tiempo y gramos: los que te da Bambu Studio al laminar. Insumos: argollas, imanes, cadenas…
           </p>
         </Tarjeta>
+
+        {resultado && perfil && extraIzquierda?.({ resultado, pieza, tiempo: textoTiempo(pieza), perfil: perfil.nombre })}
       </div>
 
       {/* Resultado */}
@@ -455,6 +462,18 @@ export default function Calculadora({
                   <Pastilla>Redondeado {pesos(resultado.redondeado)}</Pastilla>
                   {resultado.piezas > 1 && <Pastilla>{pesos(resultado.porPieza)} c/u</Pastilla>}
                   {!sinDatos && <Pastilla>{textoTiempo(pieza)}</Pastilla>}
+                  {recomendado > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPrecioVenta(String(recomendado))}
+                      title="Según el costo real y el tiempo de impresión. Tocalo para probarlo abajo."
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-2.5 py-1 text-[11px] font-black text-emerald-200 ring-1 ring-inset ring-emerald-300/40 transition hover:bg-emerald-400/30"
+                    >
+                      <Sparkles size={11} />
+                      Te recomiendo {pesos(recomendado)}
+                      {resultado.piezas > 1 ? " c/u" : ""}
+                    </button>
+                  )}
                 </div>
               </div>
               <Dona resultado={resultado} vacia={sinDatos} />

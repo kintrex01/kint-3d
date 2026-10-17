@@ -169,3 +169,18 @@ export function analizarVenta(perfil: PerfilCalculadora, pieza: PiezaCalculadora
 }
 
 export type AnalisisVenta = ReturnType<typeof analizarVenta>;
+
+/*
+ * Precio sugerido por pieza: costo real × un multiplicador según cuánto
+ * tarda (las piezas chicas, como llaveros, aguantan más; las impresiones
+ * largas, menos), con al menos $30 de ganancia y redondeado lindo.
+ */
+export function precioRecomendado(perfil: PerfilCalculadora, pieza: PiezaCalculadora) {
+  const analisis = analizarVenta(perfil, pieza, 0);
+  if (!(analisis.costo > 0)) return 0;
+  const horasPorPieza = (Math.max(0, pieza.horas) + Math.max(0, pieza.minutos) / 60) / analisis.piezas;
+  const veces = horasPorPieza <= 1 ? 3.5 : horasPorPieza <= 3 ? 3 : horasPorPieza <= 8 ? 2.6 : 2.2;
+  const precio = Math.max(analisis.costo * veces, analisis.costo + 30);
+  const paso = precio >= 500 ? 50 : precio >= 150 ? 10 : 5;
+  return Math.ceil(precio / paso) * paso;
+}
