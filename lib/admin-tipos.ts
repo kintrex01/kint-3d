@@ -539,6 +539,14 @@ export type AccionesAdmin = {
     pedido: { email: string };
     respuesta: PuntosCliente;
   };
+  admin_premios_listar: {
+    pedido: SinDatos;
+    respuesta: { premios: PremioGanado[] };
+  };
+  admin_premio_estado: {
+    pedido: { codigo: string; entregado: boolean };
+    respuesta: { premios: PremioGanado[] };
+  };
   /* sumar: puntos con signo; fijar: el saldo queda en ese número. */
   admin_puntos_ajustar: {
     pedido: { email: string; modo: "sumar" | "fijar"; puntos: number; motivo?: string };
@@ -586,6 +594,20 @@ export type VistaRuletaAdmin = {
   config: ConfigRuleta;
   hoy: { nombre: string; tipo: string; chance: number; color: string; misterio: boolean }[];
   cambiaEn: string;
+};
+
+/* Un premio ganado en la ruleta o canjeado con puntos (hoja Premios). */
+export type PremioGanado = {
+  fecha: string;
+  email: string;
+  alias: string;
+  origen: string; // Ruleta | Ruleta extra | Canje
+  tipo: "regalo" | "descuento";
+  premio: string;
+  detalle: string;
+  codigo: string;
+  vence: string;
+  estado: string; // Disponible | Reclamado · KNT-0012 | Entregado · KNT-0012
 };
 
 /* Un movimiento de la hoja Puntos. */
@@ -663,4 +685,6 @@ export const ACCIONES_ADMIN = [
   "admin_puntos_historial",
   "admin_puntos_ajustar",
   "admin_puntos_revertir",
+  "admin_premios_listar",
+  "admin_premio_estado",
 ] as const satisfies readonly TipoAccionAdmin[];

@@ -48,6 +48,7 @@ const LECTURAS = new Set<string>([
   "admin_presupuesto_opciones",
   "admin_cliente_historial",
   "admin_puntos_historial",
+  "admin_premios_listar",
   "admin_todos_listar",
   "admin_caja_listar",
   "admin_calc_listar",

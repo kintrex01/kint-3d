@@ -59,7 +59,7 @@ type Cuenta = {
   puntosAcumulados: number;
   valorPunto: number;
   movimientosPuntos?: { fecha: string; tipo: string; puntos: number; saldo: number; estado: string; detalle: string }[];
-  gastado: number;
+  gastado?: number; // ya no llega: lo ve solo el dueño
   resenas?: ResenaCuenta[];
   cantidadPedidos: number;
   cantidadCompras: number;
@@ -554,11 +554,6 @@ function PanelCuenta({
       <div className={`${CLASE_PANEL} p-6`}>
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-black">Tus pedidos</p>
-          {cuenta.gastado > 0 && (
-            <p className="text-xs text-[var(--text-muted)]">
-              Total: <strong className="text-[var(--text-main)]">{pesos(cuenta.gastado)}</strong>
-            </p>
-          )}
         </div>
 
         {cuenta.pedidos.length === 0 ? (

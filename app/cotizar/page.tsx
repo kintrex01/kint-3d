@@ -2411,7 +2411,8 @@ return (
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Si tenés un código promocional o un premio de la Ruleta Kint (VALE-…), ingresalo aquí.
+    Si tenés un código promocional o premios de la Ruleta Kint (VALE-…), ingresalos acá separados por un
+    espacio. Premios van todos los que quieras; descuento con % uno solo por pedido.
   </p>
 
   <input
@@ -2422,7 +2423,7 @@ return (
       )
     }
     className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-    placeholder="Ej: KINT10 o VALE-AB12"
+    placeholder="Ej: KINT10 VALE-AB12 VALE-CD34"
   />
 
   {beneficiosDisponibles.length > 0 && (

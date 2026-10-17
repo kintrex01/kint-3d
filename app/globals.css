@@ -642,10 +642,50 @@ html .kint-main-btn.kint-tienda-main:hover {
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -8%;
   z-index: -1;
   pointer-events: none;
   transition: background 0.4s ease;
+  /* El dibujo del fondo respira despacito, en todas las pantallas. */
+  animation: kint-fondo-deriva 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Luces suaves del color del tema que flotan por detrás de todo. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    radial-gradient(28% 24% at 22% 30%, color-mix(in srgb, var(--acento, #2563eb) 22%, transparent), transparent 70%),
+    radial-gradient(24% 22% at 78% 65%, color-mix(in srgb, var(--acento-claro, #60a5fa) 16%, transparent), transparent 70%),
+    radial-gradient(20% 18% at 55% 12%, color-mix(in srgb, var(--acento, #2563eb) 12%, transparent), transparent 70%);
+  filter: blur(18px);
+  animation: kint-fondo-luces 46s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes kint-fondo-deriva {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-2.5%, 1.5%, 0) scale(1.04); }
+  100% { transform: translate3d(2%, -2%, 0) scale(1.02); }
+}
+
+@keyframes kint-fondo-luces {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  33% { transform: translate3d(6%, -4%, 0) rotate(6deg); }
+  66% { transform: translate3d(-5%, 5%, 0) rotate(-4deg); }
+  100% { transform: translate3d(3%, 3%, 0) rotate(3deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none;
+  }
 }
 
 /* ---------- Humo azul (el de siempre) ---------- */

@@ -48,6 +48,7 @@ import {
   useAvisos,
 } from "@/components/admin/ui";
 import { unidadConfig } from "@/components/admin/unidadesConfig";
+import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
 
 /* ------------------------------------------------------------------ */
 /* Textos                                                              */
@@ -496,6 +497,7 @@ export default function ConfiguracionAdmin() {
           ) : elegida === RULETA ? (
             <>
               <CabeceraSeccion titulo={RULETA} />
+              <PremiosParaArmar />
               <EditorRuleta />
               <p className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Giros de regalo</p>
               <GirosRuleta />

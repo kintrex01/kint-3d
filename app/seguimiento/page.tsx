@@ -622,26 +622,40 @@ async function aplicarCodigoDescuento() {
   setAvisoCodigo("");
 
   try {
-    const response = await fetch("/api/descuento", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        pedido,
-        codigo,
-        codigoDescuento: codigoDescuentoInput.trim().toUpperCase(),
-      }),
-    });
+    // Pueden venir varios códigos (premios VALE- y un descuento): de a uno.
+    const codigos = codigoDescuentoInput
+      .toUpperCase()
+      .split(/[s,;]+/)
+      .filter(Boolean)
+      .filter((item, indice, todos) => todos.indexOf(item) === indice);
+    const mensajes: string[] = [];
+    const errores: string[] = [];
 
-    const data = await response.json();
+    for (const codigoIngresado of codigos) {
+      const response = await fetch("/api/descuento", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          pedido,
+          codigo,
+          codigoDescuento: codigoIngresado,
+        }),
+      });
 
-    if (!data.ok) {
-      throw new Error(data.error || "No se pudo aplicar el código.");
+      const data = await response.json();
+
+      if (data.ok) mensajes.push(data.mensaje || `¡${codigoIngresado} aplicado!`);
+      else errores.push(`${codigoIngresado}: ${data.error || "no se pudo aplicar."}`);
     }
 
-    setCodigoDescuentoInput("");
-    setAvisoCodigo(data.mensaje || "¡Código aplicado!");
+    if (!mensajes.length) {
+      throw new Error(errores.join(" · ") || "No se pudo aplicar el código.");
+    }
+
+    setCodigoDescuentoInput(errores.length ? errores.map((texto) => texto.split(":")[0]).join(" ") : "");
+    setAvisoCodigo(mensajes.join(" ") + (errores.length ? " Revisá: " + errores.join(" · ") : ""));
     await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al aplicar descuento.");
@@ -3232,10 +3246,12 @@ aplicada al pedido.
     </p>
 
     <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
-      Los premios de la Ruleta Kint (VALE-…) los podés reclamar en cualquier momento.
+      Los premios de la Ruleta Kint (VALE-…) los podés reclamar en cualquier momento, y todos juntos: pegalos
+      separados por un espacio.
       {resultado.estado === "Recibido" && !resultado.codigoDescuento
         ? " Los códigos de descuento se aplican mientras el pedido esté en estado Recibido."
         : " Los códigos de descuento ya no se pueden aplicar en esta etapa."}
+      {" "}Descuento con % hay uno solo por pedido.
     </p>
 
     {avisoCodigo && (
