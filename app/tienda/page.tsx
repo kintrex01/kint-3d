@@ -1100,7 +1100,8 @@ function TarjetaProducto({
         {enCarrito > 0 && (
           <span className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-[var(--blue-main)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white shadow-lg">
             <ShoppingBag size={12} strokeWidth={2.4} />
-            {enCarrito} en el carrito
+            {enCarrito}
+            <span className="hidden sm:inline">en el carrito</span>
           </span>
         )}
       </div>
@@ -2560,14 +2561,41 @@ const ORDENES: { valor: Orden; texto: string }[] = [
   { valor: "nombre", texto: "Nombre (A-Z)" },
 ];
 
-const CLASES_COLUMNAS: Record<number, string> = {
+/*
+ * Productos por fila: en el celu de 1 a 3 (2 de entrada) y en la compu de
+ * 1 a 5 (5 de entrada). Con el carrito abierto en la compu entran menos.
+ */
+const CLASES_CELU: Record<number, string> = {
   1: "grid-cols-1",
   2: "grid-cols-2",
-  3: "grid-cols-2 lg:grid-cols-3",
-  4: "grid-cols-2 lg:grid-cols-4",
+  3: "grid-cols-3",
+};
+const CLASES_TABLET: Record<number, string> = {
+  1: "sm:grid-cols-1",
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-3",
+  5: "sm:grid-cols-3",
+};
+const CLASES_COMPU: Record<number, string> = {
+  1: "lg:grid-cols-1",
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+  5: "lg:grid-cols-4 xl:grid-cols-5",
+};
+const CLASES_COMPU_CON_CARRITO: Record<number, string> = {
+  1: "lg:grid-cols-1",
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-2 xl:grid-cols-3",
+  4: "lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
+  5: "lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
 };
 
-const CLAVE_VISTA = "kint-tienda-vista-v1";
+const CLAVE_VISTA = "kint-tienda-vista-v2";
+
+type Vista = { orden: Orden; invertido: boolean; columnas: number; columnasCelu: number };
+const VISTA_INICIAL: Vista = { orden: "destacados", invertido: false, columnas: 5, columnasCelu: 2 };
 
 function promedioResenas(producto: Producto) {
   if (!producto.resenas.length) return 0;
@@ -2671,8 +2699,8 @@ function ordenarProductos(productos: Producto[], orden: Orden, invertido: boolea
   return invertido ? lista.reverse() : lista;
 }
 
-function leerVista(): { orden: Orden; invertido: boolean; columnas: number } {
-  const porDefecto = { orden: "destacados" as Orden, invertido: false, columnas: 0 };
+function leerVista(): Vista {
+  const porDefecto = VISTA_INICIAL;
   try {
     const guardada = JSON.parse(localStorage.getItem(CLAVE_VISTA) || "null");
     if (!guardada) return porDefecto;
@@ -2681,7 +2709,8 @@ function leerVista(): { orden: Orden; invertido: boolean; columnas: number } {
         ? guardada.orden
         : "destacados",
       invertido: guardada.invertido === true,
-      columnas: [1, 2, 3, 4].includes(guardada.columnas) ? guardada.columnas : 0,
+      columnas: [1, 2, 3, 4, 5].includes(guardada.columnas) ? guardada.columnas : 5,
+      columnasCelu: [1, 2, 3].includes(guardada.columnasCelu) ? guardada.columnasCelu : 2,
     };
   } catch {
     return porDefecto;
@@ -2693,12 +2722,14 @@ function BarraVista({
   orden,
   invertido,
   columnas,
+  columnasCelu,
   onCambiar,
 }: {
   orden: Orden;
   invertido: boolean;
   columnas: number;
-  onCambiar: (vista: { orden?: Orden; invertido?: boolean; columnas?: number }) => void;
+  columnasCelu: number;
+  onCambiar: (vista: Partial<Vista>) => void;
 }) {
   return (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -2733,42 +2764,65 @@ function BarraVista({
         </button>
       </div>
 
-      <div
-        role="group"
-        aria-label="Productos por fila"
-        className="flex items-center gap-1 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-1"
-      >
-        {[1, 2, 3, 4].map((cantidad) => (
-          <button
-            key={cantidad}
-            type="button"
-            aria-pressed={columnas === cantidad}
-            onClick={() => onCambiar({ columnas: columnas === cantidad ? 0 : cantidad })}
-            title={`${cantidad} por fila`}
-            className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black transition ${
-              cantidad > 2 ? "hidden lg:block" : ""
-            } ${
-              columnas === cantidad
-                ? "bg-[var(--blue-main)] text-white"
-                : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
-            }`}
-          >
-            {cantidad}
-          </button>
-        ))}
-        <span className="px-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-          por fila
-        </span>
-      </div>
+      {/* Celu: 1 a 3 por fila */}
+      <SelectorColumnas
+        opciones={[1, 2, 3]}
+        elegida={columnasCelu}
+        onElegir={(cantidad) => onCambiar({ columnasCelu: cantidad })}
+        className="flex lg:hidden"
+      />
+      {/* Compu: 1 a 5 por fila */}
+      <SelectorColumnas
+        opciones={[1, 2, 3, 4, 5]}
+        elegida={columnas}
+        onElegir={(cantidad) => onCambiar({ columnas: cantidad })}
+        className="hidden lg:flex"
+      />
+    </div>
+  );
+}
+
+function SelectorColumnas({
+  opciones,
+  elegida,
+  onElegir,
+  className,
+}: {
+  opciones: number[];
+  elegida: number;
+  onElegir: (cantidad: number) => void;
+  className: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Productos por fila"
+      className={`items-center gap-1 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-1 ${className}`}
+    >
+      {opciones.map((cantidad) => (
+        <button
+          key={cantidad}
+          type="button"
+          aria-pressed={elegida === cantidad}
+          onClick={() => onElegir(cantidad)}
+          title={`${cantidad} por fila`}
+          className={`h-8 min-w-8 rounded-lg px-2 text-xs font-black transition ${
+            elegida === cantidad
+              ? "bg-[var(--blue-main)] text-white"
+              : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+          }`}
+        >
+          {cantidad}
+        </button>
+      ))}
+      <span className="px-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">por fila</span>
     </div>
   );
 }
 
 export default function TiendaPage() {
-  const [vista, setVista] = useState<{ orden: Orden; invertido: boolean; columnas: number }>(() =>
-    typeof window === "undefined"
-      ? { orden: "destacados", invertido: false, columnas: 0 }
-      : leerVista()
+  const [vista, setVista] = useState<Vista>(() =>
+    typeof window === "undefined" ? VISTA_INICIAL : leerVista()
   );
 
   function cambiarVista(cambio: Partial<typeof vista>) {
@@ -3890,14 +3944,14 @@ export default function TiendaPage() {
                 orden={vista.orden}
                 invertido={vista.invertido}
                 columnas={vista.columnas}
+                columnasCelu={vista.columnasCelu}
                 onCambiar={cambiarVista}
               />
               <div
-                className={`grid gap-5 ${
-                  CLASES_COLUMNAS[vista.columnas] ||
-                  (carritoAbierto
-                    ? "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
-                    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4")
+                className={`grid gap-3 sm:gap-5 ${CLASES_CELU[vista.columnasCelu] ?? "grid-cols-2"} ${
+                  CLASES_TABLET[vista.columnas] ?? "sm:grid-cols-3"
+                } ${
+                  (carritoAbierto ? CLASES_COMPU_CON_CARRITO : CLASES_COMPU)[vista.columnas] ?? "lg:grid-cols-4 xl:grid-cols-5"
                 }`}
               >
                 {ordenarProductos(
@@ -3916,7 +3970,7 @@ export default function TiendaPage() {
                     mayorDesde={catalogo.mayorDesde}
                     granMayorDesde={catalogo.granMayorDesde}
                     deshabilitada={!tiendaAbierta || enviando}
-                    compacta={vista.columnas >= 2}
+                    compacta={!(vista.columnas === 1 && vista.columnasCelu === 1)}
                     enCarrito={
                       unidadesPorProducto.get(producto.nombre) || 0
                     }
