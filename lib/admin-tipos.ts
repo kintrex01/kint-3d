@@ -445,6 +445,12 @@ export type AccionesAdmin = {
     respuesta: { productos: ProductoAdmin[] };
   };
 
+  /* Orden de la tienda ("Destacados"): nombres en el orden nuevo. */
+  admin_productos_ordenar: {
+    pedido: { nombres: string[] };
+    respuesta: AccionesAdmin["admin_productos_listar"]["respuesta"];
+  };
+
   admin_config_listar: {
     pedido: SinDatos;
     respuesta: { filas: FilaConfig[] };
@@ -692,6 +698,7 @@ export const ACCIONES_ADMIN = [
   "admin_tienda_cancelar",
   "admin_productos_listar",
   "admin_producto_guardar",
+  "admin_productos_ordenar",
   "admin_config_listar",
   "admin_config_guardar",
   "admin_config_agregar",

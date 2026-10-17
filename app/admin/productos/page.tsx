@@ -707,6 +707,35 @@ export default function ProductosAdmin() {
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [intentado, setIntentado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const [ordenando, setOrdenando] = useState(false);
+
+  /* Orden de la tienda: arrastrar un producto (o flechas) y se guarda. */
+  async function mover(nombre: string, destino: string | number) {
+    const lista = productos.map((producto) => producto.nombre);
+    const desde = lista.indexOf(nombre);
+    const hasta = typeof destino === "number" ? desde + destino : lista.indexOf(destino);
+    if (desde < 0 || hasta < 0 || hasta >= lista.length || desde === hasta || ordenando) return;
+    lista.splice(desde, 1);
+    lista.splice(hasta, 0, nombre);
+    const anterior = datos;
+    setDatos((actual) =>
+      actual
+        ? { ...actual, productos: lista.map((item) => actual.productos.find((p) => p.nombre === item)!).filter(Boolean) }
+        : actual
+    );
+    setOrdenando(true);
+    try {
+      const respuesta = await accionAdmin("admin_productos_ordenar", { nombres: lista });
+      setDatos(respuesta);
+      avisar("Orden de la tienda guardado");
+    } catch (error) {
+      if (anterior) setDatos(anterior);
+      avisar(error instanceof Error ? error.message : "No se pudo ordenar.", "error");
+    } finally {
+      setOrdenando(false);
+    }
+  }
 
   const activos = productos.filter((producto) => producto.activo).length;
   const visibles = productos.filter((producto) =>
@@ -913,17 +942,49 @@ export default function ProductosAdmin() {
             ]}
           />
           {visibles.length ? (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {visibles.map((producto) => (
-                <TarjetaProducto
-                  key={producto.nombre}
-                  producto={producto}
-                  cambiando={cambiando.includes(producto.nombre)}
-                  onEditar={() => abrir(producto)}
-                  onActivo={(activo) => alternarActivo(producto, activo)}
-                />
-              ))}
+            <>
+            {filtro === "todos" && productos.length > 1 && (
+              <p className="mb-2 text-[11px] text-[var(--text-muted)]">
+                Arrastrá los productos (o usá las flechas) para elegir en qué orden salen en la tienda («Destacados»).
+              </p>
+            )}
+            <div className={`grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${ordenando ? "opacity-70" : ""}`}>
+              {visibles.map((producto) => {
+                const posicion = productos.findIndex((item) => item.nombre === producto.nombre);
+                const ordenable = filtro === "todos" && productos.length > 1;
+                return (
+                  <div
+                    key={producto.nombre}
+                    draggable={ordenable}
+                    onDragStart={() => setArrastrando(producto.nombre)}
+                    onDragOver={(evento) => evento.preventDefault()}
+                    onDrop={() => {
+                      if (arrastrando) void mover(arrastrando, producto.nombre);
+                      setArrastrando(null);
+                    }}
+                    onDragEnd={() => setArrastrando(null)}
+                    className={`flex flex-col ${ordenable ? "cursor-grab active:cursor-grabbing" : ""} ${arrastrando === producto.nombre ? "opacity-40" : ""}`}
+                  >
+                    {ordenable && (
+                      <div className="mb-1 flex items-center justify-between px-1 text-[10px] font-black text-[var(--text-muted)]">
+                        <span>#{posicion + 1}</span>
+                        <span className="flex gap-1">
+                          <button type="button" aria-label="Antes" disabled={posicion === 0 || ordenando} onClick={() => void mover(producto.nombre, -1)} className="rounded px-1.5 py-0.5 hover:bg-[var(--kint-panel-soft)] disabled:opacity-25">◀</button>
+                          <button type="button" aria-label="Después" disabled={posicion === productos.length - 1 || ordenando} onClick={() => void mover(producto.nombre, 1)} className="rounded px-1.5 py-0.5 hover:bg-[var(--kint-panel-soft)] disabled:opacity-25">▶</button>
+                        </span>
+                      </div>
+                    )}
+                    <TarjetaProducto
+                      producto={producto}
+                      cambiando={cambiando.includes(producto.nombre)}
+                      onEditar={() => abrir(producto)}
+                      onActivo={(activo) => alternarActivo(producto, activo)}
+                    />
+                  </div>
+                );
+              })}
             </div>
+            </>
           ) : (
             <Vacio
               titulo={
