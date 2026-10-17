@@ -2875,6 +2875,11 @@ export default function TiendaPage() {
 
   // Panel del carrito a la derecha: se abre y cierra con el botón de arriba.
   const [carritoAbierto, setCarritoAbierto] = useState(false);
+  /*
+   * Con 5 por fila cada producto queda igual que con 4: la página se
+   * ensancha lo que ocupa una tarjeta más (64rem → 80rem, desde 1280 px).
+   */
+  const anchoCatalogo = vista.columnas === 5 && !carritoAbierto ? "xl:max-w-[80rem]" : "";
   const [hoy] = useState(fechaHoyISO);
 
   // Ficha abierta (por nombre de producto) y aviso de "agregado".
@@ -3821,7 +3826,7 @@ export default function TiendaPage() {
           <FondoKintAnimado />
         </div>
 
-        <header className="relative z-20 mx-auto max-w-5xl">
+        <header className={`relative z-20 mx-auto max-w-5xl ${anchoCatalogo}`}>
           <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--blue-main)]">
             Tienda Kint 3D
           </p>
@@ -3867,7 +3872,7 @@ export default function TiendaPage() {
         </header>
       </section>
 
-      <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6">
+      <div className={`relative z-10 mx-auto max-w-5xl px-4 sm:px-6 ${anchoCatalogo}`}>
         {!catalogo && cargando && (
           <div
             role="status"
