@@ -2,14 +2,19 @@
 
 /*
  * Llavero personalizado en el detalle de una compra: qué pidió el cliente
- * y los dos STL listos para Bambu Studio (borde y letras), armados acá
- * mismo con la misma geometría que vio el cliente.
+ * y los archivos para Bambu Studio, armados acá mismo con la misma
+ * geometría que vio el cliente.
+ *
+ * Una descarga por clic: el navegador bloquea la segunda si no la pidió
+ * el usuario (por eso antes llegaba solo el borde).
  */
 
 import { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
 import { textoVisible, type PersonalizacionLlavero } from "@/lib/llavero/personalizacion";
 import { colorFilamento } from "@/lib/colores-filamento";
+
+type Archivo = "3mf" | "borde" | "letras";
 
 function nombreArchivo(texto: string) {
   return texto.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 -]/g, "").trim() || "llavero";
@@ -22,7 +27,7 @@ function descargar(blob: Blob, nombre: string) {
   document.body.appendChild(enlace);
   enlace.click();
   enlace.remove();
-  window.setTimeout(() => URL.revokeObjectURL(enlace.href), 2000);
+  window.setTimeout(() => URL.revokeObjectURL(enlace.href), 4000);
 }
 
 export function ArchivosLlavero({
@@ -34,30 +39,45 @@ export function ArchivosLlavero({
   personalizacion: PersonalizacionLlavero;
   colores: string[]; // [borde, letras]
 }) {
-  const [armando, setArmando] = useState(false);
+  const [armando, setArmando] = useState<Archivo | "">("");
   const [error, setError] = useState("");
   const [borde = "", letras = ""] = colores;
 
-  async function bajar() {
-    setArmando(true);
+  async function bajar(archivo: Archivo) {
+    setArmando(archivo);
     setError("");
     try {
       const { construirLlavero, exportarSTL } = await import("@/lib/llavero/geometria");
       const geometria = await construirLlavero(personalizacion);
-      const base = `${pedido} ${nombreArchivo(personalizacion.texto)}`;
-      descargar(exportarSTL(geometria.base), `${base} - borde${borde ? ` (${borde})` : ""}.stl`);
-      // El navegador a veces frena dos descargas juntas: la segunda va un toque después.
-      window.setTimeout(() => {
-        descargar(exportarSTL(geometria.letras), `${base} - letras${letras ? ` (${letras})` : ""}.stl`);
-      }, 400);
+      const base = `${pedido} ${nombreArchivo(textoVisible(personalizacion))}`;
+      const parteBorde = `borde${borde ? ` (${borde})` : ""}`;
+      const parteLetras = `letras${letras ? ` (${letras})` : ""}`;
+
+      if (archivo === "3mf") {
+        const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
+        descargar(
+          exportar3MF(base, [
+            { nombre: parteBorde, geometria: geometria.base },
+            { nombre: parteLetras, geometria: geometria.letras },
+          ]),
+          `${base}.3mf`
+        );
+      } else if (archivo === "borde") {
+        descargar(exportarSTL(geometria.base), `${base} - ${parteBorde}.stl`);
+      } else {
+        descargar(exportarSTL(geometria.letras), `${base} - ${parteLetras}.stl`);
+      }
       geometria.base.dispose();
-      window.setTimeout(() => geometria.letras.dispose(), 1000);
+      geometria.letras.dispose();
     } catch {
-      setError("No se pudieron armar los archivos.");
+      setError("No se pudo armar el archivo.");
     } finally {
-      setArmando(false);
+      setArmando("");
     }
   }
+
+  const claseSecundario =
+    "inline-flex h-8 items-center gap-1.5 rounded-lg border border-[var(--kint-panel-border)] px-2.5 text-[11px] font-bold transition hover:border-[var(--kint-selected-border)] disabled:opacity-60";
 
   return (
     <span className="mt-1.5 block rounded-xl bg-[var(--kint-panel-soft)] p-2.5">
@@ -80,17 +100,28 @@ export function ArchivosLlavero({
           </span>
         ))}
       </span>
+
       <button
         type="button"
-        onClick={() => void bajar()}
-        disabled={armando}
+        onClick={() => void bajar("3mf")}
+        disabled={Boolean(armando)}
         className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1f3f85] px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
       >
-        {armando ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
-        Descargar STL (borde + letras)
+        {armando === "3mf" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
+        Descargar 3MF (borde + letras juntos)
       </button>
+      <span className="mt-1.5 flex flex-wrap gap-1.5">
+        <button type="button" onClick={() => void bajar("borde")} disabled={Boolean(armando)} className={claseSecundario}>
+          {armando === "borde" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
+          STL borde
+        </button>
+        <button type="button" onClick={() => void bajar("letras")} disabled={Boolean(armando)} className={claseSecundario}>
+          {armando === "letras" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
+          STL letras
+        </button>
+      </span>
       <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
-        En Bambu Studio cargá los dos juntos y aceptá «un objeto con varias partes».
+        El 3MF se abre como una pieza con 2 partes: a «letras» asignale el filamento de las letras.
       </span>
       {error && <span className="mt-1 block text-[11px] font-bold text-red-600">{error}</span>}
     </span>
