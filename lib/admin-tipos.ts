@@ -404,6 +404,12 @@ export type AccionesAdmin = {
     respuesta: { pedido: PedidoDetalle; aviso: string };
   };
 
+  /* orden = índices actuales en el orden nuevo (lo que ve el cliente). */
+  admin_presupuesto_ordenar: {
+    pedido: { pedido: string; orden: number[] };
+    respuesta: { pedido: PedidoDetalle };
+  };
+
   admin_tienda_listar: {
     pedido: SinDatos;
     respuesta: { compras: CompraTienda[] };
@@ -679,6 +685,7 @@ export const ACCIONES_ADMIN = [
   "admin_presupuesto_opciones",
   "admin_presupuesto_guardar",
   "admin_presupuesto_borrar",
+  "admin_presupuesto_ordenar",
   "admin_tienda_listar",
   "admin_tienda_estado",
   "admin_tienda_pago",

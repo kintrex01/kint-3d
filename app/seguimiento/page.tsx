@@ -1952,13 +1952,17 @@ function datosTecnicosPresupuesto(
 </div>
           ))
       ) : (
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {resultado.presupuestos.map((presupuesto: any, index: number) => (
             <div
               key={index}
-              className="rounded-xl border border-[var(--border-color)] p-4"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-5 shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:border-red-600/50"
             >
-              <p className="font-bold">
+              <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-red-600 via-[var(--blue-main)] to-[var(--blue-soft)] opacity-80" />
+              <span className="mb-2 inline-flex w-fit items-center rounded-full bg-red-600/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-600">
+                Opción {index + 1}
+              </span>
+              <p className="text-lg font-black leading-tight">
                 {presupuesto.opcion}
               </p>
 
@@ -1993,13 +1997,13 @@ function datosTecnicosPresupuesto(
   % OFF
 </p>
 
-    <p className="mt-2 text-xl font-black text-red-600">
-      ${presupuesto.precio}
+    <p className="mt-2 text-3xl font-black text-red-600">
+      ${Number(presupuesto.precio).toLocaleString("es-UY")}
     </p>
   </div>
 ) : (
-  <p className="mt-3 text-xl font-black text-red-600">
-    ${presupuesto.precio}
+  <p className="mt-4 text-3xl font-black text-red-600">
+    ${Number(presupuesto.precio).toLocaleString("es-UY")}
   </p>
 )}
 
@@ -2059,11 +2063,11 @@ function datosTecnicosPresupuesto(
 disabled={
   presupuestoSeleccionando !== null
 }
-                className="mt-4 rounded-xl border border-red-600 px-4 py-3 text-xs font-bold uppercase tracking-[0.2em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-50"
+                className="mt-5 w-full rounded-xl bg-red-600 px-4 py-3.5 text-xs font-black uppercase tracking-[0.18em] text-white shadow-[0_8px_22px_rgba(220,38,38,0.25)] transition hover:-translate-y-0.5 hover:bg-red-500 disabled:cursor-wait disabled:opacity-50"
               >
                 {presupuestoSeleccionando === index
-  ? "Seleccionando..."
-  : "Elegir presupuesto"}
+  ? "Eligiendo…"
+  : "Elegir esta opción"}
               </button>
             </div>
           ))}

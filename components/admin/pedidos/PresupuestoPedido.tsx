@@ -202,6 +202,8 @@ export function SeccionPresupuesto({
   } | null>(null);
   const [listaPedida, setListaPedida] = useState(false);
   const [calculando, setCalculando] = useState(false);
+  const [arrastrando, setArrastrando] = useState<number | null>(null);
+  const [ordenando, setOrdenando] = useState(false);
 
   const cancelado = estaCancelado(pedido.estado);
   const { cargadas, vacias } = filasPresupuesto(pedido);
@@ -220,6 +222,27 @@ export function SeccionPresupuesto({
   const opcionesRapidas = listaHoja?.opciones.length
     ? listaHoja.opciones
     : OPCIONES_RAPIDAS;
+
+  // Mover una opción (arrastrando o con las flechas): el cliente las ve en ese orden.
+  async function mover(desde: number, hasta: number) {
+    if (desde === hasta || hasta < 0 || hasta >= cargadas.length || ordenando) return;
+    const nuevas = [...cargadas];
+    const [movida] = nuevas.splice(desde, 1);
+    nuevas.splice(hasta, 0, movida);
+    setOrdenando(true);
+    try {
+      const respuesta = await accionAdmin("admin_presupuesto_ordenar", {
+        pedido: pedido.pedido,
+        orden: [...nuevas.map((fila) => fila.index), ...vacias.map((fila) => fila.index)],
+      });
+      onActualizado(respuesta.pedido);
+      avisar("Orden guardado");
+    } catch (error) {
+      avisar(error instanceof Error ? error.message : "No se pudo ordenar.", "error");
+    } finally {
+      setOrdenando(false);
+    }
+  }
 
   function cargarListaHoja() {
     if (listaPedida) return;
@@ -327,9 +350,49 @@ export function SeccionPresupuesto({
           Sin opciones todavía.
         </Tarjeta>
       ) : (
-        <ul className="space-y-2.5">
-          {cargadas.map((fila) => (
-            <li key={`${fila.index}-${fila.opcion}`}>
+        <ul className={`space-y-2.5 transition-opacity ${ordenando ? "opacity-60" : ""}`}>
+          {cargadas.length > 1 && !cancelado && (
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Arrastrá las opciones (o usá las flechas) para elegir en qué orden las ve el cliente, en la web y en el correo.
+            </p>
+          )}
+          {cargadas.map((fila, posicion) => (
+            <li
+              key={`${fila.index}-${fila.opcion}`}
+              draggable={!cancelado && cargadas.length > 1}
+              onDragStart={() => setArrastrando(posicion)}
+              onDragOver={(evento) => evento.preventDefault()}
+              onDrop={() => {
+                if (arrastrando !== null) void mover(arrastrando, posicion);
+                setArrastrando(null);
+              }}
+              onDragEnd={() => setArrastrando(null)}
+              className={`flex items-center gap-1.5 ${cargadas.length > 1 && !cancelado ? "cursor-grab active:cursor-grabbing" : ""} ${
+                arrastrando === posicion ? "opacity-50" : ""
+              }`}
+            >
+              {cargadas.length > 1 && !cancelado && (
+                <span className="flex shrink-0 flex-col gap-0.5">
+                  <button
+                    type="button"
+                    aria-label="Subir opción"
+                    disabled={posicion === 0 || ordenando}
+                    onClick={() => void mover(posicion, posicion - 1)}
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-xs text-[var(--text-muted)] hover:bg-[var(--kint-panel-soft)] disabled:opacity-25"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Bajar opción"
+                    disabled={posicion === cargadas.length - 1 || ordenando}
+                    onClick={() => void mover(posicion, posicion + 1)}
+                    className="flex h-6 w-6 items-center justify-center rounded-md text-xs text-[var(--text-muted)] hover:bg-[var(--kint-panel-soft)] disabled:opacity-25"
+                  >
+                    ▼
+                  </button>
+                </span>
+              )}
               <TarjetaOpcion
                 fila={fila}
                 editable={!cancelado}
@@ -639,7 +702,7 @@ function TarjetaOpcion({
 
   return (
     <Tarjeta
-      className={`px-4 py-3.5 ${
+      className={`min-w-0 flex-1 px-4 py-3.5 ${
         fila.seleccionado
           ? "border-[var(--kint-selected-border)] bg-[var(--kint-selected-bg)]"
           : ""
