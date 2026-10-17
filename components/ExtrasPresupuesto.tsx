@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, KeyRound, LoaderCircle, Minus, Plus, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -38,8 +39,8 @@ type Respuesta = {
   total: number;
 };
 
-const MAX_CANTIDAD = 5;
-const MAX_LINEAS = 5;
+const MAX_CANTIDAD = 10;
+const MAX_LINEAS = 10;
 
 function pesos(valor: number) {
   return `$${Number(valor || 0).toLocaleString("es-UY", { maximumFractionDigits: 2 })}`;
@@ -121,18 +122,27 @@ export default function ExtrasPresupuesto({
   }
 
   return (
-    <div className="mb-8 overflow-hidden rounded-2xl border border-red-600/30 bg-gradient-to-br from-red-600/[0.06] to-transparent p-5">
-      <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-red-600">
-        <Sparkles size={15} />
-        Oferta por tu maqueta
-      </p>
-      <p className="mt-2 text-lg font-black text-[var(--text-main)]">
-        ¿Sumás un llavero?
-      </p>
-      <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-        Solo con tu pedido, a precio especial. Lo imprimimos junto con tu
-        maqueta y se suma al total.
-      </p>
+    <div className="mb-8 overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-red-600">
+            <ShoppingBag size={15} />
+            Sumalo a tu pedido
+          </p>
+          <p className="mt-2 text-xl font-black text-[var(--text-main)]">¿Le agregás algo más?</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+            Llaveros y regalos que imprimimos junto con tu maqueta. Se suman al mismo pago y te llegan juntos.
+          </p>
+        </div>
+        <Link
+          href="/tienda"
+          target="_blank"
+          className="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-[0.14em] text-[var(--blue-main)] hover:underline dark:text-[var(--blue-soft)]"
+        >
+          Ver más en la tienda
+          <ArrowRight size={14} />
+        </Link>
+      </div>
 
       {datos.motivo && (
         <p className="mt-3 rounded-xl bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
@@ -184,7 +194,7 @@ export default function ExtrasPresupuesto({
       )}
 
       {datos.editable && datos.productos.length > 0 && (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {datos.productos.map((producto) => {
             const cadena = producto.cadenas.length
               ? cadenas[producto.nombre] || ""
@@ -201,9 +211,18 @@ export default function ExtrasPresupuesto({
             return (
               <div
                 key={producto.nombre}
-                className="flex gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg,transparent)] p-3"
+                className={`flex flex-col overflow-hidden rounded-2xl border transition ${
+                  cantidad > 0
+                    ? "border-emerald-500/60 ring-2 ring-emerald-500/20"
+                    : "border-[var(--border-color)] hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]"
+                }`}
               >
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-black/5 dark:bg-white/5">
+                <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden bg-black/5 dark:bg-white/5">
+                  {cantidad > 0 && (
+                    <span className="absolute left-2 top-2 z-10 flex h-7 min-w-7 items-center justify-center rounded-full bg-emerald-600 px-2 text-xs font-black text-white shadow">
+                      {cantidad}
+                    </span>
+                  )}
                   {producto.foto ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -217,12 +236,14 @@ export default function ExtrasPresupuesto({
                   )}
                 </div>
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-black">{producto.nombre}</p>
+                <div className="flex min-w-0 flex-1 flex-col p-3">
+                  <p className="truncate text-sm font-black">{producto.nombre}</p>
                   <p className="text-sm">
-                    <span className="mr-1.5 text-xs text-[var(--text-muted)] line-through">
-                      {pesos(producto.precio)}
-                    </span>
+                    {producto.precioOferta < producto.precio && (
+                      <span className="mr-1.5 text-xs text-[var(--text-muted)] line-through">
+                        {pesos(producto.precio)}
+                      </span>
+                    )}
                     <span className="font-black text-red-600">
                       {pesos(producto.precioOferta)}
                     </span>
@@ -250,7 +271,7 @@ export default function ExtrasPresupuesto({
                     </div>
                   )}
 
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-auto flex items-center gap-2 pt-2">
                     {cantidad > 0 ? (
                       <div className="flex items-center rounded-lg border border-[var(--border-color)]">
                         <button
@@ -304,7 +325,7 @@ export default function ExtrasPresupuesto({
 
       {datos.total > 0 && (
         <p className="mt-4 text-sm font-bold text-[var(--text-main)]">
-          Extras: {pesos(datos.total)} · ya están sumados al total a pagar.
+          Productos sumados: {pesos(datos.total)}. Ya están incluidos en el total a pagar.
         </p>
       )}
 

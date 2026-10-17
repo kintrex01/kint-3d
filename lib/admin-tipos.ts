@@ -463,6 +463,14 @@ export type AccionesAdmin = {
     pedido: { clave: string };
     respuesta: { filas: FilaConfig[] };
   };
+  admin_extras_ver: {
+    pedido: { pedido: string };
+    respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
+  };
+  admin_extras_guardar: {
+    pedido: { pedido: string; items: { producto: string; cadena: string; cantidad: number; precio: number }[] };
+    respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
+  };
 
   admin_dias_listar: {
     pedido: SinDatos;
@@ -681,6 +689,8 @@ export const ACCIONES_ADMIN = [
   "admin_config_guardar",
   "admin_config_agregar",
   "admin_config_borrar",
+  "admin_extras_ver",
+  "admin_extras_guardar",
   "admin_dias_listar",
   "admin_dia_guardar",
   "admin_dia_quitar",

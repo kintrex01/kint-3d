@@ -272,6 +272,17 @@ telefono: String(body.telefono || ""),
       boquilla: String(body.boquilla || ""),
       comentarios: String(body.comentarios || ""),
       codigoDescuento: String(body.codigoDescuento || ""),
+      // Productos de la tienda que suma a su pedido (precios: Apps Script).
+      extras: Array.isArray(body.extras)
+        ? (body.extras as unknown[]).slice(0, 10).map((item) => {
+            const linea = item as Record<string, unknown>;
+            return {
+              producto: String(linea?.producto || "").slice(0, 80),
+              cadena: String(linea?.cadena || "").slice(0, 40),
+              cantidad: Math.min(10, Math.max(1, Math.floor(Number(linea?.cantidad) || 1))),
+            };
+          })
+        : [],
       pedidoPrioritario: Boolean(body.pedidoPrioritario),
       usoImagenesAutorizado:
   body.usoImagenesAutorizado === true,
@@ -639,6 +650,13 @@ if (archivosRegistrados.length > 0) {
     ? "Sí, el cliente lo enviará por WhatsApp"
     : "No"
 }</p>
+        ${
+          payload.extras.length
+            ? `<p><strong>Productos de la tienda:</strong> ${escaparHtml(
+                payload.extras.map((item) => `${item.cantidad} × ${item.producto}${item.cadena ? ` (${item.cadena})` : ""}`).join(", ")
+              )}</p>`
+            : ""
+        }
         <p><strong>Comentarios:</strong></p>
         <p>${escaparHtml(payload.comentarios || "Sin comentarios")}</p>
       `,
@@ -660,6 +678,7 @@ if (archivosRegistrados.length > 0) {
       ok: true,
       pedido: data.pedido,
       premioReclamado: data.premioReclamado || "",
+      extras: Array.isArray(data.extras) ? data.extras : [],
     });
   } catch (error: any) {
   console.error(

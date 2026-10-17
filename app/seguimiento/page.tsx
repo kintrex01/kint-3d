@@ -2094,13 +2094,11 @@ resultado.precio !== "Pendiente"
 )}
 </div>
 
-{/* Oferta: productos de la tienda como extra, después de elegir la opción y antes de pagar. */}
-{resultado.estado === "Presupuestado" &&
-  (!resultado.metodoPago ||
-    resultado.metodoPago === "Sin seleccionar") &&
-  resultado.presupuestos?.some(
-    (p: any) => String(p.seleccionado).toLowerCase() === "sí"
-  ) && (
+{/* Productos de la tienda para sumar al pedido: desde que llega hasta que elige cómo pagar. */}
+{(resultado.estado === "Recibido" ||
+  (resultado.estado === "Presupuestado" &&
+    (!resultado.metodoPago ||
+      resultado.metodoPago === "Sin seleccionar"))) && (
     <ExtrasPresupuesto
       pedido={resultado.pedido}
       codigo={codigo}

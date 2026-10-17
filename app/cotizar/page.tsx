@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
+import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -150,6 +151,9 @@ const [telefono, setTelefono] = useState("");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
+  // Productos de la tienda que suma a su pedido.
+  const [extras, setExtras] = useState<ExtraElegido[]>([]);
+  const [extrasEnviados, setExtrasEnviados] = useState<string[]>([]);
   const [pedidoPrioritario, setPedidoPrioritario] =
   useState(false);
   const [archivos, setArchivos] = useState<File[]>([]);
@@ -1306,6 +1310,7 @@ alisado: alisadoHabilitado
         boquilla,
         comentarios,
         codigoDescuento,
+        extras,
         pedidoPrioritario,
 archivosOriginales,
 archivoPesadoWhatsapp,
@@ -1349,6 +1354,7 @@ setTelefono("");
     setBoquilla("");
 setComentarios("");
 setCodigoDescuento("");
+setExtras([]);
 setBeneficiosDisponibles([]);
 setPedidoPrioritario(false);
 
@@ -1363,6 +1369,7 @@ setErrorRepeticion("");
 
     setNumeroPedido(data.pedido || "");
     setPremioReclamado(data.premioReclamado || "");
+    setExtrasEnviados(Array.isArray(data.extras) ? data.extras : []);
     setEnviado(true);
   } catch (error) {
     console.error(error);
@@ -1465,6 +1472,12 @@ if (enviado) {
     {numeroPedido}
   </p>
 </div>
+
+        {extrasEnviados.length > 0 && (
+          <p className="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-base font-bold text-[var(--text-main)]">
+            🛍️ Sumaste a tu pedido: {extrasEnviados.join(", ")}. Se cobran junto con la maqueta.
+          </p>
+        )}
 
         {premioReclamado && (
           <p className="mb-6 rounded-2xl border border-amber-400/50 bg-amber-400/10 px-5 py-3 text-base font-bold text-[var(--text-main)]">
@@ -2415,6 +2428,8 @@ return (
 )}
 
 
+
+<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} />
 
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
