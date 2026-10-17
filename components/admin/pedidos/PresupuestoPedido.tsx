@@ -455,7 +455,7 @@ export function SeccionPresupuesto({
                       onClick={() => cambiar({ opcion: valor })}
                       className={`inline-flex h-9 items-center rounded-full border px-3.5 text-xs font-bold transition ${
                         activa
-                          ? "border-[#1f3f85] bg-[#1f3f85] text-white"
+                          ? "border-[var(--acento)] bg-[var(--acento)] text-white"
                           : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
                       }`}
                     >

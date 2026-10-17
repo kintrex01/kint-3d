@@ -548,7 +548,7 @@ function Resultado({ ganado, onCerrar }: { ganado: Ganado; onCerrar: () => void 
       )}
       <div
         onClick={(evento) => evento.stopPropagation()}
-        className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/15 bg-[radial-gradient(120%_120%_at_0%_0%,#2a4fa8,#16295c_50%,#0b1530)] p-7 text-center text-white shadow-2xl"
+        className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/15 bg-[radial-gradient(120%_120%_at_0%_0%,var(--acento-claro),var(--acento-oscuro)_50%,var(--acento-fondo))] p-7 text-center text-white shadow-2xl"
       >
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-3xl">
           {gano ? "🎉" : ganado.tipo === "otra" ? "🔄" : "🍀"}
@@ -574,7 +574,7 @@ function Resultado({ ganado, onCerrar }: { ganado: Ganado; onCerrar: () => void 
         <button
           type="button"
           onClick={onCerrar}
-          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-[#16295c] transition hover:brightness-95"
+          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-white text-sm font-black text-[var(--acento-oscuro)] transition hover:brightness-95"
         >
           <Sparkles size={16} />
           {ganado.tipo === "otra" ? "¡Vamos!" : "Genial"}

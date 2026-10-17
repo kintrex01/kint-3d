@@ -200,7 +200,7 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
                   onClick={() => setOpcion(nombre)}
                   className={`h-8 rounded-full border px-3 text-xs font-bold transition ${
                     opcion === nombre
-                      ? "border-[#1f3f85] bg-[#1f3f85] text-white"
+                      ? "border-[var(--acento)] bg-[var(--acento)] text-white"
                       : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
                   }`}
                 >
@@ -282,7 +282,7 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
                 {indice === agregados.findIndex((otro) => otro.pedido === item.pedido) && (
                   <Link
                     href={`/admin/pedidos/${encodeURIComponent(item.pedido)}`}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[#1f3f85] px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[var(--acento)] px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110"
                   >
                     <Send size={12} />
                     Enviar

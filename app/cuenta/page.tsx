@@ -71,9 +71,9 @@ const CLAVE_SESION = "kint-cuenta-sesion-v1";
 const CLASE_PANEL =
   "rounded-3xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] shadow-[var(--shadow-soft)]";
 const CLASE_INPUT =
-  "w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 text-base text-[var(--text-main)] outline-none transition focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#1f3f85]/20";
+  "w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 text-base text-[var(--text-main)] outline-none transition focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[var(--acento)]/20";
 const CLASE_BOTON =
-  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#1f3f85] px-5 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-[#183372] disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--acento)] px-5 text-xs font-black uppercase tracking-[0.18em] text-white transition hover:bg-[#183372] disabled:cursor-not-allowed disabled:opacity-50";
 
 function pesos(valor: number) {
   return `$${Number(valor || 0).toLocaleString("es-UY", { maximumFractionDigits: 2 })}`;
@@ -357,7 +357,7 @@ function PanelCuenta({
       {/* Ruleta y canje de puntos */}
       <Link
         href="/ruleta"
-        className="group flex items-center gap-4 overflow-hidden rounded-3xl bg-[linear-gradient(120deg,#b91c1c,#7c3aed_60%,#1f3f85)] p-5 text-white shadow-[0_18px_50px_rgba(124,58,237,0.3)] transition hover:-translate-y-0.5"
+        className="group flex items-center gap-4 overflow-hidden rounded-3xl bg-[linear-gradient(120deg,#b91c1c,#7c3aed_60%,var(--acento))] p-5 text-white shadow-[0_18px_50px_rgba(124,58,237,0.3)] transition hover:-translate-y-0.5"
       >
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl transition group-hover:rotate-45">🎡</span>
         <span className="min-w-0">
@@ -367,7 +367,7 @@ function PanelCuenta({
       </Link>
 
       {/* Resumen */}
-      <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#1f3f85_0%,#132a5e_60%,#0a1838_100%)] p-6 text-white shadow-[0_18px_50px_rgba(15,35,80,0.3)]">
+      <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,var(--acento)_0%,var(--acento-oscuro)_60%,var(--acento-fondo)_100%)] p-6 text-white shadow-[0_18px_50px_rgba(15,35,80,0.3)]">
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-sky-400/25 blur-3xl" />
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">

@@ -293,7 +293,7 @@ export default function CalendarioAdmin() {
                     <button
                       type="button"
                       onClick={() => setMesElegido(null)}
-                      className="text-[11px] font-bold text-[#1f3f85] dark:text-[var(--blue-soft)]"
+                      className="text-[11px] font-bold text-[var(--acento)] dark:text-[var(--blue-soft)]"
                     >
                       Volver a hoy
                     </button>
@@ -370,7 +370,7 @@ export default function CalendarioAdmin() {
                           : "hover:bg-[var(--kint-panel-soft)]"
                       } ${pasado ? "opacity-40" : ""} ${
                         esHoy
-                          ? "ring-2 ring-inset ring-[#1f3f85] dark:ring-[var(--blue-soft)]"
+                          ? "ring-2 ring-inset ring-[var(--acento)] dark:ring-[var(--blue-soft)]"
                           : ""
                       }`}
                     >

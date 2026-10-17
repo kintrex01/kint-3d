@@ -167,7 +167,7 @@ export function ArchivosLlavero({
         type="button"
         onClick={() => void bajar("3mf")}
         disabled={Boolean(armando)}
-        className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1f3f85] px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+        className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--acento)] px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
       >
         {armando === "3mf" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
         {soloLetras ? "Descargar 3MF" : "Descargar 3MF (borde + letras juntos)"}

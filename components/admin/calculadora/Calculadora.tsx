@@ -308,7 +308,7 @@ export default function Calculadora({
         {/* Perfil: impresora y costos fijos */}
         <Tarjeta className="overflow-hidden">
           <div className="flex items-center gap-3 bg-[linear-gradient(120deg,rgba(31,63,133,0.35),transparent_70%)] p-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1f3f85] text-white shadow-[0_8px_24px_rgba(31,63,133,0.45)]">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--acento)] text-white shadow-[0_8px_24px_rgba(31,63,133,0.45)]">
               <Printer size={22} />
             </span>
             <label className="relative min-w-0 flex-1">
@@ -452,7 +452,7 @@ export default function Calculadora({
 
       {/* Resultado */}
       <div className={compacta ? "space-y-4" : "space-y-4 lg:sticky lg:top-4"}>
-        <div className="overflow-hidden rounded-3xl border border-[rgba(90,145,235,0.35)] bg-[radial-gradient(120%_120%_at_0%_0%,#2a4fa8_0%,#16295c_45%,#0b1530_100%)] text-white shadow-[0_20px_60px_rgba(31,63,133,0.35)]">
+        <div className="overflow-hidden rounded-3xl border border-[rgba(90,145,235,0.35)] bg-[radial-gradient(120%_120%_at_0%_0%,var(--acento-claro)_0%,var(--acento-oscuro)_45%,var(--acento-fondo)_100%)] text-white shadow-[0_20px_60px_rgba(31,63,133,0.35)]">
           <div className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -501,7 +501,7 @@ export default function Calculadora({
                         setMultiplicadorTexto("");
                       }}
                       className={`h-9 rounded-xl text-xs font-black tabular-nums transition ${
-                        activo ? "bg-white text-[#16295c] shadow" : "text-white/70 hover:bg-white/10 hover:text-white"
+                        activo ? "bg-white text-[var(--acento-oscuro)] shadow" : "text-white/70 hover:bg-white/10 hover:text-white"
                       }`}
                     >
                       ×{opcion.valor}
@@ -519,7 +519,7 @@ export default function Calculadora({
                     if (aNumero(texto) > 0) setMultiplicador(aNumero(texto));
                   }}
                   className={`h-9 w-full min-w-0 rounded-xl text-center text-xs font-black outline-none placeholder:text-white/40 ${
-                    multiplicadorTexto ? "bg-white text-[#16295c]" : "bg-transparent text-white focus:bg-white/10"
+                    multiplicadorTexto ? "bg-white text-[var(--acento-oscuro)]" : "bg-transparent text-white focus:bg-white/10"
                   }`}
                 />
               </div>
@@ -687,7 +687,7 @@ function CampoPieza({
   onCambiar: (valor: string) => void;
 }) {
   return (
-    <label className="group block min-w-0 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-3.5 py-2.5 transition focus-within:border-[var(--kint-selected-border)] focus-within:ring-2 focus-within:ring-[#1f3f85]/20">
+    <label className="group block min-w-0 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-3.5 py-2.5 transition focus-within:border-[var(--kint-selected-border)] focus-within:ring-2 focus-within:ring-[var(--acento)]/20">
       <span className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--text-muted)]">
         {icono}
         {etiqueta}

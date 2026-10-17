@@ -84,7 +84,7 @@ function Banner({
     : null;
 
   return (
-    <section className="relative mb-6 overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#1f3f85_0%,#132a5e_55%,#0a1838_100%)] p-5 text-white shadow-[0_18px_50px_rgba(15,35,80,0.35)] sm:p-7">
+    <section className="relative mb-6 overflow-hidden rounded-3xl bg-[linear-gradient(135deg,var(--acento)_0%,var(--acento-oscuro)_55%,var(--acento-fondo)_100%)] p-5 text-white shadow-[0_18px_50px_rgba(15,35,80,0.35)] sm:p-7">
       {/* Brillos decorativos */}
       <div
         aria-hidden="true"
@@ -185,7 +185,7 @@ function GraficoSemanas({ metricas }: { metricas: MetricasAdmin }) {
         </p>
         <div className="flex items-center gap-3 text-[11px] font-bold text-[var(--text-muted)]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-sm bg-[#1f3f85] dark:bg-sky-400" />
+            <span className="h-2.5 w-2.5 rounded-sm bg-[var(--acento)] dark:bg-sky-400" />
             Maquetas
           </span>
           <span className="inline-flex items-center gap-1.5">
@@ -210,7 +210,7 @@ function GraficoSemanas({ metricas }: { metricas: MetricasAdmin }) {
                 title={`Semana del ${fechaDia(semana.desde)}: ${semana.maquetas} maquetas, ${semana.tienda} tienda`}
               >
                 <div
-                  className="bg-[#1f3f85] transition-all dark:bg-sky-400"
+                  className="bg-[var(--acento)] transition-all dark:bg-sky-400"
                   style={{ height: suma ? `${(semana.maquetas / suma) * 100}%` : 0 }}
                 />
                 <div
@@ -438,7 +438,7 @@ function AgendaEntregas({
             <h3
               className={`flex items-center justify-between bg-[var(--kint-panel-soft)] px-4 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] ${
                 destacado
-                  ? "text-[#1f3f85] dark:text-[var(--blue-soft)]"
+                  ? "text-[var(--acento)] dark:text-[var(--blue-soft)]"
                   : "text-[var(--text-muted)]"
               }`}
             >
@@ -738,7 +738,7 @@ export default function InicioAdmin() {
                 >
                   <Icono
                     size={17}
-                    className="text-[#1f3f85] dark:text-[var(--blue-soft)]"
+                    className="text-[var(--acento)] dark:text-[var(--blue-soft)]"
                   />
                   {atajo.texto}
                 </Link>
@@ -765,7 +765,7 @@ export default function InicioAdmin() {
                 </h2>
                 <Link
                   href="/admin/calendario"
-                  className="-my-2 flex min-h-11 items-center gap-0.5 text-xs font-bold text-[#1f3f85] dark:text-[var(--blue-soft)]"
+                  className="-my-2 flex min-h-11 items-center gap-0.5 text-xs font-bold text-[var(--acento)] dark:text-[var(--blue-soft)]"
                 >
                   Calendario
                   <ChevronRight size={14} />

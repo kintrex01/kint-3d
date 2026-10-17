@@ -173,7 +173,7 @@ type VarianteBoton = "principal" | "secundario" | "peligro" | "exito" | "fantasm
 
 const CLASES_BOTON: Record<VarianteBoton, string> = {
   principal:
-    "border-[rgba(90,145,235,0.35)] bg-[#1f3f85] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:brightness-110",
+    "border-[rgba(90,145,235,0.35)] bg-[var(--acento)] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:brightness-110",
   secundario:
     "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-main)] hover:border-[var(--kint-selected-border)]",
   peligro:
@@ -379,7 +379,7 @@ export function Segmentos<T extends string>({
               aria-pressed={activa}
               className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-xs font-bold transition ${
                 activa
-                  ? "border-[#1f3f85] bg-[#1f3f85] text-white"
+                  ? "border-[var(--acento)] bg-[var(--acento)] text-white"
                   : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
               }`}
             >
@@ -406,7 +406,7 @@ export function Segmentos<T extends string>({
 /* ------------------------------------------------------------------ */
 
 export const claseInput =
-  "w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-3.5 py-2.5 text-sm text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#1f3f85]/20 dark:[color-scheme:dark]";
+  "w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-3.5 py-2.5 text-sm text-[var(--text-main)] outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[var(--acento)]/20 dark:[color-scheme:dark]";
 
 export function Campo({
   etiqueta,

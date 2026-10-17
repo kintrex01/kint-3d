@@ -166,9 +166,9 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
       <BarraProgreso navegando={navegando} />
       <div className="min-h-screen text-[var(--text-main)] lg:pl-64">
         {/* Lateral (compu) */}
-        <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-r border-[var(--kint-panel-border)] bg-[linear-gradient(180deg,var(--kint-panel)_0%,color-mix(in_srgb,var(--kint-panel)_88%,#1f3f85)_100%)] px-3 py-6 [scrollbar-width:thin] lg:flex">
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-r border-[var(--kint-panel-border)] bg-[linear-gradient(180deg,var(--kint-panel)_0%,color-mix(in_srgb,var(--kint-panel)_88%,var(--acento))_100%)] px-3 py-6 [scrollbar-width:thin] lg:flex">
           <Link href="/admin" className="group mb-7 flex items-center gap-3 px-3">
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#2a4fa8,#16295c)] text-sm font-black text-white shadow-[0_8px_24px_rgba(42,79,168,0.45)] transition group-hover:scale-105">
+            <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--acento-claro),var(--acento-oscuro))] text-sm font-black text-white shadow-[0_8px_24px_rgba(42,79,168,0.45)] transition group-hover:scale-105">
               K
               <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[var(--kint-panel)] bg-emerald-400" />
             </span>
@@ -260,7 +260,7 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
             className="text-left"
           >
             <span className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#2a4fa8,#16295c)] text-xs font-black text-white shadow-[0_6px_18px_rgba(42,79,168,0.4)]">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[linear-gradient(135deg,var(--acento-claro),var(--acento-oscuro))] text-xs font-black text-white shadow-[0_6px_18px_rgba(42,79,168,0.4)]">
                 K
               </span>
               <span>

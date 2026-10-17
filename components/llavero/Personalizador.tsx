@@ -47,7 +47,7 @@ type ProductoPersonalizable = {
 };
 
 const CLASE_BOTON_PRINCIPAL =
-  "border-[rgba(90,145,235,0.35)] bg-[#1f3f85] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(31,63,133,0.35)]";
+  "border-[rgba(90,145,235,0.35)] bg-[var(--acento)] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(31,63,133,0.35)]";
 
 function pesos(valor: number) {
   return `$${valor.toLocaleString("es-UY", { maximumFractionDigits: 2 })}`;
@@ -530,7 +530,7 @@ export default function Personalizador({
                     type="checkbox"
                     checked={huella}
                     onChange={(evento) => setHuella(evento.target.checked)}
-                    className="h-5 w-5 accent-[#1f3f85]"
+                    className="h-5 w-5 accent-[var(--acento)]"
                   />
                 </label>
 
@@ -614,7 +614,7 @@ export default function Personalizador({
                       aria-pressed={elegido}
                       onClick={() => setTamano(opcion.nombre)}
                       className={`rounded-lg py-2 text-xs font-black transition ${
-                        elegido ? "bg-[#1f3f85] text-white" : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                        elegido ? "bg-[var(--acento)] text-white" : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
                       }`}
                     >
                       {opcion.nombre}
@@ -713,7 +713,7 @@ export default function Personalizador({
                 step={SEPARACION_PASO}
                 value={separacion}
                 onChange={(evento) => setSeparacion(limpiarSeparacion(evento.target.value))}
-                className="w-full accent-[#1f3f85] dark:accent-sky-400"
+                className="w-full accent-[var(--acento)] dark:accent-sky-400"
               />
               <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
                 <span>Pegadas</span>
@@ -748,7 +748,7 @@ export default function Personalizador({
                   step={0.5}
                   value={renglones}
                   onChange={(evento) => setRenglones(limpiarRenglones(evento.target.value))}
-                  className="w-full accent-[#1f3f85] dark:accent-sky-400"
+                  className="w-full accent-[var(--acento)] dark:accent-sky-400"
                 />
                 <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
                   <span>Juntos</span>

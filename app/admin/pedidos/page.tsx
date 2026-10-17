@@ -263,7 +263,7 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
   return (
     <Link
       href={`/admin/pedidos/${encodeURIComponent(pedido.pedido)}`}
-      className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[#1f3f85]/40"
+      className="block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-[var(--acento)]/40"
     >
       <Tarjeta
         color={claseFase(faseEstado(pedido.estado))}

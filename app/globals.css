@@ -799,3 +799,203 @@ html[data-fondo="grafito"] .fondo-kint-webgl {
   font-weight: 900;
   box-shadow: 0 6px 16px rgba(42, 79, 168, 0.4);
 }
+
+/* ================================================================
+ * PALETAS POR FONDO: textos, botones, bordes y paneles acompañan
+ * al fondo elegido (SelectorFondo). Humo azul = la de siempre.
+ * --acento reemplaza al azul de marca en botones y degradés.
+ * ================================================================ */
+:root {
+  --acento: #1f3f85;
+  --acento-claro: #2a4fa8;
+  --acento-oscuro: #16295c;
+  --acento-fondo: #0b1530;
+}
+
+/* ---------- Fuego: brasa, naranja y crema ---------- */
+html[data-fondo="fuego"].dark {
+  --card-bg: rgba(28, 8, 9, 0.88);
+  --glass-bg: rgba(30, 10, 10, 0.72);
+  --text-main: #fff4ec;
+  --text-muted: #f0b49a;
+  --blue-main: #fb923c;
+  --blue-soft: #fdba74;
+  --blue-border: #f97316;
+  --border-color: rgba(249, 115, 22, 0.32);
+  --kint-panel: #1c0909;
+  --kint-panel-soft: #2a0f0d;
+  --kint-panel-border: rgba(251, 146, 60, 0.3);
+  --kint-selected-bg: rgba(249, 115, 22, 0.16);
+  --kint-selected-border: #fb923c;
+  --kint-info: #fdba74;
+  --kint-highlight: #fed7aa;
+  --kint-input-bg: rgba(19, 4, 5, 0.75);
+  --kint-blue-soft: #fdba74;
+  --acento: #c2410c;
+  --acento-claro: #f97316;
+  --acento-oscuro: #7c2d12;
+  --acento-fondo: #2a0806;
+}
+html[data-fondo="fuego"]:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --text-main: #2b0a05;
+  --text-muted: #8a3b22;
+  --blue-main: #c2410c;
+  --blue-soft: #fb923c;
+  --blue-border: #ea580c;
+  --border-color: rgba(194, 65, 12, 0.3);
+  --kint-panel: #ffffff;
+  --kint-panel-soft: #fff0e8;
+  --kint-panel-border: rgba(194, 65, 12, 0.22);
+  --kint-selected-bg: rgba(251, 146, 60, 0.14);
+  --kint-selected-border: #ea580c;
+  --kint-info: #9a3412;
+  --kint-highlight: #7c2d12;
+  --kint-input-bg: #ffffff;
+  --kint-blue-soft: #ea580c;
+  --acento: #c2410c;
+  --acento-claro: #f97316;
+  --acento-oscuro: #9a3412;
+  --acento-fondo: #431407;
+}
+
+/* ---------- Aurora: turquesa y menta ---------- */
+html[data-fondo="aurora"].dark {
+  --card-bg: rgba(7, 28, 23, 0.88);
+  --glass-bg: rgba(5, 24, 19, 0.72);
+  --text-main: #ecfdf5;
+  --text-muted: #8fd9c4;
+  --blue-main: #2dd4bf;
+  --blue-soft: #5eead4;
+  --blue-border: #14b8a6;
+  --border-color: rgba(45, 212, 191, 0.3);
+  --kint-panel: #071c17;
+  --kint-panel-soft: #0b2a22;
+  --kint-panel-border: rgba(45, 212, 191, 0.28);
+  --kint-selected-bg: rgba(20, 184, 166, 0.16);
+  --kint-selected-border: #2dd4bf;
+  --kint-info: #5eead4;
+  --kint-highlight: #99f6e4;
+  --kint-input-bg: rgba(3, 19, 15, 0.75);
+  --kint-blue-soft: #5eead4;
+  --acento: #0f766e;
+  --acento-claro: #14b8a6;
+  --acento-oscuro: #134e4a;
+  --acento-fondo: #042f2a;
+}
+html[data-fondo="aurora"]:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --text-main: #062b23;
+  --text-muted: #2f6f60;
+  --blue-main: #0f766e;
+  --blue-soft: #2dd4bf;
+  --blue-border: #0d9488;
+  --border-color: rgba(13, 148, 136, 0.3);
+  --kint-panel: #ffffff;
+  --kint-panel-soft: #e8f8f2;
+  --kint-panel-border: rgba(13, 148, 136, 0.22);
+  --kint-selected-bg: rgba(45, 212, 191, 0.14);
+  --kint-selected-border: #0d9488;
+  --kint-info: #115e59;
+  --kint-highlight: #134e4a;
+  --kint-input-bg: #ffffff;
+  --kint-blue-soft: #0d9488;
+  --acento: #0f766e;
+  --acento-claro: #14b8a6;
+  --acento-oscuro: #115e59;
+  --acento-fondo: #042f2a;
+}
+
+/* ---------- Neón: violeta y fucsia ---------- */
+html[data-fondo="neon"].dark {
+  --card-bg: rgba(20, 10, 34, 0.88);
+  --glass-bg: rgba(16, 6, 28, 0.72);
+  --text-main: #faf5ff;
+  --text-muted: #c8b3e8;
+  --blue-main: #c084fc;
+  --blue-soft: #e879f9;
+  --blue-border: #a855f7;
+  --border-color: rgba(192, 132, 252, 0.32);
+  --kint-panel: #140a22;
+  --kint-panel-soft: #1f1033;
+  --kint-panel-border: rgba(192, 132, 252, 0.3);
+  --kint-selected-bg: rgba(168, 85, 247, 0.18);
+  --kint-selected-border: #c084fc;
+  --kint-info: #e9d5ff;
+  --kint-highlight: #f0abfc;
+  --kint-input-bg: rgba(12, 4, 22, 0.75);
+  --kint-blue-soft: #d8b4fe;
+  --acento: #7e22ce;
+  --acento-claro: #a855f7;
+  --acento-oscuro: #4c1d95;
+  --acento-fondo: #1e0838;
+}
+html[data-fondo="neon"]:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.86);
+  --text-main: #2a0a3f;
+  --text-muted: #6b3fa0;
+  --blue-main: #7e22ce;
+  --blue-soft: #c084fc;
+  --blue-border: #9333ea;
+  --border-color: rgba(126, 34, 206, 0.28);
+  --kint-panel: #ffffff;
+  --kint-panel-soft: #f6edff;
+  --kint-panel-border: rgba(126, 34, 206, 0.2);
+  --kint-selected-bg: rgba(192, 132, 252, 0.15);
+  --kint-selected-border: #9333ea;
+  --kint-info: #6b21a8;
+  --kint-highlight: #581c87;
+  --kint-input-bg: #ffffff;
+  --kint-blue-soft: #9333ea;
+  --acento: #7e22ce;
+  --acento-claro: #a855f7;
+  --acento-oscuro: #581c87;
+  --acento-fondo: #2e1065;
+}
+
+/* ---------- Grafito: grises y plata ---------- */
+html[data-fondo="grafito"].dark {
+  --card-bg: rgba(24, 25, 28, 0.9);
+  --glass-bg: rgba(20, 21, 24, 0.75);
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --blue-main: #d4d4d8;
+  --blue-soft: #e4e4e7;
+  --blue-border: #a1a1aa;
+  --border-color: rgba(212, 212, 216, 0.2);
+  --kint-panel: #18191c;
+  --kint-panel-soft: #222327;
+  --kint-panel-border: rgba(212, 212, 216, 0.16);
+  --kint-selected-bg: rgba(212, 212, 216, 0.1);
+  --kint-selected-border: #d4d4d8;
+  --kint-info: #d4d4d8;
+  --kint-highlight: #fafafa;
+  --kint-input-bg: rgba(17, 18, 20, 0.8);
+  --kint-blue-soft: #a1a1aa;
+  --acento: #52525b;
+  --acento-claro: #71717a;
+  --acento-oscuro: #27272a;
+  --acento-fondo: #111214;
+}
+html[data-fondo="grafito"]:not(.dark) {
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --text-main: #18181b;
+  --text-muted: #52525b;
+  --blue-main: #3f3f46;
+  --blue-soft: #a1a1aa;
+  --blue-border: #52525b;
+  --border-color: rgba(63, 63, 70, 0.28);
+  --kint-panel: #ffffff;
+  --kint-panel-soft: #f1f1f0;
+  --kint-panel-border: rgba(63, 63, 70, 0.18);
+  --kint-selected-bg: rgba(113, 113, 122, 0.1);
+  --kint-selected-border: #52525b;
+  --kint-info: #3f3f46;
+  --kint-highlight: #18181b;
+  --kint-input-bg: #ffffff;
+  --kint-blue-soft: #71717a;
+  --acento: #3f3f46;
+  --acento-claro: #52525b;
+  --acento-oscuro: #18181b;
+  --acento-fondo: #09090b;
+}

@@ -688,7 +688,7 @@ export default function CajaAdmin() {
                       onClick={() => setFormulario({ ...formulario, categoria })}
                       className={`min-h-9 rounded-full border px-3 text-xs font-bold transition ${
                         elegida
-                          ? "border-[#1f3f85] bg-[#1f3f85] text-white"
+                          ? "border-[var(--acento)] bg-[var(--acento)] text-white"
                           : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
                       }`}
                     >

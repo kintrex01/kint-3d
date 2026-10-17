@@ -308,7 +308,7 @@ function FilaPedido({
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
             pedido.tipo === "maqueta"
-              ? "bg-[#1f3f85]/10 text-[#1f3f85] dark:bg-sky-400/10 dark:text-sky-300"
+              ? "bg-[var(--acento)]/10 text-[var(--acento)] dark:bg-sky-400/10 dark:text-sky-300"
               : "bg-red-500/10 text-red-600 dark:text-red-400"
           }`}
         >

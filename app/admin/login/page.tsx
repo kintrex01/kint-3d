@@ -58,7 +58,7 @@ export default function LoginAdmin() {
         className="w-full max-w-sm rounded-3xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-7 shadow-[var(--shadow-soft)]"
       >
         <div className="mb-7 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f3f85] text-white">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--acento)] text-white">
             <Lock size={24} />
           </div>
           <p className="kint-logo-font text-2xl">
@@ -84,7 +84,7 @@ export default function LoginAdmin() {
               autoCorrect="off"
               spellCheck={false}
               autoFocus
-              className="w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 pr-12 text-base text-[var(--text-main)] outline-none focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#1f3f85]/20"
+              className="w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 py-3 pr-12 text-base text-[var(--text-main)] outline-none focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[var(--acento)]/20"
             />
             <button
               type="button"
@@ -109,7 +109,7 @@ export default function LoginAdmin() {
         <button
           type="submit"
           disabled={!contrasena || enviando}
-          className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[rgba(90,145,235,0.35)] bg-[#1f3f85] text-sm font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:opacity-50"
+          className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-[rgba(90,145,235,0.35)] bg-[var(--acento)] text-sm font-black uppercase tracking-[0.18em] text-white transition hover:brightness-110 disabled:opacity-50"
         >
           {enviando && <LoaderCircle size={16} className="animate-spin" />}
           Entrar

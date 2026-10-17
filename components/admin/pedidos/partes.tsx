@@ -260,7 +260,7 @@ export function Historial({ lineas }: { lineas: string[] }) {
                 aria-hidden
                 className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-[var(--kint-panel)] ${
                   indice === 0
-                    ? "bg-[#1f3f85] dark:bg-[var(--blue-soft)]"
+                    ? "bg-[var(--acento)] dark:bg-[var(--blue-soft)]"
                     : "bg-[var(--kint-panel-border)]"
                 }`}
               />

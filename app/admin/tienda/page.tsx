@@ -369,7 +369,7 @@ function TarjetaCompra({
     <button
       type="button"
       onClick={onAbrir}
-      className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-[#1f3f85]/40"
+      className="block w-full rounded-2xl text-left outline-none focus-visible:ring-2 focus-visible:ring-[var(--acento)]/40"
     >
       <Tarjeta
         color={claseFase(faseEstado(compra.estado, compra.pagoConfirmado))}

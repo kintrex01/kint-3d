@@ -356,9 +356,9 @@ export default function SeguimientoTienda({
                 <span
                   className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
                     hecho
-                      ? "bg-[#1f3f85] text-white shadow-md"
+                      ? "bg-[var(--acento)] text-white shadow-md"
                       : "bg-[var(--kint-panel-soft)] text-[var(--text-muted)]"
-                  } ${indice === paso ? "ring-4 ring-[#1f3f85]/20" : ""}`}
+                  } ${indice === paso ? "ring-4 ring-[var(--acento)]/20" : ""}`}
                 >
                   {hecho && indice < paso ? (
                     <Check size={18} strokeWidth={2.6} />

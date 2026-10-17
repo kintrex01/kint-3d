@@ -344,7 +344,7 @@ function TarjetaProducto({
           </p>
         )}
 
-        <span className="mt-auto flex items-center gap-1.5 pt-1 text-xs font-bold text-[#1f3f85] dark:text-[var(--blue-soft)]">
+        <span className="mt-auto flex items-center gap-1.5 pt-1 text-xs font-bold text-[var(--acento)] dark:text-[var(--blue-soft)]">
           <Pencil size={13} />
           Editar
         </span>

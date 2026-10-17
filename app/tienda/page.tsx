@@ -231,7 +231,7 @@ const CLASE_ETIQUETA =
   "mb-1.5 block text-xs font-bold text-[var(--text-muted)]";
 
 const CLASE_BOTON_PRINCIPAL =
-  "border-[rgba(90,145,235,0.35)] bg-[#1f3f85] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(31,63,133,0.35)]";
+  "border-[rgba(90,145,235,0.35)] bg-[var(--acento)] text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(31,63,133,0.35)]";
 
 const CLASE_BOTON_INACTIVO =
   "cursor-not-allowed border-[#87A4B5]/50 bg-[#eef4f8] text-[#4C6C81] opacity-70 dark:border-[#4C6C81]/35 dark:bg-white/[0.02] dark:text-[#87A4B5] dark:opacity-45";
