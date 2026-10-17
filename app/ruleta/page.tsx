@@ -21,6 +21,7 @@ type PremioRueda = {
   tipo: string; // "misterio" = el premio más raro, tapado
   tamano?: number;
   rareza?: string;
+  detalle?: string; // qué es el premio
   chance?: number | null; // solo si se muestran los %
 };
 type Giros = {
@@ -511,6 +512,7 @@ function Juego({
         @keyframes kint-misterio { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
       `}</style>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
+        <div className="space-y-6">
         {/* Rueda */}
         <div className="relative overflow-hidden rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -710,6 +712,38 @@ function Juego({
           {error && <p className="mt-2 text-center text-sm font-bold text-red-500">{error}</p>}
         </div>
 
+            {/* Canjes */}
+            {estado.canjes.length > 0 && (
+              <div className={tarjeta}>
+                <p className="flex items-center gap-2 text-base font-black">
+                  <Gift size={18} className="text-red-500" />
+                  Canjeá tus puntos
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Cuando quieras, sin necesidad de comprar.</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  {estado.canjes.map((canje) => {
+                    const alcanza = estado.puntos >= canje.puntos;
+                    return (
+                      <button
+                        key={canje.id}
+                        type="button"
+                        disabled={!alcanza || Boolean(canjeando)}
+                        onClick={() => void canjear(canje.id)}
+                        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-4 py-3 text-left transition enabled:hover:border-amber-400/60 enabled:hover:bg-amber-400/10 disabled:opacity-50"
+                      >
+                        <span className="text-sm font-bold">{canje.nombre}</span>
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-black text-amber-500">
+                          {canjeando === canje.id && <LoaderCircle size={12} className="animate-spin" />}
+                          {canje.puntos} ✨
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+        </div>
+
         {/* Costado */}
         <div className="space-y-6">
           {/* Premios de hoy */}
@@ -729,12 +763,13 @@ function Juego({
               {premiosHoy.map((premio, indice) => (
                 <li
                   key={`${premio.nombre}-${indice}`}
-                  className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 ${
+                  className={`rounded-xl px-3 py-2 ${
                     premio.tipo === "misterio"
                       ? "bg-[linear-gradient(90deg,rgba(245,158,11,0.18),rgba(219,39,119,0.14))] ring-1 ring-inset ring-amber-400/40"
                       : "bg-[var(--kint-panel-soft)]"
                   }`}
                 >
+                  <span className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
                     <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: premio.color }} />
                     <span className="truncate">{premio.tipo === "misterio" ? "❓ Premio misterioso" : premio.nombre}</span>
@@ -751,11 +786,16 @@ function Juego({
                       </span>
                     )}
                   </span>
+                  </span>
+                  {premio.detalle && (
+                    <span className="mt-0.5 block pl-[18px] text-[11px] leading-4 text-[var(--text-muted)]">{premio.detalle}</span>
+                  )}
                 </li>
               ))}
             </ul>
             <p className="mt-2.5 text-[11px] leading-4 text-[var(--text-muted)]">
-              Todos los días a las 00:00 salen premios nuevos. El más grande va tapado: solo lo descubre quien lo gana.
+              Todos los días a las 00:00 salen premios nuevos y siempre hay un legendario. El más grande va tapado: solo lo
+              descubre quien lo gana.
             </p>
           </div>
 
@@ -793,37 +833,6 @@ function Juego({
                 })}
               </ol>
               <p className="mt-2 text-[11px] text-[var(--text-muted)]">Sumá puntos con tus pedidos y con la ruleta para subir.</p>
-            </div>
-          )}
-
-          {/* Canjes */}
-          {estado.canjes.length > 0 && (
-            <div className={tarjeta}>
-              <p className="flex items-center gap-2 text-base font-black">
-                <Gift size={18} className="text-red-500" />
-                Canjeá tus puntos
-              </p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Cuando quieras, sin necesidad de comprar.</p>
-              <div className="mt-4 space-y-2">
-                {estado.canjes.map((canje) => {
-                  const alcanza = estado.puntos >= canje.puntos;
-                  return (
-                    <button
-                      key={canje.id}
-                      type="button"
-                      disabled={!alcanza || Boolean(canjeando)}
-                      onClick={() => void canjear(canje.id)}
-                      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-4 py-3 text-left transition enabled:hover:border-amber-400/60 enabled:hover:bg-amber-400/10 disabled:opacity-50"
-                    >
-                      <span className="text-sm font-bold">{canje.nombre}</span>
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-black text-amber-500">
-                        {canjeando === canje.id && <LoaderCircle size={12} className="animate-spin" />}
-                        {canje.puntos} ✨
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
             </div>
           )}
 

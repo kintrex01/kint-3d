@@ -1357,7 +1357,8 @@ function EditorRuleta() {
           <p className="font-black">Premios ({activos.length} activos)</p>
           <p className="text-[11px] text-[var(--text-muted)]">
             Chance = % de que salga ese premio el día que está en la rueda. Lo que falta hasta 100 es «Sin suerte».
-            En un día promedio se gana ~{Math.round(promedio)}% de las veces.
+            Cada día entra al menos un Legendario (menos de 1,5%), que es el misterio. En un día promedio se gana
+            ~{Math.round(promedio)}% de las veces.
           </p>
         </div>
         <div className="mt-3 space-y-2">
