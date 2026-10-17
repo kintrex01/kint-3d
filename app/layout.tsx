@@ -30,10 +30,8 @@ export const metadata: Metadata = {
   },
 
   openGraph: {
-    title:
-      "Kint 3D | Impresión 3D y Maquetas en Uruguay",
-    description:
-      "Impresión 3D, maquetas, piezas, prototipos y herramientas gratuitas para preparar modelos en Uruguay.",
+    title: "Kint 3D",
+    description: "Impresión 3D de maquetas, llaveros y regalos. Cotizá online.",
     url: "https://kint3d.com",
     siteName: "Kint 3D",
     locale: "es_UY",
