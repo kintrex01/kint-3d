@@ -40,7 +40,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
-import { adornoDe, coloresPieza, leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
+import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
@@ -303,6 +303,10 @@ function detalleLinea(linea: {
         ? `${personalizado.fondo === "Placa" ? "Placa" : "Borde"} ${colores[0]}, letras ${colores[1]}`
         : "",
       colores.length >= 2 ? `Anillo ${coloresPieza(personalizado, colores).anillo}` : "",
+      personalizado.dorso?.trim()
+        ? `Atrás: «${personalizado.dorso.trim()}» ${personalizado.dorsoTipo === "Color" ? `de color${coloresPieza(personalizado, colores).telefono ? ` (${coloresPieza(personalizado, colores).telefono})` : ""}` : "grabado"}`
+        : "",
+      personalizado.altoLetras && personalizado.altoLetras !== 1 ? `Letras a ${String(personalizado.altoLetras).replace(".", ",")} mm` : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]
       .filter(Boolean)
@@ -468,9 +472,7 @@ function ajustarCarrito(
 
     // Un color que ya no se ofrece saca la línea, como una cadena vieja.
     const coloresValidos = producto.personalizable
-      ? (colores.length === 2 ||
-          colores.length === 3 ||
-          (producto.tipoPersonalizado === "Mascota" && colores.length === 4)) &&
+      ? (colores.length === 2 || colores.length === 3 || colores.length === 4) &&
         colores.every((color) => producto.colores.includes(color)) &&
         Boolean(
           producto.tipoPersonalizado === "Mascota"
@@ -3196,11 +3198,12 @@ export default function TiendaPage() {
             const producto = productosPorNombre.get(linea.producto);
             if (!producto) return [];
 
-            const precio = precioUnitario(
-              producto,
-              unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores, linea.variante)) || 0,
-              catalogo
-            );
+            const precio =
+              precioUnitario(
+                producto,
+                unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores, linea.variante)) || 0,
+                catalogo
+              ) + recargoPersonalizacion(linea.comentario || "");
 
             return [
               {

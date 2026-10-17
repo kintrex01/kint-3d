@@ -122,7 +122,38 @@ export type PersonalizacionLlavero = {
   separacion?: number; // mm extra entre letras (0 si no viene)
   renglones?: number; // mm extra entre los dos renglones (0 = juntitos)
   esquinas?: number; // placa: radio de las esquinas en mm (0 = en punta; sin dato = automático)
+  altoLetras?: number; // cuánto sobresalen las letras de la base, en mm (1 si no viene)
+  dorso?: string; // texto atrás (opcional): ej. un teléfono, por si se pierde
+  dorsoTipo?: "Grabado" | "Color"; // hundido, o relleno de otro color (+ recargo)
 };
+
+/* Altura de las letras sobre la base. */
+export const ALTO_LETRAS_MIN = 0.4;
+export const ALTO_LETRAS_MAX = 3;
+export const ALTO_LETRAS_NORMAL = 1;
+export const ALTOS_LETRAS_RAPIDOS = [
+  { nombre: "Casi al ras", mm: 0.4 },
+  { nombre: "Normal", mm: 1 },
+  { nombre: "Resaltadas", mm: 2 },
+  { nombre: "Bien altas", mm: 3 },
+] as const;
+export function limpiarAltoLetras(valor: unknown) {
+  const numero = Number(String(valor ?? "").replace(",", "."));
+  if (valor === undefined || valor === null || valor === "" || !Number.isFinite(numero)) return ALTO_LETRAS_NORMAL;
+  return Math.min(ALTO_LETRAS_MAX, Math.max(ALTO_LETRAS_MIN, Math.round(numero * 5) / 5));
+}
+
+/* Texto atrás del llavero. */
+export const MAX_LETRAS_DORSO = 24;
+export const RECARGO_DORSO_COLOR = 5;
+export const TEXTO_DORSO_VALIDO = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 .'!?&+()-]+$/;
+export function errorTextoDorso(texto: string) {
+  const limpio = texto.trim();
+  if (!limpio) return "";
+  if (limpio.length > MAX_LETRAS_DORSO) return `Hasta ${MAX_LETRAS_DORSO} letras.`;
+  if (!TEXTO_DORSO_VALIDO.test(limpio)) return "Usá letras, números, espacios y . ' ! ? & + ( ) -";
+  return "";
+}
 
 /* Placa: radio de las esquinas. */
 export const ESQUINAS_MAX = 6;
@@ -165,6 +196,13 @@ export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero
     personalizacion.fondo === "Placa" && limpiarEsquinas(personalizacion.esquinas) !== undefined
       ? `Esquinas: ${limpiarEsquinas(personalizacion.esquinas)}`
       : "",
+    limpiarAltoLetras(personalizacion.altoLetras) !== ALTO_LETRAS_NORMAL
+      ? `Alto letras: ${limpiarAltoLetras(personalizacion.altoLetras)}`
+      : "",
+    personalizacion.dorso?.trim() && personalizacion.fondo !== "Solo letras" ? `Dorso: ${personalizacion.dorso.trim()}` : "",
+    personalizacion.dorso?.trim() && personalizacion.fondo !== "Solo letras"
+      ? `Dorso tipo: ${personalizacion.dorsoTipo === "Color" ? "Color" : "Grabado"}`
+      : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -194,7 +232,10 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
       ? limpiarRenglones(campos["entre renglones"])
       : limpiarRenglones(Number(campos["renglones"] ?? 0) + altoLetra * (1.6 - INTERLINEADO));
   const esquinas = limpiarEsquinas(campos["esquinas"]);
-  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones, esquinas };
+  const altoLetras = limpiarAltoLetras(campos["alto letras"]);
+  const dorso = campos["dorso"] || "";
+  const dorsoTipo: "Grabado" | "Color" = campos["dorso tipo"] === "Color" ? "Color" : "Grabado";
+  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones, esquinas, altoLetras, dorso, dorsoTipo };
 }
 
 /* "“Antonio / Arquitecto”" para mostrar. */
@@ -328,11 +369,22 @@ export function coloresPieza(personalizacion: PersonalizacionLlavero | Personali
       telefono: conTelefono ? (viejo ? colores[2] : colores[3]) || "" : "",
     };
   }
-  const soloLetras = (personalizacion as PersonalizacionLlavero).fondo === "Solo letras";
+  const llavero = personalizacion as PersonalizacionLlavero;
+  const soloLetras = llavero.fondo === "Solo letras";
   return {
     base: soloLetras ? letras : base,
     letras,
     anillo: colores[2] || (soloLetras ? letras : base),
-    telefono: "",
+    // Texto atrás de color: el cuarto color.
+    telefono: llavero.dorso?.trim() && llavero.dorsoTipo === "Color" ? colores[3] || "" : "",
   };
+}
+
+/* Recargo por la línea: el texto atrás de color cuesta un poco más. */
+export function recargoPersonalizacion(comentario: string) {
+  const llavero = leerPersonalizacion(comentario);
+  if (llavero && llavero.fondo !== "Solo letras" && llavero.dorso?.trim() && llavero.dorsoTipo === "Color") {
+    return RECARGO_DORSO_COLOR;
+  }
+  return 0;
 }

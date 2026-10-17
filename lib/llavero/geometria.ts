@@ -22,6 +22,7 @@ import {
   bordeMm,
   INTERLINEADO,
   adornoDe,
+  limpiarAltoLetras,
   limpiarEscalaNombre,
   limpiarEsquinas,
   limpiarRenglones,
@@ -339,13 +340,52 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
 
+  // Cuánto sobresalen las letras (el cliente lo elige).
+  const altoLetras = limpiarAltoLetras(personalizacion.altoLetras);
   // Solo letras: una sola pieza de todo el alto; la de "letras" queda vacía.
-  const altoPieza = soloLetras ? ALTO_BASE + ALTO_LETRAS : ALTO_BASE;
-  const geometriaBase = new THREE.ExtrudeGeometry(aFormas(base, dx, dy), {
-    depth: altoPieza,
-    bevelEnabled: false,
-    curveSegments: 1,
-  });
+  const altoPieza = soloLetras ? ALTO_BASE + altoLetras : ALTO_BASE;
+  const extruir = (contornos: Contornos, desde: number, alto: number) => {
+    const geometria = new THREE.ExtrudeGeometry(aFormas(contornos, dx, dy), { depth: alto, bevelEnabled: false, curveSegments: 1 });
+    geometria.translate(0, 0, desde);
+    return geometria;
+  };
+
+  // Texto atrás (no en "Solo letras"): espejado, grabado o relleno de otro color.
+  const textoDorso = soloLetras ? "" : (personalizacion.dorso || "").trim();
+  let dorso: Contornos = [];
+  if (textoDorso) {
+    const fuenteDorso = await cargarFuente("Rubik");
+    const caja = limites(base);
+    const altoDisponible = caja.maxY - caja.minY;
+    dorso = operar(
+      ClipperLib.ClipType.ctIntersection,
+      espejar(
+        textoEnCaja(
+          fuenteDorso,
+          textoDorso,
+          (caja.minX + caja.maxX) / 2,
+          (caja.minY + caja.maxY) / 2,
+          (caja.maxX - caja.minX) * 0.82,
+          Math.min(5, altoDisponible * 0.42)
+        )
+      ),
+      engordar(base, -1.2)
+    );
+  }
+
+  let partesBase: THREE.BufferGeometry[] | undefined;
+  let geometriaDorso: THREE.BufferGeometry | undefined;
+  let geometriaBase: THREE.BufferGeometry;
+  if (dorso.length) {
+    const HUECO = 0.6;
+    const abajo = extruir(operar(ClipperLib.ClipType.ctDifference, base, dorso), 0, HUECO);
+    const arriba = extruir(base, HUECO, ALTO_BASE - HUECO);
+    partesBase = [abajo, arriba];
+    geometriaBase = mergeGeometries([abajo, arriba]) ?? arriba;
+    if (personalizacion.dorsoTipo === "Color") geometriaDorso = extruir(dorso, 0, HUECO);
+  } else {
+    geometriaBase = extruir(base, 0, altoPieza);
+  }
   const geometriaAnillo = new THREE.ExtrudeGeometry(aFormas(anillo, dx, dy), {
     depth: altoPieza,
     bevelEnabled: false,
@@ -355,7 +395,7 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   let geometriaLetras = new THREE.BufferGeometry();
   if (!soloLetras) {
     geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
-      depth: ALTO_LETRAS,
+      depth: altoLetras,
       bevelEnabled: false,
       curveSegments: 1,
     });
@@ -368,6 +408,9 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     base: geometriaBase,
     letras: geometriaLetras,
     anillo: geometriaAnillo,
+    partesBase,
+    telefono: geometriaDorso,
+    grosor: ALTO_BASE + altoLetras,
     soloLetras,
     aro: { x: centro.x - dx, y: centro.y - dy },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,

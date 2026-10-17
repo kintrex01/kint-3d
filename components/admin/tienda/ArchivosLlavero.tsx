@@ -94,7 +94,7 @@ export function ArchivosLlavero({
         });
         if (geometria.telefono) {
           piezas.push({
-            nombre: `teléfono${partes.telefono ? ` (${partes.telefono})` : ""}`,
+            nombre: `${mascota ? "teléfono" : "atrás"}${partes.telefono ? ` (${partes.telefono})` : ""}`,
             geometria: geometria.telefono,
             color: colorFilamento(partes.telefono),
             filamento: filamento(partes.telefono),
@@ -148,6 +148,8 @@ export function ArchivosLlavero({
           {llavero?.fondo === "Placa" && llavero.esquinas !== undefined && (
             <> · esquinas {llavero.esquinas ? `${String(llavero.esquinas).replace(".", ",")} mm` : "en punta"}</>
           )}
+          {llavero?.altoLetras && llavero.altoLetras !== 1 ? <> · letras {String(llavero.altoLetras).replace(".", ",")} mm</> : null}
+          {llavero?.dorso ? <> · atrás «{llavero.dorso}» {llavero.dorsoTipo === "Color" ? "de color" : "grabado"}</> : null}
           {llavero?.separacion ? (
             <> · separación {llavero.separacion > 0 ? "+" : ""}{llavero.separacion} mm</>
           ) : null}
@@ -166,6 +168,7 @@ export function ArchivosLlavero({
             : [
                 ["Borde", borde],
                 ["Letras", letras],
+                ...(partes.telefono ? [["Atrás", partes.telefono]] : []),
               ]),
           ["Anillo", partes.anillo],
         ].map(([parte, color]) => (

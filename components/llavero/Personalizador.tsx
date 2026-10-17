@@ -10,6 +10,14 @@ import { FlipHorizontal2, LoaderCircle, Minus, Palette, Plus, RotateCcw, Shoppin
 import VisorLlavero from "@/components/llavero/VisorLlavero";
 import { construirChapita, construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
+  ALTO_LETRAS_MAX,
+  ALTO_LETRAS_MIN,
+  ALTO_LETRAS_NORMAL,
+  ALTOS_LETRAS_RAPIDOS,
+  MAX_LETRAS_DORSO,
+  RECARGO_DORSO_COLOR,
+  errorTextoDorso,
+  limpiarAltoLetras,
   ADORNOS_CHAPITA,
   ESCALA_NOMBRE_MAX,
   ESCALA_NOMBRE_MIN,
@@ -102,6 +110,8 @@ type Diseno = {
   relieve: boolean;
   escalaNombre: number;
   esquinas: number;
+  altoLetras: number;
+  dorso: string;
   atrasColor: boolean;
   colorTelefono: string;
   colorBase: string;
@@ -183,6 +193,8 @@ export default function Personalizador({
   const [relieve, setRelieve] = useState(() => inicial.relieve === true);
   const [escalaNombre, setEscalaNombre] = useState(() => limpiarEscalaNombre(inicial.escalaNombre ?? 100));
   const [esquinas, setEsquinas] = useState(() => limpiarEsquinas(inicial.esquinas) ?? 2);
+  const [altoLetras, setAltoLetras] = useState(() => limpiarAltoLetras(inicial.altoLetras ?? ALTO_LETRAS_NORMAL));
+  const [dorso, setDorso] = useState(() => String(inicial.dorso || "").slice(0, MAX_LETRAS_DORSO));
   const [atrasColor, setAtrasColor] = useState(() => inicial.atrasColor === true);
   const [colorTelefono, setColorTelefono] = useState(() =>
     inicial.colorTelefono && producto.colores.includes(inicial.colorTelefono)
@@ -226,13 +238,15 @@ export default function Personalizador({
       relieve,
       escalaNombre,
       esquinas,
+      altoLetras,
+      dorso,
       atrasColor,
       colorTelefono,
       colorBase,
       colorLetras,
       colorAnillo,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, adorno, relieve, escalaNombre, esquinas, atrasColor, colorTelefono, colorBase, colorLetras, colorAnillo]);
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, adorno, relieve, escalaNombre, esquinas, altoLetras, dorso, atrasColor, colorTelefono, colorBase, colorLetras, colorAnillo]);
   // Como en el resto de la tienda: la cadena arranca sin elegir.
   const [cadena, setCadena] = useState("");
   const [cantidad, setCantidad] = useState(1);
@@ -249,6 +263,10 @@ export default function Personalizador({
   const telefonoParaVer = esMascota && !errorTelefono ? telefono.trim() : "";
   const errorTexto2 = !esMascota && conLinea2 ? errorTextoLlavero(texto2, true) : "";
   const textoParaVer = errorTexto ? "" : texto.trim();
+  const errorDorso = !esMascota && !soloLetras ? errorTextoDorso(dorso) : "";
+  const conDorso = !esMascota && !soloLetras && Boolean(dorso.trim()) && !errorDorso;
+  const dorsoParaVer = conDorso ? dorso.trim() : "";
+  const recargo = conDorso && atrasColor ? RECARGO_DORSO_COLOR : 0;
   // Mientras la segunda línea tiene algo mal, se ve sin ella.
   const texto2ParaVer = conLinea2 && !errorTexto2 ? texto2.trim() : "";
 
@@ -282,6 +300,9 @@ export default function Personalizador({
             separacion,
             renglones,
             esquinas,
+            altoLetras,
+            dorso: dorsoParaVer,
+            dorsoTipo: atrasColor ? "Color" : "Grabado",
           }))
         .then((nueva) => {
           if (cancelado) {
@@ -304,7 +325,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, adorno, relieve, escalaNombre, atrasColor, fuente, tamano, borde, fondo, separacion, renglones, esquinas]);
+  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, adorno, relieve, escalaNombre, atrasColor, fuente, tamano, borde, fondo, separacion, renglones, esquinas, altoLetras, dorsoParaVer]);
 
   useEffect(
     () => () => {
@@ -330,8 +351,8 @@ export default function Personalizador({
   const colores = useMemo(() => producto.colores, [producto.colores]);
 
   function agregar() {
-    if (errorTexto || errorTexto2 || errorTelefono) {
-      setErrorAgregar(errorTexto || errorTelefono || `Segunda línea: ${errorTexto2}`);
+    if (errorTexto || errorTexto2 || errorTelefono || errorDorso) {
+      setErrorAgregar(errorTexto || errorTelefono || (errorTexto2 ? `Segunda línea: ${errorTexto2}` : `Texto de atrás: ${errorDorso}`));
       return;
     }
     if (producto.cadenas.length && !cadena) {
@@ -347,7 +368,7 @@ export default function Personalizador({
       // Solo letras: una sola pieza, del color de las letras.
       colores: soloLetras
         ? [colorLetras, colorLetras, anilloEfectivo]
-        : esMascota && atrasColor
+        : (esMascota || conDorso) && atrasColor
         ? [colorBase, colorLetras, anilloEfectivo, colorTelefono]
         : [colorBase, colorLetras, anilloEfectivo],
       comentario: esMascota
@@ -373,6 +394,9 @@ export default function Personalizador({
         separacion,
         renglones,
         esquinas: fondo === "Placa" ? esquinas : undefined,
+        altoLetras,
+        dorso: conDorso ? dorso.trim() : "",
+        dorsoTipo: atrasColor ? "Color" : "Grabado",
       }),
       cantidad,
     });
@@ -441,7 +465,7 @@ export default function Personalizador({
             cadena={cadena}
             atras={atras}
           />
-          {esMascota && (
+          {(esMascota || conDorso) && (
             <button
               type="button"
               onClick={() => setAtras(!atras)}
@@ -824,6 +848,92 @@ export default function Personalizador({
             </fieldset>
             )}
 
+            <div>
+              <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>Altura de las letras</span>
+                <span className="tabular-nums text-[var(--text-main)]">{String(altoLetras).replace(".", ",")} mm</span>
+              </span>
+              <div className="grid grid-cols-4 gap-1 rounded-xl border border-[var(--kint-panel-border)] p-1">
+                {ALTOS_LETRAS_RAPIDOS.map((opcion) => (
+                  <button
+                    key={opcion.nombre}
+                    type="button"
+                    aria-pressed={altoLetras === opcion.mm}
+                    onClick={() => setAltoLetras(opcion.mm)}
+                    className={`rounded-lg px-1 py-1.5 text-[10px] font-black leading-tight transition ${
+                      altoLetras === opcion.mm ? "bg-[var(--acento)] text-white" : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                    }`}
+                  >
+                    {opcion.nombre}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="range"
+                min={ALTO_LETRAS_MIN}
+                max={ALTO_LETRAS_MAX}
+                step={0.2}
+                value={altoLetras}
+                onChange={(evento) => setAltoLetras(limpiarAltoLetras(evento.target.value))}
+                aria-label="Altura de las letras"
+                className="mt-2 w-full accent-[var(--acento)] dark:accent-sky-400"
+              />
+            </div>
+
+            {!soloLetras && (
+              <div>
+                <label className="block">
+                  <span className="mb-1.5 flex items-baseline justify-between text-xs font-bold text-[var(--text-muted)]">
+                    <span>Texto atrás (opcional)</span>
+                    <span className="tabular-nums">
+                      {dorso.length}/{MAX_LETRAS_DORSO}
+                    </span>
+                  </span>
+                  <input
+                    value={dorso}
+                    onChange={(evento) => {
+                      setDorso(evento.target.value.slice(0, MAX_LETRAS_DORSO));
+                      setErrorAgregar("");
+                      if (evento.target.value.trim()) setAtras(true);
+                    }}
+                    maxLength={MAX_LETRAS_DORSO}
+                    autoComplete="off"
+                    placeholder="Ej.: tu celular, por si se pierde"
+                    className="h-11 w-full rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 text-sm font-bold text-[var(--text-main)] outline-none transition placeholder:font-semibold placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-[var(--kint-selected-border)]"
+                  />
+                  {errorDorso && <span className="mt-1 block text-[11px] font-semibold text-red-600 dark:text-red-400">{errorDorso}</span>}
+                </label>
+                {dorso.trim() && (
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    {(
+                      [
+                        [false, "Grabado", "Hundido, sin costo"],
+                        [true, "De color", `Relleno en otro color · +${pesos(RECARGO_DORSO_COLOR)}`],
+                      ] as const
+                    ).map(([valor, titulo, detalle]) => (
+                      <button
+                        key={titulo}
+                        type="button"
+                        aria-pressed={atrasColor === valor}
+                        onClick={() => {
+                          setAtrasColor(valor);
+                          setAtras(true);
+                        }}
+                        className={`rounded-xl border px-3 py-2 text-left transition ${
+                          atrasColor === valor
+                            ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                            : "border-[var(--kint-panel-border)] hover:border-[var(--kint-selected-border)]"
+                        }`}
+                      >
+                        <span className="block text-xs font-black">{titulo}</span>
+                        <span className="block text-[10px] leading-3 text-[var(--text-muted)]">{detalle}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {fondo === "Placa" && (
               <label className="block">
                 <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
@@ -941,9 +1051,9 @@ export default function Personalizador({
                 setErrorAgregar("");
               }}
             />
-            {esMascota && atrasColor && (
+            {(esMascota || conDorso) && atrasColor && (
               <SelectorColor
-                titulo="Color del teléfono"
+                titulo={esMascota ? "Color del teléfono" : "Color del texto de atrás"}
                 colores={colores}
                 elegido={colorTelefono}
                 onElegir={(color) => {
@@ -1021,7 +1131,7 @@ export default function Personalizador({
                 className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-black uppercase tracking-[0.12em] transition-all disabled:cursor-not-allowed disabled:opacity-50 ${CLASE_BOTON_PRINCIPAL}`}
               >
                 <ShoppingBag size={16} />
-                Agregar · {pesos(producto.precio * cantidad)}
+                Agregar · {pesos((producto.precio + recargo) * cantidad)}
               </button>
             </div>
           </div>
