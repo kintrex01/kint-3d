@@ -4,8 +4,8 @@
  * Piezas compartidas por las pantallas de maquetas y tienda.
  */
 
-import { Search, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { ArrowDownUp, Search, X } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { ESTADO_CANCELADO, type PedidoResumen } from "@/lib/admin-tipos";
 import { claseInput, diasHasta } from "@/components/admin/ui";
 
@@ -45,6 +45,92 @@ export function entregaVencida(entrega: string, estado: string) {
     dias < 0 &&
     estado !== "Entregado" &&
     !estaCancelado(estado)
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Orden de las listas (se recuerda en este navegador)                 */
+/* ------------------------------------------------------------------ */
+
+export type OrdenLista = "nuevos" | "viejos" | "entrega" | "urgentes";
+
+export const TEXTO_ORDEN: Record<OrdenLista, string> = {
+  nuevos: "Más nuevos primero",
+  viejos: "Más viejos primero",
+  entrega: "Fecha de entrega",
+  urgentes: "Urgentes y próximos",
+};
+
+export function useOrdenGuardado(clave: string, porDefecto: OrdenLista = "nuevos") {
+  const [orden, setOrden] = useState<OrdenLista>(() => {
+    try {
+      const guardado = localStorage.getItem(clave) as OrdenLista | null;
+      return guardado && guardado in TEXTO_ORDEN ? guardado : porDefecto;
+    } catch {
+      return porDefecto;
+    }
+  });
+  function cambiar(nuevo: OrdenLista) {
+    setOrden(nuevo);
+    try {
+      localStorage.setItem(clave, nuevo);
+    } catch {
+      // Sin almacenamiento: dura esta visita.
+    }
+  }
+  return [orden, cambiar] as const;
+}
+
+/* Ordena por número (nuevos/viejos) o por fecha de entrega. */
+export function ordenarLista<T extends { pedido: string }>(
+  lista: T[],
+  orden: OrdenLista,
+  entrega: (item: T) => string,
+  urgente: (item: T) => boolean = () => false
+) {
+  const copia = [...lista];
+  switch (orden) {
+    case "viejos":
+      return copia.sort((a, b) => a.pedido.localeCompare(b.pedido));
+    case "entrega":
+      return copia.sort((a, b) => porEntrega(entrega(a), entrega(b)) || b.pedido.localeCompare(a.pedido));
+    case "urgentes":
+      return copia.sort(
+        (a, b) =>
+          Number(urgente(b)) - Number(urgente(a)) ||
+          porEntrega(entrega(a), entrega(b)) ||
+          a.pedido.localeCompare(b.pedido)
+      );
+    default:
+      return copia.sort((a, b) => b.pedido.localeCompare(a.pedido));
+  }
+}
+
+export function SelectorOrden({
+  valor,
+  opciones,
+  onCambiar,
+}: {
+  valor: OrdenLista;
+  opciones: OrdenLista[];
+  onCambiar: (orden: OrdenLista) => void;
+}) {
+  return (
+    <label className="relative inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] pl-3 pr-2 text-xs font-bold text-[var(--text-muted)] focus-within:border-[var(--kint-selected-border)]">
+      <ArrowDownUp size={13} aria-hidden />
+      <span className="sr-only">Ordenar</span>
+      <select
+        value={valor}
+        onChange={(evento) => onCambiar(evento.target.value as OrdenLista)}
+        className="cursor-pointer appearance-none bg-transparent pr-1 text-xs font-bold text-[var(--text-main)] outline-none"
+      >
+        {opciones.map((opcion) => (
+          <option key={opcion} value={opcion} className="bg-[var(--kint-panel)]">
+            {TEXTO_ORDEN[opcion]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

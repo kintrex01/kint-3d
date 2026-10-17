@@ -27,7 +27,9 @@ import {
   Buscador,
   coincide,
   entregaVencida,
-  porEntrega,
+  SelectorOrden,
+  ordenarLista,
+  useOrdenGuardado,
 } from "@/components/admin/pedidos/utilidades";
 import {
   DetalleCompra,
@@ -48,21 +50,6 @@ const VACIOS: Record<Filtro, string> = {
   todos: "Cuando alguien compre en la tienda lo vas a ver acá.",
 };
 
-function ordenar(compras: CompraTienda[], filtro: Filtro) {
-  const copia = [...compras];
-  if (filtro === "Entregado") {
-    return copia.sort(
-      (a, b) =>
-        porEntrega(b.fechaEntrega, a.fechaEntrega) ||
-        b.pedido.localeCompare(a.pedido)
-    );
-  }
-  return copia.sort(
-    (a, b) =>
-      porEntrega(a.fechaEntrega, b.fechaEntrega) ||
-      a.pedido.localeCompare(b.pedido)
-  );
-}
 
 function textoCambio(cambio: Cambio) {
   if (cambio.tipo === "pago") {
@@ -100,6 +87,7 @@ export default function TiendaAdmin() {
   );
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useOrdenGuardado("kint-admin-orden-tienda");
   const [notificar, setNotificar] = useState(true);
   const [guardando, setGuardando] = useState("");
   const [porConfirmar, setPorConfirmar] = useState<Cambio | null>(null);
@@ -126,15 +114,16 @@ export default function TiendaAdmin() {
 
   const visibles = useMemo(
     () =>
-      ordenar(
+      ordenarLista(
         compras.filter(
           (item) =>
             (filtro === "todos" || item.estado === filtro) &&
             coincide(busqueda, item.pedido, item.cliente, item.alias, item.email)
         ),
-        filtro
+        orden,
+        (item) => item.fechaEntrega
       ),
-    [compras, filtro, busqueda]
+    [compras, filtro, busqueda, orden]
   );
 
   function abrir(pedido: string) {
@@ -259,7 +248,12 @@ export default function TiendaAdmin() {
         placeholder="Buscar por pedido, cliente o email"
       />
 
-      <Segmentos opciones={opciones} valor={filtro} onCambiar={setFiltro} />
+      <div className="flex flex-wrap items-start justify-between gap-x-3">
+        <Segmentos opciones={opciones} valor={filtro} onCambiar={setFiltro} />
+        <div className="mb-4">
+          <SelectorOrden valor={orden} opciones={["nuevos", "viejos", "entrega"]} onCambiar={setOrden} />
+        </div>
+      </div>
 
       {cargando ? (
         <Esqueleto filas={5} />

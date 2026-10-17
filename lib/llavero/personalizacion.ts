@@ -3,8 +3,9 @@
  * el panel y Apps Script (kintTiendaPersonalizacion_ usa las mismas listas).
  *
  * La personalización viaja en el comentario de la línea, así:
- *   "Texto: Antonio | Texto 2: Arquitecto | Fuente: Pacifico | Tamaño: Mediano | Borde: Normal"
- * ("Texto 2" y "Borde" son opcionales: los pedidos viejos no los traen)
+ *   "Texto: Antonio | Texto 2: Arquitecto | Fuente: Pacifico | Tamaño: Mediano | Borde: Normal
+ *    | Fondo: Contorno | Separación: 0"
+ * ("Texto 2", "Borde", "Fondo" y "Separación" son opcionales: los pedidos viejos no los traen)
  * y los colores en la lista de colores: [borde, letras].
  */
 
@@ -40,6 +41,25 @@ export const BORDES_LLAVERO = [
   { nombre: "Extra", mm: 4 },
 ] as const;
 
+/* Qué hay detrás de las letras. */
+export const FONDOS_LLAVERO = [
+  { nombre: "Contorno", detalle: "Sigue la forma de las letras" },
+  { nombre: "Placa", detalle: "Un rectángulo lleno" },
+  { nombre: "Solo letras", detalle: "Sin fondo, de un solo color" },
+] as const;
+
+/* Separación extra entre letras, en mm (negativa = más pegadas). */
+export const SEPARACION_MIN = -1.5;
+export const SEPARACION_MAX = 4;
+export const SEPARACION_PASO = 0.5;
+
+export function limpiarSeparacion(valor: unknown) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return 0;
+  const redondeado = Math.round(numero / SEPARACION_PASO) * SEPARACION_PASO;
+  return Math.min(SEPARACION_MAX, Math.max(SEPARACION_MIN, redondeado));
+}
+
 export const MAX_LETRAS_LLAVERO = 12;
 
 /* Sin "|" ni ":" (separan los campos del comentario). */
@@ -51,6 +71,8 @@ export type PersonalizacionLlavero = {
   fuente: string;
   tamano: string;
   borde?: string; // "Normal" si no viene
+  fondo?: string; // "Contorno" si no viene
+  separacion?: number; // mm extra entre letras (0 si no viene)
 };
 
 export function limpiarTextoLlavero(texto: string) {
@@ -79,6 +101,8 @@ export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero
     `Fuente: ${personalizacion.fuente}`,
     `Tamaño: ${personalizacion.tamano}`,
     `Borde: ${personalizacion.borde || "Normal"}`,
+    `Fondo: ${personalizacion.fondo || "Contorno"}`,
+    `Separación: ${limpiarSeparacion(personalizacion.separacion)}`,
   ]
     .filter(Boolean)
     .join(" | ");
@@ -99,7 +123,9 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
   if (!texto || !fuente || !tamano) return null;
 
   const borde = BORDES_LLAVERO.find((opcion) => opcion.nombre === campos["borde"])?.nombre ?? "Normal";
-  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde };
+  const fondo = FONDOS_LLAVERO.find((opcion) => opcion.nombre === campos["fondo"])?.nombre ?? "Contorno";
+  const separacion = limpiarSeparacion(campos["separación"] ?? 0);
+  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion };
 }
 
 /* "“Antonio / Arquitecto”" para mostrar. */

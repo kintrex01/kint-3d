@@ -1,38 +1,47 @@
 /*
- * Color aproximado de cada filamento por su nombre, para la vista 3D
- * del llavero personalizado. Si no está en la lista, va gris.
+ * Colores de filamento: tono para la vista 3D y foto real del carrete.
+ *
+ * Los tonos de los colores con foto salen de las fotos de public/colores
+ * (promedio del filamento). Las fotos chicas (mini: recorte del filamento,
+ * grande: el carrete entero) se generaron de esas mismas fotos.
+ * Si un color no está en la lista, va gris y sin foto.
  */
 
-const COLORES: Record<string, string> = {
-  negro: "#1a1a1a",
-  blanco: "#f5f5f5",
-  rojo: "#d42020",
-  marron: "#7c4a1e",
-  cristal: "#dbe4ee",
-  transparente: "#dbe4ee",
-  "gris claro": "#d1d5db",
-  gris: "#6b7280",
-  oro: "#d4a017",
-  dorado: "#d4af37",
-  dorada: "#d4af37",
-  plateado: "#c0c4cc",
-  plateada: "#c0c4cc",
-  plata: "#c0c4cc",
-  arena: "#d6c08f",
-  beige: "#e8d9b5",
-  amarillo: "#facc15",
-  naranja: "#f97316",
-  verde: "#16a34a",
-  "verde aguamarina": "#2dd4bf",
-  aguamarina: "#2dd4bf",
-  "verde claro": "#86efac",
-  lila: "#c4b5fd",
-  violeta: "#6d28d9",
-  celeste: "#7dd3fc",
-  azul: "#2547d0",
-  rosa: "#f472b6",
-  fucsia: "#d946ef",
-  bordo: "#7f1d1d",
+type Datos = { hex: string; foto?: string };
+
+const COLORES: Record<string, Datos> = {
+  // Con foto real (public/colores/*.png).
+  amarillo: { hex: "#ffe700", foto: "amarillo" },
+  arena: { hex: "#c2a175", foto: "arena" },
+  blanco: { hex: "#e9ebe6", foto: "blanco" },
+  celeste: { hex: "#1282ce", foto: "celeste" },
+  cristal: { hex: "#c9cbc2", foto: "cristal" },
+  "gris claro": { hex: "#c2c3bf", foto: "gris-claro" },
+  gris: { hex: "#7b8183", foto: "gris" },
+  lila: { hex: "#daa5e9", foto: "lila" },
+  marron: { hex: "#916048", foto: "marron" },
+  negro: { hex: "#303031", foto: "negro" },
+  oro: { hex: "#b78a31", foto: "oro" },
+  rojo: { hex: "#e61925", foto: "rojo" },
+  "verde aguamarina": { hex: "#25cba7", foto: "verde-aguamarina" },
+  "verde bosque": { hex: "#809677", foto: "verde-bosque" },
+  verde: { hex: "#10b580", foto: "verde" },
+  violeta: { hex: "#572369", foto: "violeta" },
+  // Sin foto todavía.
+  transparente: { hex: "#c9cbc2", foto: "cristal" },
+  dorado: { hex: "#c9a13a" },
+  dorada: { hex: "#c9a13a" },
+  plateado: { hex: "#c0c4cc" },
+  plateada: { hex: "#c0c4cc" },
+  plata: { hex: "#c0c4cc" },
+  beige: { hex: "#e8d9b5" },
+  naranja: { hex: "#f97316" },
+  "verde claro": { hex: "#86efac" },
+  aguamarina: { hex: "#25cba7", foto: "verde-aguamarina" },
+  azul: { hex: "#2547d0" },
+  rosa: { hex: "#f472b6" },
+  fucsia: { hex: "#d946ef" },
+  bordo: { hex: "#7f1d1d" },
 };
 
 export function claveColor(nombre: string) {
@@ -44,5 +53,11 @@ export function claveColor(nombre: string) {
 }
 
 export function colorFilamento(nombre: string) {
-  return COLORES[claveColor(nombre)] || "#9ca3af";
+  return COLORES[claveColor(nombre)]?.hex || "#9ca3af";
+}
+
+/* Fotos reales del color: chica (filamento, para botones) y grande (carrete). */
+export function fotoFilamento(nombre: string) {
+  const foto = COLORES[claveColor(nombre)]?.foto;
+  return foto ? { mini: `/colores/mini/${foto}.webp`, grande: `/colores/grande/${foto}.webp` } : null;
 }

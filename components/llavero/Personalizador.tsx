@@ -11,14 +11,19 @@ import VisorLlavero from "@/components/llavero/VisorLlavero";
 import { construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
   BORDES_LLAVERO,
+  FONDOS_LLAVERO,
   FUENTES_LLAVERO,
   MAX_LETRAS_LLAVERO,
+  SEPARACION_MAX,
+  SEPARACION_MIN,
+  SEPARACION_PASO,
   TAMANOS_LLAVERO,
   errorTextoLlavero,
   formatearPersonalizacion,
+  limpiarSeparacion,
   limpiarTextoLlavero,
 } from "@/lib/llavero/personalizacion";
-import { claveColor, colorFilamento } from "@/lib/colores-filamento";
+import { claveColor, colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
 
 export type OpcionesPersonalizado = {
   cadena: string;
@@ -59,6 +64,8 @@ type Diseno = {
   fuente: string;
   tamano: string;
   borde: string;
+  fondo: string;
+  separacion: number;
   colorBase: string;
   colorLetras: string;
 };
@@ -115,21 +122,36 @@ export default function Personalizador({
     inicial.texto2 && !errorTextoLlavero(inicial.texto2, true) ? limpiarTextoLlavero(inicial.texto2) : ""
   );
   const [conLinea2, setConLinea2] = useState(() => Boolean(texto2));
+  const [fondo, setFondo] = useState<string>(() =>
+    FONDOS_LLAVERO.some((opcion) => opcion.nombre === inicial.fondo) ? inicial.fondo! : "Contorno"
+  );
+  const [separacion, setSeparacion] = useState(() => limpiarSeparacion(inicial.separacion ?? 0));
+  const soloLetras = fondo === "Solo letras";
   const [colorBase, setColorBase] = useState(() =>
     inicial.colorBase && producto.colores.includes(inicial.colorBase)
       ? inicial.colorBase
       : elegirColor(producto.colores, ["azul", "violeta", "negro", "rojo"])
   );
   const [colorLetras, setColorLetras] = useState(() =>
-    inicial.colorLetras && producto.colores.includes(inicial.colorLetras) && inicial.colorLetras !== colorBase
+    inicial.colorLetras && producto.colores.includes(inicial.colorLetras)
       ? inicial.colorLetras
       : elegirColor(producto.colores, ["blanco", "amarillo", "gris claro"], colorBase)
   );
 
   // Cada cambio queda guardado en este navegador.
   useEffect(() => {
-    guardarDiseno({ texto, texto2: conLinea2 ? texto2 : "", fuente, tamano, borde, colorBase, colorLetras });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, colorBase, colorLetras]);
+    guardarDiseno({
+      texto,
+      texto2: conLinea2 ? texto2 : "",
+      fuente,
+      tamano,
+      borde,
+      fondo,
+      separacion,
+      colorBase,
+      colorLetras,
+    });
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, colorBase, colorLetras]);
   const [cadena, setCadena] = useState(producto.cadenas[0] || "");
   const [cantidad, setCantidad] = useState(1);
   const [geometria, setGeometria] = useState<GeometriaLlavero | null>(null);
@@ -150,7 +172,7 @@ export default function Personalizador({
     let cancelado = false;
     const espera = window.setTimeout(() => {
       setArmando(true);
-      construirLlavero({ texto: textoParaVer, texto2: texto2ParaVer, fuente, tamano, borde })
+      construirLlavero({ texto: textoParaVer, texto2: texto2ParaVer, fuente, tamano, borde, fondo, separacion })
         .then((nueva) => {
           if (cancelado) {
             nueva.base.dispose();
@@ -174,7 +196,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde]);
+  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde, fondo, separacion]);
 
   useEffect(
     () => () => {
@@ -205,19 +227,22 @@ export default function Personalizador({
       setErrorAgregar(errorTexto || `Segunda línea: ${errorTexto2}`);
       return;
     }
-    if (!colorBase || !colorLetras || colorBase === colorLetras) {
-      setErrorAgregar("Elegí un color para el borde y otro distinto para las letras.");
+    if (!colorLetras || (!soloLetras && !colorBase)) {
+      setErrorAgregar("Elegí los colores.");
       return;
     }
     const error = onAgregar({
       cadena,
-      colores: [colorBase, colorLetras],
+      // Solo letras: una sola pieza, del color de las letras.
+      colores: soloLetras ? [colorLetras, colorLetras] : [colorBase, colorLetras],
       comentario: formatearPersonalizacion({
         texto,
         texto2: conLinea2 ? texto2 : "",
         fuente,
         tamano,
         borde,
+        fondo,
+        separacion,
       }),
       cantidad,
     });
@@ -250,7 +275,7 @@ export default function Personalizador({
         <div className="relative h-[38vh] shrink-0 bg-[radial-gradient(ellipse_at_center,#2b3a55_0%,#11151d_70%)] md:h-auto md:min-h-[560px] md:flex-1">
           <VisorLlavero
             geometria={geometria}
-            colorBase={colorFilamento(colorBase)}
+            colorBase={colorFilamento(soloLetras ? colorLetras : colorBase)}
             colorLetras={colorFilamento(colorLetras)}
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 text-[11px] font-bold text-white/75">
@@ -418,7 +443,71 @@ export default function Personalizador({
 
             <fieldset>
               <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
-                <span>Borde alrededor de las letras</span>
+                <span>Fondo</span>
+                <span className="text-[var(--text-main)]">{fondo}</span>
+              </legend>
+              <div className="grid grid-cols-3 gap-1.5">
+                {FONDOS_LLAVERO.map((opcion) => {
+                  const elegido = opcion.nombre === fondo;
+                  return (
+                    <button
+                      key={opcion.nombre}
+                      type="button"
+                      aria-pressed={elegido}
+                      onClick={() => setFondo(opcion.nombre)}
+                      className={`flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-center transition ${
+                        elegido
+                          ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                          : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                      }`}
+                    >
+                      <DibujoFondo fondo={opcion.nombre} base={colorFilamento(colorBase)} letras={colorFilamento(colorLetras)} />
+                      <span className="text-[11px] font-black text-[var(--text-main)]">{opcion.nombre}</span>
+                      <span className="text-[10px] leading-3 text-[var(--text-muted)]">{opcion.detalle}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <label className="block">
+              <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>Separación entre letras</span>
+                <span className="tabular-nums text-[var(--text-main)]">
+                  {separacion === 0 ? "Normal" : `${separacion > 0 ? "+" : ""}${String(separacion).replace(".", ",")} mm`}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={SEPARACION_MIN}
+                max={SEPARACION_MAX}
+                step={SEPARACION_PASO}
+                value={separacion}
+                onChange={(evento) => setSeparacion(limpiarSeparacion(evento.target.value))}
+                className="w-full accent-[#1f3f85] dark:accent-sky-400"
+              />
+              <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                <span>Pegadas</span>
+                <button
+                  type="button"
+                  onClick={() => setSeparacion(0)}
+                  className="rounded px-1 hover:text-[var(--text-main)]"
+                >
+                  Normal
+                </button>
+                <span>Separadas</span>
+              </span>
+              {fondo === "Solo letras" && separacion > -1 && (
+                <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
+                  Sin fondo, las letras que no se tocan salen sueltas. Juntalas con la barra si las querés unidas.
+                </span>
+              )}
+            </label>
+
+            {!soloLetras && (
+            <fieldset>
+              <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>{fondo === "Placa" ? "Margen alrededor de las letras" : "Borde alrededor de las letras"}</span>
                 <span className="text-[var(--text-main)]">{borde}</span>
               </legend>
               <div className="grid grid-cols-4 gap-1.5">
@@ -454,22 +543,23 @@ export default function Personalizador({
                 })}
               </div>
             </fieldset>
+            )}
 
+            {!soloLetras && (
+              <SelectorColor
+                titulo={fondo === "Placa" ? "Color de la placa" : "Color del borde"}
+                colores={colores}
+                elegido={colorBase}
+                onElegir={(color) => {
+                  setColorBase(color);
+                  setErrorAgregar("");
+                }}
+              />
+            )}
             <SelectorColor
-              titulo="Color del borde"
-              colores={colores}
-              elegido={colorBase}
-              otro={colorLetras}
-              onElegir={(color) => {
-                setColorBase(color);
-                setErrorAgregar("");
-              }}
-            />
-            <SelectorColor
-              titulo="Color de las letras"
+              titulo={soloLetras ? "Color" : "Color de las letras"}
               colores={colores}
               elegido={colorLetras}
-              otro={colorBase}
               onElegir={(color) => {
                 setColorLetras(color);
                 setErrorAgregar("");
@@ -544,19 +634,46 @@ export default function Personalizador({
   );
 }
 
+/* Dibujito de cada fondo, con los colores elegidos. */
+function DibujoFondo({ fondo, base, letras }: { fondo: string; base: string; letras: string }) {
+  return (
+    <svg viewBox="0 0 64 28" className="h-7 w-16" aria-hidden>
+      {fondo === "Placa" && <rect x="2" y="2" width="60" height="24" rx="5" fill={base} />}
+      {fondo === "Contorno" && (
+        <path
+          d="M6 14a5 5 0 0 1 5-5h3V6a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1h8V5a3 3 0 0 1 3-3h7a4 4 0 0 1 4 4v3h4a5 5 0 0 1 0 10h-4v3a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4v-3h-7a5 5 0 0 1-5-5z"
+          fill={base}
+        />
+      )}
+      <text
+        x="34"
+        y="20"
+        textAnchor="middle"
+        fontSize="15"
+        fontWeight="900"
+        fontFamily="Arial, sans-serif"
+        fill={letras}
+        stroke={fondo === "Solo letras" ? "rgba(0,0,0,0.25)" : "none"}
+        strokeWidth="0.6"
+      >
+        ABC
+      </text>
+    </svg>
+  );
+}
+
 function SelectorColor({
   titulo,
   colores,
   elegido,
-  otro,
   onElegir,
 }: {
   titulo: string;
   colores: string[];
   elegido: string;
-  otro: string;
   onElegir: (color: string) => void;
 }) {
+  const foto = fotoFilamento(elegido);
   return (
     <fieldset>
       <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
@@ -566,26 +683,41 @@ function SelectorColor({
       <div className="flex flex-wrap gap-2">
         {colores.map((color) => {
           const activo = color === elegido;
-          const usado = color === otro;
+          const mini = fotoFilamento(color)?.mini;
           return (
             <button
               key={color}
               type="button"
               onClick={() => onElegir(color)}
-              disabled={usado}
               aria-pressed={activo}
               aria-label={color}
-              title={usado ? `${color} (ya está en la otra parte)` : color}
-              className={`relative h-9 w-9 rounded-full transition disabled:cursor-not-allowed disabled:opacity-25 ${
+              title={color}
+              className={`relative h-10 w-10 overflow-hidden rounded-full bg-cover bg-center transition ${
                 activo
                   ? "ring-2 ring-[var(--blue-main)] ring-offset-2 ring-offset-[var(--kint-panel)] dark:ring-sky-400"
                   : "ring-1 ring-black/15 hover:scale-110 dark:ring-white/20"
               }`}
-              style={{ background: colorFilamento(color) }}
+              style={mini ? { backgroundImage: `url("${mini}")` } : { background: colorFilamento(color) }}
             />
           );
         })}
       </div>
+      {/* Cómo se ve de verdad el color elegido. */}
+      {foto && (
+        <div className="mt-2.5 flex items-center gap-3 rounded-xl bg-[var(--kint-panel-soft)] p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={foto.grande}
+            alt={`Carrete de filamento ${elegido}`}
+            className="h-16 w-16 shrink-0 rounded-lg bg-white object-cover"
+            loading="lazy"
+          />
+          <span className="min-w-0 text-[11px] leading-4 text-[var(--text-muted)]">
+            <strong className="block text-xs text-[var(--text-main)]">{elegido}: foto real</strong>
+            Así es el filamento. En la vista 3D el color es aproximado.
+          </span>
+        </div>
+      )}
     </fieldset>
   );
 }

@@ -15,7 +15,13 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { parse, type Font, type Path as RutaFuente } from "opentype.js";
 import * as ClipperLib from "clipper-lib";
-import { FUENTES_LLAVERO, TAMANOS_LLAVERO, bordeMm, type PersonalizacionLlavero } from "./personalizacion";
+import {
+  FUENTES_LLAVERO,
+  TAMANOS_LLAVERO,
+  bordeMm,
+  limpiarSeparacion,
+  type PersonalizacionLlavero,
+} from "./personalizacion";
 
 type Contorno = ClipperLib.Path;
 type Contornos = ClipperLib.Paths;
@@ -31,7 +37,8 @@ const RADIO_AGUJERO = 2;
 
 export type GeometriaLlavero = {
   base: THREE.BufferGeometry;
-  letras: THREE.BufferGeometry;
+  letras: THREE.BufferGeometry; // vacía si es "Solo letras"
+  soloLetras: boolean;
   ancho: number; // mm
   alto: number; // mm
   areaCm2: number;
@@ -226,81 +233,117 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   const tamanoFuente = (altoMayusculas * fuente.unitsPerEm) / unidadesMayuscula;
 
   const margen = bordeMm(personalizacion.borde);
+  const fondo = personalizacion.fondo || "Contorno";
+  const soloLetras = fondo === "Solo letras";
+  // Separación extra entre letras: opentype la toma en "em" del tamaño de fuente.
+  const opcionesTexto = {
+    kerning: true,
+    letterSpacing: limpiarSeparacion(personalizacion.separacion) / tamanoFuente,
+  };
   const textos = [personalizacion.texto.trim() || "Kint", personalizacion.texto2?.trim() || ""].filter(Boolean);
   // De renglón a renglón: lugar para las patitas de la "g", "p", "y".
   const interlineado = altoMayusculas * 1.6;
 
   // Cada renglón centrado en x = 0; el segundo, debajo del primero.
   const renglones = textos.map((texto, indice) => {
-    const prueba = fuente.getPath(texto, 0, 0, tamanoFuente, { kerning: true }).getBoundingBox();
-    const ruta = fuente.getPath(texto, -(prueba.x1 + prueba.x2) / 2, indice * interlineado, tamanoFuente, {
-      kerning: true,
-    });
+    const prueba = fuente.getPath(texto, 0, 0, tamanoFuente, opcionesTexto).getBoundingBox();
+    const ruta = fuente.getPath(texto, -(prueba.x1 + prueba.x2) / 2, indice * interlineado, tamanoFuente, opcionesTexto);
     const contornos = unir(aplanar(ruta));
     const caja = contornos.length ? limites(contornos) : null;
     return { contornos, caja, linea: -indice * interlineado };
   });
   const letras = unir(renglones.flatMap((renglon) => renglon.contornos));
   if (!letras.length) throw new Error("Esa fuente no tiene esas letras.");
+  const todo = limites(letras);
 
-  // Banda por la mitad de cada renglón: une las letras que quedan sueltas.
-  const rellenos: Contornos = [];
-  for (const renglon of renglones) {
-    if (!renglon.caja) continue;
-    rellenos.push(
-      rectangulo(
-        renglon.caja.minX,
-        renglon.linea + altoMayusculas * 0.22,
-        renglon.caja.maxX,
-        renglon.linea + altoMayusculas * 0.62
-      )
-    );
-  }
   // Con dos renglones, un puente vertical en el medio los une.
+  const puente: Contornos = [];
   if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
     const medio = Math.min(
       renglones[0].caja.maxX - renglones[0].caja.minX,
       renglones[1].caja.maxX - renglones[1].caja.minX
-    ) * 0.35;
-    rellenos.push(rectangulo(-medio, renglones[1].linea + altoMayusculas * 0.3, medio, altoMayusculas * 0.5));
+    ) * (soloLetras ? 0.08 : 0.35);
+    puente.push(rectangulo(-medio, renglones[1].linea + altoMayusculas * 0.3, medio, altoMayusculas * 0.5));
   }
-  let base = engordar(unir([...letras, ...rellenos]), margen);
 
   // Oreja con el agujero del aro: a la izquierda del primer renglón, a media altura.
-  const primero = renglones[0].caja ?? limites(letras);
+  const primero = renglones[0].caja ?? todo;
   const centroY = altoMayusculas * 0.42;
-  const centroX = primero.minX - margen - RADIO_OREJA * 0.45;
-  base = unir([
-    ...base,
-    circulo(centroX, centroY, RADIO_OREJA),
-    rectangulo(centroX, centroY - RADIO_OREJA * 0.85, primero.minX + 1, centroY + RADIO_OREJA * 0.85),
-  ]);
+  let base: Contornos;
+  let centroX: number;
 
-  // La base va llena (sin los huecos de la "o", "a"...) y después se le hace el agujero.
-  base = base.filter((contorno) => ClipperLib.Clipper.Area(contorno) > 0);
+  if (soloLetras) {
+    // Sin fondo: las letras son la pieza; la oreja se mete hasta la primera letra.
+    centroX = primero.minX - RADIO_OREJA * 0.55;
+    const hasta = Math.min(primero.minX + altoMayusculas * 0.45, primero.maxX);
+    base = unir([
+      ...letras,
+      ...puente,
+      circulo(centroX, centroY, RADIO_OREJA),
+      rectangulo(centroX, centroY - RADIO_OREJA * 0.7, hasta, centroY + RADIO_OREJA * 0.7),
+    ]);
+  } else {
+    if (fondo === "Placa") {
+      // Rectángulo lleno con las esquinas redondeadas.
+      const radio = Math.min(margen, 3);
+      base = engordar(
+        [rectangulo(todo.minX - margen + radio, todo.minY - margen + radio, todo.maxX + margen - radio, todo.maxY + margen - radio)],
+        radio
+      );
+      centroX = todo.minX - margen - RADIO_OREJA * 0.45;
+    } else {
+      // Contorno: banda por la mitad de cada renglón para unir las letras sueltas.
+      const rellenos: Contornos = [...puente];
+      for (const renglon of renglones) {
+        if (!renglon.caja) continue;
+        rellenos.push(
+          rectangulo(
+            renglon.caja.minX,
+            renglon.linea + altoMayusculas * 0.22,
+            renglon.caja.maxX,
+            renglon.linea + altoMayusculas * 0.62
+          )
+        );
+      }
+      base = engordar(unir([...letras, ...rellenos]), margen);
+      centroX = primero.minX - margen - RADIO_OREJA * 0.45;
+    }
+    base = unir([
+      ...base,
+      circulo(centroX, centroY, RADIO_OREJA),
+      rectangulo(centroX, centroY - RADIO_OREJA * 0.85, primero.minX + 1, centroY + RADIO_OREJA * 0.85),
+    ]);
+    // La base va llena (sin los huecos de la "o", "a"...).
+    base = base.filter((contorno) => ClipperLib.Clipper.Area(contorno) > 0);
+  }
   base = operar(ClipperLib.ClipType.ctDifference, base, [circulo(centroX, centroY, RADIO_AGUJERO, 48)]);
 
   const total = limites(base);
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
 
+  // Solo letras: una sola pieza de todo el alto; la de "letras" queda vacía.
   const geometriaBase = new THREE.ExtrudeGeometry(aFormas(base, dx, dy), {
-    depth: ALTO_BASE,
+    depth: soloLetras ? ALTO_BASE + ALTO_LETRAS : ALTO_BASE,
     bevelEnabled: false,
     curveSegments: 1,
   });
-  const geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
-    depth: ALTO_LETRAS,
-    bevelEnabled: false,
-    curveSegments: 1,
-  });
-  geometriaLetras.translate(0, 0, ALTO_BASE);
+  let geometriaLetras = new THREE.BufferGeometry();
+  if (!soloLetras) {
+    geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
+      depth: ALTO_LETRAS,
+      bevelEnabled: false,
+      curveSegments: 1,
+    });
+    geometriaLetras.translate(0, 0, ALTO_BASE);
+  }
 
   const area = base.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
 
   return {
     base: geometriaBase,
     letras: geometriaLetras,
+    soloLetras,
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
     areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,

@@ -42,6 +42,7 @@ export function ArchivosLlavero({
   const [armando, setArmando] = useState<Archivo | "">("");
   const [error, setError] = useState("");
   const [borde = "", letras = ""] = colores;
+  const soloLetras = personalizacion.fondo === "Solo letras";
 
   async function bajar(archivo: Archivo) {
     setArmando(archivo);
@@ -56,14 +57,23 @@ export function ArchivosLlavero({
       if (archivo === "3mf") {
         const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
         descargar(
-          exportar3MF(base, [
-            { nombre: parteBorde, geometria: geometria.base },
-            { nombre: parteLetras, geometria: geometria.letras },
-          ]),
+          exportar3MF(
+            base,
+            geometria.soloLetras
+              ? [{ nombre: parteLetras, geometria: geometria.base }]
+              : [
+                  { nombre: parteBorde, geometria: geometria.base },
+                  { nombre: parteLetras, geometria: geometria.letras },
+                ]
+          ),
           `${base}.3mf`
         );
-      } else if (archivo === "borde") {
-        descargar(exportarSTL(geometria.base), `${base} - ${parteBorde}.stl`);
+      } else if (archivo === "borde" || geometria.soloLetras) {
+        // Solo letras: una sola pieza (la "base" es el llavero entero).
+        descargar(
+          exportarSTL(geometria.base),
+          `${base} - ${geometria.soloLetras ? parteLetras : parteBorde}.stl`
+        );
       } else {
         descargar(exportarSTL(geometria.letras), `${base} - ${parteLetras}.stl`);
       }
@@ -83,13 +93,18 @@ export function ArchivosLlavero({
     <span className="mt-1.5 block rounded-xl bg-[var(--kint-panel-soft)] p-2.5">
       <span className="block text-base font-black leading-tight">“{textoVisible(personalizacion)}”</span>
       <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-        {personalizacion.fuente} · {personalizacion.tamano} · borde {personalizacion.borde || "Normal"}
+        {personalizacion.fuente} · {personalizacion.tamano} · {personalizacion.fondo || "Contorno"}
+        {personalizacion.fondo !== "Solo letras" && <> · borde {personalizacion.borde || "Normal"}</>}
+        {personalizacion.separacion ? <> · separación {personalizacion.separacion > 0 ? "+" : ""}{personalizacion.separacion} mm</> : null}
       </span>
       <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
-        {[
-          ["Borde", borde],
-          ["Letras", letras],
-        ].map(([parte, color]) => (
+        {(soloLetras
+          ? [["Color", letras]]
+          : [
+              ["Borde", borde],
+              ["Letras", letras],
+            ]
+        ).map(([parte, color]) => (
           <span key={parte} className="inline-flex items-center gap-1.5">
             <span
               aria-hidden
@@ -108,20 +123,24 @@ export function ArchivosLlavero({
         className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#1f3f85] px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
       >
         {armando === "3mf" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
-        Descargar 3MF (borde + letras juntos)
+        {soloLetras ? "Descargar 3MF" : "Descargar 3MF (borde + letras juntos)"}
       </button>
       <span className="mt-1.5 flex flex-wrap gap-1.5">
+        {!soloLetras && (
         <button type="button" onClick={() => void bajar("borde")} disabled={Boolean(armando)} className={claseSecundario}>
           {armando === "borde" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
           STL borde
         </button>
+        )}
         <button type="button" onClick={() => void bajar("letras")} disabled={Boolean(armando)} className={claseSecundario}>
           {armando === "letras" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
           STL letras
         </button>
       </span>
       <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
-        El 3MF se abre como una pieza con 2 partes: a «letras» asignale el filamento de las letras.
+        {soloLetras
+          ? "Una sola pieza, de un solo color."
+          : "El 3MF se abre como una pieza con 2 partes: a «letras» asignale el filamento de las letras."}
       </span>
       {error && <span className="mt-1 block text-[11px] font-bold text-red-600">{error}</span>}
     </span>

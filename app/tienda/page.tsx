@@ -276,8 +276,12 @@ function detalleLinea(linea: {
   if (personalizado) {
     return [
       `“${textoVisible(personalizado)}”`,
-      `${personalizado.fuente} · ${personalizado.tamano} · borde ${(personalizado.borde || "Normal").toLocaleLowerCase("es")}`,
-      colores.length === 2 ? `Borde ${colores[0]}, letras ${colores[1]}` : "",
+      `${personalizado.fuente} · ${personalizado.tamano} · ${personalizado.fondo || "Contorno"}`,
+      personalizado.fondo === "Solo letras"
+        ? `Color ${colores[1] || colores[0] || ""}`
+        : colores.length === 2
+        ? `${personalizado.fondo === "Placa" ? "Placa" : "Borde"} ${colores[0]}, letras ${colores[1]}`
+        : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]
       .filter(Boolean)
@@ -437,7 +441,6 @@ function ajustarCarrito(
     // Un color que ya no se ofrece saca la línea, como una cadena vieja.
     const coloresValidos = producto.personalizable
       ? colores.length === 2 &&
-        colores[0] !== colores[1] &&
         colores.every((color) => producto.colores.includes(color)) &&
         Boolean(leerPersonalizacion(String(linea?.comentario || "")))
       : (colores.length <= producto.maxColores ||

@@ -35,8 +35,10 @@ import {
   entregaVencida,
   estaCancelado,
   pagoPorValidar,
-  porEntrega,
   saldoPorValidar,
+  SelectorOrden,
+  ordenarLista,
+  useOrdenGuardado,
 } from "@/components/admin/pedidos/utilidades";
 
 type Filtro = "todos" | "porHacer" | "activos" | "entregados" | "cancelados";
@@ -74,26 +76,6 @@ function cumpleFiltro(pedido: PedidoResumen, filtro: Filtro) {
   }
 }
 
-/* Lo más urgente primero; los entregados, del más reciente al más viejo. */
-function ordenar(pedidos: PedidoResumen[], filtro: Filtro) {
-  const copia = [...pedidos];
-  if (filtro === "todos") {
-    // Los más nuevos arriba (el número crece con cada pedido).
-    return copia.sort((a, b) => b.pedido.localeCompare(a.pedido));
-  }
-  if (filtro === "entregados" || filtro === "cancelados") {
-    return copia.sort(
-      (a, b) =>
-        porEntrega(b.entrega, a.entrega) || b.pedido.localeCompare(a.pedido)
-    );
-  }
-  return copia.sort(
-    (a, b) =>
-      Number(b.prioritario) - Number(a.prioritario) ||
-      porEntrega(a.entrega, b.entrega) ||
-      a.pedido.localeCompare(b.pedido)
-  );
-}
 
 const VACIOS: Record<Filtro, { titulo: string; texto: string }> = {
   todos: {
@@ -122,6 +104,7 @@ export default function PedidosAdmin() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busqueda, setBusqueda] = useState("");
+  const [orden, setOrden] = useOrdenGuardado("kint-admin-orden-maquetas");
 
   const { datos, error, cargando, recargando, recargar } = useDatosAdmin(
     "admin_pedidos_listar",
@@ -149,15 +132,17 @@ export default function PedidosAdmin() {
 
   const visibles = useMemo(
     () =>
-      ordenar(
+      ordenarLista(
         pedidos.filter(
           (pedido) =>
             cumpleFiltro(pedido, filtro) &&
             coincide(busqueda, pedido.pedido, pedido.nombre, pedido.email)
         ),
-        filtro
+        orden,
+        (pedido) => pedido.entrega,
+        (pedido) => pedido.prioritario
       ),
-    [pedidos, filtro, busqueda]
+    [pedidos, filtro, busqueda, orden]
   );
 
   function cambiarCancelados(activo: boolean) {
@@ -208,7 +193,16 @@ export default function PedidosAdmin() {
         placeholder="Buscar por pedido, nombre o email"
       />
 
-      <Segmentos opciones={opciones} valor={filtro} onCambiar={setFiltro} />
+      <div className="flex flex-wrap items-start justify-between gap-x-3">
+        <Segmentos opciones={opciones} valor={filtro} onCambiar={setFiltro} />
+        <div className="mb-4">
+          <SelectorOrden
+            valor={orden}
+            opciones={["nuevos", "viejos", "entrega", "urgentes"]}
+            onCambiar={setOrden}
+          />
+        </div>
+      </div>
 
       <div className="-mt-1 mb-4 flex min-h-11 items-center justify-between gap-3">
         <span
