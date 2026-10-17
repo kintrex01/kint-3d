@@ -84,7 +84,7 @@ function elegirColor(colores: string[], preferidos: string[], evitar = "") {
 const CLAVE_DISENO = "kint-llavero-diseno-v2";
 
 /* Foto de todos los carretes, para ver los colores de verdad. */
-const FOTO_COLORES = "/colores/colores-filamentos.png";
+const FOTO_COLORES = "/colores/colores-filamentos.webp";
 
 type Diseno = {
   texto: string;

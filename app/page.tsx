@@ -720,7 +720,7 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
     {/* FOTO */}
     <div className="relative h-[145px] overflow-hidden sm:h-full">
       <img
-        src="/colores/colores-filamentos.png"
+        src="/colores/colores-filamentos.webp"
         alt="Muestras reales de colores de filamento para impresión 3D en Kint 3D"
         className="
           h-full

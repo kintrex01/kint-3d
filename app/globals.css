@@ -106,7 +106,7 @@ body {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: url("/fondos/kint-claro-pc.png");
+  background-image: url("/fondos/kint-claro-pc.webp");
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
@@ -114,7 +114,7 @@ body {
 }
 
 .dark .kint-hero-bg {
-  background-image: url("/fondos/kint-oscuro-pc.png");
+  background-image: url("/fondos/kint-oscuro-pc.webp");
 }
 
 .kint-hero-content {
@@ -363,14 +363,14 @@ html:not(.dark) .kint-services-card {
 
 @media (max-width: 768px) {
   .kint-hero-bg {
-    background-image: url("/fondos/kint-claro-movil.png") !important;
+    background-image: url("/fondos/kint-claro-movil.webp") !important;
     background-size: contain;
     background-position: center top;
     background-repeat: no-repeat;
   }
 
   .dark .kint-hero-bg {
-    background-image: url("/fondos/kint-oscuro-movil.png") !important;
+    background-image: url("/fondos/kint-oscuro-movil.webp") !important;
   }
 
   html {

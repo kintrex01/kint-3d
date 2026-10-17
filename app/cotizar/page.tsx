@@ -915,10 +915,6 @@ const armadoCompleto =
   !armadoHabilitado ||
   Boolean(armado);
 
-const alisadoCompleto =
-  !alisadoHabilitado ||
-  Boolean(alisado);
-
 /* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
 // Solo se saltea si ya sabemos que la cuenta tiene uno guardado.
 const necesitaTelefono =
@@ -1994,8 +1990,8 @@ return (
             Escala de impresión
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Selecciona la escala deseada para tu maqueta o pieza. Si no
-            encuentras la escala que necesitas, utiliza la opción "Otra escala".
+            Elegí la escala de tu maqueta o pieza. Si no encontrás la que
+            necesitás, usá la opción «Otra escala».
           </p>
          <select
   value={escala}

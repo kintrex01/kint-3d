@@ -13,16 +13,16 @@ import {
  * cambiar de formato sin recargar la página ni perder la animación.
  */
 const FONDO_CLARO_PC =
-  "/fondos/kint-claro-pc.png";
+  "/fondos/kint-claro-pc.webp";
 
 const FONDO_OSCURO_PC =
-  "/fondos/kint-oscuro-pc.png";
+  "/fondos/kint-oscuro-pc.webp";
 
 const FONDO_CLARO_MOVIL =
-  "/fondos/kint-claro-grande.png";
+  "/fondos/kint-claro-grande.webp";
 
 const FONDO_OSCURO_MOVIL =
-  "/fondos/kint-oscuro-grande.png";
+  "/fondos/kint-oscuro-grande.webp";
 
 const ANCHO_MAXIMO_MOVIL = 760;
 
@@ -1497,7 +1497,7 @@ const altoInicial = Math.max(
   opacity: 1;
 
   background-image:
-    url("/fondos/kint-claro-pc.png");
+    url("/fondos/kint-claro-pc.webp");
 }
 
 .fallback-oscuro {
@@ -1507,7 +1507,7 @@ const altoInicial = Math.max(
     #06182d;
 
   background-image:
-    url("/fondos/kint-oscuro-pc.png");
+    url("/fondos/kint-oscuro-pc.webp");
 }
 
         :global(html.dark)
@@ -1751,12 +1751,12 @@ const altoInicial = Math.max(
 
           .fallback-claro {
             background-image:
-               url("/fondos/kint-claro-grande.png");
+               url("/fondos/kint-claro-grande.webp");
           }
 
           .fallback-oscuro {
   background-image:
-    url("/fondos/kint-oscuro-grande.png");
+    url("/fondos/kint-oscuro-grande.webp");
 }
 
           .fallback {

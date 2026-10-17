@@ -69,6 +69,22 @@ export default function RootLayout({
   suppressHydrationWarning
   className="flex min-h-full flex-col"
 >
+  {/* Para Google: quién es Kint 3D. */}
+  <script
+    type="application/ld+json"
+    dangerouslySetInnerHTML={{
+      __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: "Kint 3D",
+        url: "https://kint3d.com",
+        logo: "https://kint3d.com/icon.png",
+        description: "Impresión 3D y maquetas en Uruguay: cotización online, tienda y llaveros personalizados.",
+        areaServed: { "@type": "Country", name: "Uruguay" },
+      }),
+    }}
+  />
+
   <EstadoPagina />
 
   <MenuNavegacion />
