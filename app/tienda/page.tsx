@@ -21,6 +21,7 @@ import {
   Plus,
   RefreshCw,
   ShoppingBag,
+  ShoppingCart,
   Trash2,
   Upload,
   UserRound,
@@ -2818,7 +2819,8 @@ export default function TiendaPage() {
   const [confirmada, setConfirmada] =
     useState<CompraConfirmada | null>(null);
 
-  const [carritoEnPantalla, setCarritoEnPantalla] = useState(false);
+  // Panel del carrito a la derecha: se abre y cierra con el botón de arriba.
+  const [carritoAbierto, setCarritoAbierto] = useState(false);
   const [hoy] = useState(fechaHoyISO);
 
   // Ficha abierta (por nombre de producto) y aviso de "agregado".
@@ -2904,21 +2906,13 @@ export default function TiendaPage() {
   }, [idCompra, carritoListo]);
 
   useEffect(() => {
-    const elemento = refCarrito.current;
-
-    if (!elemento || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-
-    const observador = new IntersectionObserver(
-      ([entrada]) => setCarritoEnPantalla(entrada.isIntersecting),
-      { threshold: 0.05 }
-    );
-
-    observador.observe(elemento);
-
-    return () => observador.disconnect();
-  }, [catalogo, confirmada]);
+    if (!carritoAbierto) return;
+    const alTeclear = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setCarritoAbierto(false);
+    };
+    window.addEventListener("keydown", alTeclear);
+    return () => window.removeEventListener("keydown", alTeclear);
+  }, [carritoAbierto]);
 
   const vistaPrevia = useMemo(
     () =>
@@ -3274,15 +3268,8 @@ export default function TiendaPage() {
     !enviando;
 
   function mostrarPanel() {
-    const elemento = refCarrito.current;
-    if (!elemento) return;
-
-    // En escritorio el panel es fijo: se sube su propio scroll.
-    if (window.matchMedia("(min-width: 1024px)").matches) {
-      elemento.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      elemento.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    setCarritoAbierto(true);
+    refCarrito.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function irAPaso(nuevo: Paso) {
@@ -3729,12 +3716,42 @@ export default function TiendaPage() {
   }
 
   return (
-    <main className="min-h-screen pb-32 text-[var(--text-main)] lg:pb-16 lg:pr-[420px]">
+    <main
+      className={`min-h-screen pb-32 text-[var(--text-main)] transition-[padding] duration-300 lg:pb-16 ${
+        carritoAbierto ? "lg:pr-[420px]" : ""
+      }`}
+    >
       <FondoOscuro />
 
-      <div className="fixed right-6 top-6 z-50">
+      {/* Arriba a la derecha: el carrito (con cuántas cosas tiene) y el tema. */}
+      <div className="fixed right-4 top-5 z-[170] flex items-center gap-2 sm:right-6 sm:top-6">
+        {catalogo && (
+          <button
+            type="button"
+            onClick={() => setCarritoAbierto((actual) => !actual)}
+            aria-expanded={carritoAbierto}
+            aria-controls="carrito"
+            aria-label={carritoAbierto ? "Cerrar el carrito" : `Abrir el carrito (${unidades} ${unidades === 1 ? "producto" : "productos"})`}
+            className={`relative flex h-12 w-12 items-center justify-center rounded-full border shadow-lg backdrop-blur transition hover:-translate-y-0.5 ${
+              carritoAbierto
+                ? "border-transparent bg-[var(--acento)] text-white"
+                : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-main)]"
+            }`}
+          >
+            {carritoAbierto ? <X size={20} /> : <ShoppingCart size={21} />}
+            {unidades > 0 && !carritoAbierto && (
+              <span
+                key={unidades}
+                className="absolute -right-1 -top-1 flex h-6 min-w-6 animate-[kint-salto_0.45s_ease-out] items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white ring-2 ring-[var(--page-bg)]"
+              >
+                {unidades > 99 ? "99+" : unidades}
+              </span>
+            )}
+          </button>
+        )}
         <ThemeToggle />
       </div>
+      <style>{`@keyframes kint-salto { 0% { transform: scale(0.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }`}</style>
 
       {/*
         * MenuNavegacion deja un espacio de h-28 / sm:h-32 arriba.
@@ -3878,7 +3895,9 @@ export default function TiendaPage() {
               <div
                 className={`grid gap-5 ${
                   CLASES_COLUMNAS[vista.columnas] ||
-                  "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
+                  (carritoAbierto
+                    ? "grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3"
+                    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4")
                 }`}
               >
                 {ordenarProductos(
@@ -3924,14 +3943,27 @@ export default function TiendaPage() {
         )}
       </div>
 
+      {/* En el celular, tocar afuera cierra el carrito. */}
+      {catalogo && carritoAbierto && (
+        <div
+          aria-hidden
+          onClick={() => setCarritoAbierto(false)}
+          className="fixed inset-0 z-[155] bg-black/45 backdrop-blur-[2px] lg:hidden"
+        />
+      )}
+
       {catalogo && (
         <aside
           id="carrito"
           ref={refCarrito}
           aria-label="Carrito y compra"
-          className="mx-4 mt-10 scroll-mt-24 sm:mx-6 lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:m-0 lg:w-[420px] lg:overflow-y-auto lg:overscroll-contain lg:border-l lg:border-[var(--kint-panel-border)] lg:bg-[var(--kint-panel)] lg:px-7 lg:pb-10 lg:pt-24 lg:shadow-[-24px_0_60px_rgba(0,0,0,0.12)]"
+          aria-hidden={!carritoAbierto}
+          inert={!carritoAbierto}
+          className={`fixed inset-y-0 right-0 z-[160] w-full max-w-[420px] overflow-y-auto overscroll-contain border-l border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-5 pb-10 pt-24 shadow-[-24px_0_60px_rgba(0,0,0,0.25)] transition-transform duration-300 ease-out sm:px-7 ${
+            carritoAbierto ? "translate-x-0" : "translate-x-full"
+          }`}
         >
-          <div className={`${CLASE_PANEL} p-5 sm:p-6 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none`}>
+          <div>
             <div className="flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 text-lg font-black">
                 <ShoppingBag size={20} strokeWidth={2} />
@@ -4569,7 +4601,7 @@ export default function TiendaPage() {
         </aside>
       )}
 
-      {catalogo && lineas.length > 0 && !carritoEnPantalla && (
+      {catalogo && lineas.length > 0 && !carritoAbierto && (
         <button
           type="button"
           onClick={mostrarPanel}

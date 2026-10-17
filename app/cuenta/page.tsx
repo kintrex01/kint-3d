@@ -52,6 +52,7 @@ type Cuenta = {
   nombre: string;
   alias: string;
   aliasLibreDesde?: string; // "" = puede cambiarlo ya
+  sesionDias?: number; // cuánto dura la sesión (1 a 3 días)
   telefono: string;
   registro: string;
   topKint: boolean;
@@ -89,7 +90,7 @@ function fecha(iso: string) {
     : dia.toLocaleDateString("es-UY", { day: "numeric", month: "short", year: "numeric" });
 }
 
-async function llamar(cuerpo: Record<string, string | boolean>) {
+async function llamar(cuerpo: Record<string, string | boolean | number>) {
   const response = await fetch("/api/cuenta", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -288,7 +289,17 @@ export default function CuentaPage() {
             cuenta={cuenta}
             email={email.trim()}
             token={token}
-            onGuardada={setCuenta}
+            onGuardada={(nueva, tokenNuevo) => {
+              setCuenta(nueva);
+              if (tokenNuevo) {
+                setToken(tokenNuevo);
+                try {
+                  localStorage.setItem(CLAVE_SESION, JSON.stringify({ email: email.trim(), token: tokenNuevo }));
+                } catch {
+                  // Sin almacenamiento.
+                }
+              }
+            }}
             onSalir={salir}
           />
         ) : null}
@@ -307,13 +318,14 @@ function PanelCuenta({
   cuenta: Cuenta;
   email: string;
   token: string;
-  onGuardada: (cuenta: Cuenta) => void;
+  onGuardada: (cuenta: Cuenta, token?: string) => void;
   onSalir: () => void;
 }) {
   const [nombre, setNombre] = useState(cuenta.nombre);
   const [alias, setAlias] = useState(cuenta.alias);
   const [telefono, setTelefono] = useState(cuenta.telefono);
   const [topKint, setTopKint] = useState(cuenta.topKint);
+  const [sesionDias, setSesionDias] = useState(cuenta.sesionDias || 1);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -322,7 +334,8 @@ function PanelCuenta({
     nombre.trim() !== cuenta.nombre ||
     alias.trim() !== cuenta.alias ||
     telefono.trim() !== cuenta.telefono ||
-    topKint !== cuenta.topKint;
+    topKint !== cuenta.topKint ||
+    sesionDias !== (cuenta.sesionDias || 1);
 
   async function guardar() {
     setGuardando(true);
@@ -337,8 +350,10 @@ function PanelCuenta({
         alias: alias.trim(),
         telefono: telefono.trim(),
         topKint,
+        sesionDias,
       });
-      onGuardada(data.cuenta);
+      onGuardada(data.cuenta, data.token);
+      setSesionDias(data.cuenta.sesionDias || sesionDias);
       setNombre(data.cuenta.nombre);
       setAlias(data.cuenta.alias);
       setTelefono(data.cuenta.telefono);
@@ -532,6 +547,32 @@ function PanelCuenta({
               <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${topKint ? "left-[22px]" : "left-0.5"}`} />
             </span>
           </button>
+
+          <div>
+            <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
+              Mantener la sesión abierta
+            </span>
+            <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-[var(--kint-panel-border)] p-1">
+              {[1, 2, 3].map((dias) => (
+                <button
+                  key={dias}
+                  type="button"
+                  aria-pressed={sesionDias === dias}
+                  onClick={() => setSesionDias(dias)}
+                  className={`rounded-lg py-2 text-sm font-black transition ${
+                    sesionDias === dias
+                      ? "bg-[var(--acento)] text-white"
+                      : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                  }`}
+                >
+                  {dias} {dias === 1 ? "día" : "días"}
+                </button>
+              ))}
+            </div>
+            <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
+              Después te pedimos el código de nuevo. En una compu compartida, mejor 1 día.
+            </span>
+          </div>
 
           <div>
             <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Correo</span>

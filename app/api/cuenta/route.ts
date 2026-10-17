@@ -41,6 +41,8 @@ export async function POST(request: Request) {
         // Aparecer o no en el ranking Top Kint (solo al guardar).
         topKint: typeof body?.topKint === "boolean" ? body.topKint : undefined,
         opcion: String(body?.opcion || "").slice(0, 20),
+        // Cuántos días queda abierta la sesión (1 a 3).
+        sesionDias: [1, 2, 3].includes(Number(body?.sesionDias)) ? Number(body.sesionDias) : undefined,
         // Ruleta: girar pagando con puntos.
         conPuntos: body?.conPuntos === "si" || body?.conPuntos === true ? "si" : "",
       }),

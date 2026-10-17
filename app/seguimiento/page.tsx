@@ -9,6 +9,7 @@ import SeguimientoTienda, {
   esPedidoTienda,
   type CompraTienda,
 } from "@/components/SeguimientoTienda";
+import MisPedidosSesion from "@/components/MisPedidosSesion";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1311,6 +1312,9 @@ function datosTecnicosPresupuesto(
             {error}
           </p>
         )}
+
+        {/* Con la sesión abierta: sus pedidos, un toque y entra. */}
+        {!resultado && !compraTienda && !cargando && <MisPedidosSesion />}
 
 {compraTienda && !resultado && (
   <SeguimientoTienda
