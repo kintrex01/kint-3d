@@ -60,7 +60,7 @@ export function ArchivosLlavero({
       const geometria = await construirPieza(personalizacion);
       const base = `${pedido} ${nombreArchivo(textoArchivo)}`;
       const parteBorde = `${mascota ? "chapita" : "borde"}${borde ? ` (${borde})` : ""}`;
-      const parteLetras = `${mascota ? "nombre" : "letras"}${letras ? ` (${letras})` : ""}`;
+      const parteLetras = `${mascota ? "borde y nombre" : "letras"}${letras ? ` (${letras})` : ""}`;
 
       if (archivo === "3mf") {
         const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
@@ -68,7 +68,12 @@ export function ArchivosLlavero({
           exportar3MF(
             base,
             geometria.soloLetras
-              ? [{ nombre: parteLetras, geometria: geometria.base, color: colorFilamento(letras) }]
+              ? (geometria.partesBase ?? [geometria.base]).map((parte, indice) => ({
+                  nombre: indice === 0 ? parteLetras : `uniones (${letras})`,
+                  geometria: parte,
+                  color: colorFilamento(letras),
+                  filamento: 1,
+                }))
               : [
                   // La base puede venir en capas (chapita): todas con el filamento 1.
                   ...(geometria.partesBase ?? [geometria.base]).map((parte, indice, todas) => ({
@@ -78,6 +83,16 @@ export function ArchivosLlavero({
                     filamento: 1,
                   })),
                   { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras), filamento: 2 },
+                  ...(geometria.telefono
+                    ? [
+                        {
+                          nombre: `teléfono${colores[2] ? ` (${colores[2]})` : ""}`,
+                          geometria: geometria.telefono,
+                          color: colorFilamento(colores[2] || ""),
+                          filamento: 3,
+                        },
+                      ]
+                    : []),
                 ]
           ),
           `${base}.3mf`
@@ -94,6 +109,7 @@ export function ArchivosLlavero({
       geometria.base.dispose();
       geometria.letras.dispose();
       geometria.partesBase?.forEach((parte) => parte.dispose());
+      geometria.telefono?.dispose();
     } catch {
       setError("No se pudo armar el archivo.");
     } finally {
@@ -125,6 +141,12 @@ export function ArchivosLlavero({
       <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
         {(soloLetras
           ? [["Color", letras]]
+          : mascota
+          ? [
+              ["Chapita", borde],
+              ["Borde y nombre", letras],
+              ...(mascota.atras === "Color" ? [["Teléfono", colores[2] || ""]] : []),
+            ]
           : [
               ["Borde", borde],
               ["Letras", letras],

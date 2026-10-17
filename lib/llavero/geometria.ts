@@ -37,6 +37,7 @@ export const ALTO_LETRAS = 1;
 
 const RADIO_OREJA = 4.3;
 const RADIO_AGUJERO = 2;
+const ALTO_UNION = 1.4; // uniones de "solo letras": más bajas que las letras (3 mm)
 
 export type GeometriaLlavero = {
   base: THREE.BufferGeometry;
@@ -46,6 +47,7 @@ export type GeometriaLlavero = {
   aro: { x: number; y: number; angulo?: number };
   ancho: number; // mm
   grosor?: number; // mm (3 si no viene)
+  telefono?: THREE.BufferGeometry; // chapita: teléfono relleno de otro color (atrás)
   // Para exportar: la base en piezas cerradas (la chapita: capa grabada + capa entera).
   partesBase?: THREE.BufferGeometry[];
   alto: number; // mm
@@ -270,15 +272,6 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
       ? renglones[0].caja.minY - renglones[1].caja.maxY
       : 0;
 
-  // Solo letras con renglones que no se tocan: una barrita fina los une.
-  const puente: Contornos = [];
-  if (soloLetras && renglones.length === 2 && hueco > -0.3 && renglones[0].caja && renglones[1].caja) {
-    const medio = Math.min(
-      renglones[0].caja.maxX - renglones[0].caja.minX,
-      renglones[1].caja.maxX - renglones[1].caja.minX
-    ) * 0.06;
-    puente.push(rectangulo(-medio, renglones[1].caja.maxY - 1.5, medio, renglones[0].caja.minY + 1.5));
-  }
 
   // Oreja con el agujero del aro: a la izquierda del primer renglón, a media altura.
   const primero = renglones[0].caja ?? todo;
@@ -286,16 +279,43 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   let base: Contornos;
   let centroX: number;
 
+  // Solo letras: uniones bajas (más bajas que las letras, así no las deforman).
+  let uniones: Contornos = [];
+
   if (soloLetras) {
-    // Sin fondo: las letras son la pieza; la oreja se mete hasta la primera letra.
-    centroX = primero.minX - RADIO_OREJA * 0.55;
-    const hasta = Math.min(primero.minX + altoMayusculas * 0.45, primero.maxX);
-    base = unir([
-      ...letras,
-      ...puente,
-      circulo(centroX, centroY, RADIO_OREJA),
-      rectangulo(centroX, centroY - RADIO_OREJA * 0.7, hasta, centroY + RADIO_OREJA * 0.7),
-    ]);
+    // La oreja va entera al lado de la primera letra, sin comérsela.
+    centroX = primero.minX - RADIO_OREJA - 0.6;
+    const grueso = Math.max(1.8, altoMayusculas * 0.16);
+    const rieles: Contornos = [];
+    // Un riel por la mitad de cada renglón (el primero arranca en la oreja):
+    // une las letras que no se tocan.
+    renglones.forEach((renglon, indice) => {
+      if (!renglon.caja) return;
+      const y = renglon.linea + altoMayusculas * 0.3;
+      // Termina (y empieza) justo donde hay letra a esa altura: no sobresale.
+      const tocado = operar(
+        ClipperLib.ClipType.ctIntersection,
+        [rectangulo(renglon.caja.minX - 1, y, renglon.caja.maxX + 1, y + grueso)],
+        renglon.contornos
+      );
+      const borde = tocado.length ? limites(tocado) : renglon.caja;
+      const desde = indice === 0 ? centroX : borde.minX + 0.3;
+      rieles.push(rectangulo(desde, y, borde.maxX - 0.3, y + grueso));
+    });
+    // Dos renglones: postes que van de un riel al otro.
+    if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
+      const izquierda = Math.max(renglones[0].caja.minX, renglones[1].caja.minX) + 1;
+      const derecha = Math.min(renglones[0].caja.maxX, renglones[1].caja.maxX) - 1;
+      const abajo = renglones[1].linea + altoMayusculas * 0.3;
+      const arriba = renglones[0].linea + altoMayusculas * 0.3 + grueso;
+      const lugares =
+        derecha - izquierda > 14
+          ? [izquierda + (derecha - izquierda) * 0.15, (izquierda + derecha) / 2, derecha - (derecha - izquierda) * 0.15]
+          : [(izquierda + derecha) / 2];
+      for (const x of lugares) rieles.push(rectangulo(x - grueso / 2, abajo, x + grueso / 2, arriba));
+    }
+    uniones = operar(ClipperLib.ClipType.ctDifference, unir(rieles), letras);
+    base = unir([...letras, circulo(centroX, centroY, RADIO_OREJA)]);
   } else {
     if (fondo === "Placa") {
       // Rectángulo lleno con las esquinas redondeadas.
@@ -345,9 +365,13 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     // La base va llena (sin los huecos de la "o", "a"...).
     base = base.filter((contorno) => ClipperLib.Clipper.Area(contorno) > 0);
   }
-  base = operar(ClipperLib.ClipType.ctDifference, base, [circulo(centroX, centroY, RADIO_AGUJERO, 48)]);
+  const agujero = [circulo(centroX, centroY, RADIO_AGUJERO, 48)];
+  base = operar(ClipperLib.ClipType.ctDifference, base, agujero);
+  if (uniones.length) {
+    uniones = operar(ClipperLib.ClipType.ctDifference, uniones, [...base, ...agujero]);
+  }
 
-  const total = limites(base);
+  const total = limites([...base, ...uniones]);
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
 
@@ -357,6 +381,19 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     bevelEnabled: false,
     curveSegments: 1,
   });
+  // Uniones bajas (solo letras): se ven juntas y se exportan como otra parte.
+  let partesBase: THREE.BufferGeometry[] | undefined;
+  let geometriaFinalBase: THREE.BufferGeometry = geometriaBase;
+  if (uniones.length) {
+    const geometriaUniones = new THREE.ExtrudeGeometry(aFormas(uniones, dx, dy), {
+      depth: ALTO_UNION,
+      bevelEnabled: false,
+      curveSegments: 1,
+    });
+    partesBase = [geometriaBase, geometriaUniones];
+    geometriaFinalBase = mergeGeometries([geometriaBase, geometriaUniones]) ?? geometriaBase;
+  }
+
   let geometriaLetras = new THREE.BufferGeometry();
   if (!soloLetras) {
     geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
@@ -370,9 +407,10 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   const area = base.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
 
   return {
-    base: geometriaBase,
+    base: geometriaFinalBase,
     letras: geometriaLetras,
     soloLetras,
+    partesBase,
     aro: { x: centroX - dx, y: centroY - dy },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
@@ -428,7 +466,8 @@ function formaChapita(forma: string, k: number) {
     // Argolla en el medio de arriba, entre los dos lóbulos.
     const arriba = 13 * k;
     return {
-      contorno: unir([puntos, circulo(0, arriba, RADIO_OREJA, 48)]),
+      // La pestaña de la argolla, unida a los lóbulos con curvas (engordar y afinar).
+      contorno: engordar(engordar(unir([puntos, circulo(0, arriba, RADIO_OREJA, 48)]), 2.2), -2.2),
       zona: { cx: 0, cy: -1 * k, ancho: 24 * k, alto: 10 * k },
       agujero: { x: 0, y: arriba },
       angulo: -Math.PI / 2,
@@ -442,14 +481,17 @@ function formaChapita(forma: string, k: number) {
   return {
     contorno: unir([
       rectangulo(-ancho, -alto - 0.6 * k, ancho, alto + 0.6 * k),
+      // Pestaña de la argolla.
+      circulo(0, alto + 0.6 * k + 2.6, RADIO_OREJA, 48),
+      rectangulo(-RADIO_OREJA, alto, RADIO_OREJA, alto + 0.6 * k + 2.6),
       circulo(-ancho, alto, nudo, 64),
       circulo(-ancho, -alto, nudo, 64),
       circulo(ancho, alto, nudo, 64),
       circulo(ancho, -alto, nudo, 64),
     ]),
-    zona: { cx: 0, cy: 0, ancho: 30 * k, alto: 11 * k },
-    agujero: { x: -ancho - 0.6 * k, y: alto + 0.4 * k },
-    angulo: -Math.PI * 0.85,
+    zona: { cx: 0, cy: -0.5 * k, ancho: 28 * k, alto: 10 * k },
+    agujero: { x: 0, y: alto + 0.6 * k + 2.6 },
+    angulo: -Math.PI / 2,
     huella: { x: ancho - 1.5 * k, y: -alto + 0.8 * k },
   };
 }
@@ -490,7 +532,27 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
   const k = ESCALA_TAMANO[datos.tamano] ?? 1;
   const forma = formaChapita(datos.forma, k);
 
-  // Frente: nombre (y la huellita: en el hueso a la derecha, en las otras abajo).
+  /*
+   * Todo plano (nada sobresale: no se ensucia ni lastima). 3 mm en capas:
+   *   0 – 0,6   atrás: el teléfono hueco o relleno de otro color
+   *   0,6 – 2,4 el cuerpo
+   *   2,4 – 3   arriba: borde de color + nombre + huellita (color 2), al ras del resto
+   */
+  const ABAJO = PROFUNDIDAD_GRABADO;
+  const ARRIBA = 0.6;
+
+  const agujero = [circulo(forma.agujero.x, forma.agujero.y, RADIO_AGUJERO, 48)];
+  const cuerpo = operar(ClipperLib.ClipType.ctDifference, forma.contorno, agujero);
+
+  // Borde de color por el contorno de afuera.
+  const ANCHO_BORDE = 1.3;
+  const reborde = operar(
+    ClipperLib.ClipType.ctDifference,
+    operar(ClipperLib.ClipType.ctDifference, forma.contorno, engordar(forma.contorno, -ANCHO_BORDE)),
+    agujero
+  );
+
+  // Nombre (y huellita: en el hueso a la derecha, en las otras abajo), lejos del borde.
   const zona = { ...forma.zona };
   if (datos.huella && datos.forma === "Hueso") {
     zona.ancho -= 9 * k;
@@ -498,57 +560,56 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
   } else if (datos.huella) {
     zona.cy += 2.5 * k;
   }
-  let letras = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho, zona.alto);
-  if (datos.huella) letras = unir([...letras, ...huellita(forma.huella.x, forma.huella.y, k)]);
-  // Que nada se salga de la chapita.
-  letras = operar(ClipperLib.ClipType.ctIntersection, letras, engordar(forma.contorno, -1.2));
+  let nombre = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho, zona.alto);
+  if (datos.huella) nombre = unir([...nombre, ...huellita(forma.huella.x, forma.huella.y, k)]);
+  nombre = operar(ClipperLib.ClipType.ctIntersection, nombre, engordar(cuerpo, -(ANCHO_BORDE + 1.1)));
 
-  // Atrás: teléfono grabado, espejado para que se lea dando vuelta la chapita.
-  const telefono = datos.telefono.trim();
-  const grabado = telefono
-    ? espejar(textoEnCaja(fuenteNumeros, telefono, 0, forma.zona.cy, forma.zona.ancho * 1.05, 4.6 * k))
+  const arribaColor = unir([...reborde, ...nombre]);
+  const arribaResto = operar(ClipperLib.ClipType.ctDifference, cuerpo, arribaColor);
+
+  // Atrás: teléfono espejado (se lee al dar vuelta la chapita).
+  const telefonoTexto = datos.telefono.trim();
+  const telefono = telefonoTexto
+    ? operar(
+        ClipperLib.ClipType.ctIntersection,
+        espejar(textoEnCaja(fuenteNumeros, telefonoTexto, 0, forma.zona.cy, forma.zona.ancho * 1.05, 4.6 * k)),
+        engordar(cuerpo, -1)
+      )
     : [];
+  const abajoResto = telefono.length ? operar(ClipperLib.ClipType.ctDifference, cuerpo, telefono) : cuerpo;
 
-  const agujero = [circulo(forma.agujero.x, forma.agujero.y, RADIO_AGUJERO, 48)];
-  const base = operar(ClipperLib.ClipType.ctDifference, forma.contorno, agujero);
-  // La capa de abajo lleva el teléfono hueco; la de arriba va entera.
-  const capaGrabada = grabado.length ? operar(ClipperLib.ClipType.ctDifference, base, grabado) : base;
-
-  const total = limites(base);
+  const total = limites(cuerpo);
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
+  const extruir = (contornos: Contornos, desde: number, alto: number) => {
+    const geometria = new THREE.ExtrudeGeometry(aFormas(contornos, dx, dy), {
+      depth: alto,
+      bevelEnabled: false,
+      curveSegments: 1,
+    });
+    geometria.translate(0, 0, desde);
+    return geometria;
+  };
 
-  const abajo = new THREE.ExtrudeGeometry(aFormas(capaGrabada, dx, dy), {
-    depth: PROFUNDIDAD_GRABADO,
-    bevelEnabled: false,
-    curveSegments: 1,
-  });
-  const arriba = new THREE.ExtrudeGeometry(aFormas(base, dx, dy), {
-    depth: ALTO_CHAPITA - PROFUNDIDAD_GRABADO,
-    bevelEnabled: false,
-    curveSegments: 1,
-  });
-  arriba.translate(0, 0, PROFUNDIDAD_GRABADO);
-  // Para ver: una sola malla. Para imprimir se exportan las dos capas (cada una cerrada).
-  const geometriaBase = mergeGeometries([abajo, arriba]) ?? arriba;
+  const capaAbajo = extruir(abajoResto, 0, ABAJO);
+  const capaMedio = extruir(cuerpo, ABAJO, ALTO_CHAPITA - ABAJO - ARRIBA);
+  const capaArriba = extruir(arribaResto, ALTO_CHAPITA - ARRIBA, ARRIBA);
+  const geometriaColor = extruir(arribaColor, ALTO_CHAPITA - ARRIBA, ARRIBA);
+  const geometriaTelefono =
+    datos.atras === "Color" && telefono.length ? extruir(telefono, 0, ABAJO) : undefined;
 
-  const geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
-    depth: ALTO_LETRAS,
-    bevelEnabled: false,
-    curveSegments: 1,
-  });
-  geometriaLetras.translate(0, 0, ALTO_CHAPITA);
-
-  const area = base.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
+  const area = cuerpo.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
   return {
-    base: geometriaBase,
-    letras: geometriaLetras,
+    // Para ver: el cuerpo en una malla. Para imprimir: las tres capas por separado (cada una cerrada).
+    base: mergeGeometries([capaAbajo, capaMedio, capaArriba]) ?? capaMedio,
+    partesBase: [capaAbajo, capaMedio, capaArriba],
+    letras: geometriaColor,
+    telefono: geometriaTelefono,
     soloLetras: false,
-    partesBase: [abajo, arriba],
     aro: { x: forma.agujero.x - dx, y: forma.agujero.y - dy, angulo: forma.angulo },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
-    grosor: ALTO_CHAPITA + ALTO_LETRAS,
+    grosor: ALTO_CHAPITA,
     areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,
   };
 }

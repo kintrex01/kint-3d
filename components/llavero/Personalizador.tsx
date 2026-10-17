@@ -77,6 +77,8 @@ type Diseno = {
   telefono: string;
   forma: string;
   huella: boolean;
+  atrasColor: boolean;
+  colorTelefono: string;
   colorBase: string;
   colorLetras: string;
 };
@@ -147,6 +149,12 @@ export default function Personalizador({
     FORMAS_CHAPITA.some((opcion) => opcion.nombre === inicial.forma) ? inicial.forma! : "Hueso"
   );
   const [huella, setHuella] = useState(() => inicial.huella !== false);
+  const [atrasColor, setAtrasColor] = useState(() => inicial.atrasColor === true);
+  const [colorTelefono, setColorTelefono] = useState(() =>
+    inicial.colorTelefono && producto.colores.includes(inicial.colorTelefono)
+      ? inicial.colorTelefono
+      : elegirColor(producto.colores, ["blanco", "amarillo", "celeste"])
+  );
   const [atras, setAtras] = useState(false);
   const maxLetras = esMascota ? MAX_LETRAS_MASCOTA : MAX_LETRAS_LLAVERO;
   const [colorBase, setColorBase] = useState(() =>
@@ -174,11 +182,14 @@ export default function Personalizador({
       telefono,
       forma,
       huella,
+      atrasColor,
+      colorTelefono,
       colorBase,
       colorLetras,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, colorBase, colorLetras]);
-  const [cadena, setCadena] = useState(producto.cadenas[0] || "");
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, atrasColor, colorTelefono, colorBase, colorLetras]);
+  // Como en el resto de la tienda: la cadena arranca sin elegir.
+  const [cadena, setCadena] = useState("");
   const [cantidad, setCantidad] = useState(1);
   const [geometria, setGeometria] = useState<GeometriaLlavero | null>(null);
   const [armando, setArmando] = useState(true);
@@ -209,6 +220,7 @@ export default function Personalizador({
             telefono: telefonoParaVer,
             forma,
             huella,
+            atras: atrasColor ? "Color" : "Grabado",
             fuente,
             tamano,
           })
@@ -245,7 +257,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, fuente, tamano, borde, fondo, separacion, renglones]);
+  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, atrasColor, fuente, tamano, borde, fondo, separacion, renglones]);
 
   useEffect(
     () => () => {
@@ -276,6 +288,10 @@ export default function Personalizador({
       setErrorAgregar(errorTexto || errorTelefono || `Segunda línea: ${errorTexto2}`);
       return;
     }
+    if (producto.cadenas.length && !cadena) {
+      setErrorAgregar("Elegí la cadena.");
+      return;
+    }
     if (!colorLetras || (!soloLetras && !colorBase)) {
       setErrorAgregar("Elegí los colores.");
       return;
@@ -283,9 +299,13 @@ export default function Personalizador({
     const error = onAgregar({
       cadena,
       // Solo letras: una sola pieza, del color de las letras.
-      colores: soloLetras ? [colorLetras, colorLetras] : [colorBase, colorLetras],
+      colores: soloLetras
+        ? [colorLetras, colorLetras]
+        : esMascota && atrasColor
+        ? [colorBase, colorLetras, colorTelefono]
+        : [colorBase, colorLetras],
       comentario: esMascota
-        ? formatearMascota({ texto, telefono, forma, huella, fuente, tamano })
+        ? formatearMascota({ texto, telefono, forma, huella, atras: atrasColor ? "Color" : "Grabado", fuente, tamano })
         : formatearPersonalizacion({
         texto,
         texto2: conLinea2 ? texto2 : "",
@@ -329,6 +349,7 @@ export default function Personalizador({
             geometria={geometria}
             colorBase={colorFilamento(soloLetras ? colorLetras : colorBase)}
             colorLetras={colorFilamento(colorLetras)}
+            colorTelefono={colorFilamento(colorTelefono)}
             cadena={cadena}
             atras={atras}
           />
@@ -512,6 +533,36 @@ export default function Personalizador({
                     className="h-5 w-5 accent-[#1f3f85]"
                   />
                 </label>
+
+                <fieldset>
+                  <legend className="mb-2 text-xs font-bold text-[var(--text-muted)]">Teléfono de atrás</legend>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(
+                      [
+                        [false, "Grabado", "Hundido, del color de la chapita"],
+                        [true, "De color", "Relleno, al ras, en otro color"],
+                      ] as const
+                    ).map(([valor, titulo, detalle]) => (
+                      <button
+                        key={titulo}
+                        type="button"
+                        aria-pressed={atrasColor === valor}
+                        onClick={() => {
+                          setAtrasColor(valor);
+                          setAtras(true);
+                        }}
+                        className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                          atrasColor === valor
+                            ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                            : "border-[var(--kint-panel-border)] hover:border-[var(--kint-selected-border)]"
+                        }`}
+                      >
+                        <span className="block text-xs font-black">{titulo}</span>
+                        <span className="block text-[10px] leading-3 text-[var(--text-muted)]">{detalle}</span>
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
               </>
             )}
 
@@ -723,7 +774,7 @@ export default function Personalizador({
               />
             )}
             <SelectorColor
-              titulo={esMascota ? "Color del nombre" : soloLetras ? "Color" : "Color de las letras"}
+              titulo={esMascota ? "Color del borde y el nombre" : soloLetras ? "Color" : "Color de las letras"}
               colores={colores}
               elegido={colorLetras}
               onElegir={(color) => {
@@ -731,6 +782,18 @@ export default function Personalizador({
                 setErrorAgregar("");
               }}
             />
+            {esMascota && atrasColor && (
+              <SelectorColor
+                titulo="Color del teléfono"
+                colores={colores}
+                elegido={colorTelefono}
+                onElegir={(color) => {
+                  setColorTelefono(color);
+                  setAtras(true);
+                  setErrorAgregar("");
+                }}
+              />
+            )}
 
             {producto.cadenas.length > 0 && (
               <fieldset>

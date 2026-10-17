@@ -177,6 +177,7 @@ export type PersonalizacionMascota = {
   telefono: string;
   forma: string;
   huella: boolean;
+  atras?: "Grabado" | "Color"; // teléfono hueco o relleno de otro color
   fuente: string;
   tamano: string;
 };
@@ -188,6 +189,7 @@ export function formatearMascota(datos: Omit<PersonalizacionMascota, "tipo">) {
     `Teléfono: ${datos.telefono.trim()}`,
     `Forma: ${datos.forma}`,
     `Huella: ${datos.huella ? "Sí" : "No"}`,
+    `Atrás: ${datos.atras === "Color" ? "Color" : "Grabado"}`,
     `Fuente: ${datos.fuente}`,
     `Tamaño: ${datos.tamano}`,
   ].join(" | ");
@@ -208,5 +210,14 @@ export function leerMascota(comentario: string): PersonalizacionMascota | null {
   const fuente = FUENTES_LLAVERO.find((opcion) => opcion.nombre === campos["fuente"])?.nombre;
   const tamano = TAMANOS_LLAVERO.find((opcion) => opcion.nombre === campos["tamaño"])?.nombre;
   if (!texto || !forma || !fuente || !tamano) return null;
-  return { tipo: "Mascota", texto, telefono, forma, huella: campos["huella"] !== "No", fuente, tamano };
+  return {
+    tipo: "Mascota",
+    texto,
+    telefono,
+    forma,
+    huella: campos["huella"] !== "No",
+    atras: campos["atrás"] === "Color" ? "Color" : "Grabado",
+    fuente,
+    tamano,
+  };
 }

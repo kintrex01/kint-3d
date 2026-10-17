@@ -25,23 +25,27 @@ function armarCadena(cadena: string, aro: { x: number; y: number; angulo?: numbe
   grupo.rotation.z = -(aro.angulo ?? 0);
   const material = new THREE.MeshStandardMaterial({ color: colorMetal(cadena), metalness: 0.85, roughness: 0.28 });
 
-  // Argolla: pasa por el agujero, parada (perpendicular al llavero).
-  const radio = 11;
-  const argolla = new THREE.Mesh(new THREE.TorusGeometry(radio, 0.9, 16, 72), material);
-  argolla.rotation.x = Math.PI / 2;
-  argolla.position.set(-radio + 1.2, 0, grosor / 2);
-  grupo.add(argolla);
+  // Como uno de verdad: argollita en el agujero → eslabones → aro grande (el de la mochila).
+  const argollita = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.55, 14, 40), material);
+  argollita.rotation.x = Math.PI / 2;
+  argollita.position.set(-3.6 + 1.2, 0, grosor / 2);
+  grupo.add(argollita);
 
-  // Unos eslabones colgando del otro lado de la argolla.
-  let x = -radio * 2 + 1.2;
+  let x = -7.2 + 1.2;
   for (let indice = 0; indice < 4; indice++) {
-    const eslabon = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.55, 10, 28), material);
+    const eslabon = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.5, 10, 28), material);
     eslabon.scale.set(1.45, 1, 1);
-    eslabon.position.set(x - 2.6, 0, grosor / 2);
+    eslabon.position.set(x - 2.4, 0, grosor / 2);
     if (indice % 2 === 0) eslabon.rotation.x = Math.PI / 2;
     grupo.add(eslabon);
-    x -= 5.6;
+    x -= 5.2;
   }
+
+  const radio = 11;
+  const aroGrande = new THREE.Mesh(new THREE.TorusGeometry(radio, 0.9, 16, 72), material);
+  aroGrande.rotation.x = Math.PI / 2;
+  aroGrande.position.set(x - radio + 1.4, 0, grosor / 2);
+  grupo.add(aroGrande);
   return grupo;
 }
 
@@ -53,18 +57,21 @@ type Escena = {
   cadena: THREE.Group;
   materialBase: THREE.MeshStandardMaterial;
   materialLetras: THREE.MeshStandardMaterial;
+  materialTelefono: THREE.MeshStandardMaterial;
 };
 
 export default function VisorLlavero({
   geometria,
   colorBase,
   colorLetras,
+  colorTelefono = "#ffffff",
   cadena = "",
   atras = false,
 }: {
   geometria: GeometriaLlavero | null;
   colorBase: string;
   colorLetras: string;
+  colorTelefono?: string; // chapita: teléfono relleno de otro color
   cadena?: string; // "" = sin argolla
   atras?: boolean; // mostrar la pieza dada vuelta (chapita: el teléfono)
 }) {
@@ -95,9 +102,14 @@ export default function VisorLlavero({
     const contraluz = new THREE.DirectionalLight(0xbcd4ff, 0.8);
     contraluz.position.set(60, 80, 40);
     scene.add(contraluz);
+    // Luz de abajo: para ver bien la parte de atrás (chapita: el teléfono).
+    const abajo = new THREE.DirectionalLight(0xffffff, 1.6);
+    abajo.position.set(20, 40, -120);
+    scene.add(abajo);
 
     const materialBase = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.05 });
     const materialLetras = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.05 });
+    const materialTelefono = new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.05 });
     const grupo = new THREE.Group();
     scene.add(grupo);
     const cadenaGrupo = new THREE.Group();
@@ -109,7 +121,16 @@ export default function VisorLlavero({
     controles.minDistance = 30;
     controles.maxDistance = 600;
 
-    escena.current = { renderer, camara, controles, grupo, cadena: cadenaGrupo, materialBase, materialLetras };
+    escena.current = {
+      renderer,
+      camara,
+      controles,
+      grupo,
+      cadena: cadenaGrupo,
+      materialBase,
+      materialLetras,
+      materialTelefono,
+    };
 
     const ajustar = () => {
       const ancho = caja.clientWidth || 1;
@@ -138,6 +159,7 @@ export default function VisorLlavero({
       controles.dispose();
       materialBase.dispose();
       materialLetras.dispose();
+      materialTelefono.dispose();
       renderer.dispose();
       renderer.domElement.remove();
       escena.current = null;
@@ -152,8 +174,9 @@ export default function VisorLlavero({
     actual.grupo.clear();
     actual.grupo.add(new THREE.Mesh(geometria.base, actual.materialBase));
     actual.grupo.add(new THREE.Mesh(geometria.letras, actual.materialLetras));
+    if (geometria.telefono) actual.grupo.add(new THREE.Mesh(geometria.telefono, actual.materialTelefono));
 
-    const medida = Math.max(geometria.ancho + 26, geometria.alto * 2.2);
+    const medida = Math.max(geometria.ancho + 30, geometria.alto * 2.2);
     if (Math.abs(medida - ultimoAncho.current) > ultimoAncho.current * 0.25) {
       ultimoAncho.current = medida;
       const distancia = (medida / 2 / Math.tan((actual.camara.fov * Math.PI) / 360)) * 1.25;
@@ -192,7 +215,8 @@ export default function VisorLlavero({
   useEffect(() => {
     escena.current?.materialBase.color.set(colorBase);
     escena.current?.materialLetras.color.set(colorLetras);
-  }, [colorBase, colorLetras]);
+    escena.current?.materialTelefono.color.set(colorTelefono);
+  }, [colorBase, colorLetras, colorTelefono]);
 
   return <div ref={contenedor} className="h-full w-full cursor-grab active:cursor-grabbing" />;
 }

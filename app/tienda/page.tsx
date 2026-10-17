@@ -279,7 +279,8 @@ function detalleLinea(linea: {
     return [
       `“${mascota.texto}” · tel. ${mascota.telefono}`,
       `${mascota.forma} · ${mascota.fuente} · ${mascota.tamano}${mascota.huella ? " · con huellita" : ""}`,
-      colores.length === 2 ? `Chapita ${colores[0]}, nombre ${colores[1]}` : "",
+      colores.length >= 2 ? `Chapita ${colores[0]}, borde y nombre ${colores[1]}` : "",
+      mascota.atras === "Color" && colores[2] ? `teléfono ${colores[2]}` : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]
       .filter(Boolean)
@@ -462,7 +463,7 @@ function ajustarCarrito(
 
     // Un color que ya no se ofrece saca la línea, como una cadena vieja.
     const coloresValidos = producto.personalizable
-      ? colores.length === 2 &&
+      ? (colores.length === 2 || (producto.tipoPersonalizado === "Mascota" && colores.length === 3)) &&
         colores.every((color) => producto.colores.includes(color)) &&
         Boolean(
           producto.tipoPersonalizado === "Mascota"
