@@ -24,6 +24,21 @@ export const FUENTES_LLAVERO = [
   { nombre: "Dancing Script", archivo: "/fuentes-llavero/dancing-script.woff", estilo: "Cursiva fina" },
   { nombre: "Kaushan Script", archivo: "/fuentes-llavero/kaushan-script.woff", estilo: "Pincel" },
   { nombre: "Permanent Marker", archivo: "/fuentes-llavero/permanent-marker.woff", estilo: "Marcador" },
+  { nombre: "Lilita One", archivo: "/fuentes-llavero/lilita-one.woff", estilo: "Gordita" },
+  { nombre: "Shrikhand", archivo: "/fuentes-llavero/shrikhand.woff", estilo: "Retro gruesa" },
+  { nombre: "Bungee", archivo: "/fuentes-llavero/bungee.woff", estilo: "Cartel" },
+  { nombre: "Carter One", archivo: "/fuentes-llavero/carter-one.woff", estilo: "Redonda" },
+  { nombre: "Concert One", archivo: "/fuentes-llavero/concert-one.woff", estilo: "Simple" },
+  { nombre: "Boogaloo", archivo: "/fuentes-llavero/boogaloo.woff", estilo: "Divertida" },
+  { nombre: "Bubblegum Sans", archivo: "/fuentes-llavero/bubblegum-sans.woff", estilo: "Infantil" },
+  { nombre: "Alfa Slab One", archivo: "/fuentes-llavero/alfa-slab-one.woff", estilo: "Con serifa" },
+  { nombre: "Anton", archivo: "/fuentes-llavero/anton.woff", estilo: "Alta gruesa" },
+  { nombre: "Montserrat", archivo: "/fuentes-llavero/montserrat.woff", estilo: "Moderna" },
+  { nombre: "Nunito", archivo: "/fuentes-llavero/nunito.woff", estilo: "Suave" },
+  { nombre: "Yellowtail", archivo: "/fuentes-llavero/yellowtail.woff", estilo: "Cursiva retro" },
+  { nombre: "Satisfy", archivo: "/fuentes-llavero/satisfy.woff", estilo: "Cursiva" },
+  { nombre: "Cookie", archivo: "/fuentes-llavero/cookie.woff", estilo: "Cursiva gordita" },
+  { nombre: "Audiowide", archivo: "/fuentes-llavero/audiowide.woff", estilo: "Futurista" },
 ] as const;
 
 /* Alto de las mayúsculas en mm (la pieza termina ~5 mm más alta por el borde). */
