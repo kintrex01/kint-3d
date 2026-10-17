@@ -7,6 +7,10 @@ const TIPOS = new Set([
   "cuenta_verificar",
   "cuenta_datos",
   "cuenta_guardar",
+  // Ruleta y canje de puntos (Premios_Kint3D.js).
+  "ruleta_estado",
+  "ruleta_girar",
+  "puntos_canjear",
 ]);
 
 export async function POST(request: Request) {
@@ -36,6 +40,7 @@ export async function POST(request: Request) {
         telefono: String(body?.telefono || "").slice(0, 24),
         // Aparecer o no en el ranking Top Kint (solo al guardar).
         topKint: typeof body?.topKint === "boolean" ? body.topKint : undefined,
+        opcion: String(body?.opcion || "").slice(0, 20),
       }),
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       cache: "no-store",

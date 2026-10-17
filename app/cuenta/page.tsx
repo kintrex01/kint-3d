@@ -354,6 +354,18 @@ function PanelCuenta({
 
   return (
     <div className="mt-8 space-y-5">
+      {/* Ruleta y canje de puntos */}
+      <Link
+        href="/ruleta"
+        className="group flex items-center gap-4 overflow-hidden rounded-3xl bg-[linear-gradient(120deg,#b91c1c,#7c3aed_60%,#1f3f85)] p-5 text-white shadow-[0_18px_50px_rgba(124,58,237,0.3)] transition hover:-translate-y-0.5"
+      >
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl transition group-hover:rotate-45">🎡</span>
+        <span className="min-w-0">
+          <span className="block text-lg font-black">Ruleta Kint</span>
+          <span className="block text-sm text-white/80">Girá cada 2 días y canjeá tus puntos por premios.</span>
+        </span>
+      </Link>
+
       {/* Resumen */}
       <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#1f3f85_0%,#132a5e_60%,#0a1838_100%)] p-6 text-white shadow-[0_18px_50px_rgba(15,35,80,0.3)]">
         <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-sky-400/25 blur-3xl" />

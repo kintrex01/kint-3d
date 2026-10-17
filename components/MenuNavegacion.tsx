@@ -14,6 +14,7 @@ import {
   Ruler,
   Send,
   Settings,
+  Gift,
   ShoppingBag,
   X,
 } from "lucide-react";
@@ -163,6 +164,11 @@ const enlacesKint: EnlaceMenu[] = [
 
 /* Al final del menú: la cuenta del cliente (Ajustes). */
 const enlacesCuenta: EnlaceMenu[] = [
+  {
+    nombre: "Ruleta y premios",
+    href: "/ruleta",
+    icono: Gift,
+  },
   {
     nombre: "Ajustes de mi cuenta",
     href: "/cuenta",
