@@ -60,6 +60,17 @@ export function limpiarSeparacion(valor: unknown) {
   return Math.min(SEPARACION_MAX, Math.max(SEPARACION_MIN, redondeado));
 }
 
+/* Espacio extra entre los dos renglones, en mm (negativo = más pegados). */
+export const RENGLONES_MIN = -8;
+export const RENGLONES_MAX = 6;
+
+export function limpiarRenglones(valor: unknown) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero)) return 0;
+  const redondeado = Math.round(numero * 2) / 2;
+  return Math.min(RENGLONES_MAX, Math.max(RENGLONES_MIN, redondeado));
+}
+
 export const MAX_LETRAS_LLAVERO = 12;
 
 /* Sin "|" ni ":" (separan los campos del comentario). */
@@ -73,6 +84,7 @@ export type PersonalizacionLlavero = {
   borde?: string; // "Normal" si no viene
   fondo?: string; // "Contorno" si no viene
   separacion?: number; // mm extra entre letras (0 si no viene)
+  renglones?: number; // mm extra entre los dos renglones (0 si no viene)
 };
 
 export function limpiarTextoLlavero(texto: string) {
@@ -103,6 +115,7 @@ export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero
     `Borde: ${personalizacion.borde || "Normal"}`,
     `Fondo: ${personalizacion.fondo || "Contorno"}`,
     `Separación: ${limpiarSeparacion(personalizacion.separacion)}`,
+    personalizacion.texto2?.trim() ? `Renglones: ${limpiarRenglones(personalizacion.renglones)}` : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -125,7 +138,8 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
   const borde = BORDES_LLAVERO.find((opcion) => opcion.nombre === campos["borde"])?.nombre ?? "Normal";
   const fondo = FONDOS_LLAVERO.find((opcion) => opcion.nombre === campos["fondo"])?.nombre ?? "Contorno";
   const separacion = limpiarSeparacion(campos["separación"] ?? 0);
-  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion };
+  const renglones = limpiarRenglones(campos["renglones"] ?? 0);
+  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones };
 }
 
 /* "“Antonio / Arquitecto”" para mostrar. */

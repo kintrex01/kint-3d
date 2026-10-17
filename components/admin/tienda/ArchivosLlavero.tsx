@@ -60,10 +60,10 @@ export function ArchivosLlavero({
           exportar3MF(
             base,
             geometria.soloLetras
-              ? [{ nombre: parteLetras, geometria: geometria.base }]
+              ? [{ nombre: parteLetras, geometria: geometria.base, color: colorFilamento(letras) }]
               : [
-                  { nombre: parteBorde, geometria: geometria.base },
-                  { nombre: parteLetras, geometria: geometria.letras },
+                  { nombre: parteBorde, geometria: geometria.base, color: colorFilamento(borde) },
+                  { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras) },
                 ]
           ),
           `${base}.3mf`

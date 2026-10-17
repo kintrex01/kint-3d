@@ -19,6 +19,7 @@ import {
   FUENTES_LLAVERO,
   TAMANOS_LLAVERO,
   bordeMm,
+  limpiarRenglones,
   limpiarSeparacion,
   type PersonalizacionLlavero,
 } from "./personalizacion";
@@ -39,6 +40,7 @@ export type GeometriaLlavero = {
   base: THREE.BufferGeometry;
   letras: THREE.BufferGeometry; // vacía si es "Solo letras"
   soloLetras: boolean;
+  aro: { x: number; y: number }; // centro del agujero (para dibujar la argolla)
   ancho: number; // mm
   alto: number; // mm
   areaCm2: number;
@@ -242,7 +244,7 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   };
   const textos = [personalizacion.texto.trim() || "Kint", personalizacion.texto2?.trim() || ""].filter(Boolean);
   // De renglón a renglón: lugar para las patitas de la "g", "p", "y".
-  const interlineado = altoMayusculas * 1.6;
+  const interlineado = altoMayusculas * 1.6 + limpiarRenglones(personalizacion.renglones);
 
   // Cada renglón centrado en x = 0; el segundo, debajo del primero.
   const renglones = textos.map((texto, indice) => {
@@ -256,14 +258,20 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   if (!letras.length) throw new Error("Esa fuente no tiene esas letras.");
   const todo = limites(letras);
 
-  // Con dos renglones, un puente vertical en el medio los une.
+  // Espacio libre entre el renglón de arriba y el de abajo (negativo = se tocan).
+  const hueco =
+    renglones.length === 2 && renglones[0].caja && renglones[1].caja
+      ? renglones[0].caja.minY - renglones[1].caja.maxY
+      : 0;
+
+  // Solo letras con renglones que no se tocan: una barrita fina los une.
   const puente: Contornos = [];
-  if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
+  if (soloLetras && renglones.length === 2 && hueco > -0.3 && renglones[0].caja && renglones[1].caja) {
     const medio = Math.min(
       renglones[0].caja.maxX - renglones[0].caja.minX,
       renglones[1].caja.maxX - renglones[1].caja.minX
-    ) * (soloLetras ? 0.08 : 0.35);
-    puente.push(rectangulo(-medio, renglones[1].linea + altoMayusculas * 0.3, medio, altoMayusculas * 0.5));
+    ) * 0.06;
+    puente.push(rectangulo(-medio, renglones[1].caja.maxY - 1.5, medio, renglones[0].caja.minY + 1.5));
   }
 
   // Oreja con el agujero del aro: a la izquierda del primer renglón, a media altura.
@@ -293,7 +301,7 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
       centroX = todo.minX - margen - RADIO_OREJA * 0.45;
     } else {
       // Contorno: banda por la mitad de cada renglón para unir las letras sueltas.
-      const rellenos: Contornos = [...puente];
+      const rellenos: Contornos = [];
       for (const renglon of renglones) {
         if (!renglon.caja) continue;
         rellenos.push(
@@ -305,7 +313,22 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
           )
         );
       }
-      base = engordar(unir([...letras, ...rellenos]), margen);
+      // Dos renglones: relleno entre ambos, del ancho del renglón más corto,
+      // y después se "cierra" la forma (engordar y volver a afinar) para que
+      // las esquinas queden curvas y siga el dibujo de las letras.
+      let cierre = 0;
+      if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
+        const ancho = Math.min(
+          renglones[0].caja.maxX - renglones[0].caja.minX,
+          renglones[1].caja.maxX - renglones[1].caja.minX
+        ) * 0.92;
+        if (hueco > -altoMayusculas * 0.3) {
+          rellenos.push(rectangulo(-ancho / 2, renglones[1].linea + altoMayusculas * 0.4, ancho / 2, altoMayusculas * 0.4));
+        }
+        cierre = altoMayusculas * 0.18 + 0.8;
+      }
+      base = engordar(unir([...letras, ...rellenos]), margen + cierre);
+      if (cierre > 0) base = engordar(base, -cierre);
       centroX = primero.minX - margen - RADIO_OREJA * 0.45;
     }
     base = unir([
@@ -344,6 +367,7 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     base: geometriaBase,
     letras: geometriaLetras,
     soloLetras,
+    aro: { x: centroX - dx, y: centroY - dy },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
     areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,

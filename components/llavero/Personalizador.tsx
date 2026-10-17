@@ -17,9 +17,12 @@ import {
   SEPARACION_MAX,
   SEPARACION_MIN,
   SEPARACION_PASO,
+  RENGLONES_MAX,
+  RENGLONES_MIN,
   TAMANOS_LLAVERO,
   errorTextoLlavero,
   formatearPersonalizacion,
+  limpiarRenglones,
   limpiarSeparacion,
   limpiarTextoLlavero,
 } from "@/lib/llavero/personalizacion";
@@ -66,6 +69,7 @@ type Diseno = {
   borde: string;
   fondo: string;
   separacion: number;
+  renglones: number;
   colorBase: string;
   colorLetras: string;
 };
@@ -126,6 +130,7 @@ export default function Personalizador({
     FONDOS_LLAVERO.some((opcion) => opcion.nombre === inicial.fondo) ? inicial.fondo! : "Contorno"
   );
   const [separacion, setSeparacion] = useState(() => limpiarSeparacion(inicial.separacion ?? 0));
+  const [renglones, setRenglones] = useState(() => limpiarRenglones(inicial.renglones ?? 0));
   const soloLetras = fondo === "Solo letras";
   const [colorBase, setColorBase] = useState(() =>
     inicial.colorBase && producto.colores.includes(inicial.colorBase)
@@ -148,10 +153,11 @@ export default function Personalizador({
       borde,
       fondo,
       separacion,
+      renglones,
       colorBase,
       colorLetras,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, colorBase, colorLetras]);
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, colorBase, colorLetras]);
   const [cadena, setCadena] = useState(producto.cadenas[0] || "");
   const [cantidad, setCantidad] = useState(1);
   const [geometria, setGeometria] = useState<GeometriaLlavero | null>(null);
@@ -172,7 +178,16 @@ export default function Personalizador({
     let cancelado = false;
     const espera = window.setTimeout(() => {
       setArmando(true);
-      construirLlavero({ texto: textoParaVer, texto2: texto2ParaVer, fuente, tamano, borde, fondo, separacion })
+      construirLlavero({
+        texto: textoParaVer,
+        texto2: texto2ParaVer,
+        fuente,
+        tamano,
+        borde,
+        fondo,
+        separacion,
+        renglones,
+      })
         .then((nueva) => {
           if (cancelado) {
             nueva.base.dispose();
@@ -196,7 +211,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde, fondo, separacion]);
+  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde, fondo, separacion, renglones]);
 
   useEffect(
     () => () => {
@@ -243,6 +258,7 @@ export default function Personalizador({
         borde,
         fondo,
         separacion,
+        renglones,
       }),
       cantidad,
     });
@@ -277,6 +293,7 @@ export default function Personalizador({
             geometria={geometria}
             colorBase={colorFilamento(soloLetras ? colorLetras : colorBase)}
             colorLetras={colorFilamento(colorLetras)}
+            cadena={cadena}
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 text-[11px] font-bold text-white/75">
             <span className="flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 backdrop-blur">
@@ -470,40 +487,6 @@ export default function Personalizador({
               </div>
             </fieldset>
 
-            <label className="block">
-              <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
-                <span>Separación entre letras</span>
-                <span className="tabular-nums text-[var(--text-main)]">
-                  {separacion === 0 ? "Normal" : `${separacion > 0 ? "+" : ""}${String(separacion).replace(".", ",")} mm`}
-                </span>
-              </span>
-              <input
-                type="range"
-                min={SEPARACION_MIN}
-                max={SEPARACION_MAX}
-                step={SEPARACION_PASO}
-                value={separacion}
-                onChange={(evento) => setSeparacion(limpiarSeparacion(evento.target.value))}
-                className="w-full accent-[#1f3f85] dark:accent-sky-400"
-              />
-              <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
-                <span>Pegadas</span>
-                <button
-                  type="button"
-                  onClick={() => setSeparacion(0)}
-                  className="rounded px-1 hover:text-[var(--text-main)]"
-                >
-                  Normal
-                </button>
-                <span>Separadas</span>
-              </span>
-              {fondo === "Solo letras" && separacion > -1 && (
-                <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
-                  Sin fondo, las letras que no se tocan salen sueltas. Juntalas con la barra si las querés unidas.
-                </span>
-              )}
-            </label>
-
             {!soloLetras && (
             <fieldset>
               <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
@@ -543,6 +526,67 @@ export default function Personalizador({
                 })}
               </div>
             </fieldset>
+            )}
+
+            <label className="block">
+              <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                <span>Separación entre letras</span>
+                <span className="tabular-nums text-[var(--text-main)]">
+                  {separacion === 0 ? "Normal" : `${separacion > 0 ? "+" : ""}${String(separacion).replace(".", ",")} mm`}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={SEPARACION_MIN}
+                max={SEPARACION_MAX}
+                step={SEPARACION_PASO}
+                value={separacion}
+                onChange={(evento) => setSeparacion(limpiarSeparacion(evento.target.value))}
+                className="w-full accent-[#1f3f85] dark:accent-sky-400"
+              />
+              <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                <span>Pegadas</span>
+                <button
+                  type="button"
+                  onClick={() => setSeparacion(0)}
+                  className="rounded px-1 hover:text-[var(--text-main)]"
+                >
+                  Normal
+                </button>
+                <span>Separadas</span>
+              </span>
+              {fondo === "Solo letras" && separacion > -1 && (
+                <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
+                  Sin fondo, las letras que no se tocan salen sueltas. Juntalas con la barra si las querés unidas.
+                </span>
+              )}
+            </label>
+
+            {conLinea2 && texto2.trim() && (
+              <label className="block">
+                <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                  <span>Espacio entre renglones</span>
+                  <span className="tabular-nums text-[var(--text-main)]">
+                    {renglones === 0 ? "Normal" : `${renglones > 0 ? "+" : ""}${String(renglones).replace(".", ",")} mm`}
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  min={RENGLONES_MIN}
+                  max={RENGLONES_MAX}
+                  step={0.5}
+                  value={renglones}
+                  onChange={(evento) => setRenglones(limpiarRenglones(evento.target.value))}
+                  className="w-full accent-[#1f3f85] dark:accent-sky-400"
+                />
+                <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                  <span>Juntos</span>
+                  <button type="button" onClick={() => setRenglones(0)} className="rounded px-1 hover:text-[var(--text-main)]">
+                    Normal
+                  </button>
+                  <span>Separados</span>
+                </span>
+              </label>
             )}
 
             {!soloLetras && (

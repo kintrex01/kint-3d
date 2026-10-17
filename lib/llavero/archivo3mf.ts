@@ -8,7 +8,7 @@ import * as THREE from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /* Malla con los vértices soldados (sin bordes abiertos para el laminador). */
-function mallaXml(id: number, nombre: string, geometria: THREE.BufferGeometry) {
+function mallaXml(id: number, nombre: string, geometria: THREE.BufferGeometry, color: number | null) {
   const limpia = new THREE.BufferGeometry();
   limpia.setAttribute("position", geometria.getAttribute("position").clone());
   if (geometria.index) limpia.setIndex(geometria.index.clone());
@@ -35,7 +35,7 @@ function mallaXml(id: number, nombre: string, geometria: THREE.BufferGeometry) {
   soldada.dispose();
 
   return (
-    `<object id="${id}" name="${nombre}" type="model"><mesh>` +
+    `<object id="${id}" name="${nombre}" type="model"${color === null ? "" : ` pid="100" pindex="${color}"`}><mesh>` +
     `<vertices>${vertices.join("")}</vertices>` +
     `<triangles>${triangulos.join("")}</triangles>` +
     `</mesh></object>`
@@ -114,11 +114,26 @@ function armarZip(archivos: { nombre: string; texto: string }[]) {
 
 /* ---------------- 3MF ---------------- */
 
+/* "#572369" → "#572369FF" (3MF pide el alfa). */
+function colorRgba(hex: string) {
+  const limpio = /^#[0-9a-f]{6}$/i.test(hex) ? hex.toUpperCase() : "#9CA3AF";
+  return `${limpio}FF`;
+}
+
 export function exportar3MF(
   nombre: string,
-  piezas: { nombre: string; geometria: THREE.BufferGeometry }[]
+  piezas: { nombre: string; geometria: THREE.BufferGeometry; color?: string }[]
 ) {
-  const objetos = piezas.map((pieza, indice) => mallaXml(indice + 1, escaparXml(pieza.nombre), pieza.geometria));
+  // Colores de cada parte (los ven Bambu Studio y los visores de 3MF).
+  const conColor = piezas.some((pieza) => pieza.color);
+  const materiales = conColor
+    ? `<basematerials id="100">${piezas
+        .map((pieza) => `<base name="${escaparXml(pieza.nombre)}" displaycolor="${colorRgba(pieza.color || "")}"/>`)
+        .join("")}</basematerials>`
+    : "";
+  const objetos = piezas.map((pieza, indice) =>
+    mallaXml(indice + 1, escaparXml(pieza.nombre), pieza.geometria, conColor ? indice : null)
+  );
   const idGrupo = piezas.length + 1;
   const componentes = piezas.map((_, indice) => `<component objectid="${indice + 1}"/>`).join("");
 
@@ -127,7 +142,7 @@ export function exportar3MF(
     `<model unit="millimeter" xml:lang="es-UY" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">` +
     `<metadata name="Title">${escaparXml(nombre)}</metadata>` +
     `<metadata name="Application">Kint 3D</metadata>` +
-    `<resources>${objetos.join("")}` +
+    `<resources>${materiales}${objetos.join("")}` +
     `<object id="${idGrupo}" name="${escaparXml(nombre)}" type="model"><components>${componentes}</components></object>` +
     `</resources>` +
     // Centrado en la cama de la A1 mini (180 × 180).
@@ -153,5 +168,20 @@ export function exportar3MF(
         `</Relationships>`,
     },
     { nombre: "3D/3dmodel.model", texto: modelo },
+    // Bambu Studio: cada parte con su filamento (borde = 1, letras = 2).
+    {
+      nombre: "Metadata/model_settings.config",
+      texto:
+        `<?xml version="1.0" encoding="UTF-8"?><config>` +
+        `<object id="${idGrupo}"><metadata key="name" value="${escaparXml(nombre)}"/><metadata key="extruder" value="1"/>` +
+        piezas
+          .map(
+            (pieza, indice) =>
+              `<part id="${indice + 1}" subtype="normal_part"><metadata key="name" value="${escaparXml(pieza.nombre)}"/>` +
+              `<metadata key="extruder" value="${indice + 1}"/></part>`
+          )
+          .join("") +
+        `</object></config>`,
+    },
   ]);
 }
