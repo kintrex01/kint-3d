@@ -265,7 +265,8 @@ export default function DetallePedidoAdmin({
     try {
       const respuesta = await confirmacion.ejecutar();
       setDatos({ pedido: respuesta.pedido });
-      avisar(respuesta.aviso || confirmacion.exito);
+      // Si el correo al cliente no salió, se avisa en rojo.
+      avisar(respuesta.aviso || confirmacion.exito, /^Cambiado, pero/.test(respuesta.aviso || "") ? "error" : undefined);
       setConfirmacion(null);
     } catch (errorAccion) {
       avisar(
