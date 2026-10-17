@@ -33,22 +33,26 @@ type Enlace = {
   href: string;
   texto: string;
   icono: typeof Home;
+  grupo: "Pedidos" | "Negocio" | "Catálogo" | "Ajustes";
+  color: string; // color del ícono (sección)
   enBarra?: boolean; // aparece en la barra inferior del celular
 };
 
 export const ENLACES_ADMIN: Enlace[] = [
-  { href: "/admin", texto: "Inicio", icono: Home, enBarra: true },
-  { href: "/admin/pedidos", texto: "Maquetas", icono: Package, enBarra: true },
-  { href: "/admin/tienda", texto: "Tienda", icono: ShoppingBag, enBarra: true },
-  { href: "/admin/calendario", texto: "Calendario", icono: CalendarDays, enBarra: true },
-  { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered },
-  { href: "/admin/caja", texto: "Caja", icono: Wallet },
-  { href: "/admin/calculadora", texto: "Calculadora", icono: Calculator },
-  { href: "/admin/productos", texto: "Productos", icono: Wrench },
-  { href: "/admin/resenas", texto: "Reseñas", icono: Star },
-  { href: "/admin/clientes", texto: "Clientes", icono: Users },
-  { href: "/admin/configuracion", texto: "Configuración", icono: Settings },
+  { href: "/admin", texto: "Inicio", icono: Home, grupo: "Pedidos", color: "#60a5fa", enBarra: true },
+  { href: "/admin/pedidos", texto: "Maquetas", icono: Package, grupo: "Pedidos", color: "#38bdf8", enBarra: true },
+  { href: "/admin/tienda", texto: "Tienda", icono: ShoppingBag, grupo: "Pedidos", color: "#f87171", enBarra: true },
+  { href: "/admin/calendario", texto: "Calendario", icono: CalendarDays, grupo: "Pedidos", color: "#fbbf24", enBarra: true },
+  { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered, grupo: "Pedidos", color: "#94a3b8" },
+  { href: "/admin/caja", texto: "Caja", icono: Wallet, grupo: "Negocio", color: "#34d399" },
+  { href: "/admin/calculadora", texto: "Calculadora", icono: Calculator, grupo: "Negocio", color: "#a78bfa" },
+  { href: "/admin/productos", texto: "Productos", icono: Wrench, grupo: "Catálogo", color: "#fb923c" },
+  { href: "/admin/resenas", texto: "Reseñas", icono: Star, grupo: "Catálogo", color: "#facc15" },
+  { href: "/admin/clientes", texto: "Clientes", icono: Users, grupo: "Catálogo", color: "#f472b6" },
+  { href: "/admin/configuracion", texto: "Configuración", icono: Settings, grupo: "Ajustes", color: "#cbd5e1" },
 ];
+
+const GRUPOS = ["Pedidos", "Negocio", "Catálogo", "Ajustes"] as const;
 
 function activo(pathname: string, href: string) {
   return href === "/admin"
@@ -160,38 +164,68 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
   return (
     <ProveedorAvisos>
       <BarraProgreso navegando={navegando} />
-      <div className="min-h-screen bg-[var(--page-bg)] text-[var(--text-main)] lg:pl-64">
+      <div className="min-h-screen text-[var(--text-main)] lg:pl-64">
         {/* Lateral (compu) */}
-        <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-4 py-6 lg:flex">
-          <Link href="/admin" className="mb-8 px-3">
-            <span className="kint-logo-font block text-xl text-[var(--text-main)]">
-              KINT <span className="text-[var(--blue-main)]">3D</span>
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col overflow-y-auto border-r border-[var(--kint-panel-border)] bg-[linear-gradient(180deg,var(--kint-panel)_0%,color-mix(in_srgb,var(--kint-panel)_88%,#1f3f85)_100%)] px-3 py-6 [scrollbar-width:thin] lg:flex">
+          <Link href="/admin" className="group mb-7 flex items-center gap-3 px-3">
+            <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#2a4fa8,#16295c)] text-sm font-black text-white shadow-[0_8px_24px_rgba(42,79,168,0.45)] transition group-hover:scale-105">
+              K
+              <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-[var(--kint-panel)] bg-emerald-400" />
             </span>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[var(--text-muted)]">
-              Panel de gestión
+            <span>
+              <span className="kint-logo-font block text-lg leading-none text-[var(--text-main)]">
+                KINT <span className="text-[var(--blue-main)] dark:text-sky-300">3D</span>
+              </span>
+              <span className="text-[9px] font-black uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                Panel de gestión
+              </span>
             </span>
           </Link>
 
-          <nav className="flex flex-1 flex-col gap-1" aria-label="Panel">
-            {ENLACES_ADMIN.map((enlace) => {
-              const Icono = enlace.icono;
-              const esActivo = activo(pathname, enlace.href);
-              return (
-                <Link
-                  key={enlace.href}
-                  href={enlace.href}
-                  aria-current={esActivo ? "page" : undefined}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition ${
-                    esActivo
-                      ? "bg-[#1f3f85] text-white"
-                      : "text-[var(--text-muted)] hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
-                  }`}
-                >
-                  <Icono size={18} />
-                  {enlace.texto}
-                </Link>
-              );
-            })}
+          <nav className="flex flex-1 flex-col gap-4" aria-label="Panel">
+            {GRUPOS.map((grupo) => (
+              <div key={grupo}>
+                <p className="mb-1.5 px-3 text-[9px] font-black uppercase tracking-[0.26em] text-[var(--text-muted)] opacity-70">
+                  {grupo}
+                </p>
+                <div className="flex flex-col gap-0.5">
+                  {ENLACES_ADMIN.filter((enlace) => enlace.grupo === grupo).map((enlace) => {
+                    const Icono = enlace.icono;
+                    const esActivo = activo(pathname, enlace.href);
+                    return (
+                      <Link
+                        key={enlace.href}
+                        href={enlace.href}
+                        aria-current={esActivo ? "page" : undefined}
+                        className={`group relative flex items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-bold transition ${
+                          esActivo
+                            ? "bg-[linear-gradient(90deg,rgba(42,79,168,0.55),rgba(42,79,168,0.12))] text-white shadow-[0_6px_20px_rgba(31,63,133,0.25)]"
+                            : "text-[var(--text-muted)] hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
+                        }`}
+                      >
+                        {esActivo && (
+                          <span
+                            aria-hidden
+                            className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full"
+                            style={{ background: enlace.color, boxShadow: `0 0 12px ${enlace.color}` }}
+                          />
+                        )}
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition group-hover:scale-105"
+                          style={{
+                            color: enlace.color,
+                            background: `color-mix(in srgb, ${enlace.color} ${esActivo ? 26 : 14}%, transparent)`,
+                          }}
+                        >
+                          <Icono size={16} strokeWidth={2.2} />
+                        </span>
+                        {enlace.texto}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
           <div className="flex items-center justify-between gap-2 border-t border-[var(--kint-panel-border)] pt-4">
@@ -225,11 +259,18 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
             }}
             className="text-left"
           >
-            <span className="kint-logo-font block text-base leading-tight">
-              KINT <span className="text-[var(--blue-main)]">3D</span>
-            </span>
-            <span className="text-[9px] font-black uppercase tracking-[0.28em] text-[var(--text-muted)]">
-              Panel
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#2a4fa8,#16295c)] text-xs font-black text-white shadow-[0_6px_18px_rgba(42,79,168,0.4)]">
+                K
+              </span>
+              <span>
+                <span className="kint-logo-font block text-base leading-tight">
+                  KINT <span className="text-[var(--blue-main)] dark:text-sky-300">3D</span>
+                </span>
+                <span className="text-[9px] font-black uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                  Panel
+                </span>
+              </span>
             </span>
           </button>
           <BotonTema />
@@ -242,7 +283,7 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
         {/* Barra inferior (celular) */}
         <nav
           aria-label="Panel"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--kint-panel-border)] bg-[var(--kint-panel)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+          className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-40 grid grid-cols-5 rounded-3xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)]/90 p-1 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl lg:hidden"
         >
           {ENLACES_ADMIN.filter((enlace) => enlace.enBarra).map((enlace) => {
             const Icono = enlace.icono;
@@ -252,13 +293,15 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
                 key={enlace.href}
                 href={enlace.href}
                 aria-current={esActivo ? "page" : undefined}
-                className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition ${
-                  esActivo
-                    ? "text-[#1f3f85] dark:text-[var(--blue-soft)]"
-                    : "text-[var(--text-muted)]"
+                className={`flex flex-col items-center gap-0.5 rounded-2xl py-2 text-[10px] font-bold transition ${
+                  esActivo ? "bg-[var(--kint-panel-soft)] text-[var(--text-main)]" : "text-[var(--text-muted)]"
                 }`}
               >
-                <Icono size={21} strokeWidth={esActivo ? 2.4 : 1.9} />
+                <Icono
+                  size={20}
+                  strokeWidth={esActivo ? 2.4 : 1.9}
+                  style={esActivo ? { color: enlace.color, filter: `drop-shadow(0 0 6px ${enlace.color})` } : undefined}
+                />
                 {enlace.texto}
               </Link>
             );
@@ -266,10 +309,8 @@ export default function ShellAdmin({ children }: { children: ReactNode }) {
           <Link
             href="/admin/mas"
             aria-current={enMas ? "page" : undefined}
-            className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-bold transition ${
-              enMas
-                ? "text-[#1f3f85] dark:text-[var(--blue-soft)]"
-                : "text-[var(--text-muted)]"
+            className={`flex flex-col items-center gap-0.5 rounded-2xl py-2 text-[10px] font-bold transition ${
+              enMas ? "bg-[var(--kint-panel-soft)] text-[var(--text-main)]" : "text-[var(--text-muted)]"
             }`}
           >
             <Menu size={21} strokeWidth={enMas ? 2.4 : 1.9} />

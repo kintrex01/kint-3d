@@ -31,8 +31,11 @@ export default function MasAdmin() {
               href={enlace.href}
               className="flex items-center gap-4 px-4 py-4 transition hover:bg-[var(--kint-panel-soft)]"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--kint-panel-soft)] text-[var(--blue-main)] dark:text-[var(--blue-soft)]">
-                <Icono size={19} />
+              <span
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{ color: enlace.color, background: `color-mix(in srgb, ${enlace.color} 16%, transparent)` }}
+              >
+                <Icono size={19} strokeWidth={2.2} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-bold">{enlace.texto}</span>
