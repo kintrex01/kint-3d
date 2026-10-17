@@ -1,4 +1,5 @@
 "use client";
+import { fotoFilamento } from "@/lib/colores-filamento";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -51,7 +52,10 @@ function ImagenFilamento({
   const [intento, setIntento] =
     useState(0);
 
+  // Primero la foto liviana (public/colores/grande); si no hay, la original.
+  const liviana = fotoFilamento(nombre)?.grande;
   const fuentes = [
+    ...(liviana ? [liviana] : []),
     `/colores/${nombre}.png`,
     `/colores/${nombre}.jpg`,
     `/colores/${nombre}.jpeg`,
@@ -1659,7 +1663,22 @@ return (
 )}
 
 {clienteExiste === false && (
-  <>
+  <div className="mb-6 overflow-hidden rounded-2xl border-2 border-red-600/50 bg-[linear-gradient(135deg,rgba(220,38,38,0.10),rgba(31,63,133,0.10))] p-5 shadow-[0_10px_40px_rgba(220,38,38,0.10)]">
+    <div className="mb-5 flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-xl text-white shadow-lg">
+        ✨
+      </span>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
+          Primera vez en Kint 3D
+        </p>
+        <p className="text-lg font-black text-[var(--text-main)]">Creá tu cuenta</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+          Estos datos se piden una sola vez y quedan en tu cuenta. La próxima vez solo ponés tu correo.
+        </p>
+      </div>
+    </div>
+
     <div className="mb-6">
       <label className="mb-2 block font-semibold text-[var(--text-main)]">
         Nombre público *
@@ -1723,7 +1742,50 @@ return (
         placeholder="Tu nombre"
       />
     </div>
-  </>
+
+  <div className="">
+    <label className="mb-2 block font-semibold text-[var(--text-main)]">
+      Celular (WhatsApp) <span className="text-red-600">*</span>
+    </label>
+    <p className="mb-3 text-sm text-[var(--text-muted)]">
+      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
+    </p>
+    <input
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      value={telefono}
+      onChange={(e) => setTelefono(e.target.value)}
+      className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      placeholder="+598 99 123 456"
+    />
+  </div>
+  </div>
+)}
+
+{clienteExiste === true && necesitaTelefono && (
+  <div className="mb-6 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-5">
+    <p className="mb-4 text-sm font-bold text-[var(--text-main)]">
+      A tu cuenta le falta el celular. Lo pedimos una sola vez.
+    </p>
+  <div className="">
+    <label className="mb-2 block font-semibold text-[var(--text-main)]">
+      Celular (WhatsApp) <span className="text-red-600">*</span>
+    </label>
+    <p className="mb-3 text-sm text-[var(--text-muted)]">
+      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
+    </p>
+    <input
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      value={telefono}
+      onChange={(e) => setTelefono(e.target.value)}
+      className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      placeholder="+598 99 123 456"
+    />
+  </div>
+  </div>
 )}
 
         <div className="mb-6">
@@ -1809,35 +1871,6 @@ return (
 </div>
         </div>
 
-{necesitaTelefono && (
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    {necesitaTelefono ? (
-      <>
-        Celular (WhatsApp) <span className="text-red-600">*</span>
-      </>
-    ) : (
-      "Celular (opcional)"
-    )}
-  </label>
-
-  <p className="mb-3 text-sm text-[var(--text-muted)]">
-    {necesitaTelefono
-      ? "Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta."
-      : "Ya tenemos tu celular. Si querés cambiarlo, escribí el nuevo."}
-  </p>
-
-  <input
-    type="tel"
-    inputMode="tel"
-    autoComplete="tel"
-    value={telefono}
-    onChange={(e) => setTelefono(e.target.value)}
-    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
-    placeholder="+598 99 123 456"
-  />
-</div>
-)}
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">

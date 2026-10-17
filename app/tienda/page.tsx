@@ -40,6 +40,7 @@ import {
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
+import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 
@@ -340,6 +341,13 @@ const MUESTRAS_COLOR: Record<string, string> = {
   beige: "#e8d8b8",
   crema: "#f5ecd7",
 };
+
+/* Para pintar un círculo de color: la foto real del filamento si la hay. */
+function fondoColor(nombre: string, porDefecto = "") {
+  const foto = fotoFilamento(nombre);
+  if (foto) return `center / cover no-repeat url("${foto.mini}")`;
+  return muestraColor(nombre) || porDefecto;
+}
 
 function muestraColor(nombre: string) {
   const clave = nombre
@@ -1235,9 +1243,7 @@ function MuestrasColor({ colores }: { colores: string[] }) {
           key={color}
           className="h-8 w-8 rounded-full border-2 border-[var(--kint-panel)] shadow-sm ring-1 ring-black/10 dark:ring-white/40"
           style={{
-            background:
-              muestraColor(color) ||
-              "repeating-linear-gradient(45deg,#c9d4dc 0 4px,#eef2f5 4px 8px)",
+            background: fondoColor(color, "repeating-linear-gradient(45deg,#c9d4dc 0 4px,#eef2f5 4px 8px)"),
           }}
         />
       ))}
@@ -2207,7 +2213,7 @@ function FichaProducto({
                       {producto.colores.map((color) => {
                         const orden = colores.indexOf(color);
                         const activa = orden !== -1;
-                        const muestra = muestraColor(color);
+                        const muestra = fondoColor(color);
 
                         return (
                           <button
@@ -2227,7 +2233,7 @@ function FichaProducto({
                             >
                               <span
                                 aria-hidden="true"
-                                className="h-9 w-9 rounded-full border border-black/15 dark:border-white/35"
+                                className="h-10 w-10 rounded-full border border-black/15 dark:border-white/35"
                                 style={{
                                   background:
                                     muestra ||
@@ -2256,6 +2262,32 @@ function FichaProducto({
                       <p className="mt-3 text-xs text-[var(--text-muted)]">
                         {textoLimiteColores}
                       </p>
+                    )}
+
+                    {colores.some((color) => fotoFilamento(color)) && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {colores.map((color) => {
+                          const foto = fotoFilamento(color);
+                          return foto ? (
+                            <figure
+                              key={color}
+                              className="flex items-center gap-2 rounded-xl bg-[var(--kint-panel-soft)] p-1.5 pr-3"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={foto.grande}
+                                alt={`Carrete de filamento ${color}`}
+                                className="h-12 w-12 rounded-lg bg-white object-cover"
+                                loading="lazy"
+                              />
+                              <figcaption className="text-[11px] leading-4 text-[var(--text-muted)]">
+                                <strong className="block text-xs text-[var(--text-main)]">{color}</strong>
+                                Foto real
+                              </figcaption>
+                            </figure>
+                          ) : null;
+                        })}
+                      </div>
                     )}
                   </div>
                 )}
