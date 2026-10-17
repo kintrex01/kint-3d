@@ -324,8 +324,7 @@ export function SeccionPresupuesto({
     <>
       {cargadas.length === 0 ? (
         <Tarjeta className="px-4 py-4 text-sm text-[var(--text-muted)]">
-          Todavía no hay opciones. Revisá los archivos y agregá la primera
-          (por lo general, «Recomendada»).
+          Sin opciones todavía.
         </Tarjeta>
       ) : (
         <ul className="space-y-2.5">
@@ -398,24 +397,15 @@ export function SeccionPresupuesto({
               >
                 Enviar presupuesto al cliente
               </Boton>
-              <p className="flex gap-2 text-xs text-[var(--text-muted)]">
-                <Info size={14} className="mt-0.5 shrink-0" />
-                {envio.listo
-                  ? `Pasa el pedido a «Presupuestado»: al cliente le llega un correo con ${
-                      envio.cantidad === 1 ? "la opción" : `las ${envio.cantidad} opciones`
-                    }, el precio y cómo pagar.`
-                  : envio.motivo}
-              </p>
+              {!envio.listo && (
+                <p className="flex gap-2 text-xs font-semibold text-amber-800 dark:text-amber-300">
+                  <Info size={14} className="mt-0.5 shrink-0" />
+                  {envio.motivo}
+                </p>
+              )}
             </Tarjeta>
           )}
 
-          {pedido.estado === "Presupuestado" && !elegida && (
-            <p className="flex gap-2 px-1 text-xs text-[var(--text-muted)]">
-              <Info size={14} className="mt-0.5 shrink-0" />
-              El presupuesto ya se envió. Si cambiás algo, el cliente lo ve en su
-              seguimiento, pero no le llega un correo nuevo.
-            </p>
-          )}
         </div>
       )}
 
@@ -494,7 +484,7 @@ export function SeccionPresupuesto({
               )}
             </div>
 
-            <Campo etiqueta="Descripción" ayuda="Por qué cambia el precio entre una opción y otra.">
+            <Campo etiqueta="Descripción">
               <textarea
                 className={`${claseInput} resize-y leading-5`}
                 value={formulario.descripcion}
@@ -506,7 +496,7 @@ export function SeccionPresupuesto({
             </Campo>
 
             <div className="grid grid-cols-2 gap-3">
-              <Campo etiqueta="Tiempo de impresión" ayuda="El que dice la impresora.">
+              <Campo etiqueta="Tiempo de impresión">
                 <input
                   className={claseInput}
                   value={formulario.tiempo}
@@ -543,12 +533,7 @@ export function SeccionPresupuesto({
               className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[var(--blue-main)]/50 bg-[var(--kint-selected-bg)] px-3.5 py-3 text-left transition hover:border-[var(--blue-main)]"
             >
               <Calculator size={18} className="shrink-0 text-[var(--blue-main)] dark:text-sky-300" />
-              <span className="min-w-0">
-                <span className="block text-sm font-black">Calcular precio</span>
-                <span className="block text-[11px] text-[var(--text-muted)]">
-                  Con gramos y tiempo de Bambu Studio: completa precio, tiempo y filamento.
-                </span>
-              </span>
+              <span className="text-sm font-black">Calcular precio</span>
             </button>
 
             <Campo
@@ -560,9 +545,7 @@ export function SeccionPresupuesto({
                   totalVista > 0
                     ? `Pedido urgente: +${urgente.recargo}% → el cliente ve ${pesos(totalVista)}.`
                     : `Pedido urgente: al precio se le suma ${urgente.recargo}%.`
-                ) : (
-                  "En pesos, sin el descuento del cliente (se aplica solo)."
-                )
+                ) : undefined
               }
             >
               <div className="relative">

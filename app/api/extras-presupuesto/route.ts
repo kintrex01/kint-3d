@@ -19,7 +19,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         tipo: guardar ? "extras_presupuesto" : "extras_presupuesto_ver",
         pedido: String(body?.pedido || "").slice(0, 20),
-        codigo: String(body?.codigo || "").slice(0, 20),
+        codigo: String(body?.codigo || "").slice(0, 120), // código o correo del pedido
         items: guardar
           ? (body.items as unknown[]).slice(0, 5).map((item) => {
               const linea = item as Record<string, unknown>;

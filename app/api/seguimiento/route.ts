@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     if (!codigo) {
       return Response.json(
-        { ok: false, error: "Falta el código de seguimiento." },
+        { ok: false, error: "Falta el correo del pedido." },
         { status: 400 }
       );
     }

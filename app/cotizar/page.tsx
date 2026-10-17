@@ -928,10 +928,9 @@ const camposPendientes = [
     nombre: "Nombre o apodo",
     completo: Boolean(nombre.trim()),
   },
-  {
-    nombre: "Celular (WhatsApp)",
-    completo: !necesitaTelefono || telefonoCompleto,
-  },
+  ...(necesitaTelefono
+    ? [{ nombre: "Celular (WhatsApp)", completo: telefonoCompleto }]
+    : []),
   {
   nombre: "Correo electrónico",
   completo:
@@ -958,10 +957,7 @@ const camposPendientes = [
     nombre: "Armado de piezas",
     completo: armadoCompleto,
   },
-  {
-    nombre: "Alisado",
-    completo: alisadoCompleto,
-  },
+
   {
     nombre: "Boquilla",
     completo: Boolean(boquilla),
@@ -1813,6 +1809,7 @@ return (
 </div>
         </div>
 
+{necesitaTelefono && (
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     {necesitaTelefono ? (
@@ -1840,6 +1837,7 @@ return (
     placeholder="+598 99 123 456"
   />
 </div>
+)}
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -2338,38 +2336,6 @@ return (
   </details>
 )}
 
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Alisado
-  </label>
-
-  <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Este proceso suaviza las superficies superiores de la pieza para
-    obtener un mejor acabado visual. Requiere más tiempo de impresión
-    y postprocesado, por lo que incrementa el costo final.
-  </p>
-
-  {alisadoHabilitado ? (
-    <select
-  value={alisado}
-  onChange={(e) => setAlisado(e.target.value)}
-  className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
->
-  <option value="No requiero este servicio">
-    No requiero este servicio
-  </option>
-
-  <option value="Sí, quiero incluir este servicio">
-    Sí, quiero incluir este servicio
-  </option>
-</select>
-  ) : (
-    <div className="w-full rounded-xl border border-gray-300 bg-gray-100 p-4 text-gray-400">
-      {configuracion.alisado?.comentario ||
-        "Servicio de alisado no disponible"}
-    </div>
-  )}
-</div>
 
 
 <div className="mb-6">
@@ -2674,15 +2640,6 @@ return (
         </p>
       </div>
 
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Alisado
-        </strong>
-
-        <p className="mt-1">
-          Se incluye únicamente cuando seleccionás este servicio.
-        </p>
-      </div>
 
       {pedidoPrioritario && pedidoUrgenteValor > 0 && (
         <div>

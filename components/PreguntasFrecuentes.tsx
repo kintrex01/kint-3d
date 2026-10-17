@@ -69,7 +69,7 @@ const preguntas = [
   {
     pregunta: "¿Cómo sé cuándo está terminado mi pedido?",
     respuesta:
-      "Recibirás avisos por correo electrónico cuando el pedido cambie de estado. También podés consultar el avance desde la sección Consultar pedido utilizando tu número de pedido y código de seguimiento.",
+      "Recibirás avisos por correo electrónico cuando el pedido cambie de estado. También podés consultar el avance desde la sección Consultar pedido utilizando tu número de pedido y tu correo.",
   },
   {
     pregunta: "¿Cómo funcionan las entregas y los envíos?",

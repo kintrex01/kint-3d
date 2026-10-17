@@ -98,10 +98,15 @@ useEffect(() => {
 
   const pedidoUrl = numeroUrl;
 
-  const codigoUrl =
-    (searchParams.get("codigo") || "")
-      .trim()
-      .toUpperCase();
+  const codigoCrudo = (
+    searchParams.get("codigo") ||
+    searchParams.get("e") ||
+    ""
+  ).trim();
+  // El correo va tal cual; un código viejo, en mayúsculas.
+  const codigoUrl = codigoCrudo.includes("@")
+    ? codigoCrudo
+    : codigoCrudo.toUpperCase();
 
   if (pedidoUrl) {
     setPedido(pedidoUrl);
@@ -223,7 +228,7 @@ function cambiarTema() {
     }
 
     if (!codigo.trim()) {
-  setError("Ingresá tu código de seguimiento.");
+  setError("Ingresá el correo con el que hiciste el pedido.");
   return;
 }
 
@@ -1235,7 +1240,7 @@ function datosTecnicosPresupuesto(
   {" "}
   {esPedidoTienda(pedido)
     ? "Ingresá tu número de compra y el email con el que compraste."
-    : "Ingresá tu número de pedido y el código de seguimiento (o tu número TND y tu email)."}
+    : "Ingresá tu número de pedido y el correo con el que lo hiciste."}
 </p>
 
         <div className="w-full max-w-xl">
@@ -1262,11 +1267,16 @@ function datosTecnicosPresupuesto(
   />
 ) : (
 <input
+  type="email"
   value={codigo}
-  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-  placeholder="Código de seguimiento"
-  aria-label="Código de seguimiento"
-  className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold uppercase tracking-[0.12em] outline-none transition focus:border-red-600"
+  onChange={(e) => setCodigo(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") void consultarPedido();
+  }}
+  autoComplete="email"
+  placeholder="Email del pedido"
+  aria-label="Email del pedido"
+  className="mt-4 w-full border border-[var(--border-color)] bg-transparent px-6 py-4 text-center text-base font-semibold tracking-[0.06em] outline-none transition focus:border-red-600"
 />
 )}
 
