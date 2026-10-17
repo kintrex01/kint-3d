@@ -35,14 +35,18 @@ export type PiezaCalculadora = {
   piezas: number; // cuántas salen en esa impresión
 };
 
-/* Consumo promedio imprimiendo PLA (W). Aproximado: se puede cambiar. */
+/*
+ * Consumo promedio imprimiendo PLA (W), de la tabla de Bambu Lab
+ * (wiki "power consumption"): A1 mini 80 W, A1 95 W, H2D 197 W.
+ * El resto, aproximado. Se puede cambiar en el perfil.
+ */
 export const IMPRESORAS = [
-  { nombre: "Bambu Lab A1 Mini", consumoW: 45 },
+  { nombre: "Bambu Lab A1 Mini", consumoW: 80 },
   { nombre: "Bambu Lab A1", consumoW: 95 },
   { nombre: "Bambu Lab P1S", consumoW: 110 },
   { nombre: "Bambu Lab P1P", consumoW: 100 },
   { nombre: "Bambu Lab X1 Carbon", consumoW: 120 },
-  { nombre: "Bambu Lab H2D", consumoW: 150 },
+  { nombre: "Bambu Lab H2D", consumoW: 197 },
   { nombre: "Prusa MK4", consumoW: 80 },
   { nombre: "Creality Ender 3 V3", consumoW: 110 },
   { nombre: "Otra", consumoW: 0 },
@@ -62,9 +66,11 @@ export function perfilNuevo(nombre = "Mi perfil"): PerfilCalculadora {
     id: Math.random().toString(36).slice(2, 10),
     nombre,
     impresora: "Bambu Lab A1 Mini",
-    precioFilamento: 900,
-    precioKwh: 80,
-    consumoW: 45,
+    // PLA Basic de Bambu en Uruguay (Cover Company, 2026).
+    precioFilamento: 1025,
+    // UTE Residencial Simple 2026, escalón 101-600 kWh: $8,452 + IVA 22%.
+    precioKwh: 10.31,
+    consumoW: 80,
     vidaUtilHoras: 4320,
     costoRepuestos: 7000,
     margenError: 15,
