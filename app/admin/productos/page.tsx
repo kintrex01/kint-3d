@@ -53,6 +53,7 @@ type Formulario = {
   descripcion: string;
   etiquetas: string[];
   personalizable: boolean;
+  tipoPersonalizado: "Llavero" | "Mascota";
   maxColores: string;
   activo: boolean;
 };
@@ -83,6 +84,7 @@ const FORMULARIO_NUEVO: Formulario = {
   descripcion: "",
   etiquetas: [],
   personalizable: false,
+  tipoPersonalizado: "Llavero",
   maxColores: "",
   activo: true,
 };
@@ -104,6 +106,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     descripcion: producto.descripcion || "",
     etiquetas: [...(producto.etiquetas || [])],
     personalizable: producto.personalizable === true,
+    tipoPersonalizado: producto.tipoPersonalizado === "Mascota" ? "Mascota" : "Llavero",
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
   };
@@ -123,6 +126,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     descripcion: producto.descripcion || "",
     etiquetas: producto.etiquetas || [],
     personalizable: producto.personalizable === true,
+    tipoPersonalizado: producto.tipoPersonalizado === "Mascota" ? "Mascota" : "Llavero",
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
   };
@@ -287,7 +291,9 @@ function TarjetaProducto({
         </div>
 
         {producto.personalizable && (
-          <Chip tono="azul">Personalizable · nombre en 3D</Chip>
+          <Chip tono="azul">
+            {producto.tipoPersonalizado === "Mascota" ? "Chapita de mascota · 3D" : "Personalizable · nombre en 3D"}
+          </Chip>
         )}
 
         {(producto.etiquetas || []).length > 0 && (
@@ -820,6 +826,7 @@ export default function ProductosAdmin() {
       descripcion: formulario.descripcion.trim(),
       etiquetas: formulario.etiquetas.slice(0, 5),
       personalizable: formulario.personalizable,
+      tipoPersonalizado: formulario.personalizable ? formulario.tipoPersonalizado : "",
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
     };
@@ -1090,8 +1097,7 @@ export default function ProductosAdmin() {
                 <span>
                   <span className="block text-sm font-bold">Lo personaliza el cliente</span>
                   <span className="block text-[11px] leading-4 text-[var(--text-muted)]">
-                    Llavero con nombre: escribe el texto, elige letra, tamaño y 2 colores (borde y
-                    letras) y lo ve en 3D. Vos descargás los STL desde la compra.
+                    Lo arma en 3D con sus datos. Vos descargás el archivo para imprimir desde la compra.
                   </span>
                 </span>
                 <Interruptor
@@ -1100,6 +1106,31 @@ export default function ProductosAdmin() {
                   onCambiar={(personalizable) => cambiar({ personalizable })}
                 />
               </div>
+              {formulario.personalizable && (
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      ["Llavero", "🔑 Llavero con nombre", "Texto, letra, fondo y colores"],
+                      ["Mascota", "🐾 Chapita de mascota", "Nombre adelante, teléfono atrás"],
+                    ] as const
+                  ).map(([valor, titulo, detalle]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      aria-pressed={formulario.tipoPersonalizado === valor}
+                      onClick={() => cambiar({ tipoPersonalizado: valor })}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                        formulario.tipoPersonalizado === valor
+                          ? "border-[var(--blue-main)] bg-[var(--blue-main)]/10 ring-1 ring-inset ring-[var(--blue-main)] dark:border-sky-400 dark:ring-sky-400"
+                          : "border-[var(--kint-panel-border)] hover:border-[var(--kint-selected-border)]"
+                      }`}
+                    >
+                      <span className="block text-xs font-black">{titulo}</span>
+                      <span className="block text-[11px] text-[var(--text-muted)]">{detalle}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <EditorOpciones
                 titulo="Cadenas"

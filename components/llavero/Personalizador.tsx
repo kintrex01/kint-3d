@@ -6,12 +6,16 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, X } from "lucide-react";
+import { FlipHorizontal2, LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, X } from "lucide-react";
 import VisorLlavero from "@/components/llavero/VisorLlavero";
-import { construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
+import { construirChapita, construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
   BORDES_LLAVERO,
   FONDOS_LLAVERO,
+  FORMAS_CHAPITA,
+  MAX_LETRAS_MASCOTA,
+  errorTelefonoMascota,
+  formatearMascota,
   FUENTES_LLAVERO,
   MAX_LETRAS_LLAVERO,
   SEPARACION_MAX,
@@ -70,6 +74,9 @@ type Diseno = {
   fondo: string;
   separacion: number;
   renglones: number;
+  telefono: string;
+  forma: string;
+  huella: boolean;
   colorBase: string;
   colorLetras: string;
 };
@@ -102,7 +109,9 @@ export default function Personalizador({
   maxUnidades,
   onAgregar,
   onCerrar,
+  tipo = "Llavero",
 }: {
+  tipo?: "Llavero" | "Mascota";
   producto: ProductoPersonalizable;
   maxUnidades: number;
   onAgregar: (opciones: OpcionesPersonalizado) => string;
@@ -131,7 +140,15 @@ export default function Personalizador({
   );
   const [separacion, setSeparacion] = useState(() => limpiarSeparacion(inicial.separacion ?? 0));
   const [renglones, setRenglones] = useState(() => limpiarRenglones(inicial.renglones ?? 0));
-  const soloLetras = fondo === "Solo letras";
+  const esMascota = tipo === "Mascota";
+  const soloLetras = !esMascota && fondo === "Solo letras";
+  const [telefono, setTelefono] = useState(() => String(inicial.telefono || "").slice(0, 18));
+  const [forma, setForma] = useState<string>(() =>
+    FORMAS_CHAPITA.some((opcion) => opcion.nombre === inicial.forma) ? inicial.forma! : "Hueso"
+  );
+  const [huella, setHuella] = useState(() => inicial.huella !== false);
+  const [atras, setAtras] = useState(false);
+  const maxLetras = esMascota ? MAX_LETRAS_MASCOTA : MAX_LETRAS_LLAVERO;
   const [colorBase, setColorBase] = useState(() =>
     inicial.colorBase && producto.colores.includes(inicial.colorBase)
       ? inicial.colorBase
@@ -154,10 +171,13 @@ export default function Personalizador({
       fondo,
       separacion,
       renglones,
+      telefono,
+      forma,
+      huella,
       colorBase,
       colorLetras,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, colorBase, colorLetras]);
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, colorBase, colorLetras]);
   const [cadena, setCadena] = useState(producto.cadenas[0] || "");
   const [cantidad, setCantidad] = useState(1);
   const [geometria, setGeometria] = useState<GeometriaLlavero | null>(null);
@@ -166,8 +186,12 @@ export default function Personalizador({
   const [errorAgregar, setErrorAgregar] = useState("");
   const anterior = useRef<GeometriaLlavero | null>(null);
 
-  const errorTexto = errorTextoLlavero(texto);
-  const errorTexto2 = conLinea2 ? errorTextoLlavero(texto2, true) : "";
+  const errorTexto =
+    errorTextoLlavero(texto) ||
+    (esMascota && texto.trim().length > MAX_LETRAS_MASCOTA ? `Hasta ${MAX_LETRAS_MASCOTA} letras.` : "");
+  const errorTelefono = esMascota ? errorTelefonoMascota(telefono) : "";
+  const telefonoParaVer = esMascota && !errorTelefono ? telefono.trim() : "";
+  const errorTexto2 = !esMascota && conLinea2 ? errorTextoLlavero(texto2, true) : "";
   const textoParaVer = errorTexto ? "" : texto.trim();
   // Mientras la segunda línea tiene algo mal, se ve sin ella.
   const texto2ParaVer = conLinea2 && !errorTexto2 ? texto2.trim() : "";
@@ -178,16 +202,26 @@ export default function Personalizador({
     let cancelado = false;
     const espera = window.setTimeout(() => {
       setArmando(true);
-      construirLlavero({
-        texto: textoParaVer,
-        texto2: texto2ParaVer,
-        fuente,
-        tamano,
-        borde,
-        fondo,
-        separacion,
-        renglones,
-      })
+      (esMascota
+        ? construirChapita({
+            tipo: "Mascota",
+            texto: textoParaVer,
+            telefono: telefonoParaVer,
+            forma,
+            huella,
+            fuente,
+            tamano,
+          })
+        : construirLlavero({
+            texto: textoParaVer,
+            texto2: texto2ParaVer,
+            fuente,
+            tamano,
+            borde,
+            fondo,
+            separacion,
+            renglones,
+          }))
         .then((nueva) => {
           if (cancelado) {
             nueva.base.dispose();
@@ -211,7 +245,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [textoParaVer, texto2ParaVer, fuente, tamano, borde, fondo, separacion, renglones]);
+  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, fuente, tamano, borde, fondo, separacion, renglones]);
 
   useEffect(
     () => () => {
@@ -238,8 +272,8 @@ export default function Personalizador({
   const colores = useMemo(() => producto.colores, [producto.colores]);
 
   function agregar() {
-    if (errorTexto || errorTexto2) {
-      setErrorAgregar(errorTexto || `Segunda línea: ${errorTexto2}`);
+    if (errorTexto || errorTexto2 || errorTelefono) {
+      setErrorAgregar(errorTexto || errorTelefono || `Segunda línea: ${errorTexto2}`);
       return;
     }
     if (!colorLetras || (!soloLetras && !colorBase)) {
@@ -250,7 +284,9 @@ export default function Personalizador({
       cadena,
       // Solo letras: una sola pieza, del color de las letras.
       colores: soloLetras ? [colorLetras, colorLetras] : [colorBase, colorLetras],
-      comentario: formatearPersonalizacion({
+      comentario: esMascota
+        ? formatearMascota({ texto, telefono, forma, huella, fuente, tamano })
+        : formatearPersonalizacion({
         texto,
         texto2: conLinea2 ? texto2 : "",
         fuente,
@@ -294,7 +330,18 @@ export default function Personalizador({
             colorBase={colorFilamento(soloLetras ? colorLetras : colorBase)}
             colorLetras={colorFilamento(colorLetras)}
             cadena={cadena}
+            atras={atras}
           />
+          {esMascota && (
+            <button
+              type="button"
+              onClick={() => setAtras(!atras)}
+              className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs font-bold text-white backdrop-blur transition hover:bg-black/60"
+            >
+              <FlipHorizontal2 size={14} />
+              {atras ? "Ver adelante" : "Ver atrás"}
+            </button>
+          )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 text-[11px] font-bold text-white/75">
             <span className="flex items-center gap-1.5 rounded-full bg-black/35 px-2.5 py-1 backdrop-blur">
               {armando ? <LoaderCircle size={12} className="animate-spin" /> : <RotateCcw size={12} />}
@@ -302,7 +349,7 @@ export default function Personalizador({
             </span>
             {geometria && (
               <span className="rounded-full bg-black/35 px-2.5 py-1 tabular-nums backdrop-blur">
-                {Math.round(geometria.ancho)} × {Math.round(geometria.alto)} × 3 mm
+                {Math.round(geometria.ancho)} × {Math.round(geometria.alto)} × {geometria.grosor ?? 3} mm
               </span>
             )}
           </div>
@@ -318,25 +365,25 @@ export default function Personalizador({
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 [scrollbar-width:thin] sm:p-6">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--kint-blue-soft)]">
-                Personalizado
+                {esMascota ? "Chapita para mascota" : "Personalizado"}
               </p>
               <h2 className="mt-0.5 pr-10 text-2xl font-black leading-tight">{producto.nombre}</h2>
             </div>
 
             <label className="block">
               <span className="mb-1.5 flex items-baseline justify-between text-xs font-bold text-[var(--text-muted)]">
-                <span>Nombre</span>
+                <span>{esMascota ? "Nombre de tu mascota" : "Nombre"}</span>
                 <span className="tabular-nums">
-                  {texto.length}/{MAX_LETRAS_LLAVERO}
+                  {texto.length}/{maxLetras}
                 </span>
               </span>
               <input
                 value={texto}
                 onChange={(evento) => {
-                  setTexto(limpiarTextoLlavero(evento.target.value));
+                  setTexto(limpiarTextoLlavero(evento.target.value).slice(0, maxLetras));
                   setErrorAgregar("");
                 }}
-                maxLength={MAX_LETRAS_LLAVERO}
+                maxLength={maxLetras}
                 autoComplete="off"
                 autoCapitalize="words"
                 spellCheck={false}
@@ -349,7 +396,7 @@ export default function Personalizador({
               )}
             </label>
 
-            {conLinea2 ? (
+            {!esMascota && (conLinea2 ? (
               <label className="block">
                 <span className="mb-1.5 flex items-baseline justify-between text-xs font-bold text-[var(--text-muted)]">
                   <span>Segunda línea</span>
@@ -396,7 +443,78 @@ export default function Personalizador({
                 <Plus size={14} />
                 Agregar segunda línea
               </button>
+            ))}
+
+            {esMascota && (
+              <>
+                <label className="block">
+                  <span className="mb-1.5 flex items-baseline justify-between text-xs font-bold text-[var(--text-muted)]">
+                    <span>Teléfono (va grabado atrás)</span>
+                  </span>
+                  <input
+                    value={telefono}
+                    onChange={(evento) => {
+                      setTelefono(evento.target.value.replace(/[^0-9+() -]/g, "").slice(0, 18));
+                      setErrorAgregar("");
+                    }}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    placeholder="099 123 456"
+                    aria-invalid={Boolean(errorTelefono)}
+                    className="h-12 w-full rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 text-lg font-black tabular-nums text-[var(--text-main)] outline-none transition placeholder:font-semibold placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-[var(--kint-selected-border)] focus:ring-2 focus:ring-[#87A4B5]/30"
+                  />
+                  {errorTelefono && telefono && (
+                    <span className="mt-1 block text-[11px] font-semibold text-red-600 dark:text-red-400">{errorTelefono}</span>
+                  )}
+                  <span className="mt-1 block text-[11px] leading-4 text-[var(--text-muted)]">
+                    Si se pierde, quien la encuentre te puede llamar. Tocá «Ver atrás» en la vista 3D.
+                  </span>
+                </label>
+
+                <fieldset>
+                  <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                    <span>Forma</span>
+                    <span className="text-[var(--text-main)]">{forma}</span>
+                  </legend>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {FORMAS_CHAPITA.map((opcion) => {
+                      const elegida = opcion.nombre === forma;
+                      return (
+                        <button
+                          key={opcion.nombre}
+                          type="button"
+                          aria-pressed={elegida}
+                          onClick={() => setForma(opcion.nombre)}
+                          className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2.5 text-center transition ${
+                            elegida
+                              ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                              : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                          }`}
+                        >
+                          <DibujoForma forma={opcion.nombre} color={colorFilamento(colorBase)} />
+                          <span className="text-[11px] font-black text-[var(--text-main)]">{opcion.nombre}</span>
+                          <span className="text-[10px] leading-3 text-[var(--text-muted)]">{opcion.detalle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--kint-panel-border)] px-3.5 py-3">
+                  <span>
+                    <span className="block text-sm font-bold">🐾 Huellita</span>
+                    <span className="block text-[11px] text-[var(--text-muted)]">Una patita al lado del nombre</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={huella}
+                    onChange={(evento) => setHuella(evento.target.checked)}
+                    className="h-5 w-5 accent-[#1f3f85]"
+                  />
+                </label>
+              </>
             )}
+
 
             <fieldset>
               <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
@@ -458,6 +576,8 @@ export default function Personalizador({
               </div>
             </fieldset>
 
+            {!esMascota && (
+              <>
             <fieldset>
               <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
                 <span>Fondo</span>
@@ -588,10 +708,12 @@ export default function Personalizador({
                 </span>
               </label>
             )}
+              </>
+            )}
 
             {!soloLetras && (
               <SelectorColor
-                titulo={fondo === "Placa" ? "Color de la placa" : "Color del borde"}
+                titulo={esMascota ? "Color de la chapita" : fondo === "Placa" ? "Color de la placa" : "Color del borde"}
                 colores={colores}
                 elegido={colorBase}
                 onElegir={(color) => {
@@ -601,7 +723,7 @@ export default function Personalizador({
               />
             )}
             <SelectorColor
-              titulo={soloLetras ? "Color" : "Color de las letras"}
+              titulo={esMascota ? "Color del nombre" : soloLetras ? "Color" : "Color de las letras"}
               colores={colores}
               elegido={colorLetras}
               onElegir={(color) => {
@@ -763,5 +885,31 @@ function SelectorColor({
         </div>
       )}
     </fieldset>
+  );
+}
+
+/* Silueta de cada forma de chapita. */
+function DibujoForma({ forma, color }: { forma: string; color: string }) {
+  return (
+    <svg viewBox="0 0 48 32" className="h-8 w-12" aria-hidden>
+      {forma === "Círculo" && (
+        <>
+          <circle cx="24" cy="18" r="12" fill={color} />
+          <circle cx="24" cy="5" r="3.5" fill={color} />
+        </>
+      )}
+      {forma === "Corazón" && (
+        <path d="M24 29 C10 20 6 13 11 7.5 C15 3.5 21 5 24 9.5 C27 5 33 3.5 37 7.5 C42 13 38 20 24 29Z" fill={color} />
+      )}
+      {forma === "Hueso" && (
+        <g fill={color}>
+          <rect x="10" y="11" width="28" height="10" />
+          <circle cx="10" cy="11" r="5.5" />
+          <circle cx="10" cy="21" r="5.5" />
+          <circle cx="38" cy="11" r="5.5" />
+          <circle cx="38" cy="21" r="5.5" />
+        </g>
+      )}
+    </svg>
   );
 }

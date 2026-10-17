@@ -185,7 +185,8 @@ export type ProductoAdmin = {
   variantes: string[];
   descripcion: string; // texto corto que se ve en la tienda ("" = sin descripción)
   etiquetas: string[]; // "Llavero", "Clicker", "Combo": filtros de la tienda
-  personalizable: boolean; // el cliente lo arma con su nombre (llavero 3D)
+  personalizable: boolean; // el cliente lo arma en 3D
+  tipoPersonalizado?: "Llavero" | "Mascota" | ""; // llavero con nombre o chapita de mascota
   activo: boolean;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };

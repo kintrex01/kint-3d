@@ -29,7 +29,7 @@ import {
   tonoEstado,
 } from "@/components/admin/ui";
 import { ArchivosLlavero } from "@/components/admin/tienda/ArchivosLlavero";
-import { leerPersonalizacion } from "@/lib/llavero/personalizacion";
+import { leerMascota, leerPersonalizacion } from "@/lib/llavero/personalizacion";
 
 const claseEnlaceBoton =
   "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-4 text-sm font-bold text-[var(--text-main)] transition hover:border-[var(--kint-selected-border)] active:scale-[0.98]";
@@ -128,7 +128,8 @@ export function DetalleCompra({
                   </span>
                 )}
                 {(() => {
-                  const personalizacion = leerPersonalizacion(linea.comentario || "");
+                  const personalizacion =
+                    leerMascota(linea.comentario || "") ?? leerPersonalizacion(linea.comentario || "");
                   if (personalizacion) {
                     return (
                       <ArchivosLlavero

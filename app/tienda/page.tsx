@@ -39,7 +39,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
-import { leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
+import { leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
@@ -74,6 +74,8 @@ type Producto = {
   etiquetas: string[];
   // El cliente escribe el nombre y lo arma en 3D (components/llavero).
   personalizable: boolean;
+  // "Mascota" = chapita con teléfono atrás; si no, llavero con nombre.
+  tipoPersonalizado: "Llavero" | "Mascota" | "";
   // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
   orden: number;
   vendidos: number;
@@ -272,6 +274,18 @@ function detalleLinea(linea: {
   comentario?: string;
 }) {
   const colores = linea.colores || [];
+  const mascota = leerMascota(linea.comentario || "");
+  if (mascota) {
+    return [
+      `“${mascota.texto}” · tel. ${mascota.telefono}`,
+      `${mascota.forma} · ${mascota.fuente} · ${mascota.tamano}${mascota.huella ? " · con huellita" : ""}`,
+      colores.length === 2 ? `Chapita ${colores[0]}, nombre ${colores[1]}` : "",
+      linea.cadena ? `Cadena ${linea.cadena}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+  }
+
   const personalizado = leerPersonalizacion(linea.comentario || "");
 
   if (personalizado) {
@@ -450,7 +464,11 @@ function ajustarCarrito(
     const coloresValidos = producto.personalizable
       ? colores.length === 2 &&
         colores.every((color) => producto.colores.includes(color)) &&
-        Boolean(leerPersonalizacion(String(linea?.comentario || "")))
+        Boolean(
+          producto.tipoPersonalizado === "Mascota"
+            ? leerMascota(String(linea?.comentario || ""))
+            : leerPersonalizacion(String(linea?.comentario || ""))
+        )
       : (colores.length <= producto.maxColores ||
         mismosColores(colores, producto.coloresDefecto)) &&
       new Set(colores).size === colores.length &&
@@ -585,6 +603,12 @@ function normalizarCatalogo(data: any): Catalogo {
             descripcion: String(producto.descripcion || "").trim(),
             etiquetas: listaDeTextos(producto.etiquetas).slice(0, 5),
             personalizable: producto.personalizable === true,
+            tipoPersonalizado:
+              producto.tipoPersonalizado === "Mascota"
+                ? "Mascota"
+                : producto.personalizable === true
+                ? "Llavero"
+                : "",
             orden: Number(producto.orden) || 0,
             vendidos: Number(producto.vendidos) || 0,
             resenas: Array.isArray(producto.resenas)
@@ -1156,7 +1180,7 @@ function TarjetaProducto({
               }`}
             >
               <Sparkles size={15} strokeWidth={2.2} />
-              Personalizá con tu nombre
+              {producto.tipoPersonalizado === "Mascota" ? "Personalizá la chapita" : "Personalizá con tu nombre"}
             </button>
           </div>
         ) : (
@@ -4579,6 +4603,7 @@ export default function TiendaPage() {
           return (
             <Personalizador
               producto={producto}
+              tipo={producto.tipoPersonalizado === "Mascota" ? "Mascota" : "Llavero"}
               maxUnidades={maxUnidades}
               onCerrar={() => setPersonalizando(null)}
               onAgregar={(opciones) => {

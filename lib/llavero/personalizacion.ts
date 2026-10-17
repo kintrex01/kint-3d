@@ -146,3 +146,67 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
 export function textoVisible(personalizacion: PersonalizacionLlavero) {
   return [personalizacion.texto, personalizacion.texto2].filter((linea) => linea?.trim()).join(" / ");
 }
+
+/* ------------------------------------------------------------------ */
+/* Chapita para mascota: nombre adelante, teléfono grabado atrás.      */
+/* Comentario: "Tipo: Mascota | Texto: Koni | Teléfono: 099 123 456 |  */
+/*   Forma: Hueso | Huella: Sí | Fuente: Rubik | Tamaño: Mediano"      */
+/* ------------------------------------------------------------------ */
+
+export const FORMAS_CHAPITA = [
+  { nombre: "Hueso", detalle: "El clásico" },
+  { nombre: "Círculo", detalle: "Redonda con argolla" },
+  { nombre: "Corazón", detalle: "Para los mimosos" },
+] as const;
+
+export const MAX_LETRAS_MASCOTA = 10;
+export const TELEFONO_VALIDO = /^[0-9+() -]{6,18}$/;
+
+export function errorTelefonoMascota(telefono: string) {
+  const limpio = telefono.trim();
+  if (!limpio) return "Poné un teléfono para que te puedan avisar.";
+  if (!TELEFONO_VALIDO.test(limpio) || limpio.replace(/\D/g, "").length < 6) {
+    return "Solo números, espacios y + ( ) -";
+  }
+  return "";
+}
+
+export type PersonalizacionMascota = {
+  tipo: "Mascota";
+  texto: string;
+  telefono: string;
+  forma: string;
+  huella: boolean;
+  fuente: string;
+  tamano: string;
+};
+
+export function formatearMascota(datos: Omit<PersonalizacionMascota, "tipo">) {
+  return [
+    "Tipo: Mascota",
+    `Texto: ${datos.texto.trim()}`,
+    `Teléfono: ${datos.telefono.trim()}`,
+    `Forma: ${datos.forma}`,
+    `Huella: ${datos.huella ? "Sí" : "No"}`,
+    `Fuente: ${datos.fuente}`,
+    `Tamaño: ${datos.tamano}`,
+  ].join(" | ");
+}
+
+export function leerMascota(comentario: string): PersonalizacionMascota | null {
+  const campos: Record<string, string> = {};
+  for (const parte of String(comentario || "").split("|")) {
+    const indice = parte.indexOf(":");
+    if (indice < 0) continue;
+    campos[parte.slice(0, indice).trim().toLocaleLowerCase("es")] = parte.slice(indice + 1).trim();
+  }
+  if (campos["tipo"] !== "Mascota") return null;
+
+  const texto = campos["texto"] || "";
+  const telefono = campos["teléfono"] || "";
+  const forma = FORMAS_CHAPITA.find((opcion) => opcion.nombre === campos["forma"])?.nombre;
+  const fuente = FUENTES_LLAVERO.find((opcion) => opcion.nombre === campos["fuente"])?.nombre;
+  const tamano = TAMANOS_LLAVERO.find((opcion) => opcion.nombre === campos["tamaño"])?.nombre;
+  if (!texto || !forma || !fuente || !tamano) return null;
+  return { tipo: "Mascota", texto, telefono, forma, huella: campos["huella"] !== "No", fuente, tamano };
+}

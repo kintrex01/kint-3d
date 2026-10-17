@@ -11,7 +11,11 @@
 
 import { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
-import { textoVisible, type PersonalizacionLlavero } from "@/lib/llavero/personalizacion";
+import {
+  textoVisible,
+  type PersonalizacionLlavero,
+  type PersonalizacionMascota,
+} from "@/lib/llavero/personalizacion";
 import { colorFilamento } from "@/lib/colores-filamento";
 
 type Archivo = "3mf" | "borde" | "letras";
@@ -36,23 +40,27 @@ export function ArchivosLlavero({
   colores,
 }: {
   pedido: string;
-  personalizacion: PersonalizacionLlavero;
+  personalizacion: PersonalizacionLlavero | PersonalizacionMascota;
   colores: string[]; // [borde, letras]
 }) {
   const [armando, setArmando] = useState<Archivo | "">("");
   const [error, setError] = useState("");
   const [borde = "", letras = ""] = colores;
-  const soloLetras = personalizacion.fondo === "Solo letras";
+  // Chapita de mascota o llavero con nombre.
+  const mascota = "tipo" in personalizacion ? personalizacion : null;
+  const llavero = mascota ? null : (personalizacion as PersonalizacionLlavero);
+  const soloLetras = llavero?.fondo === "Solo letras";
+  const textoArchivo = mascota ? mascota.texto : textoVisible(personalizacion as PersonalizacionLlavero);
 
   async function bajar(archivo: Archivo) {
     setArmando(archivo);
     setError("");
     try {
-      const { construirLlavero, exportarSTL } = await import("@/lib/llavero/geometria");
-      const geometria = await construirLlavero(personalizacion);
-      const base = `${pedido} ${nombreArchivo(textoVisible(personalizacion))}`;
-      const parteBorde = `borde${borde ? ` (${borde})` : ""}`;
-      const parteLetras = `letras${letras ? ` (${letras})` : ""}`;
+      const { construirPieza, exportarSTL } = await import("@/lib/llavero/geometria");
+      const geometria = await construirPieza(personalizacion);
+      const base = `${pedido} ${nombreArchivo(textoArchivo)}`;
+      const parteBorde = `${mascota ? "chapita" : "borde"}${borde ? ` (${borde})` : ""}`;
+      const parteLetras = `${mascota ? "nombre" : "letras"}${letras ? ` (${letras})` : ""}`;
 
       if (archivo === "3mf") {
         const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
@@ -62,8 +70,14 @@ export function ArchivosLlavero({
             geometria.soloLetras
               ? [{ nombre: parteLetras, geometria: geometria.base, color: colorFilamento(letras) }]
               : [
-                  { nombre: parteBorde, geometria: geometria.base, color: colorFilamento(borde) },
-                  { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras) },
+                  // La base puede venir en capas (chapita): todas con el filamento 1.
+                  ...(geometria.partesBase ?? [geometria.base]).map((parte, indice, todas) => ({
+                    nombre: todas.length > 1 ? `${parteBorde} ${indice + 1}` : parteBorde,
+                    geometria: parte,
+                    color: colorFilamento(borde),
+                    filamento: 1,
+                  })),
+                  { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras), filamento: 2 },
                 ]
           ),
           `${base}.3mf`
@@ -79,6 +93,7 @@ export function ArchivosLlavero({
       }
       geometria.base.dispose();
       geometria.letras.dispose();
+      geometria.partesBase?.forEach((parte) => parte.dispose());
     } catch {
       setError("No se pudo armar el archivo.");
     } finally {
@@ -91,12 +106,22 @@ export function ArchivosLlavero({
 
   return (
     <span className="mt-1.5 block rounded-xl bg-[var(--kint-panel-soft)] p-2.5">
-      <span className="block text-base font-black leading-tight">“{textoVisible(personalizacion)}”</span>
-      <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-        {personalizacion.fuente} · {personalizacion.tamano} · {personalizacion.fondo || "Contorno"}
-        {personalizacion.fondo !== "Solo letras" && <> · borde {personalizacion.borde || "Normal"}</>}
-        {personalizacion.separacion ? <> · separación {personalizacion.separacion > 0 ? "+" : ""}{personalizacion.separacion} mm</> : null}
-      </span>
+      <span className="block text-base font-black leading-tight">“{textoArchivo}”</span>
+      {mascota ? (
+        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+          🐾 Chapita {mascota.forma} · tel. <strong className="text-[var(--text-main)]">{mascota.telefono}</strong> ·{" "}
+          {mascota.fuente} · {mascota.tamano}
+          {mascota.huella ? " · con huellita" : ""}
+        </span>
+      ) : (
+        <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
+          {llavero?.fuente} · {llavero?.tamano} · {llavero?.fondo || "Contorno"}
+          {llavero?.fondo !== "Solo letras" && <> · borde {llavero?.borde || "Normal"}</>}
+          {llavero?.separacion ? (
+            <> · separación {llavero.separacion > 0 ? "+" : ""}{llavero.separacion} mm</>
+          ) : null}
+        </span>
+      )}
       <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
         {(soloLetras
           ? [["Color", letras]]

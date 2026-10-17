@@ -122,7 +122,7 @@ function colorRgba(hex: string) {
 
 export function exportar3MF(
   nombre: string,
-  piezas: { nombre: string; geometria: THREE.BufferGeometry; color?: string }[]
+  piezas: { nombre: string; geometria: THREE.BufferGeometry; color?: string; filamento?: number }[]
 ) {
   // Colores de cada parte (los ven Bambu Studio y los visores de 3MF).
   const conColor = piezas.some((pieza) => pieza.color);
@@ -178,7 +178,7 @@ export function exportar3MF(
           .map(
             (pieza, indice) =>
               `<part id="${indice + 1}" subtype="normal_part"><metadata key="name" value="${escaparXml(pieza.nombre)}"/>` +
-              `<metadata key="extruder" value="${indice + 1}"/></part>`
+              `<metadata key="extruder" value="${pieza.filamento ?? indice + 1}"/></part>`
           )
           .join("") +
         `</object></config>`,

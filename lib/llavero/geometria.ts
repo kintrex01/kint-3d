@@ -13,6 +13,7 @@
 
 import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { parse, type Font, type Path as RutaFuente } from "opentype.js";
 import * as ClipperLib from "clipper-lib";
 import {
@@ -22,6 +23,7 @@ import {
   limpiarRenglones,
   limpiarSeparacion,
   type PersonalizacionLlavero,
+  type PersonalizacionMascota,
 } from "./personalizacion";
 
 type Contorno = ClipperLib.Path;
@@ -40,8 +42,12 @@ export type GeometriaLlavero = {
   base: THREE.BufferGeometry;
   letras: THREE.BufferGeometry; // vacía si es "Solo letras"
   soloLetras: boolean;
-  aro: { x: number; y: number }; // centro del agujero (para dibujar la argolla)
+  // Centro del agujero y hacia dónde sale la argolla (radianes; 0 = a la izquierda).
+  aro: { x: number; y: number; angulo?: number };
   ancho: number; // mm
+  grosor?: number; // mm (3 si no viene)
+  // Para exportar: la base en piezas cerradas (la chapita: capa grabada + capa entera).
+  partesBase?: THREE.BufferGeometry[];
   alto: number; // mm
   areaCm2: number;
 };
@@ -379,4 +385,177 @@ export function exportarSTL(geometria: THREE.BufferGeometry) {
   const exportador = new STLExporter();
   const datos = exportador.parse(new THREE.Mesh(geometria), { binary: true }) as DataView;
   return new Blob([datos.buffer as ArrayBuffer], { type: "model/stl" });
+}
+
+/* ------------------------------------------------------------------ */
+/* Chapita para mascota                                                */
+/* ------------------------------------------------------------------ */
+
+const ALTO_CHAPITA = 3; // la base es más gruesa: atrás va el teléfono grabado
+const PROFUNDIDAD_GRABADO = 0.6;
+const ESCALA_TAMANO: Record<string, number> = { Chico: 0.85, Mediano: 1, Grande: 1.2 };
+
+function elipse(cx: number, cy: number, rx: number, ry: number, lados = 40): Contorno {
+  return Array.from({ length: lados }, (_, indice) => {
+    const angulo = (indice / lados) * Math.PI * 2;
+    return {
+      X: Math.round((cx + Math.cos(angulo) * rx) * ESCALA),
+      Y: Math.round((cy + Math.sin(angulo) * ry) * ESCALA),
+    };
+  });
+}
+
+/* Forma de la chapita, la zona para el nombre y dónde va el agujero (en mm, Mediano). */
+function formaChapita(forma: string, k: number) {
+  if (forma === "Círculo") {
+    const radio = 16 * k;
+    return {
+      contorno: unir([circulo(0, 0, radio, 96), circulo(0, radio + 1.2 * k, RADIO_OREJA, 48)]),
+      zona: { cx: 0, cy: -1 * k, ancho: 25 * k, alto: 11 * k },
+      agujero: { x: 0, y: radio + 1.2 * k },
+      angulo: -Math.PI / 2, // la argolla sale para arriba
+      huella: { x: 0, y: -10 * k },
+    };
+  }
+  if (forma === "Corazón") {
+    const puntos: Contorno = [];
+    for (let indice = 0; indice < 120; indice++) {
+      const t = (indice / 120) * Math.PI * 2;
+      const x = 16 * Math.pow(Math.sin(t), 3);
+      const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+      puntos.push({ X: Math.round(x * 1.2 * k * ESCALA), Y: Math.round(y * 1.2 * k * ESCALA) });
+    }
+    // Argolla en el medio de arriba, entre los dos lóbulos.
+    const arriba = 13 * k;
+    return {
+      contorno: unir([puntos, circulo(0, arriba, RADIO_OREJA, 48)]),
+      zona: { cx: 0, cy: -1 * k, ancho: 24 * k, alto: 10 * k },
+      agujero: { x: 0, y: arriba },
+      angulo: -Math.PI / 2,
+      huella: { x: 0, y: -10.5 * k },
+    };
+  }
+  // Hueso: cuerpo + cuatro "nudos" redondos.
+  const nudo = 7.6 * k;
+  const ancho = 17 * k;
+  const alto = 6.4 * k;
+  return {
+    contorno: unir([
+      rectangulo(-ancho, -alto - 0.6 * k, ancho, alto + 0.6 * k),
+      circulo(-ancho, alto, nudo, 64),
+      circulo(-ancho, -alto, nudo, 64),
+      circulo(ancho, alto, nudo, 64),
+      circulo(ancho, -alto, nudo, 64),
+    ]),
+    zona: { cx: 0, cy: 0, ancho: 30 * k, alto: 11 * k },
+    agujero: { x: -ancho - 0.6 * k, y: alto + 0.4 * k },
+    angulo: -Math.PI * 0.85,
+    huella: { x: ancho - 1.5 * k, y: -alto + 0.8 * k },
+  };
+}
+
+/* Huellita: almohadilla + cuatro deditos. */
+function huellita(cx: number, cy: number, k: number): Contornos {
+  return unir([
+    elipse(cx, cy - 0.8 * k, 2.5 * k, 2 * k),
+    circulo(cx - 2.6 * k, cy + 1.6 * k, 0.95 * k, 24),
+    circulo(cx - 0.9 * k, cy + 2.8 * k, 0.95 * k, 24),
+    circulo(cx + 0.9 * k, cy + 2.8 * k, 0.95 * k, 24),
+    circulo(cx + 2.6 * k, cy + 1.6 * k, 0.95 * k, 24),
+  ]);
+}
+
+/* Texto centrado en (cx, cy) que entra en ancho × alto (achica la letra si hace falta). */
+function textoEnCaja(fuente: Font, texto: string, cx: number, cy: number, ancho: number, alto: number) {
+  const caja = fuente.charToGlyph("H").getBoundingBox();
+  const unidadesMayuscula = caja.y2 > 0 ? caja.y2 : fuente.unitsPerEm * 0.7;
+  let tamano = (alto * fuente.unitsPerEm) / unidadesMayuscula;
+  const medida = fuente.getPath(texto, 0, 0, tamano, { kerning: true }).getBoundingBox();
+  const anchoTexto = medida.x2 - medida.x1;
+  if (anchoTexto > ancho) tamano *= ancho / anchoTexto;
+  const final = fuente.getPath(texto, 0, 0, tamano, { kerning: true }).getBoundingBox();
+  // opentype va con la y para abajo: se ubica para que el texto quede centrado en (cx, cy).
+  const x = cx - (final.x1 + final.x2) / 2;
+  const y = -cy - (final.y1 + final.y2) / 2;
+  return unir(aplanar(fuente.getPath(texto, x, y, tamano, { kerning: true })));
+}
+
+function espejar(contornos: Contornos): Contornos {
+  return contornos.map((contorno) => contorno.map((punto) => ({ X: -punto.X, Y: punto.Y })).reverse());
+}
+
+export async function construirChapita(datos: PersonalizacionMascota): Promise<GeometriaLlavero> {
+  const fuente = await cargarFuente(datos.fuente);
+  const fuenteNumeros = await cargarFuente("Rubik");
+  const k = ESCALA_TAMANO[datos.tamano] ?? 1;
+  const forma = formaChapita(datos.forma, k);
+
+  // Frente: nombre (y la huellita: en el hueso a la derecha, en las otras abajo).
+  const zona = { ...forma.zona };
+  if (datos.huella && datos.forma === "Hueso") {
+    zona.ancho -= 9 * k;
+    zona.cx -= 4.5 * k;
+  } else if (datos.huella) {
+    zona.cy += 2.5 * k;
+  }
+  let letras = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho, zona.alto);
+  if (datos.huella) letras = unir([...letras, ...huellita(forma.huella.x, forma.huella.y, k)]);
+  // Que nada se salga de la chapita.
+  letras = operar(ClipperLib.ClipType.ctIntersection, letras, engordar(forma.contorno, -1.2));
+
+  // Atrás: teléfono grabado, espejado para que se lea dando vuelta la chapita.
+  const telefono = datos.telefono.trim();
+  const grabado = telefono
+    ? espejar(textoEnCaja(fuenteNumeros, telefono, 0, forma.zona.cy, forma.zona.ancho * 1.05, 4.6 * k))
+    : [];
+
+  const agujero = [circulo(forma.agujero.x, forma.agujero.y, RADIO_AGUJERO, 48)];
+  const base = operar(ClipperLib.ClipType.ctDifference, forma.contorno, agujero);
+  // La capa de abajo lleva el teléfono hueco; la de arriba va entera.
+  const capaGrabada = grabado.length ? operar(ClipperLib.ClipType.ctDifference, base, grabado) : base;
+
+  const total = limites(base);
+  const dx = (total.minX + total.maxX) / 2;
+  const dy = (total.minY + total.maxY) / 2;
+
+  const abajo = new THREE.ExtrudeGeometry(aFormas(capaGrabada, dx, dy), {
+    depth: PROFUNDIDAD_GRABADO,
+    bevelEnabled: false,
+    curveSegments: 1,
+  });
+  const arriba = new THREE.ExtrudeGeometry(aFormas(base, dx, dy), {
+    depth: ALTO_CHAPITA - PROFUNDIDAD_GRABADO,
+    bevelEnabled: false,
+    curveSegments: 1,
+  });
+  arriba.translate(0, 0, PROFUNDIDAD_GRABADO);
+  // Para ver: una sola malla. Para imprimir se exportan las dos capas (cada una cerrada).
+  const geometriaBase = mergeGeometries([abajo, arriba]) ?? arriba;
+
+  const geometriaLetras = new THREE.ExtrudeGeometry(aFormas(letras, dx, dy), {
+    depth: ALTO_LETRAS,
+    bevelEnabled: false,
+    curveSegments: 1,
+  });
+  geometriaLetras.translate(0, 0, ALTO_CHAPITA);
+
+  const area = base.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
+  return {
+    base: geometriaBase,
+    letras: geometriaLetras,
+    soloLetras: false,
+    partesBase: [abajo, arriba],
+    aro: { x: forma.agujero.x - dx, y: forma.agujero.y - dy, angulo: forma.angulo },
+    ancho: Math.round((total.maxX - total.minX) * 10) / 10,
+    alto: Math.round((total.maxY - total.minY) * 10) / 10,
+    grosor: ALTO_CHAPITA + ALTO_LETRAS,
+    areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,
+  };
+}
+
+/* Llavero con nombre o chapita de mascota, según lo que pidió el cliente. */
+export function construirPieza(datos: PersonalizacionLlavero | PersonalizacionMascota) {
+  return "tipo" in datos && datos.tipo === "Mascota"
+    ? construirChapita(datos)
+    : construirLlavero(datos as PersonalizacionLlavero);
 }

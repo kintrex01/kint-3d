@@ -18,23 +18,26 @@ function colorMetal(cadena: string) {
   return 0xcfd3d8;
 }
 
-function armarCadena(cadena: string, aro: { x: number; y: number }) {
+function armarCadena(cadena: string, aro: { x: number; y: number; angulo?: number }, grosor: number) {
   const grupo = new THREE.Group();
+  // Se arma con el agujero en el origen y la cadena hacia la izquierda; después se gira.
+  grupo.position.set(aro.x, aro.y, 0);
+  grupo.rotation.z = -(aro.angulo ?? 0);
   const material = new THREE.MeshStandardMaterial({ color: colorMetal(cadena), metalness: 0.85, roughness: 0.28 });
 
   // Argolla: pasa por el agujero, parada (perpendicular al llavero).
   const radio = 11;
   const argolla = new THREE.Mesh(new THREE.TorusGeometry(radio, 0.9, 16, 72), material);
   argolla.rotation.x = Math.PI / 2;
-  argolla.position.set(aro.x - radio + 1.2, aro.y, 1.5);
+  argolla.position.set(-radio + 1.2, 0, grosor / 2);
   grupo.add(argolla);
 
   // Unos eslabones colgando del otro lado de la argolla.
-  let x = aro.x - radio * 2 + 1.2;
+  let x = -radio * 2 + 1.2;
   for (let indice = 0; indice < 4; indice++) {
     const eslabon = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.55, 10, 28), material);
     eslabon.scale.set(1.45, 1, 1);
-    eslabon.position.set(x - 2.6, aro.y, 1.5);
+    eslabon.position.set(x - 2.6, 0, grosor / 2);
     if (indice % 2 === 0) eslabon.rotation.x = Math.PI / 2;
     grupo.add(eslabon);
     x -= 5.6;
@@ -57,11 +60,13 @@ export default function VisorLlavero({
   colorBase,
   colorLetras,
   cadena = "",
+  atras = false,
 }: {
   geometria: GeometriaLlavero | null;
   colorBase: string;
   colorLetras: string;
   cadena?: string; // "" = sin argolla
+  atras?: boolean; // mostrar la pieza dada vuelta (chapita: el teléfono)
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const escena = useRef<Escena | null>(null);
@@ -169,8 +174,20 @@ export default function VisorLlavero({
       }
     });
     actual.cadena.clear();
-    if (geometria && cadena) actual.cadena.add(armarCadena(cadena, geometria.aro));
+    if (geometria && cadena) actual.cadena.add(armarCadena(cadena, geometria.aro, geometria.grosor ?? 3));
   }, [geometria, cadena]);
+
+  // Dar vuelta la pieza (y su cadena) para ver la parte de atrás.
+  useEffect(() => {
+    const actual = escena.current;
+    if (!actual) return;
+    const giro = atras ? Math.PI : 0;
+    actual.grupo.rotation.y = giro;
+    actual.cadena.rotation.y = giro;
+    const grosor = geometria?.grosor ?? 3;
+    actual.grupo.position.z = atras ? grosor : 0;
+    actual.cadena.position.z = atras ? grosor : 0;
+  }, [atras, geometria]);
 
   useEffect(() => {
     escena.current?.materialBase.color.set(colorBase);
