@@ -597,7 +597,8 @@ export type CanjeRuletaConfig = {
 };
 
 export type ConfigRuleta = {
-  horas: number; // cada cuántas horas se gana un giro
+  horas: number; // cada cuántas horas llegan giros nuevos
+  girosPorTanda: number; // cuántos giros llegan cada vez
   acumulables: number; // cuántos se guardan como máximo
   costoPuntos: number; // 0 = no se gira con puntos
   porciones: number; // premios que entran cada día

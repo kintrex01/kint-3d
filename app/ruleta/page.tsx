@@ -28,6 +28,7 @@ type Giros = {
   puede: boolean;
   proxima: string;
   normales: number;
+  porTanda?: number; // cuántos giros llegan cada vez
   acumulables: number;
   extras: number;
   regalo: number; // -1 = ilimitados
@@ -688,7 +689,8 @@ function Juego({
               : "Volvé pronto para girar de nuevo."}
           </p>
           <p className="mt-1 text-center text-[11px] text-[var(--text-muted)]">
-            Ganás un giro cada {estado.horas >= 24 && estado.horas % 24 === 0 ? `${estado.horas / 24} ${estado.horas === 24 ? "día" : "días"}` : `${estado.horas} h`} y
+            Ganás {(giros.porTanda ?? 1) === 1 ? "un giro" : `${giros.porTanda} giros`} cada{" "}
+            {estado.horas >= 24 && estado.horas % 24 === 0 ? `${estado.horas / 24} ${estado.horas === 24 ? "día" : "días"}` : `${estado.horas} h`} y
             guardás hasta {giros.acumulables}
             {giros.proxima && giros.normales > 0 ? ` (el próximo llega en ${espera})` : ""}.
           </p>

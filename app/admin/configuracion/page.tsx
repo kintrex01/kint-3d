@@ -1331,16 +1331,32 @@ function EditorRuleta() {
       {/* Turnos */}
       <Tarjeta className="p-4">
         <p className="font-black">Giros</p>
-        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+          Hoy: cada cliente recibe <strong>{config.girosPorTanda ?? 1} {(config.girosPorTanda ?? 1) === 1 ? "giro" : "giros"}</strong> cada{" "}
+          <strong>{config.horas} h</strong> y puede juntar hasta <strong>{Math.max(config.acumulables, config.girosPorTanda ?? 1)}</strong>.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-5">
           <label className="block">
-            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Un giro cada (horas)</span>
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Cuántos giros</span>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={config.girosPorTanda ?? 1}
+              onChange={(e) => cambiar({ girosPorTanda: numero(e.target.value) })}
+              className={campoChico}
+            />
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">llegan juntos cada vez</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Cada (horas)</span>
             <input type="number" min={1} max={720} value={config.horas} onChange={(e) => cambiar({ horas: numero(e.target.value) })} className={campoChico} />
             <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">48 = cada 2 días</span>
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Se guardan hasta</span>
             <input type="number" min={1} max={20} value={config.acumulables} onChange={(e) => cambiar({ acumulables: numero(e.target.value) })} className={campoChico} />
-            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">giros sin usar</span>
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">giros sin usar (mínimo los que llegan)</span>
           </label>
           <label className="block">
             <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Girar con puntos</span>
