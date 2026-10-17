@@ -143,6 +143,7 @@ const [telefono, setTelefono] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
+  const [premioReclamado, setPremioReclamado] = useState("");
   const [
   pedidoRepetidoOrigen,
   setPedidoRepetidoOrigen,
@@ -1351,6 +1352,7 @@ setErrorRepeticion("");
     setAceptaUsoImagenes(false);
 
     setNumeroPedido(data.pedido || "");
+    setPremioReclamado(data.premioReclamado || "");
     setEnviado(true);
   } catch (error) {
     console.error(error);
@@ -1453,6 +1455,12 @@ if (enviado) {
     {numeroPedido}
   </p>
 </div>
+
+        {premioReclamado && (
+          <p className="mb-6 rounded-2xl border border-amber-400/50 bg-amber-400/10 px-5 py-3 text-base font-bold text-[var(--text-main)]">
+            🎁 Premio reclamado: {premioReclamado}. Va con este pedido.
+          </p>
+        )}
 
         <p className="mb-8 max-w-xl text-lg text-[var(--text-muted)]">
           Recibimos tu solicitud correctamente. Pronto recibirás
@@ -2399,11 +2407,11 @@ return (
 
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Código de descuento
+    Código de descuento o premio
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Si tenés un código promocional, ingresalo aquí.
+    Si tenés un código promocional o un premio de la Ruleta Kint (VALE-…), ingresalo aquí.
   </p>
 
   <input
@@ -2414,7 +2422,7 @@ return (
       )
     }
     className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-    placeholder="Ej: KINT10"
+    placeholder="Ej: KINT10 o VALE-AB12"
   />
 
   {beneficiosDisponibles.length > 0 && (

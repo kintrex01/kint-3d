@@ -654,6 +654,7 @@ if (archivosRegistrados.length > 0) {
     return Response.json({
       ok: true,
       pedido: data.pedido,
+      premioReclamado: data.premioReclamado || "",
     });
   } catch (error: any) {
   console.error(

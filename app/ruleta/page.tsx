@@ -7,7 +7,7 @@
  */
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Star, Ticket } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
@@ -15,7 +15,7 @@ import FondoKintAnimado from "@/components/FondoKintAnimado";
 const CLAVE_SESION = "kint-cuenta-sesion-v1";
 
 type Sesion = { email: string; token: string };
-type PremioRueda = { nombre: string; color: string; tipo: string };
+type PremioRueda = { nombre: string; color: string; tipo: string; tamano?: number };
 type MiPremio = {
   fecha: string;
   origen: string;
@@ -269,6 +269,42 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
 /* Rueda, premios y canjes                                             */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/* Sonidos cortitos (sin archivos): tic de cada porción y fanfarria     */
+/* ------------------------------------------------------------------ */
+
+let audio: AudioContext | null = null;
+
+function sonar(frecuencia: number, duracion: number, volumen = 0.08, tipo: OscillatorType = "square", demora = 0) {
+  try {
+    audio ??= new AudioContext();
+    const inicio = audio.currentTime + demora;
+    const oscilador = audio.createOscillator();
+    const ganancia = audio.createGain();
+    oscilador.type = tipo;
+    oscilador.frequency.setValueAtTime(frecuencia, inicio);
+    ganancia.gain.setValueAtTime(volumen, inicio);
+    ganancia.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+    oscilador.connect(ganancia).connect(audio.destination);
+    oscilador.start(inicio);
+    oscilador.stop(inicio + duracion);
+  } catch {
+    // Sin sonido: no pasa nada.
+  }
+}
+
+const tic = () => sonar(1900, 0.035, 0.05);
+const fanfarria = () => [523, 659, 784, 1047].forEach((nota, indice) => sonar(nota, 0.22, 0.07, "triangle", indice * 0.11));
+const pena = () => [392, 330].forEach((nota, indice) => sonar(nota, 0.25, 0.06, "sine", indice * 0.18));
+
+/* Frenado largo: arranca rápido y los últimos segundos va porción por porción. */
+function frenado(t: number) {
+  return 1 - Math.pow(1 - t, 5);
+}
+
+const DURACION_GIRO = 9000;
+const VUELTAS = 8;
+
 function Juego({
   sesion,
   estado,
@@ -280,49 +316,93 @@ function Juego({
   onEstado: (estado: Estado) => void;
   onRecargar: () => void;
 }) {
-  const [giro, setGiro] = useState(0);
   const [girando, setGirando] = useState(false);
   const [ganado, setGanado] = useState<Ganado | null>(null);
   const [error, setError] = useState("");
   const [ahora, setAhora] = useState(() => Date.now());
   const [canjeando, setCanjeando] = useState("");
-  const pendiente = useRef<{ ganado: Ganado; puede: boolean; proxima: string; puntos: number } | null>(null);
+  const [sonido, setSonido] = useState(() => {
+    try {
+      return localStorage.getItem("kint-ruleta-sonido") !== "no";
+    } catch {
+      return true;
+    }
+  });
+  const rueda = useRef<SVGSVGElement>(null);
+  const flecha = useRef<HTMLDivElement>(null);
+  const angulo = useRef(0);
 
   useEffect(() => {
     const reloj = window.setInterval(() => setAhora(Date.now()), 30_000);
     return () => window.clearInterval(reloj);
   }, []);
 
-  const cantidad = estado.premios.length || 8;
-  const porcion = 360 / cantidad;
+  // Porciones de distinto tamaño (las manda el servidor).
+  const porciones = useMemo(() => {
+    const tamanos = estado.premios.map((premio) => Math.max(0.2, premio.tamano || 1));
+    const total = tamanos.reduce((suma, tamano) => suma + tamano, 0);
+    return estado.premios.map((premio, indice) => {
+      const ancho = (tamanos[indice] / total) * 360;
+      const inicio = (tamanos.slice(0, indice).reduce((suma, tamano) => suma + tamano, 0) / total) * 360;
+      return { ...premio, inicio, ancho };
+    });
+  }, [estado.premios]);
+
   const espera = !estado.puede && estado.proxima ? faltaPara(estado.proxima, ahora) : "";
+
+  function porcionEn(rotacion: number) {
+    const bajoFlecha = (((360 - (rotacion % 360)) % 360) + 360) % 360;
+    return porciones.findIndex((porcion) => bajoFlecha >= porcion.inicio && bajoFlecha < porcion.inicio + porcion.ancho);
+  }
+
+  function animar(destino: number, alTerminar: () => void) {
+    const desde = angulo.current;
+    const comienzo = performance.now();
+    let anterior = porcionEn(desde);
+    const paso = (momento: number) => {
+      const t = Math.min(1, (momento - comienzo) / DURACION_GIRO);
+      const actual = desde + (destino - desde) * frenado(t);
+      angulo.current = actual;
+      if (rueda.current) rueda.current.style.transform = `rotate(${actual}deg)`;
+      const debajo = porcionEn(actual);
+      if (debajo !== anterior) {
+        anterior = debajo;
+        if (sonido) tic();
+        flecha.current?.animate(
+          [{ transform: "translateX(-50%) rotate(-22deg)" }, { transform: "translateX(-50%) rotate(0deg)" }],
+          { duration: 140, easing: "ease-out" }
+        );
+      }
+      if (t < 1) requestAnimationFrame(paso);
+      else alTerminar();
+    };
+    requestAnimationFrame(paso);
+  }
 
   async function girar() {
     if (girando || !estado.puede) return;
     setError("");
     setGirando(true);
+    if (sonido) tic(); // habilita el audio con el toque
     try {
       const data = await llamar({ tipo: "ruleta_girar", email: sesion.email, token: sesion.token });
-      // La porción ganadora queda abajo de la flecha (arriba de la rueda).
-      const centro = data.indice * porcion + porcion / 2;
-      const azar = (Math.random() - 0.5) * porcion * 0.6;
-      const vueltas = 360 * 6;
-      setGiro((anterior) => anterior - (anterior % 360) + vueltas + (360 - centro) + azar);
-      pendiente.current = { ganado: data.premio, puede: data.puede, proxima: data.proxima, puntos: data.puntos };
+      const porcion = porciones[data.indice];
+      // Cae en un lugar al azar de la porción ganadora (no siempre en el medio).
+      const dentro = porcion ? porcion.inicio + porcion.ancho * (0.2 + Math.random() * 0.6) : 0;
+      const actual = angulo.current;
+      const destino = actual - (actual % 360) + 360 * VUELTAS + (360 - dentro);
+      animar(destino, () => {
+        setGirando(false);
+        setGanado(data.premio);
+        const gano = ["puntos", "descuento", "regalo"].includes(data.premio.tipo);
+        if (sonido) (gano || data.premio.tipo === "otra" ? fanfarria : pena)();
+        onEstado({ ...estado, puede: data.puede, proxima: data.proxima, puntos: data.puntos });
+        if (gano) onRecargar();
+      });
     } catch (errorGiro) {
       setError(errorGiro instanceof Error ? errorGiro.message : "No se pudo girar.");
       setGirando(false);
     }
-  }
-
-  function alTerminar() {
-    if (!pendiente.current) return;
-    const resultado = pendiente.current;
-    pendiente.current = null;
-    setGirando(false);
-    setGanado(resultado.ganado);
-    onEstado({ ...estado, puede: resultado.puede, proxima: resultado.proxima, puntos: resultado.puntos });
-    if (["puntos", "descuento", "regalo"].includes(resultado.ganado.tipo)) onRecargar();
   }
 
   async function canjear(id: string) {
@@ -331,6 +411,7 @@ function Juego({
     try {
       const data = await llamar({ tipo: "puntos_canjear", email: sesion.email, token: sesion.token, opcion: id });
       setGanado(data.premio);
+      if (sonido) fanfarria();
       onEstado({ ...estado, puntos: data.puntos });
       onRecargar();
     } catch (errorCanje) {
@@ -340,95 +421,193 @@ function Juego({
     }
   }
 
+  function alternarSonido() {
+    const nuevo = !sonido;
+    setSonido(nuevo);
+    try {
+      localStorage.setItem("kint-ruleta-sonido", nuevo ? "si" : "no");
+    } catch {
+      // Sin almacenamiento.
+    }
+  }
+
+  const BOMBITAS = 36;
+
   return (
     <>
+      <style>{`
+        @keyframes kint-bombita { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+        @keyframes kint-brillo { 0%, 100% { opacity: 0.45; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.04); } }
+        @keyframes kint-chispa { 0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
+      `}</style>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
         {/* Rueda */}
-        <div className="rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:p-8">
+        <div className="relative overflow-hidden rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-lg font-black">¡Hola, {estado.alias || "Kint"}!</p>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-sm font-black text-amber-500 ring-1 ring-inset ring-amber-400/40">
-              <Star size={15} fill="currentColor" />
-              {estado.puntos.toLocaleString("es-UY")} puntos
-            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={alternarSonido}
+                aria-label={sonido ? "Silenciar" : "Activar sonido"}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--kint-panel-border)] text-base transition hover:bg-[var(--kint-panel-soft)]"
+              >
+                {sonido ? "🔊" : "🔇"}
+              </button>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-sm font-black text-amber-500 ring-1 ring-inset ring-amber-400/40">
+                <Star size={15} fill="currentColor" />
+                {estado.puntos.toLocaleString("es-UY")} puntos
+              </span>
+            </div>
           </div>
 
-          <div className="relative mx-auto mt-6 aspect-square w-full max-w-[420px]">
-            {/* Brillo detrás */}
-            <div className="absolute inset-6 rounded-full bg-[conic-gradient(from_0deg,#ef4444,#facc15,#10b981,#38bdf8,#8b5cf6,#ef4444)] opacity-40 blur-2xl" />
-            {/* Flecha */}
-            <div className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1">
-              <div className="h-0 w-0 border-x-[16px] border-t-[28px] border-x-transparent border-t-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]" />
+          <div className="relative mx-auto mt-6 aspect-square w-full max-w-[460px]">
+            {/* Brillo de colores detrás */}
+            <div
+              className="absolute inset-4 rounded-full bg-[conic-gradient(from_0deg,#ef4444,#facc15,#10b981,#38bdf8,#8b5cf6,#ef4444)] blur-2xl"
+              style={{ animation: `kint-brillo ${girando ? "0.8s" : "3s"} ease-in-out infinite` }}
+            />
+            {/* Chispitas alrededor */}
+            {[12, 30, 58, 77, 88].map((lugar, indice) => (
+              <span
+                key={lugar}
+                aria-hidden
+                className="absolute text-xl"
+                style={{
+                  left: `${lugar}%`,
+                  top: `${[4, 90, 2, 86, 40][indice]}%`,
+                  animation: `kint-chispa ${1.6 + indice * 0.3}s ease-in-out ${indice * 0.4}s infinite`,
+                }}
+              >
+                ✦
+              </span>
+            ))}
+
+            {/* Flecha (rebota en cada porción) */}
+            <div
+              ref={flecha}
+              className="absolute left-1/2 top-[-6px] z-30 origin-[50%_20%]"
+              style={{ transform: "translateX(-50%)" }}
+            >
+              <svg width="44" height="56" viewBox="0 0 44 56" aria-hidden>
+                <defs>
+                  <linearGradient id="kint-flecha" x1="0" x2="1">
+                    <stop offset="0" stopColor="#fde68a" />
+                    <stop offset="1" stopColor="#f59e0b" />
+                  </linearGradient>
+                </defs>
+                <path d="M22 54 L5 16 A18 18 0 1 1 39 16 Z" fill="url(#kint-flecha)" stroke="#78350f" strokeWidth="2" />
+                <circle cx="22" cy="18" r="7" fill="#dc2626" stroke="#fff" strokeWidth="2" />
+              </svg>
             </div>
+
             <svg
-              viewBox="0 0 300 300"
-              className="relative z-10 h-full w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.45)]"
-              style={{
-                transform: `rotate(${giro}deg)`,
-                transition: girando ? "transform 5.2s cubic-bezier(0.12, 0.7, 0.08, 1)" : "none",
-              }}
-              onTransitionEnd={alTerminar}
+              ref={rueda}
+              viewBox="0 0 320 320"
+              className="relative z-10 h-full w-full drop-shadow-[0_24px_40px_rgba(0,0,0,0.5)]"
+
               aria-label="Ruleta de premios"
               role="img"
             >
-              <circle cx="150" cy="150" r="148" fill="#0b1530" stroke="#facc15" strokeWidth="4" />
-              {estado.premios.map((premio, indice) => {
-                const inicio = (indice * porcion - 90) * (Math.PI / 180);
-                const fin = ((indice + 1) * porcion - 90) * (Math.PI / 180);
-                const x1 = 150 + 140 * Math.cos(inicio);
-                const y1 = 150 + 140 * Math.sin(inicio);
-                const x2 = 150 + 140 * Math.cos(fin);
-                const y2 = 150 + 140 * Math.sin(fin);
-                const medio = indice * porcion + porcion / 2;
+              <defs>
+                <linearGradient id="kint-aro" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#fef3c7" />
+                  <stop offset="0.5" stopColor="#d97706" />
+                  <stop offset="1" stopColor="#78350f" />
+                </linearGradient>
+                <radialGradient id="kint-sombra" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0.7" stopColor="rgba(0,0,0,0)" />
+                  <stop offset="1" stopColor="rgba(0,0,0,0.35)" />
+                </radialGradient>
+              </defs>
+              {/* Aro dorado */}
+              <circle cx="160" cy="160" r="158" fill="url(#kint-aro)" />
+              <circle cx="160" cy="160" r="146" fill="#0b1530" />
+              {porciones.map((porcion, indice) => {
+                const inicio = (porcion.inicio - 90) * (Math.PI / 180);
+                const fin = (porcion.inicio + porcion.ancho - 90) * (Math.PI / 180);
+                const grande = porcion.ancho > 180 ? 1 : 0;
+                const x1 = 160 + 142 * Math.cos(inicio);
+                const y1 = 160 + 142 * Math.sin(inicio);
+                const x2 = 160 + 142 * Math.cos(fin);
+                const y2 = 160 + 142 * Math.sin(fin);
+                const medio = porcion.inicio + porcion.ancho / 2;
+                const chiquita = porcion.ancho < 22;
+                const texto = chiquita
+                  ? porcion.tipo === "regalo"
+                    ? "🎁"
+                    : porcion.tipo === "nada"
+                    ? "😬"
+                    : "★"
+                  : porcion.nombre.length > 16
+                  ? `${porcion.nombre.slice(0, 15)}…`
+                  : porcion.nombre;
                 return (
-                  <g key={`${premio.nombre}-${indice}`}>
-                    <path d={`M150,150 L${x1},${y1} A140,140 0 0,1 ${x2},${y2} Z`} fill={premio.color} stroke="#0b1530" strokeWidth="2" />
+                  <g key={`${porcion.nombre}-${indice}`}>
+                    <path
+                      d={`M160,160 L${x1},${y1} A142,142 0 ${grande},1 ${x2},${y2} Z`}
+                      fill={porcion.color}
+                      stroke="#fde68a"
+                      strokeOpacity="0.55"
+                      strokeWidth="1.5"
+                    />
                     <text
-                      x="150"
-                      y="42"
-                      transform={`rotate(${medio} 150 150)`}
+                      x="160"
+                      y={chiquita ? 38 : 44}
+                      transform={`rotate(${medio} 160 160)`}
                       textAnchor="middle"
                       fill="#ffffff"
-                      fontSize={premio.nombre.length > 14 ? 9 : 11}
+                      fontSize={chiquita ? 14 : porcion.ancho < 40 ? 9 : porcion.nombre.length > 12 ? 10 : 12}
                       fontWeight="900"
-                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.35)", strokeWidth: 2 }}
+                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 2.5 }}
                     >
-                      {premio.nombre.length > 18 ? `${premio.nombre.slice(0, 17)}…` : premio.nombre}
+                      {texto}
                     </text>
                   </g>
                 );
               })}
-              {/* Lucecitas del borde */}
-              {Array.from({ length: 24 }, (_, indice) => {
-                const angulo = (indice / 24) * Math.PI * 2;
+              <circle cx="160" cy="160" r="146" fill="url(#kint-sombra)" pointerEvents="none" />
+              {/* Bombitas del borde: titilan (más rápido mientras gira) */}
+              {Array.from({ length: BOMBITAS }, (_, indice) => {
+                const angulo = (indice / BOMBITAS) * Math.PI * 2;
                 return (
                   <circle
                     key={indice}
-                    cx={150 + 146 * Math.cos(angulo)}
-                    cy={150 + 146 * Math.sin(angulo)}
-                    r="2.6"
-                    fill={indice % 2 ? "#ffffff" : "#facc15"}
+                    cx={160 + 152 * Math.cos(angulo)}
+                    cy={160 + 152 * Math.sin(angulo)}
+                    r="3.2"
+                    fill={indice % 2 ? "#ffffff" : "#fde047"}
+                    style={{
+                      animation: `kint-bombita ${girando ? "0.35s" : "1.4s"} ease-in-out ${(indice % 2) * (girando ? 0.17 : 0.7)}s infinite`,
+                      filter: "drop-shadow(0 0 3px #fde047)",
+                    }}
                   />
                 );
               })}
             </svg>
+
             {/* Botón del centro */}
             <button
               type="button"
               onClick={() => void girar()}
               disabled={girando || !estado.puede}
-              className="absolute left-1/2 top-1/2 z-20 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-white bg-[radial-gradient(circle_at_30%_30%,#f87171,#b91c1c)] text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_10px_30px_rgba(220,38,38,0.55)] transition enabled:hover:scale-105 disabled:cursor-not-allowed disabled:opacity-80"
+              className="absolute left-1/2 top-1/2 z-20 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-[5px] border-amber-200 bg-[radial-gradient(circle_at_30%_25%,#fca5a5,#dc2626_45%,#7f1d1d)] text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_10px_30px_rgba(220,38,38,0.6),inset_0_-6px_12px_rgba(0,0,0,0.35)] transition enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
             >
-              {girando ? <LoaderCircle size={22} className="animate-spin" /> : estado.puede ? "Girar" : "🔒"}
+              {girando ? <LoaderCircle size={24} className="animate-spin" /> : estado.puede ? "Girar" : "🔒"}
             </button>
           </div>
 
           <p className="mt-6 text-center text-sm font-bold text-[var(--text-muted)]">
-            {estado.puede
+            {girando
+              ? "¡Girando…!"
+              : estado.puede
               ? "¡Tenés una tirada! Tocá «Girar»."
               : espera
               ? `Tu próxima tirada en ${espera}.`
               : "Volvé pronto para girar de nuevo."}
+          </p>
+          <p className="mt-1 text-center text-[11px] text-[var(--text-muted)]">
+            Los premios se reclaman poniendo el código en «Código de descuento» al cotizar o en el seguimiento.
           </p>
           {error && <p className="mt-2 text-center text-sm font-bold text-red-500">{error}</p>}
         </div>
@@ -479,6 +658,9 @@ function Juego({
                       <span className="text-[10px] font-bold text-[var(--text-muted)]">{fechaCorta(premio.fecha)}</span>
                     </p>
                     {premio.codigo && <CodigoCopiable codigo={premio.codigo} vence={premio.vence} />}
+                    {/^Reclamado/i.test(premio.estado) && (
+                      <p className="mt-1 text-[11px] font-bold text-emerald-500">✓ {premio.estado}</p>
+                    )}
                   </li>
                 ))}
               </ul>

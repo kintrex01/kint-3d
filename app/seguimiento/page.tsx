@@ -33,6 +33,7 @@ const [modalidadPago, setModalidadPago] = useState("");
 const [mostrarSaldo, setMostrarSaldo] = useState(false);
 const [modoOscuro, setModoOscuro] = useState(false);
 const [codigoDescuentoInput, setCodigoDescuentoInput] = useState("");
+const [avisoCodigo, setAvisoCodigo] = useState("");
 const [aplicandoDescuento, setAplicandoDescuento] = useState(false);
 const [presupuestoSeleccionando, setPresupuestoSeleccionando] =
   useState<number | null>(null);
@@ -612,12 +613,13 @@ async function reemplazarArchivoPedido(
 
 async function aplicarCodigoDescuento() {
   if (!codigoDescuentoInput.trim()) {
-    setError("Ingresá un código de descuento.");
+    setError("Ingresá un código de descuento o de premio.");
     return;
   }
 
   setAplicandoDescuento(true);
   setError("");
+  setAvisoCodigo("");
 
   try {
     const response = await fetch("/api/descuento", {
@@ -639,6 +641,7 @@ async function aplicarCodigoDescuento() {
     }
 
     setCodigoDescuentoInput("");
+    setAvisoCodigo(data.mensaje || "¡Código aplicado!");
     await actualizarPedidoSilenciosamente();
   } catch (error: any) {
     setError(error.message || "Error al aplicar descuento.");
@@ -3222,20 +3225,29 @@ aplicada al pedido.
   </div>
 )}
 
-{resultado.estado === "Recibido" && !resultado.codigoDescuento && (
+{resultado.estado !== "Cancelado" && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
-      Código de descuento
+      Código de descuento o premio
     </p>
 
     <p className="mb-5 text-sm leading-6 text-[var(--text-muted)]">
-      Si tenés un código de descuento, podés aplicarlo mientras el pedido esté en estado Recibido.
+      Los premios de la Ruleta Kint (VALE-…) los podés reclamar en cualquier momento.
+      {resultado.estado === "Recibido" && !resultado.codigoDescuento
+        ? " Los códigos de descuento se aplican mientras el pedido esté en estado Recibido."
+        : " Los códigos de descuento ya no se pueden aplicar en esta etapa."}
     </p>
+
+    {avisoCodigo && (
+      <p className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm font-bold text-emerald-600">
+        {avisoCodigo}
+      </p>
+    )}
 
     <input
       value={codigoDescuentoInput}
       onChange={(e) => setCodigoDescuentoInput(e.target.value.toUpperCase())}
-      placeholder="Ej: KINT10"
+      placeholder="Ej: KINT10 o VALE-AB12"
       className="mb-4 w-full rounded-2xl border border-[var(--border-color)] bg-transparent px-5 py-4 text-sm font-bold uppercase tracking-[0.18em] outline-none transition focus:border-red-600"
     />
 
