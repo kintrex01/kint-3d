@@ -651,7 +651,8 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
     anillo: geometriaAnillo,
     telefono: geometriaTelefono,
     soloLetras: false,
-    aro: { x: centro.x - dx, y: centro.y - dy, angulo: -Math.PI / 2 },
+    // La cadena sale para arriba, desde el anillo (armarCadena gira -angulo).
+    aro: { x: centro.x - dx, y: centro.y - dy, angulo: Math.PI / 2 },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
     grosor: datos.relieve ? ALTO_CHAPITA + 0.8 : ALTO_CHAPITA,

@@ -628,10 +628,11 @@ function Juego({
                       strokeWidth="1.5"
                       style={misterio ? { animation: "kint-misterio 1.6s ease-in-out infinite" } : undefined}
                     />
+                    {/* Del lado izquierdo el texto se da vuelta para que no quede patas arriba. */}
                     <text
-                      x={160 + RADIO_TEXTO}
+                      x={medio > 180 ? 160 - RADIO_TEXTO : 160 + RADIO_TEXTO}
                       y="160"
-                      transform={`rotate(${medio - 90} 160 160)`}
+                      transform={`rotate(${medio > 180 ? medio + 90 : medio - 90} 160 160)`}
                       textAnchor="middle"
                       dominantBaseline="central"
                       fill="#ffffff"

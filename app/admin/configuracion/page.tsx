@@ -4,7 +4,11 @@ import { useMemo, useState } from "react";
 import {
   Bot,
   ClipboardList,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   Gift,
+  GripVertical,
   HeartHandshake,
   MessageSquareText,
   Palette,
@@ -1255,6 +1259,7 @@ function EditorRuleta() {
   const avisar = useAvisos();
   const [borrador, setBorrador] = useState<ConfigRuleta | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [arrastrando, setArrastrando] = useState<number | null>(null);
   const config = borrador ?? datos?.config ?? null;
   const cambiado = Boolean(borrador);
 
@@ -1265,6 +1270,14 @@ function EditorRuleta() {
   function cambiarPremio(indice: number, cambios: Partial<PremioRuletaConfig>) {
     if (!config) return;
     cambiar({ premios: config.premios.map((premio, i) => (i === indice ? { ...premio, ...cambios } : premio)) });
+  }
+  // Mover un premio de lugar (arrastrando o con las flechitas).
+  function moverPremio(desde: number, hasta: number) {
+    if (!config || desde === hasta || hasta < 0 || hasta >= config.premios.length) return;
+    const premios = [...config.premios];
+    const [movido] = premios.splice(desde, 1);
+    premios.splice(hasta, 0, movido);
+    cambiar({ premios });
   }
   function cambiarCanje(indice: number, cambios: Partial<CanjeRuletaConfig>) {
     if (!config) return;
@@ -1354,7 +1367,18 @@ function EditorRuleta() {
       {/* Premios */}
       <Tarjeta className="p-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="font-black">Premios ({activos.length} activos)</p>
+          <p className="flex items-center gap-2 font-black">
+            Premios ({activos.length} activos)
+            <Boton
+              tamano="chico"
+              variante="secundario"
+              icono={<ArrowUpDown size={13} />}
+              onClick={() => cambiar({ premios: [...config.premios].sort((a, b) => b.chance - a.chance) })}
+              className="h-8"
+            >
+              Ordenar por chance
+            </Boton>
+          </p>
           <p className="text-[11px] text-[var(--text-muted)]">
             Chance = % de que salga ese premio el día que está en la rueda. Lo que falta hasta 100 es «Sin suerte».
             Cada día entra al menos un Legendario (menos de 1,5%), que es el misterio. En un día promedio se gana
@@ -1365,10 +1389,39 @@ function EditorRuleta() {
           {config.premios.map((premio, indice) => (
             <div
               key={premio.id + indice}
-              className={`grid grid-cols-2 gap-2 rounded-xl border p-2.5 sm:grid-cols-[1.3fr_1.4fr_0.8fr_0.8fr_auto] sm:items-end ${
+              draggable
+              onDragStart={() => setArrastrando(indice)}
+              onDragOver={(evento) => evento.preventDefault()}
+              onDrop={() => {
+                if (arrastrando !== null) moverPremio(arrastrando, indice);
+                setArrastrando(null);
+              }}
+              onDragEnd={() => setArrastrando(null)}
+              className={`grid grid-cols-2 gap-2 rounded-xl border p-2.5 transition sm:grid-cols-[auto_1.3fr_1.4fr_0.8fr_0.8fr_auto] sm:items-end ${
                 premio.activo ? "border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)]" : "border-dashed border-[var(--kint-panel-border)] opacity-60"
-              }`}
+              } ${arrastrando === indice ? "scale-[0.98] opacity-50 ring-2 ring-fuchsia-400" : ""}`}
             >
+              <div className="col-span-2 flex items-center gap-0.5 sm:col-span-1 sm:flex-col sm:self-center">
+                <span title="Arrastrá para mover" className="hidden cursor-grab text-[var(--text-muted)] active:cursor-grabbing sm:block">
+                  <GripVertical size={16} />
+                </span>
+                <button
+                  type="button"
+                  aria-label="Subir"
+                  onClick={() => moverPremio(indice, indice - 1)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--kint-panel)] sm:hidden"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Bajar"
+                  onClick={() => moverPremio(indice, indice + 1)}
+                  className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--text-muted)] hover:bg-[var(--kint-panel)] sm:hidden"
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
               <label className="col-span-2 block sm:col-span-1">
                 <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">Tipo</span>
                 <select
