@@ -1485,7 +1485,7 @@ return (
 </div>
 
       {/* Banner: el fondo animado del tema, que se funde hacia abajo. */}
-      <section className="relative isolate -mx-4 -mt-6 mb-[-7rem] overflow-hidden px-4 pb-40 pt-32 sm:-mx-6 sm:px-6">
+      <section className="relative isolate -mx-4 -mt-[8.5rem] mb-[-7rem] overflow-hidden px-4 pb-40 pt-60 sm:-mx-6 sm:-mt-[9.5rem] sm:px-6 sm:pt-64">
         <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
           <FondoKintAnimado />
         </div>
