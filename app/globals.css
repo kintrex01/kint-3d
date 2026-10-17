@@ -755,3 +755,47 @@ html[data-fondo="grafito"]:not(.dark) body::before {
 html[data-fondo="grafito"] .fondo-kint-webgl {
   filter: grayscale(1) contrast(1.08);
 }
+
+/* ================================================================
+ * COTIZAR: cada pregunta en su tarjeta, con número de paso
+ * ================================================================ */
+.cotizar-form {
+  counter-reset: paso;
+}
+.cotizar-form > div[class="mb-6"] {
+  position: relative;
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.25rem 1.35rem;
+  border-radius: 1.4rem;
+  border: 1px solid var(--kint-panel-border);
+  background: color-mix(in srgb, var(--kint-panel-soft) 55%, transparent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.cotizar-form > div[class="mb-6"]:focus-within {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.08), 0 14px 40px rgba(0, 0, 0, 0.12);
+}
+.cotizar-form > div[class="mb-6"] > label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.cotizar-form > div[class="mb-6"] > label:first-child::before {
+  counter-increment: paso;
+  content: counter(paso);
+  display: inline-flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #2a4fa8, #16295c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  box-shadow: 0 6px 16px rgba(42, 79, 168, 0.4);
+}

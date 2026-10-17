@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
+import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 
 const supabase = createClient(
@@ -1469,16 +1470,41 @@ if (enviado) {
 }
 
 return (
-    <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
+    <main className="relative min-h-screen px-4 pb-20 pt-6 text-[var(--text-main)] transition sm:px-6">
 
       <div className="fixed right-6 top-6 z-[1000]">
   <ThemeToggle />
 </div>
 
-      <div className="mx-auto max-w-4xl rounded-3xl bg-[var(--card-bg)] p-10 shadow-xl">
-        <h1 className="mb-8 text-4xl font-bold text-[var(--text-main)]">
-          Configurar impresión 3D
-        </h1>
+      {/* Banner: el fondo animado del tema, que se funde hacia abajo. */}
+      <section className="relative isolate -mx-4 -mt-6 mb-[-7rem] overflow-hidden px-4 pb-40 pt-32 sm:-mx-6 sm:px-6">
+        <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
+          <FondoKintAnimado />
+        </div>
+        <div className="relative z-10 mx-auto max-w-4xl">
+          <p className="text-[11px] font-black uppercase tracking-[0.32em] text-[var(--blue-main)] dark:text-sky-300">
+            Cotizá tu maqueta
+          </p>
+          <h1 className="mt-2 bg-[linear-gradient(90deg,var(--text-main),#60a5fa_60%,#f87171)] bg-clip-text text-4xl font-black leading-tight text-transparent sm:text-6xl">
+            Configurar impresión 3D
+          </h1>
+          <div className="mt-5 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-[0.14em]">
+            {["Subís tu archivo", "Elegís escala y colores", "Te mandamos el presupuesto"].map((paso, indice) => (
+              <span
+                key={paso}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-[color-mix(in_srgb,var(--kint-panel)_60%,transparent)] px-3 py-1.5 text-[var(--text-main)] backdrop-blur"
+              >
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] text-white">
+                  {indice + 1}
+                </span>
+                {paso}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="cotizar-form relative z-10 mx-auto max-w-4xl rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_82%,transparent)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.30)] backdrop-blur-xl sm:p-10">
 
         {promocion?.activa && (
   <div className="mb-10 drop-shadow-[0_8px_10px_rgba(0,0,0,0.30)]">
@@ -1610,7 +1636,7 @@ return (
     onChange={(e) =>
       setEmail(e.target.value)
     }
-    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
     placeholder="ejemplo@gmail.com"
   />
 
@@ -1696,7 +1722,7 @@ return (
         onChange={(e) =>
           setAlias(e.target.value)
         }
-        className={`w-full rounded-xl border bg-white p-4 text-black ${
+        className={`w-full rounded-xl border bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
           aliasDisponible === false
             ? "border-red-600"
             : aliasDisponible === true
@@ -1738,7 +1764,7 @@ return (
         onChange={(e) =>
           setNombre(e.target.value)
         }
-        className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+        className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
         placeholder="Tu nombre"
       />
     </div>
@@ -1756,7 +1782,7 @@ return (
       autoComplete="tel"
       value={telefono}
       onChange={(e) => setTelefono(e.target.value)}
-      className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
       placeholder="+598 99 123 456"
     />
   </div>
@@ -1781,7 +1807,7 @@ return (
       autoComplete="tel"
       value={telefono}
       onChange={(e) => setTelefono(e.target.value)}
-      className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
       placeholder="+598 99 123 456"
     />
   </div>
@@ -1966,8 +1992,8 @@ return (
          <select
   value={escala}
   onChange={(e) => setEscala(e.target.value)}
-  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-    escala === "" ? "text-red-600" : "text-black"
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
+    escala === "" ? "text-red-600" : "text-[var(--text-main)]"
   }`}
 >
    <option value="">
@@ -1997,7 +2023,7 @@ return (
       onChange={(e) =>
         setEscalaPersonalizada(e.target.value)
       }
-      className="w-32 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+      className="w-32 rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
       placeholder="125"
     />
   </div>
@@ -2074,8 +2100,8 @@ return (
     <select
       value={armado}
       onChange={(e) => setArmado(e.target.value)}
-      className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-        armado === "" ? "text-red-600" : "text-black"
+      className={`w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
+        armado === "" ? "text-red-600" : "text-[var(--text-main)]"
       }`}
     >
       <option value="" className="text-red-600">
@@ -2105,8 +2131,8 @@ return (
           <select
   value={boquilla}
   onChange={(e) => setBoquilla(e.target.value)}
-  className={`w-full rounded-xl border border-[var(--border-color)] bg-white p-4 ${
-    boquilla === "" ? "text-red-600" : "text-black"
+  className={`w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
+    boquilla === "" ? "text-red-600" : "text-[var(--text-main)]"
   }`}
 >
               <option value="" className="text-red-600">
@@ -2116,7 +2142,7 @@ return (
   disabled={!boquilla02Habilitada}
   className={
     boquilla02Habilitada
-      ? "text-black"
+      ? "text-[var(--text-main)]"
       : "text-gray-400"
   }
 >
@@ -2131,7 +2157,7 @@ return (
   disabled={!boquilla04Habilitada}
   className={
     boquilla04Habilitada
-      ? "text-black"
+      ? "text-[var(--text-main)]"
       : "text-gray-400"
   }
 >
@@ -2189,7 +2215,7 @@ return (
             )
           }
           placeholder="Ej: 12"
-          className="min-w-0 flex-1 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          className="min-w-0 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
         />
 
         <select
@@ -2202,7 +2228,7 @@ return (
                 | "m"
             )
           }
-          className="w-24 rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+          className="w-24 rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
         >
           <option value="mm">mm</option>
           <option value="cm">cm</option>
@@ -2387,7 +2413,7 @@ return (
         e.target.value.toUpperCase()
       )
     }
-    className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
     placeholder="Ej: KINT10"
   />
 
@@ -2451,7 +2477,7 @@ return (
           <textarea
             value={comentarios}
             onChange={(e) => setComentarios(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-white p-4 text-black"
+            className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
             rows={5}
             placeholder="Escribe detalles importantes..."
           />
@@ -2580,7 +2606,7 @@ return (
   enviando ||
   !todoListo
 }
-          className="w-full rounded-2xl bg-red-600 px-8 py-5 text-sm font-bold uppercase tracking-[0.3em] text-white transition hover:bg-black disabled:opacity-50"
+          className="w-full rounded-2xl bg-[linear-gradient(135deg,#ef4444,#b91c1c)] px-8 py-5 text-sm font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_40px_rgba(220,38,38,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(220,38,38,0.45)] disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
         >
           {enviando
   ? "Enviando..."
