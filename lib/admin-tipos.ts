@@ -447,6 +447,22 @@ export type AccionesAdmin = {
     pedido: { clave: string; valor?: string | number; comentario?: string };
     respuesta: { filas: FilaConfig[] };
   };
+  /* Filamento (nombre, color, foto), hito de fidelidad o boquilla. */
+  admin_config_agregar: {
+    pedido: {
+      clase: "filamento" | "fidelidad" | "boquilla"; // ("tipo" es el nombre de la acción)
+      nombre?: string;
+      color?: string;
+      foto?: string;
+      pedidos?: number;
+      descuento?: number;
+    };
+    respuesta: { filas: FilaConfig[] };
+  };
+  admin_config_borrar: {
+    pedido: { clave: string };
+    respuesta: { filas: FilaConfig[] };
+  };
 
   admin_dias_listar: {
     pedido: SinDatos;
@@ -662,6 +678,8 @@ export const ACCIONES_ADMIN = [
   "admin_producto_guardar",
   "admin_config_listar",
   "admin_config_guardar",
+  "admin_config_agregar",
+  "admin_config_borrar",
   "admin_dias_listar",
   "admin_dia_guardar",
   "admin_dia_quitar",

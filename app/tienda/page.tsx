@@ -2592,10 +2592,10 @@ const CLASES_COMPU_CON_CARRITO: Record<number, string> = {
   5: "lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4",
 };
 
-const CLAVE_VISTA = "kint-tienda-vista-v2";
+const CLAVE_VISTA = "kint-tienda-vista-v3";
 
 type Vista = { orden: Orden; invertido: boolean; columnas: number; columnasCelu: number };
-const VISTA_INICIAL: Vista = { orden: "destacados", invertido: false, columnas: 5, columnasCelu: 2 };
+const VISTA_INICIAL: Vista = { orden: "destacados", invertido: false, columnas: 4, columnasCelu: 2 };
 
 function promedioResenas(producto: Producto) {
   if (!producto.resenas.length) return 0;
@@ -2709,7 +2709,7 @@ function leerVista(): Vista {
         ? guardada.orden
         : "destacados",
       invertido: guardada.invertido === true,
-      columnas: [1, 2, 3, 4, 5].includes(guardada.columnas) ? guardada.columnas : 5,
+      columnas: [1, 2, 3, 4, 5].includes(guardada.columnas) ? guardada.columnas : 4,
       columnasCelu: [1, 2, 3].includes(guardada.columnasCelu) ? guardada.columnasCelu : 2,
     };
   } catch {

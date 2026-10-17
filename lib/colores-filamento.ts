@@ -61,3 +61,14 @@ export function fotoFilamento(nombre: string) {
   const foto = COLORES[claveColor(nombre)]?.foto;
   return foto ? { mini: `/colores/mini/${foto}.webp`, grande: `/colores/grande/${foto}.webp` } : null;
 }
+
+/*
+ * Filamentos agregados desde el panel: el color y la foto viajan en el
+ * comentario de la fila de Configuración ("color: #aabbcc · foto: https://...").
+ */
+export function extrasFilamento(comentario: string) {
+  const texto = String(comentario || "");
+  const color = texto.match(/color:\s*(#[0-9a-f]{6})/i)?.[1] || "";
+  const foto = texto.match(/foto:\s*(https:\/\/\S+)/i)?.[1] || "";
+  return { color, foto };
+}

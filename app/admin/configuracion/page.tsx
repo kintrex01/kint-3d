@@ -34,7 +34,7 @@ import type {
   FilaConfig,
   PremioRuletaConfig,
 } from "@/lib/admin-tipos";
-import { colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import { colorFilamento, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   Boton,
   CajaError,
@@ -49,6 +49,7 @@ import {
 } from "@/components/admin/ui";
 import { unidadConfig } from "@/components/admin/unidadesConfig";
 import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
+import { AgregarFilamento, AgregarHito, BorrarConfig } from "@/components/admin/AgregarConfig";
 
 /* ------------------------------------------------------------------ */
 /* Textos                                                              */
@@ -491,6 +492,7 @@ export default function ConfiguracionAdmin() {
                   optimistas={optimistas}
                   onToggle={alCambiarToggle}
                   guardar={guardar}
+                  onFilas={(nuevas) => setDatos({ filas: nuevas })}
                 />
               ))
             )
@@ -510,6 +512,7 @@ export default function ConfiguracionAdmin() {
               optimistas={optimistas}
               onToggle={alCambiarToggle}
               guardar={guardar}
+              onFilas={(nuevas) => setDatos({ filas: nuevas })}
             />
           )}
         </>
@@ -595,6 +598,7 @@ function SeccionConfig({
   optimistas,
   onToggle,
   guardar,
+  onFilas,
 }: {
   titulo: string;
   filas: FilaConfig[];
@@ -602,7 +606,10 @@ function SeccionConfig({
   optimistas: Record<string, string>;
   onToggle: (fila: FilaConfig, activo: boolean) => void;
   guardar: Guardar;
+  onFilas: (filas: FilaConfig[]) => void;
 }) {
+  const esFidelidad = titulo === "Fidelidad";
+  const esFilamentos = titulo === "Filamentos";
   // Filamentos: una grilla de colores. Fidelidad: los hitos en cuadritos.
   const colores = filas.filter((fila) => fila.clave.startsWith("filamento_") && fila.tipo === "toggle");
   const hitos = filas
@@ -647,7 +654,7 @@ function SeccionConfig({
         </div>
       )}
 
-      {hitos.length > 0 && (
+      {(hitos.length > 0 || esFidelidad) && (
         <Tarjeta className="mt-2.5 p-4">
           <p className="font-bold">Cupones por cantidad de pedidos</p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
@@ -656,22 +663,27 @@ function SeccionConfig({
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {hitos.map((fila) => (
               <div key={fila.fila} className="rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] p-2.5">
-                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                <p className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
                   Pedido n.º {fila.clave.split("_").pop()}
+                  <BorrarConfig fila={fila} onFilas={onFilas} texto={`el premio del pedido ${fila.clave.split("_").pop()}`} />
                 </p>
                 <EditorValor key={String(fila.valor)} fila={fila} filas={todasLasFilas} guardar={guardar} compacto />
               </div>
             ))}
           </div>
+          <AgregarHito onFilas={onFilas} />
         </Tarjeta>
       )}
+
+      {esFilamentos && <AgregarFilamento onFilas={onFilas} />}
 
       {colores.length > 0 && (
         <div className={`grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 ${resto.length ? "mt-2.5" : ""}`}>
           {colores.map((fila) => {
             const nombre = fila.etiqueta.replace(/^filamento\s+/i, "");
             const activo = estaHabilitada(optimistas[fila.clave] ?? fila.valor);
-            const mini = fotoFilamento(nombre)?.mini;
+            const extras = extrasFilamento(fila.comentario);
+            const mini = extras.foto || fotoFilamento(nombre)?.mini;
             return (
               <div
                 key={fila.fila}
@@ -684,9 +696,10 @@ function SeccionConfig({
                 <span
                   aria-hidden
                   className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-black/15 dark:ring-white/20"
-                  style={mini ? { backgroundImage: `url("${mini}")` } : { background: colorFilamento(nombre) }}
+                  style={mini ? { backgroundImage: `url("${mini}")` } : { background: extras.color || colorFilamento(nombre) }}
                 />
                 <span className="min-w-0 flex-1 truncate text-sm font-bold">{nombre}</span>
+                <BorrarConfig fila={fila} onFilas={onFilas} texto={`el filamento ${nombre}`} />
                 <Interruptor
                   activo={activo}
                   onCambiar={(valor) => onToggle(fila, valor)}

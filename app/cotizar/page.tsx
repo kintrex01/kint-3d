@@ -1,5 +1,5 @@
 "use client";
-import { fotoFilamento } from "@/lib/colores-filamento";
+import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -46,21 +46,35 @@ function nombreFilamentoDesdeClave(clave: string) {
 function ImagenFilamento({
   nombre,
   habilitado,
+  comentario = "",
 }: {
   nombre: string;
   habilitado: boolean;
+  comentario?: string; // filamentos del panel: "color: #... · foto: https://..."
 }) {
+  const extras = extrasFilamento(comentario);
   const [intento, setIntento] =
     useState(0);
 
   // Primero la foto liviana (public/colores/grande); si no hay, la original.
   const liviana = fotoFilamento(nombre)?.grande;
   const fuentes = [
+    ...(extras.foto ? [extras.foto] : []),
     ...(liviana ? [liviana] : []),
     `/colores/${nombre}.png`,
     `/colores/${nombre}.jpg`,
     `/colores/${nombre}.jpeg`,
   ];
+
+  if (intento >= fuentes.length && extras.color) {
+    return (
+      <div
+        className="mx-auto h-24 w-24 rounded-full border-4 border-white/70 shadow-inner"
+        style={{ background: extras.color }}
+        aria-label={nombre}
+      />
+    );
+  }
 
   if (intento >= fuentes.length) {
     return (
@@ -2071,6 +2085,7 @@ return (
       <ImagenFilamento
   nombre={item.nombre}
   habilitado={item.habilitado}
+  comentario={item.comentario}
 />
 
       <p className="mt-2 text-center text-sm font-semibold">
