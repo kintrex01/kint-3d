@@ -126,3 +126,46 @@ export function textoTiempo(pieza: PiezaCalculadora) {
   if (!horas) return `${minutos} min`;
   return minutos ? `${horas} h ${minutos} min` : `${horas} h`;
 }
+
+/*
+ * Al revés: "si lo vendo a $X, ¿cuánto gano?". El precio es por pieza
+ * (si salen varias en la placa, los costos se reparten entre todas).
+ * Insumos: lo que cuestan de verdad (sin el recargo).
+ */
+export function analizarVenta(perfil: PerfilCalculadora, pieza: PiezaCalculadora, precioVenta: number) {
+  const base = calcular({ ...perfil, multiplicador: 1 }, { ...pieza, insumos: 0 });
+  const piezas = base.piezas;
+  const porPieza = (valor: number) => redondear(valor / piezas);
+
+  const material = porPieza(base.material);
+  const luz = porPieza(base.luz);
+  const desgaste = porPieza(base.desgaste);
+  const error = porPieza(base.error);
+  const insumos = porPieza(Math.max(0, pieza.insumos));
+  const costo = redondear(material + luz + desgaste + error + insumos);
+  const precio = Math.max(0, precioVenta);
+  const ganancia = redondear(precio - costo);
+  const comision = Math.min(95, Math.max(0, perfil.comisionML)) / 100;
+  const gananciaML = redondear(precio * (1 - comision) - costo);
+
+  return {
+    precio,
+    piezas,
+    material,
+    luz,
+    desgaste,
+    error,
+    insumos,
+    costo,
+    ganancia,
+    // Qué parte del precio es ganancia, y cuántas veces el costo es el precio.
+    margen: precio > 0 ? Math.round((ganancia / precio) * 100) : 0,
+    veces: costo > 0 ? Math.round((precio / costo) * 10) / 10 : 0,
+    gananciaTotal: redondear(ganancia * piezas),
+    gananciaML,
+    // Precio mínimo para no perder plata.
+    minimo: Math.ceil(costo),
+  };
+}
+
+export type AnalisisVenta = ReturnType<typeof analizarVenta>;

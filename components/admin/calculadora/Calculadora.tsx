@@ -32,9 +32,11 @@ import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import {
   IMPRESORAS,
   MULTIPLICADORES,
+  analizarVenta,
   calcular,
   perfilNuevo,
   textoTiempo,
+  type AnalisisVenta,
   type PerfilCalculadora,
   type PiezaCalculadora,
   type ResultadoCalculadora,
@@ -84,7 +86,12 @@ export type CalculoActual = {
 const PIEZA_EN_BLANCO: TextosPieza = { horas: "", minutos: "", gramos: "", insumos: "", piezas: "1" };
 
 /* Lo último que se dejó cargado (en este navegador). */
-type Recuerdo = { pieza?: Partial<TextosPieza>; multiplicador?: number; multiplicadorTexto?: string };
+type Recuerdo = {
+  pieza?: Partial<TextosPieza>;
+  multiplicador?: number;
+  multiplicadorTexto?: string;
+  precioVenta?: string;
+};
 
 function leerRecuerdo(): Recuerdo {
   try {
@@ -150,6 +157,7 @@ export default function Calculadora({
   const [aBorrar, setABorrar] = useState(false);
   const [verCostos, setVerCostos] = useState(false);
   const [piezaTextos, setPiezaTextos] = useState<TextosPieza>(() => ({ ...PIEZA_EN_BLANCO, ...recuerdo.pieza }));
+  const [precioVenta, setPrecioVenta] = useState(recuerdo.precioVenta || "");
 
   // Primera carga: los perfiles guardados o uno de ejemplo (A1 mini).
   if (datos && !listo) {
@@ -166,11 +174,14 @@ export default function Calculadora({
   // La pieza y el multiplicador quedan como se dejaron.
   useEffect(() => {
     try {
-      localStorage.setItem(CLAVE_LOCAL, JSON.stringify({ pieza: piezaTextos, multiplicador, multiplicadorTexto }));
+      localStorage.setItem(
+        CLAVE_LOCAL,
+        JSON.stringify({ pieza: piezaTextos, multiplicador, multiplicadorTexto, precioVenta })
+      );
     } catch {
       // Sin almacenamiento: dura solo esta visita.
     }
-  }, [piezaTextos, multiplicador, multiplicadorTexto]);
+  }, [piezaTextos, multiplicador, multiplicadorTexto, precioVenta]);
 
   const base = perfiles.find((perfil) => perfil.id === activoId) ?? perfiles[0];
   const perfil = base && borrador ? perfilDe(base, borrador, multiplicador) : null;
@@ -183,6 +194,8 @@ export default function Calculadora({
   };
   const resultado = perfil ? calcular(perfil, pieza) : null;
   const sinDatos = !(pieza.gramos > 0 || pieza.horas > 0 || pieza.minutos > 0 || pieza.insumos > 0);
+  const venta =
+    perfil && !sinDatos && aNumero(precioVenta) > 0 ? analizarVenta(perfil, pieza, aNumero(precioVenta)) : null;
 
   function elegirPerfil(id: string) {
     const elegido = perfiles.find((item) => item.id === id);
@@ -519,6 +532,16 @@ export default function Calculadora({
           </div>
         </div>
 
+        {!sinDatos && (
+          <TarjetaVenta
+            analisis={venta}
+            valor={precioVenta}
+            onCambiar={setPrecioVenta}
+            sugerido={resultado.piezas > 1 ? Math.ceil(resultado.porPieza / 5) * 5 : resultado.redondeado}
+            comisionML={aNumero(borrador.textos.comisionML)}
+          />
+        )}
+
         {sinDatos && (
           <p className="flex items-center gap-2 rounded-2xl border border-dashed border-[var(--kint-panel-border)] px-4 py-3 text-xs font-bold text-[var(--text-muted)]">
             <Sparkles size={15} className="shrink-0 text-[var(--blue-main)] dark:text-sky-300" />
@@ -694,5 +717,166 @@ function CampoNumero({
       </span>
       {ayuda && <span className="mt-1 block text-[11px] leading-4 text-[var(--text-muted)]">{ayuda}</span>}
     </label>
+  );
+}
+
+/* "Si lo vendo a $X": cuánto gano, con el mismo desglose que el total. */
+function TarjetaVenta({
+  analisis,
+  valor,
+  onCambiar,
+  sugerido,
+  comisionML,
+}: {
+  analisis: AnalisisVenta | null;
+  valor: string;
+  onCambiar: (valor: string) => void;
+  sugerido: number;
+  comisionML: number;
+}) {
+  const pierde = Boolean(analisis && analisis.ganancia < 0);
+  const partes = analisis
+    ? [
+        { texto: "Material", valor: analisis.material, color: "#38bdf8" },
+        { texto: "Luz", valor: analisis.luz, color: "#facc15" },
+        { texto: "Desgaste", valor: analisis.desgaste, color: "#a78bfa" },
+        { texto: "Margen de error", valor: analisis.error, color: "#fb923c" },
+        { texto: "Insumos", valor: analisis.insumos, color: "#f472b6" },
+        { texto: pierde ? "Pérdida" : "Ganancia", valor: analisis.ganancia, color: pierde ? "#ef4444" : "#34d399" },
+      ]
+    : [];
+
+  return (
+    <div
+      className={`overflow-hidden rounded-3xl border text-white shadow-[0_20px_60px_rgba(0,0,0,0.25)] ${
+        pierde
+          ? "border-red-500/40 bg-[radial-gradient(120%_120%_at_0%_0%,#7f1d1d_0%,#3b0d14_50%,#160509_100%)]"
+          : "border-emerald-400/30 bg-[radial-gradient(120%_120%_at_0%_0%,#0f6b4f_0%,#0b3a2e_50%,#05140f_100%)]"
+      }`}
+    >
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-3">
+          <label className="min-w-0 flex-1">
+            <span className="text-[11px] font-black uppercase tracking-[0.18em] text-white/60">
+              Si lo vendo a{analisis && analisis.piezas > 1 ? " (c/u)" : ""}
+            </span>
+            <span className="mt-1 flex items-baseline gap-1 border-b-2 border-white/25 pb-1 focus-within:border-white">
+              <span className="text-3xl font-black text-white/60">$</span>
+              <input
+                value={valor}
+                inputMode="decimal"
+                placeholder={String(sugerido || 0)}
+                onChange={(evento) => onCambiar(evento.target.value.replace(/[^\d.,]/g, ""))}
+                className="w-full min-w-0 bg-transparent text-5xl font-black tabular-nums leading-none tracking-tight text-white outline-none placeholder:text-white/25"
+                aria-label="Precio de venta"
+              />
+            </span>
+          </label>
+          <AnilloPartes
+            partes={partes.map((parte) => ({ valor: Math.max(0, parte.valor), color: parte.color }))}
+            centro={analisis ? `${analisis.margen}%` : "—"}
+            debajo={pierde ? "pérdida" : "ganancia"}
+          />
+        </div>
+
+        {analisis ? (
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            <Pastilla>
+              {pierde ? "Perdés" : "Ganás"} {pesos(Math.abs(analisis.ganancia))}
+              {analisis.piezas > 1 ? " c/u" : ""}
+            </Pastilla>
+            {analisis.piezas > 1 && (
+              <Pastilla>
+                {pesos(Math.abs(analisis.gananciaTotal))} en la placa ({analisis.piezas})
+              </Pastilla>
+            )}
+            <Pastilla>×{String(analisis.veces).replace(".", ",")} el costo</Pastilla>
+            <Pastilla>Mínimo sin perder {pesos(analisis.minimo)}</Pastilla>
+          </div>
+        ) : (
+          <p className="mt-3 text-xs font-bold text-white/60">
+            Poné a cuánto lo vendés y te muestra cuánto te queda de verdad.
+          </p>
+        )}
+      </div>
+
+      {analisis && (
+        <>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 border-t border-white/10 bg-black/20 px-5 py-4 text-sm">
+            {partes.map((parte) => (
+              <div key={parte.texto} className="flex items-center justify-between gap-2">
+                <dt className="flex min-w-0 items-center gap-2 text-white/70">
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: parte.color }} />
+                  <span className="truncate">{parte.texto}</span>
+                </dt>
+                <dd className={`font-bold tabular-nums ${parte.valor < 0 ? "text-red-300" : ""}`}>
+                  {parte.valor < 0 ? "−" : ""}
+                  {pesos(Math.abs(parte.valor))}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex items-center justify-between gap-2 border-t border-white/10 bg-black/30 px-5 py-3">
+            <span className="text-xs font-bold text-white/70">Costo total (con insumos)</span>
+            <span className="font-black tabular-nums">{pesos(analisis.costo)}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2 bg-[#ffe600] px-5 py-3 text-[#2d3277]">
+            <span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em]">
+              <ShoppingCart size={15} />
+              En MercadoLibre ({comisionML}%)
+            </span>
+            <span className="text-sm font-black tabular-nums">
+              {analisis.gananciaML < 0 ? "Perdés" : "Ganás"} {pesos(Math.abs(analisis.gananciaML))}
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* Anillo genérico: porciones y un texto al medio. */
+function AnilloPartes({
+  partes,
+  centro,
+  debajo,
+}: {
+  partes: { valor: number; color: string }[];
+  centro: string;
+  debajo: string;
+}) {
+  const total = partes.reduce((suma, parte) => suma + parte.valor, 0);
+  const radio = 15.915;
+  let acumulado = 0;
+  return (
+    <div className="relative h-24 w-24 shrink-0">
+      <svg viewBox="0 0 42 42" className="h-full w-full -rotate-90" aria-hidden>
+        <circle cx="21" cy="21" r={radio} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="5" />
+        {total > 0 &&
+          partes.map((parte, indice) => {
+            if (parte.valor <= 0) return null;
+            const porcion = (parte.valor / total) * 100;
+            const inicio = acumulado;
+            acumulado += porcion;
+            return (
+              <circle
+                key={indice}
+                cx="21"
+                cy="21"
+                r={radio}
+                fill="none"
+                stroke={parte.color}
+                strokeWidth="5"
+                strokeDasharray={`${porcion} ${100 - porcion}`}
+                strokeDashoffset={-inicio}
+              />
+            );
+          })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-black leading-none">{centro}</span>
+        <span className="mt-0.5 text-[9px] font-bold uppercase tracking-wider text-white/60">{debajo}</span>
+      </div>
+    </div>
   );
 }
