@@ -39,7 +39,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
-import { leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
+import { coloresPieza, leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
@@ -280,7 +280,8 @@ function detalleLinea(linea: {
       `“${mascota.texto}” · tel. ${mascota.telefono}`,
       `${mascota.forma} · ${mascota.fuente} · ${mascota.tamano}${mascota.huella ? " · con huellita" : ""}`,
       colores.length >= 2 ? `Chapita ${colores[0]}, borde y nombre ${colores[1]}` : "",
-      mascota.atras === "Color" && colores[2] ? `teléfono ${colores[2]}` : "",
+      colores.length >= 2 ? `anillo ${coloresPieza(mascota, colores).anillo}` : "",
+      coloresPieza(mascota, colores).telefono ? `teléfono ${coloresPieza(mascota, colores).telefono}` : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]
       .filter(Boolean)
@@ -295,9 +296,10 @@ function detalleLinea(linea: {
       `${personalizado.fuente} · ${personalizado.tamano} · ${personalizado.fondo || "Contorno"}`,
       personalizado.fondo === "Solo letras"
         ? `Color ${colores[1] || colores[0] || ""}`
-        : colores.length === 2
+        : colores.length >= 2
         ? `${personalizado.fondo === "Placa" ? "Placa" : "Borde"} ${colores[0]}, letras ${colores[1]}`
         : "",
+      colores.length >= 2 ? `Anillo ${coloresPieza(personalizado, colores).anillo}` : "",
       linea.cadena ? `Cadena ${linea.cadena}` : "",
     ]
       .filter(Boolean)
@@ -463,7 +465,9 @@ function ajustarCarrito(
 
     // Un color que ya no se ofrece saca la línea, como una cadena vieja.
     const coloresValidos = producto.personalizable
-      ? (colores.length === 2 || (producto.tipoPersonalizado === "Mascota" && colores.length === 3)) &&
+      ? (colores.length === 2 ||
+          colores.length === 3 ||
+          (producto.tipoPersonalizado === "Mascota" && colores.length === 4)) &&
         colores.every((color) => producto.colores.includes(color)) &&
         Boolean(
           producto.tipoPersonalizado === "Mascota"

@@ -3225,7 +3225,7 @@ aplicada al pedido.
   </div>
 )}
 
-{resultado.estado !== "Cancelado" && (
+{!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (
   <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Código de descuento o premio

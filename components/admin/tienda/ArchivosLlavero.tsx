@@ -12,13 +12,15 @@
 import { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
 import {
+  coloresPieza,
+  limpiarBorde,
   textoVisible,
   type PersonalizacionLlavero,
   type PersonalizacionMascota,
 } from "@/lib/llavero/personalizacion";
 import { colorFilamento } from "@/lib/colores-filamento";
 
-type Archivo = "3mf" | "borde" | "letras";
+type Archivo = "3mf" | "borde" | "letras" | "anillo";
 
 function nombreArchivo(texto: string) {
   return texto.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 -]/g, "").trim() || "llavero";
@@ -41,11 +43,12 @@ export function ArchivosLlavero({
 }: {
   pedido: string;
   personalizacion: PersonalizacionLlavero | PersonalizacionMascota;
-  colores: string[]; // [borde, letras]
+  colores: string[]; // ver coloresPieza
 }) {
   const [armando, setArmando] = useState<Archivo | "">("");
   const [error, setError] = useState("");
-  const [borde = "", letras = ""] = colores;
+  const partes = coloresPieza(personalizacion, colores);
+  const { base: borde, letras } = partes;
   // Chapita de mascota o llavero con nombre.
   const mascota = "tipo" in personalizacion ? personalizacion : null;
   const llavero = mascota ? null : (personalizacion as PersonalizacionLlavero);
@@ -64,39 +67,41 @@ export function ArchivosLlavero({
 
       if (archivo === "3mf") {
         const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
-        descargar(
-          exportar3MF(
-            base,
-            geometria.soloLetras
-              ? (geometria.partesBase ?? [geometria.base]).map((parte, indice) => ({
-                  nombre: indice === 0 ? parteLetras : `uniones (${letras})`,
-                  geometria: parte,
-                  color: colorFilamento(letras),
-                  filamento: 1,
-                }))
-              : [
-                  // La base puede venir en capas (chapita): todas con el filamento 1.
-                  ...(geometria.partesBase ?? [geometria.base]).map((parte, indice, todas) => ({
-                    nombre: todas.length > 1 ? `${parteBorde} ${indice + 1}` : parteBorde,
-                    geometria: parte,
-                    color: colorFilamento(borde),
-                    filamento: 1,
-                  })),
-                  { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras), filamento: 2 },
-                  ...(geometria.telefono
-                    ? [
-                        {
-                          nombre: `teléfono${colores[2] ? ` (${colores[2]})` : ""}`,
-                          geometria: geometria.telefono,
-                          color: colorFilamento(colores[2] || ""),
-                          filamento: 3,
-                        },
-                      ]
-                    : []),
-                ]
-          ),
-          `${base}.3mf`
-        );
+        // Un filamento por cada color distinto (1, 2, 3...).
+        const filamentos: string[] = [];
+        const filamento = (color: string) => {
+          if (!filamentos.includes(color)) filamentos.push(color);
+          return filamentos.indexOf(color) + 1;
+        };
+        const piezas = geometria.soloLetras
+          ? [{ nombre: parteLetras, geometria: geometria.base, color: colorFilamento(letras), filamento: filamento(letras) }]
+          : [
+              // La base puede venir en capas (chapita): todas con el mismo filamento.
+              ...(geometria.partesBase ?? [geometria.base]).map((parte, indice, todas) => ({
+                nombre: todas.length > 1 ? `${parteBorde} ${indice + 1}` : parteBorde,
+                geometria: parte,
+                color: colorFilamento(borde),
+                filamento: filamento(borde),
+              })),
+              { nombre: parteLetras, geometria: geometria.letras, color: colorFilamento(letras), filamento: filamento(letras) },
+            ];
+        piezas.push({
+          nombre: `anillo${partes.anillo ? ` (${partes.anillo})` : ""}`,
+          geometria: geometria.anillo,
+          color: colorFilamento(partes.anillo),
+          filamento: filamento(partes.anillo),
+        });
+        if (geometria.telefono) {
+          piezas.push({
+            nombre: `teléfono${partes.telefono ? ` (${partes.telefono})` : ""}`,
+            geometria: geometria.telefono,
+            color: colorFilamento(partes.telefono),
+            filamento: filamento(partes.telefono),
+          });
+        }
+        descargar(exportar3MF(base, piezas), `${base}.3mf`);
+      } else if (archivo === "anillo") {
+        descargar(exportarSTL(geometria.anillo), `${base} - anillo${partes.anillo ? ` (${partes.anillo})` : ""}.stl`);
       } else if (archivo === "borde" || geometria.soloLetras) {
         // Solo letras: una sola pieza (la "base" es el llavero entero).
         descargar(
@@ -110,6 +115,7 @@ export function ArchivosLlavero({
       geometria.letras.dispose();
       geometria.partesBase?.forEach((parte) => parte.dispose());
       geometria.telefono?.dispose();
+      geometria.anillo.dispose();
     } catch {
       setError("No se pudo armar el archivo.");
     } finally {
@@ -132,26 +138,28 @@ export function ArchivosLlavero({
       ) : (
         <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
           {llavero?.fuente} · {llavero?.tamano} · {llavero?.fondo || "Contorno"}
-          {llavero?.fondo !== "Solo letras" && <> · borde {llavero?.borde || "Normal"}</>}
+          {llavero?.fondo !== "Solo letras" && <> · borde {String(limpiarBorde(llavero?.borde)).replace(".", ",")} mm</>}
           {llavero?.separacion ? (
             <> · separación {llavero.separacion > 0 ? "+" : ""}{llavero.separacion} mm</>
           ) : null}
         </span>
       )}
       <span className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
-        {(soloLetras
-          ? [["Color", letras]]
-          : mascota
-          ? [
-              ["Chapita", borde],
-              ["Borde y nombre", letras],
-              ...(mascota.atras === "Color" ? [["Teléfono", colores[2] || ""]] : []),
-            ]
-          : [
-              ["Borde", borde],
-              ["Letras", letras],
-            ]
-        ).map(([parte, color]) => (
+        {[
+          ...(soloLetras
+            ? [["Color", letras]]
+            : mascota
+            ? [
+                ["Chapita", borde],
+                ["Borde y nombre", letras],
+                ...(partes.telefono ? [["Teléfono", partes.telefono]] : []),
+              ]
+            : [
+                ["Borde", borde],
+                ["Letras", letras],
+              ]),
+          ["Anillo", partes.anillo],
+        ].map(([parte, color]) => (
           <span key={parte} className="inline-flex items-center gap-1.5">
             <span
               aria-hidden
@@ -170,7 +178,7 @@ export function ArchivosLlavero({
         className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--acento)] px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
       >
         {armando === "3mf" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
-        {soloLetras ? "Descargar 3MF" : "Descargar 3MF (borde + letras juntos)"}
+        Descargar 3MF (todas las partes con su color)
       </button>
       <span className="mt-1.5 flex flex-wrap gap-1.5">
         {!soloLetras && (
@@ -183,11 +191,13 @@ export function ArchivosLlavero({
           {armando === "letras" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
           STL letras
         </button>
+        <button type="button" onClick={() => void bajar("anillo")} disabled={Boolean(armando)} className={claseSecundario}>
+          {armando === "anillo" ? <LoaderCircle size={12} className="animate-spin" /> : <Download size={12} />}
+          STL anillo
+        </button>
       </span>
       <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
-        {soloLetras
-          ? "Una sola pieza, de un solo color."
-          : "El 3MF se abre como una pieza con 2 partes: a «letras» asignale el filamento de las letras."}
+        El 3MF se abre como una pieza con sus partes y cada una ya trae su filamento (1, 2, 3…, uno por color).
       </span>
       {error && <span className="mt-1 block text-[11px] font-bold text-red-600">{error}</span>}
     </span>

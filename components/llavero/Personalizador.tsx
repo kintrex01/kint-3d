@@ -6,11 +6,14 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FlipHorizontal2, LoaderCircle, Minus, Plus, RotateCcw, ShoppingBag, X } from "lucide-react";
+import { FlipHorizontal2, LoaderCircle, Minus, Palette, Plus, RotateCcw, ShoppingBag, X } from "lucide-react";
 import VisorLlavero from "@/components/llavero/VisorLlavero";
 import { construirChapita, construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
-  BORDES_LLAVERO,
+  BORDE_MAX,
+  BORDE_MIN,
+  BORDE_NORMAL,
+  BORDE_PASO,
   FONDOS_LLAVERO,
   FORMAS_CHAPITA,
   MAX_LETRAS_MASCOTA,
@@ -26,6 +29,7 @@ import {
   TAMANOS_LLAVERO,
   errorTextoLlavero,
   formatearPersonalizacion,
+  limpiarBorde,
   limpiarRenglones,
   limpiarSeparacion,
   limpiarTextoLlavero,
@@ -34,7 +38,7 @@ import { claveColor, colorFilamento, fotoFilamento } from "@/lib/colores-filamen
 
 export type OpcionesPersonalizado = {
   cadena: string;
-  colores: string[]; // [borde, letras]
+  colores: string[]; // ver coloresPieza
   comentario: string; // formatearPersonalizacion(...)
   cantidad: number;
 };
@@ -53,6 +57,14 @@ function pesos(valor: number) {
   return `$${valor.toLocaleString("es-UY", { maximumFractionDigits: 2 })}`;
 }
 
+function liberar(geometria: GeometriaLlavero) {
+  geometria.base.dispose();
+  geometria.letras.dispose();
+  geometria.anillo.dispose();
+  geometria.telefono?.dispose();
+  geometria.partesBase?.forEach((parte) => parte.dispose());
+}
+
 /* El primero de la lista que exista en los colores del producto. */
 function elegirColor(colores: string[], preferidos: string[], evitar = "") {
   for (const preferido of preferidos) {
@@ -63,14 +75,17 @@ function elegirColor(colores: string[], preferidos: string[], evitar = "") {
 }
 
 /* Último diseño, para que no se pierda si cierra sin agregar. */
-const CLAVE_DISENO = "kint-llavero-diseno-v1";
+const CLAVE_DISENO = "kint-llavero-diseno-v2";
+
+/* Foto de todos los carretes, para ver los colores de verdad. */
+const FOTO_COLORES = "/colores/colores-filamentos.png";
 
 type Diseno = {
   texto: string;
   texto2: string;
   fuente: string;
   tamano: string;
-  borde: string;
+  borde: number;
   fondo: string;
   separacion: number;
   renglones: number;
@@ -81,6 +96,7 @@ type Diseno = {
   colorTelefono: string;
   colorBase: string;
   colorLetras: string;
+  colorAnillo: string; // "" = igual que la base
 };
 
 function leerDiseno(): Partial<Diseno> {
@@ -130,9 +146,7 @@ export default function Personalizador({
   const [tamano, setTamano] = useState<string>(() =>
     TAMANOS_LLAVERO.some((opcion) => opcion.nombre === inicial.tamano) ? inicial.tamano! : "Mediano"
   );
-  const [borde, setBorde] = useState<string>(() =>
-    BORDES_LLAVERO.some((opcion) => opcion.nombre === inicial.borde) ? inicial.borde! : "Normal"
-  );
+  const [borde, setBorde] = useState(() => limpiarBorde(inicial.borde ?? BORDE_NORMAL));
   const [texto2, setTexto2] = useState(() =>
     inicial.texto2 && !errorTextoLlavero(inicial.texto2, true) ? limpiarTextoLlavero(inicial.texto2) : ""
   );
@@ -167,6 +181,12 @@ export default function Personalizador({
       ? inicial.colorLetras
       : elegirColor(producto.colores, ["blanco", "amarillo", "gris claro"], colorBase)
   );
+  // Anillo de la cadena: sin elegir, va como el borde (en "Solo letras", como las letras).
+  const [colorAnillo, setColorAnillo] = useState(() =>
+    inicial.colorAnillo && producto.colores.includes(inicial.colorAnillo) ? inicial.colorAnillo : ""
+  );
+  const anilloEfectivo = colorAnillo || (esMascota || soloLetras ? colorLetras : colorBase);
+  const [verColores, setVerColores] = useState(false);
 
   // Cada cambio queda guardado en este navegador.
   useEffect(() => {
@@ -186,8 +206,9 @@ export default function Personalizador({
       colorTelefono,
       colorBase,
       colorLetras,
+      colorAnillo,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, atrasColor, colorTelefono, colorBase, colorLetras]);
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, atrasColor, colorTelefono, colorBase, colorLetras, colorAnillo]);
   // Como en el resto de la tienda: la cadena arranca sin elegir.
   const [cadena, setCadena] = useState("");
   const [cantidad, setCantidad] = useState(1);
@@ -236,12 +257,10 @@ export default function Personalizador({
           }))
         .then((nueva) => {
           if (cancelado) {
-            nueva.base.dispose();
-            nueva.letras.dispose();
+            liberar(nueva);
             return;
           }
-          anterior.current?.base.dispose();
-          anterior.current?.letras.dispose();
+          if (anterior.current) liberar(anterior.current);
           anterior.current = nueva;
           setGeometria(nueva);
           setErrorArmado("");
@@ -261,8 +280,7 @@ export default function Personalizador({
 
   useEffect(
     () => () => {
-      anterior.current?.base.dispose();
-      anterior.current?.letras.dispose();
+      if (anterior.current) liberar(anterior.current);
     },
     []
   );
@@ -300,10 +318,10 @@ export default function Personalizador({
       cadena,
       // Solo letras: una sola pieza, del color de las letras.
       colores: soloLetras
-        ? [colorLetras, colorLetras]
+        ? [colorLetras, colorLetras, anilloEfectivo]
         : esMascota && atrasColor
-        ? [colorBase, colorLetras, colorTelefono]
-        : [colorBase, colorLetras],
+        ? [colorBase, colorLetras, anilloEfectivo, colorTelefono]
+        : [colorBase, colorLetras, anilloEfectivo],
       comentario: esMascota
         ? formatearMascota({ texto, telefono, forma, huella, atras: atrasColor ? "Color" : "Grabado", fuente, tamano })
         : formatearPersonalizacion({
@@ -327,6 +345,35 @@ export default function Personalizador({
       onClick={onCerrar}
     >
       <style>{ESTILO_FUENTES}</style>
+      {verColores && (
+        <div
+          className="fixed inset-0 z-[450] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          onClick={(evento) => {
+            evento.stopPropagation();
+            setVerColores(false);
+          }}
+        >
+          <figure className="relative max-w-3xl" onClick={(evento) => evento.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={FOTO_COLORES}
+              alt="Todos los carretes de filamento, como se ven en la vida real"
+              className="max-h-[80vh] w-auto rounded-2xl object-contain shadow-2xl"
+            />
+            <figcaption className="mt-2 text-center text-xs font-bold text-white/80">
+              Así se ven los colores de verdad. En la vista 3D son aproximados.
+            </figcaption>
+            <button
+              type="button"
+              onClick={() => setVerColores(false)}
+              aria-label="Cerrar"
+              className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-black shadow-lg"
+            >
+              <X size={16} />
+            </button>
+          </figure>
+        </div>
+      )}
       <div
         role="dialog"
         aria-modal="true"
@@ -350,6 +397,7 @@ export default function Personalizador({
             colorBase={colorFilamento(soloLetras ? colorLetras : colorBase)}
             colorLetras={colorFilamento(colorLetras)}
             colorTelefono={colorFilamento(colorTelefono)}
+            colorAnillo={colorFilamento(anilloEfectivo)}
             cadena={cadena}
             atras={atras}
           />
@@ -662,40 +710,26 @@ export default function Personalizador({
             <fieldset>
               <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
                 <span>{fondo === "Placa" ? "Margen alrededor de las letras" : "Borde alrededor de las letras"}</span>
-                <span className="text-[var(--text-main)]">{borde}</span>
+                <span className="tabular-nums text-[var(--text-main)]">
+                  {borde === BORDE_NORMAL ? "Normal" : `${String(borde).replace(".", ",")} mm`}
+                </span>
               </legend>
-              <div className="grid grid-cols-4 gap-1.5">
-                {BORDES_LLAVERO.map((opcion) => {
-                  const elegido = opcion.nombre === borde;
-                  return (
-                    <button
-                      key={opcion.nombre}
-                      type="button"
-                      aria-pressed={elegido}
-                      onClick={() => setBorde(opcion.nombre)}
-                      className={`flex flex-col items-center gap-1.5 rounded-xl border py-2.5 text-[11px] font-black transition ${
-                        elegido
-                          ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
-                          : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
-                      }`}
-                    >
-                      {/* Dibujito: la letra con un borde de ese grosor. */}
-                      <span
-                        aria-hidden
-                        className="flex h-7 items-center justify-center rounded-md px-1 text-sm font-black leading-none"
-                        style={{
-                          background: colorFilamento(colorBase),
-                          color: colorFilamento(colorLetras),
-                          padding: `${opcion.mm * 1.3}px ${opcion.mm * 2}px`,
-                        }}
-                      >
-                        A
-                      </span>
-                      {opcion.nombre}
-                    </button>
-                  );
-                })}
-              </div>
+              <input
+                type="range"
+                min={BORDE_MIN}
+                max={BORDE_MAX}
+                step={BORDE_PASO}
+                value={borde}
+                onChange={(evento) => setBorde(limpiarBorde(evento.target.value))}
+                className="w-full accent-[var(--acento)] dark:accent-sky-400"
+              />
+              <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                <span>Mínimo</span>
+                <button type="button" onClick={() => setBorde(BORDE_NORMAL)} className="rounded px-1 hover:text-[var(--text-main)]">
+                  Normal
+                </button>
+                <span>Extra grueso</span>
+              </span>
             </fieldset>
             )}
 
@@ -782,6 +816,16 @@ export default function Personalizador({
                 setErrorAgregar("");
               }}
             />
+            <SelectorColor
+              titulo="Color del anillo"
+              detalle={colorAnillo ? "" : "igual que " + (esMascota ? "el borde" : soloLetras ? "las letras" : "el borde")}
+              colores={colores}
+              elegido={anilloEfectivo}
+              onElegir={(color) => {
+                setColorAnillo(color);
+                setErrorAgregar("");
+              }}
+            />
             {esMascota && atrasColor && (
               <SelectorColor
                 titulo="Color del teléfono"
@@ -794,6 +838,15 @@ export default function Personalizador({
                 }}
               />
             )}
+
+            <button
+              type="button"
+              onClick={() => setVerColores(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_8px_22px_rgba(220,38,38,0.28)] transition hover:-translate-y-0.5 hover:bg-red-500"
+            >
+              <Palette size={16} />
+              Ver los colores en la vida real
+            </button>
 
             {producto.cadenas.length > 0 && (
               <fieldset>
@@ -893,21 +946,25 @@ function DibujoFondo({ fondo, base, letras }: { fondo: string; base: string; let
 
 function SelectorColor({
   titulo,
+  detalle = "",
   colores,
   elegido,
   onElegir,
 }: {
   titulo: string;
+  detalle?: string;
   colores: string[];
   elegido: string;
   onElegir: (color: string) => void;
 }) {
-  const foto = fotoFilamento(elegido);
   return (
     <fieldset>
       <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
         <span>{titulo}</span>
-        <span className="text-[var(--text-main)]">{elegido}</span>
+        <span className="text-[var(--text-main)]">
+          {elegido}
+          {detalle && <span className="font-semibold text-[var(--text-muted)]"> · {detalle}</span>}
+        </span>
       </legend>
       <div className="flex flex-wrap gap-2">
         {colores.map((color) => {
@@ -931,22 +988,6 @@ function SelectorColor({
           );
         })}
       </div>
-      {/* Cómo se ve de verdad el color elegido. */}
-      {foto && (
-        <div className="mt-2.5 flex items-center gap-3 rounded-xl bg-[var(--kint-panel-soft)] p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={foto.grande}
-            alt={`Carrete de filamento ${elegido}`}
-            className="h-16 w-16 shrink-0 rounded-lg bg-white object-cover"
-            loading="lazy"
-          />
-          <span className="min-w-0 text-[11px] leading-4 text-[var(--text-muted)]">
-            <strong className="block text-xs text-[var(--text-main)]">{elegido}: foto real</strong>
-            Así es el filamento. En la vista 3D el color es aproximado.
-          </span>
-        </div>
-      )}
     </fieldset>
   );
 }
@@ -958,7 +999,7 @@ function DibujoForma({ forma, color }: { forma: string; color: string }) {
       {forma === "Círculo" && (
         <>
           <circle cx="24" cy="18" r="12" fill={color} />
-          <circle cx="24" cy="5" r="3.5" fill={color} />
+          <circle cx="24" cy="4" r="2.6" fill="none" stroke={color} strokeWidth="1.6" />
         </>
       )}
       {forma === "Corazón" && (

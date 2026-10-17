@@ -20,6 +20,7 @@ import {
   FUENTES_LLAVERO,
   TAMANOS_LLAVERO,
   bordeMm,
+  INTERLINEADO,
   limpiarRenglones,
   limpiarSeparacion,
   type PersonalizacionLlavero,
@@ -37,11 +38,11 @@ export const ALTO_LETRAS = 1;
 
 const RADIO_OREJA = 4.3;
 const RADIO_AGUJERO = 2;
-const ALTO_UNION = 1.4; // uniones de "solo letras": más bajas que las letras (3 mm)
 
 export type GeometriaLlavero = {
   base: THREE.BufferGeometry;
   letras: THREE.BufferGeometry; // vacía si es "Solo letras"
+  anillo: THREE.BufferGeometry; // el aro de la cadena, por fuera (puede ir de otro color)
   soloLetras: boolean;
   // Centro del agujero y hacia dónde sale la argolla (radianes; 0 = a la izquierda).
   aro: { x: number; y: number; angulo?: number };
@@ -252,7 +253,7 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
   };
   const textos = [personalizacion.texto.trim() || "Kint", personalizacion.texto2?.trim() || ""].filter(Boolean);
   // De renglón a renglón: lugar para las patitas de la "g", "p", "y".
-  const interlineado = altoMayusculas * 1.6 + limpiarRenglones(personalizacion.renglones);
+  const interlineado = altoMayusculas * INTERLINEADO + limpiarRenglones(personalizacion.renglones);
 
   // Cada renglón centrado en x = 0; el segundo, debajo del primero.
   const renglones = textos.map((texto, indice) => {
@@ -272,50 +273,11 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
       ? renglones[0].caja.minY - renglones[1].caja.maxY
       : 0;
 
-
-  // Oreja con el agujero del aro: a la izquierda del primer renglón, a media altura.
-  const primero = renglones[0].caja ?? todo;
-  const centroY = altoMayusculas * 0.42;
   let base: Contornos;
-  let centroX: number;
-
-  // Solo letras: uniones bajas (más bajas que las letras, así no las deforman).
-  let uniones: Contornos = [];
 
   if (soloLetras) {
-    // La oreja va entera al lado de la primera letra, sin comérsela.
-    centroX = primero.minX - RADIO_OREJA - 0.6;
-    const grueso = Math.max(1.8, altoMayusculas * 0.16);
-    const rieles: Contornos = [];
-    // Un riel por la mitad de cada renglón (el primero arranca en la oreja):
-    // une las letras que no se tocan.
-    renglones.forEach((renglon, indice) => {
-      if (!renglon.caja) return;
-      const y = renglon.linea + altoMayusculas * 0.3;
-      // Termina (y empieza) justo donde hay letra a esa altura: no sobresale.
-      const tocado = operar(
-        ClipperLib.ClipType.ctIntersection,
-        [rectangulo(renglon.caja.minX - 1, y, renglon.caja.maxX + 1, y + grueso)],
-        renglon.contornos
-      );
-      const borde = tocado.length ? limites(tocado) : renglon.caja;
-      const desde = indice === 0 ? centroX : borde.minX + 0.3;
-      rieles.push(rectangulo(desde, y, borde.maxX - 0.3, y + grueso));
-    });
-    // Dos renglones: postes que van de un riel al otro.
-    if (renglones.length === 2 && renglones[0].caja && renglones[1].caja) {
-      const izquierda = Math.max(renglones[0].caja.minX, renglones[1].caja.minX) + 1;
-      const derecha = Math.min(renglones[0].caja.maxX, renglones[1].caja.maxX) - 1;
-      const abajo = renglones[1].linea + altoMayusculas * 0.3;
-      const arriba = renglones[0].linea + altoMayusculas * 0.3 + grueso;
-      const lugares =
-        derecha - izquierda > 14
-          ? [izquierda + (derecha - izquierda) * 0.15, (izquierda + derecha) / 2, derecha - (derecha - izquierda) * 0.15]
-          : [(izquierda + derecha) / 2];
-      for (const x of lugares) rieles.push(rectangulo(x - grueso / 2, abajo, x + grueso / 2, arriba));
-    }
-    uniones = operar(ClipperLib.ClipType.ctDifference, unir(rieles), letras);
-    base = unir([...letras, circulo(centroX, centroY, RADIO_OREJA)]);
+    // Solo las letras, tal cual (si se quieren unidas, se juntan con la separación).
+    base = letras;
   } else {
     if (fondo === "Placa") {
       // Rectángulo lleno con las esquinas redondeadas.
@@ -324,7 +286,6 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
         [rectangulo(todo.minX - margen + radio, todo.minY - margen + radio, todo.maxX + margen - radio, todo.maxY + margen - radio)],
         radio
       );
-      centroX = todo.minX - margen - RADIO_OREJA * 0.45;
     } else {
       // Contorno: banda por la mitad de cada renglón para unir las letras sueltas.
       const rellenos: Contornos = [];
@@ -355,44 +316,34 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
       }
       base = engordar(unir([...letras, ...rellenos]), margen + cierre);
       if (cierre > 0) base = engordar(base, -cierre);
-      centroX = primero.minX - margen - RADIO_OREJA * 0.45;
     }
-    base = unir([
-      ...base,
-      circulo(centroX, centroY, RADIO_OREJA),
-      rectangulo(centroX, centroY - RADIO_OREJA * 0.85, primero.minX + 1, centroY + RADIO_OREJA * 0.85),
-    ]);
     // La base va llena (sin los huecos de la "o", "a"...).
     base = base.filter((contorno) => ClipperLib.Clipper.Area(contorno) > 0);
   }
-  const agujero = [circulo(centroX, centroY, RADIO_AGUJERO, 48)];
-  base = operar(ClipperLib.ClipType.ctDifference, base, agujero);
-  if (uniones.length) {
-    uniones = operar(ClipperLib.ClipType.ctDifference, uniones, [...base, ...agujero]);
-  }
 
-  const total = limites([...base, ...uniones]);
+  // Anillo: por fuera de la pieza, a la izquierda del primer renglón, a media altura.
+  const centroY = altoMayusculas * 0.45;
+  const franja = operar(ClipperLib.ClipType.ctIntersection, base, [rectangulo(-1000, centroY - 0.4, 1000, centroY + 0.4)]);
+  const desdeX = (franja.length ? limites(franja) : limites(base)).minX;
+  const centro = lugarAnillo(base, desdeX, centroY, -1, 0);
+  const anillo = armarAnillo(centro, base);
+
+  const total = limites([...base, ...anillo]);
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
 
   // Solo letras: una sola pieza de todo el alto; la de "letras" queda vacía.
+  const altoPieza = soloLetras ? ALTO_BASE + ALTO_LETRAS : ALTO_BASE;
   const geometriaBase = new THREE.ExtrudeGeometry(aFormas(base, dx, dy), {
-    depth: soloLetras ? ALTO_BASE + ALTO_LETRAS : ALTO_BASE,
+    depth: altoPieza,
     bevelEnabled: false,
     curveSegments: 1,
   });
-  // Uniones bajas (solo letras): se ven juntas y se exportan como otra parte.
-  let partesBase: THREE.BufferGeometry[] | undefined;
-  let geometriaFinalBase: THREE.BufferGeometry = geometriaBase;
-  if (uniones.length) {
-    const geometriaUniones = new THREE.ExtrudeGeometry(aFormas(uniones, dx, dy), {
-      depth: ALTO_UNION,
-      bevelEnabled: false,
-      curveSegments: 1,
-    });
-    partesBase = [geometriaBase, geometriaUniones];
-    geometriaFinalBase = mergeGeometries([geometriaBase, geometriaUniones]) ?? geometriaBase;
-  }
+  const geometriaAnillo = new THREE.ExtrudeGeometry(aFormas(anillo, dx, dy), {
+    depth: altoPieza,
+    bevelEnabled: false,
+    curveSegments: 1,
+  });
 
   let geometriaLetras = new THREE.BufferGeometry();
   if (!soloLetras) {
@@ -404,18 +355,42 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     geometriaLetras.translate(0, 0, ALTO_BASE);
   }
 
-  const area = base.reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
+  const area = [...base, ...anillo].reduce((suma, contorno) => suma + ClipperLib.Clipper.Area(contorno), 0);
 
   return {
-    base: geometriaFinalBase,
+    base: geometriaBase,
     letras: geometriaLetras,
+    anillo: geometriaAnillo,
     soloLetras,
-    partesBase,
-    aro: { x: centroX - dx, y: centroY - dy },
+    aro: { x: centro.x - dx, y: centro.y - dy },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
     areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,
   };
+}
+
+/*
+ * Dónde va el anillo: se sale del borde (x, y) hacia (haciaX, haciaY) hasta que
+ * el agujero ya no toca la pieza. Así el anillo queda por fuera, pegado al borde.
+ */
+function lugarAnillo(pieza: Contornos, x: number, y: number, haciaX: number, haciaY: number) {
+  for (let distancia = 0; distancia < 25; distancia += 0.2) {
+    const cx = x + haciaX * distancia;
+    const cy = y + haciaY * distancia;
+    const toca = operar(ClipperLib.ClipType.ctIntersection, [circulo(cx, cy, RADIO_AGUJERO + 0.7, 32)], pieza);
+    if (!toca.length) return { x: cx, y: cy };
+  }
+  return { x: x + haciaX * 25, y: y + haciaY * 25 };
+}
+
+/* El anillo (aro con agujero), sin lo que se mete dentro de la pieza: es otra parte, con su color. */
+function armarAnillo(centro: { x: number; y: number }, pieza: Contornos) {
+  const aro = operar(
+    ClipperLib.ClipType.ctDifference,
+    [circulo(centro.x, centro.y, RADIO_OREJA, 64)],
+    [circulo(centro.x, centro.y, RADIO_AGUJERO, 48)]
+  );
+  return operar(ClipperLib.ClipType.ctDifference, aro, pieza);
 }
 
 /* STL binario de una pieza (para Bambu Studio). */
@@ -443,56 +418,47 @@ function elipse(cx: number, cy: number, rx: number, ry: number, lados = 40): Con
   });
 }
 
-/* Forma de la chapita, la zona para el nombre y dónde va el agujero (en mm, Mediano). */
+/*
+ * Forma de la chapita (pura: el anillo va aparte, por fuera), la zona del
+ * nombre (siempre centrada, con o sin huellita) y dónde va la huellita.
+ */
 function formaChapita(forma: string, k: number) {
   if (forma === "Círculo") {
     const radio = 16 * k;
     return {
-      contorno: unir([circulo(0, 0, radio, 96), circulo(0, radio + 1.2 * k, RADIO_OREJA, 48)]),
-      zona: { cx: 0, cy: -1 * k, ancho: 25 * k, alto: 11 * k },
-      agujero: { x: 0, y: radio + 1.2 * k },
-      angulo: -Math.PI / 2, // la argolla sale para arriba
-      huella: { x: 0, y: -10 * k },
+      contorno: [circulo(0, 0, radio, 128)],
+      zona: { cx: 0, cy: 1 * k, ancho: 25 * k, alto: 10 * k },
+      huella: { x: 0, y: -10.3 * k },
     };
   }
   if (forma === "Corazón") {
     const puntos: Contorno = [];
-    for (let indice = 0; indice < 120; indice++) {
-      const t = (indice / 120) * Math.PI * 2;
+    for (let indice = 0; indice < 160; indice++) {
+      const t = (indice / 160) * Math.PI * 2;
       const x = 16 * Math.pow(Math.sin(t), 3);
       const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
       puntos.push({ X: Math.round(x * 1.2 * k * ESCALA), Y: Math.round(y * 1.2 * k * ESCALA) });
     }
-    // Argolla en el medio de arriba, entre los dos lóbulos.
-    const arriba = 13 * k;
     return {
-      // La pestaña de la argolla, unida a los lóbulos con curvas (engordar y afinar).
-      contorno: engordar(engordar(unir([puntos, circulo(0, arriba, RADIO_OREJA, 48)]), 2.2), -2.2),
-      zona: { cx: 0, cy: -1 * k, ancho: 24 * k, alto: 10 * k },
-      agujero: { x: 0, y: arriba },
-      angulo: -Math.PI / 2,
+      contorno: unir([puntos]),
+      zona: { cx: 0, cy: 1.5 * k, ancho: 24 * k, alto: 9.5 * k },
       huella: { x: 0, y: -10.5 * k },
     };
   }
-  // Hueso: cuerpo + cuatro "nudos" redondos.
+  // Hueso: cuerpo + cuatro "nudos" redondos. La huellita va en el nudo de abajo a la derecha.
   const nudo = 7.6 * k;
   const ancho = 17 * k;
   const alto = 6.4 * k;
   return {
     contorno: unir([
       rectangulo(-ancho, -alto - 0.6 * k, ancho, alto + 0.6 * k),
-      // Pestaña de la argolla.
-      circulo(0, alto + 0.6 * k + 2.6, RADIO_OREJA, 48),
-      rectangulo(-RADIO_OREJA, alto, RADIO_OREJA, alto + 0.6 * k + 2.6),
       circulo(-ancho, alto, nudo, 64),
       circulo(-ancho, -alto, nudo, 64),
       circulo(ancho, alto, nudo, 64),
       circulo(ancho, -alto, nudo, 64),
     ]),
-    zona: { cx: 0, cy: -0.5 * k, ancho: 28 * k, alto: 10 * k },
-    agujero: { x: 0, y: alto + 0.6 * k + 2.6 },
-    angulo: -Math.PI / 2,
-    huella: { x: ancho - 1.5 * k, y: -alto + 0.8 * k },
+    zona: { cx: 0, cy: 0, ancho: 26 * k, alto: 9.5 * k },
+    huella: { x: ancho + 1.4 * k, y: -alto - 0.4 * k },
   };
 }
 
@@ -541,25 +507,18 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
   const ABAJO = PROFUNDIDAD_GRABADO;
   const ARRIBA = 0.6;
 
-  const agujero = [circulo(forma.agujero.x, forma.agujero.y, RADIO_AGUJERO, 48)];
-  const cuerpo = operar(ClipperLib.ClipType.ctDifference, forma.contorno, agujero);
+  const cuerpo = forma.contorno;
+  // Anillo arriba al medio, por fuera de la forma (la forma queda entera).
+  const franja = operar(ClipperLib.ClipType.ctIntersection, cuerpo, [rectangulo(-0.4, -1000, 0.4, 1000)]);
+  const centro = lugarAnillo(cuerpo, 0, limites(franja).maxY, 0, 1);
+  const anillo = armarAnillo(centro, cuerpo);
 
   // Borde de color por el contorno de afuera.
   const ANCHO_BORDE = 1.3;
-  const reborde = operar(
-    ClipperLib.ClipType.ctDifference,
-    operar(ClipperLib.ClipType.ctDifference, forma.contorno, engordar(forma.contorno, -ANCHO_BORDE)),
-    agujero
-  );
+  const reborde = operar(ClipperLib.ClipType.ctDifference, cuerpo, engordar(cuerpo, -ANCHO_BORDE));
 
-  // Nombre (y huellita: en el hueso a la derecha, en las otras abajo), lejos del borde.
-  const zona = { ...forma.zona };
-  if (datos.huella && datos.forma === "Hueso") {
-    zona.ancho -= 9 * k;
-    zona.cx -= 4.5 * k;
-  } else if (datos.huella) {
-    zona.cy += 2.5 * k;
-  }
+  // Nombre centrado (igual con o sin huellita), lejos del borde.
+  const zona = forma.zona;
   let nombre = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho, zona.alto);
   if (datos.huella) nombre = unir([...nombre, ...huellita(forma.huella.x, forma.huella.y, k)]);
   nombre = operar(ClipperLib.ClipType.ctIntersection, nombre, engordar(cuerpo, -(ANCHO_BORDE + 1.1)));
@@ -578,7 +537,7 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
     : [];
   const abajoResto = telefono.length ? operar(ClipperLib.ClipType.ctDifference, cuerpo, telefono) : cuerpo;
 
-  const total = limites(cuerpo);
+  const total = limites([...cuerpo, ...anillo]);
   const dx = (total.minX + total.maxX) / 2;
   const dy = (total.minY + total.maxY) / 2;
   const extruir = (contornos: Contornos, desde: number, alto: number) => {
@@ -595,6 +554,7 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
   const capaMedio = extruir(cuerpo, ABAJO, ALTO_CHAPITA - ABAJO - ARRIBA);
   const capaArriba = extruir(arribaResto, ALTO_CHAPITA - ARRIBA, ARRIBA);
   const geometriaColor = extruir(arribaColor, ALTO_CHAPITA - ARRIBA, ARRIBA);
+  const geometriaAnillo = extruir(anillo, 0, ALTO_CHAPITA);
   const geometriaTelefono =
     datos.atras === "Color" && telefono.length ? extruir(telefono, 0, ABAJO) : undefined;
 
@@ -604,9 +564,10 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
     base: mergeGeometries([capaAbajo, capaMedio, capaArriba]) ?? capaMedio,
     partesBase: [capaAbajo, capaMedio, capaArriba],
     letras: geometriaColor,
+    anillo: geometriaAnillo,
     telefono: geometriaTelefono,
     soloLetras: false,
-    aro: { x: forma.agujero.x - dx, y: forma.agujero.y - dy, angulo: forma.angulo },
+    aro: { x: centro.x - dx, y: centro.y - dy, angulo: -Math.PI / 2 },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
     grosor: ALTO_CHAPITA,

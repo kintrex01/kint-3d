@@ -521,6 +521,24 @@ export type AccionesAdmin = {
     pedido: { email: string; bloqueado: boolean };
     respuesta: { cliente: ClienteAdmin };
   };
+  admin_ruleta_giros_listar: {
+    pedido: SinDatos;
+    respuesta: { giros: GiroRegalo[] };
+  };
+  /* giros: -1 = ilimitados, 0 = quitar. */
+  admin_ruleta_giros_guardar: {
+    pedido: { email: string; giros: number; nota?: string };
+    respuesta: { giros: GiroRegalo[] };
+  };
+};
+
+/* Giros de la ruleta que el dueño le regala a un cliente. */
+export type GiroRegalo = {
+  email: string;
+  nombre: string;
+  giros: number; // -1 = ilimitados
+  nota: string;
+  desde: string;
 };
 
 export type TipoAccionAdmin = keyof AccionesAdmin;
@@ -561,4 +579,6 @@ export const ACCIONES_ADMIN = [
   "admin_calc_guardar",
   "admin_clientes_buscar",
   "admin_cliente_estado",
+  "admin_ruleta_giros_listar",
+  "admin_ruleta_giros_guardar",
 ] as const satisfies readonly TipoAccionAdmin[];

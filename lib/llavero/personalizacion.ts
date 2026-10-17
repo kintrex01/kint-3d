@@ -33,13 +33,29 @@ export const TAMANOS_LLAVERO = [
   { nombre: "Grande", alto: 14 },
 ] as const;
 
-/* Cuánto sobresale el borde alrededor de las letras, en mm. */
+/*
+ * Cuánto sobresale el borde alrededor de las letras, en mm (una barrita).
+ * Los pedidos viejos traen un nombre (Fino, Normal...): se pasa a mm.
+ */
 export const BORDES_LLAVERO = [
   { nombre: "Fino", mm: 1.6 },
   { nombre: "Normal", mm: 2.3 },
   { nombre: "Grueso", mm: 3.1 },
   { nombre: "Extra", mm: 4 },
 ] as const;
+export const BORDE_MIN = 0.5;
+export const BORDE_MAX = 6;
+export const BORDE_PASO = 0.1;
+export const BORDE_NORMAL = 2.3;
+
+export function limpiarBorde(valor: unknown) {
+  const nombrado = BORDES_LLAVERO.find((borde) => borde.nombre === valor);
+  if (nombrado) return nombrado.mm;
+  const numero = Number(String(valor ?? "").replace(",", "."));
+  if (valor === undefined || valor === null || valor === "" || !Number.isFinite(numero)) return BORDE_NORMAL;
+  const redondeado = Math.round(numero * 10) / 10;
+  return Math.min(BORDE_MAX, Math.max(BORDE_MIN, redondeado));
+}
 
 /* Qué hay detrás de las letras. */
 export const FONDOS_LLAVERO = [
@@ -60,9 +76,14 @@ export function limpiarSeparacion(valor: unknown) {
   return Math.min(SEPARACION_MAX, Math.max(SEPARACION_MIN, redondeado));
 }
 
-/* Espacio extra entre los dos renglones, en mm (negativo = más pegados). */
-export const RENGLONES_MIN = -8;
-export const RENGLONES_MAX = 6;
+/*
+ * Espacio extra entre los dos renglones, en mm (negativo = más pegados).
+ * 0 = renglones juntitos (1,1 veces el alto de la letra). Los pedidos viejos
+ * lo traen como "Renglones" (medido desde 1,6 veces): se convierte al leer.
+ */
+export const RENGLONES_MIN = -12;
+export const RENGLONES_MAX = 8;
+export const INTERLINEADO = 1.1;
 
 export function limpiarRenglones(valor: unknown) {
   const numero = Number(valor);
@@ -81,10 +102,10 @@ export type PersonalizacionLlavero = {
   texto2?: string; // segunda línea, opcional
   fuente: string;
   tamano: string;
-  borde?: string; // "Normal" si no viene
+  borde?: string | number; // mm (o un nombre viejo: "Normal"...)
   fondo?: string; // "Contorno" si no viene
   separacion?: number; // mm extra entre letras (0 si no viene)
-  renglones?: number; // mm extra entre los dos renglones (0 si no viene)
+  renglones?: number; // mm extra entre los dos renglones (0 = juntitos)
 };
 
 export function limpiarTextoLlavero(texto: string) {
@@ -102,8 +123,8 @@ export function errorTextoLlavero(texto: string, opcional = false) {
   return "";
 }
 
-export function bordeMm(nombre?: string) {
-  return (BORDES_LLAVERO.find((borde) => borde.nombre === nombre) ?? BORDES_LLAVERO[1]).mm;
+export function bordeMm(borde?: string | number) {
+  return limpiarBorde(borde);
 }
 
 export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero) {
@@ -112,10 +133,10 @@ export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero
     personalizacion.texto2?.trim() ? `Texto 2: ${personalizacion.texto2.trim()}` : "",
     `Fuente: ${personalizacion.fuente}`,
     `Tamaño: ${personalizacion.tamano}`,
-    `Borde: ${personalizacion.borde || "Normal"}`,
+    `Borde: ${limpiarBorde(personalizacion.borde)}`,
     `Fondo: ${personalizacion.fondo || "Contorno"}`,
     `Separación: ${limpiarSeparacion(personalizacion.separacion)}`,
-    personalizacion.texto2?.trim() ? `Renglones: ${limpiarRenglones(personalizacion.renglones)}` : "",
+    personalizacion.texto2?.trim() ? `Entre renglones: ${limpiarRenglones(personalizacion.renglones)}` : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -135,10 +156,15 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
   const tamano = TAMANOS_LLAVERO.find((opcion) => opcion.nombre === campos["tamaño"])?.nombre;
   if (!texto || !fuente || !tamano) return null;
 
-  const borde = BORDES_LLAVERO.find((opcion) => opcion.nombre === campos["borde"])?.nombre ?? "Normal";
+  const borde = limpiarBorde(campos["borde"]);
   const fondo = FONDOS_LLAVERO.find((opcion) => opcion.nombre === campos["fondo"])?.nombre ?? "Contorno";
   const separacion = limpiarSeparacion(campos["separación"] ?? 0);
-  const renglones = limpiarRenglones(campos["renglones"] ?? 0);
+  // Pedidos viejos: "Renglones" medía desde 1,6 veces el alto de la letra.
+  const altoLetra = TAMANOS_LLAVERO.find((opcion) => opcion.nombre === tamano)?.alto ?? 11;
+  const renglones =
+    campos["entre renglones"] !== undefined
+      ? limpiarRenglones(campos["entre renglones"])
+      : limpiarRenglones(Number(campos["renglones"] ?? 0) + altoLetra * (1.6 - INTERLINEADO));
   return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones };
 }
 
@@ -219,5 +245,33 @@ export function leerMascota(comentario: string): PersonalizacionMascota | null {
     atras: campos["atrás"] === "Color" ? "Color" : "Grabado",
     fuente,
     tamano,
+  };
+}
+
+/*
+ * Colores de cada parte, desde la lista de colores de la línea.
+ *   Llavero: [base, letras, anillo]    (pedidos viejos: [base, letras])
+ *   Chapita: [chapita, borde y nombre, anillo, teléfono?]
+ *            (pedidos viejos: [chapita, nombre] o [chapita, nombre, teléfono])
+ * Sin anillo elegido, el anillo va del color de la base (o de las letras, en "Solo letras").
+ */
+export function coloresPieza(personalizacion: PersonalizacionLlavero | PersonalizacionMascota, colores: string[]) {
+  const [base = "", letras = ""] = colores;
+  if ("tipo" in personalizacion && personalizacion.tipo === "Mascota") {
+    const conTelefono = personalizacion.atras === "Color";
+    const viejo = conTelefono ? colores.length < 4 : colores.length < 3;
+    return {
+      base,
+      letras,
+      anillo: viejo ? base : colores[2] || base,
+      telefono: conTelefono ? (viejo ? colores[2] : colores[3]) || "" : "",
+    };
+  }
+  const soloLetras = (personalizacion as PersonalizacionLlavero).fondo === "Solo letras";
+  return {
+    base: soloLetras ? letras : base,
+    letras,
+    anillo: colores[2] || (soloLetras ? letras : base),
+    telefono: "",
   };
 }

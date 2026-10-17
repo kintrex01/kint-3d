@@ -1,9 +1,29 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageSquareText, RefreshCw, Search, X, Zap } from "lucide-react";
+import {
+  Bot,
+  ClipboardList,
+  Gift,
+  HeartHandshake,
+  MessageSquareText,
+  Palette,
+  Percent,
+  Power,
+  RefreshCw,
+  Search,
+  Settings2,
+  Star,
+  Store,
+  Trash2,
+  Wrench,
+  X,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
-import type { FilaConfig } from "@/lib/admin-tipos";
+import type { ClienteAdmin, FilaConfig } from "@/lib/admin-tipos";
+import { colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   Boton,
   CajaError,
@@ -12,7 +32,6 @@ import {
   Esqueleto,
   Interruptor,
   Tarjeta,
-  TituloSeccion,
   Vacio,
   claseInput,
   useAvisos,
@@ -173,6 +192,41 @@ function validarNumero(
 }
 
 /* ------------------------------------------------------------------ */
+/* Secciones: ícono, color y para qué sirve cada una                    */
+/* ------------------------------------------------------------------ */
+
+type InfoSeccion = { icono: LucideIcon; color: string; detalle: string };
+
+const INFO_SECCIONES: Record<string, InfoSeccion> = {
+  "Control general": { icono: Power, color: "#ef4444", detalle: "Prender o pausar la web y los avisos" },
+  Pedidos: { icono: ClipboardList, color: "#3b82f6", detalle: "Pedidos urgentes, recargo y cupos" },
+  Tienda: { icono: Store, color: "#8b5cf6", detalle: "Precios por mayor de la tienda" },
+  Servicios: { icono: Wrench, color: "#f59e0b", detalle: "Armado, alisado y boquillas en /cotizar" },
+  Automatizaciones: { icono: Bot, color: "#06b6d4", detalle: "Cosas que se hacen solas" },
+  Promociones: { icono: Percent, color: "#ec4899", detalle: "Descuento para todos por un tiempo" },
+  Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
+  Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
+  Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
+  General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
+};
+
+const RULETA = "Ruleta";
+const INFO_RULETA: InfoSeccion = { icono: Gift, color: "#d946ef", detalle: "Regalale giros a un cliente" };
+
+function infoSeccion(titulo: string): InfoSeccion {
+  if (titulo === RULETA) return INFO_RULETA;
+  return INFO_SECCIONES[titulo] ?? INFO_SECCIONES.General;
+}
+
+/* Lo más importante, arriba de todo y bien grande. */
+const ESTADO_WEB: { clave: string; titulo: string; prendido: string; apagado: string }[] = [
+  { clave: "estado_pagina", titulo: "Página /cotizar", prendido: "Funcionando", apagado: "Pausada" },
+  { clave: "aceptar_pedidos", titulo: "Pedidos nuevos", prendido: "Se reciben", apagado: "Cerrados" },
+  { clave: "tienda_abierta", titulo: "Tienda", prendido: "Vendiendo", apagado: "Cerrada" },
+  { clave: "mostrar_aviso_emergente", titulo: "Aviso emergente", prendido: "Se muestra", apagado: "Apagado" },
+];
+
+/* ------------------------------------------------------------------ */
 /* Página                                                              */
 /* ------------------------------------------------------------------ */
 
@@ -185,6 +239,7 @@ export default function ConfiguracionAdmin() {
   const avisar = useAvisos();
 
   const [busqueda, setBusqueda] = useState("");
+  const [pestana, setPestana] = useState("");
   const [optimistas, setOptimistas] = useState<Record<string, string>>({});
   const [confirmando, setConfirmando] = useState<{
     fila: FilaConfig;
@@ -234,19 +289,12 @@ export default function ConfiguracionAdmin() {
     void guardarToggle(fila, activo);
   }
 
-  const secciones = useMemo(() => {
+  // Todas las secciones (sin filtrar): para las pestañas.
+  const todas = useMemo(() => {
     const lista: { titulo: string; filas: FilaConfig[] }[] = [];
-    const termino = normalizar(busqueda.trim());
-
     for (const fila of filas) {
       if (fila.esSeccion) continue;
       const titulo = tituloSeccion(fila.seccion);
-      if (termino) {
-        const texto = normalizar(
-          [fila.etiqueta, fila.clave, descripcion(fila.clave), titulo].join(" ")
-        );
-        if (!texto.includes(termino)) continue;
-      }
       let seccion = lista.find((item) => item.titulo === titulo);
       if (!seccion) {
         seccion = { titulo, filas: [] };
@@ -255,7 +303,29 @@ export default function ConfiguracionAdmin() {
       seccion.filas.push(fila);
     }
     return lista;
-  }, [filas, busqueda]);
+  }, [filas]);
+
+  // Con búsqueda: lo que coincide, de todas las secciones.
+  const encontradas = useMemo(() => {
+    const termino = normalizar(busqueda.trim());
+    if (!termino) return [];
+    return todas
+      .map((seccion) => ({
+        ...seccion,
+        filas: seccion.filas.filter((fila) =>
+          normalizar([fila.etiqueta, fila.clave, descripcion(fila.clave), seccion.titulo].join(" ")).includes(termino)
+        ),
+      }))
+      .filter((seccion) => seccion.filas.length);
+  }, [todas, busqueda]);
+
+  const titulos = [...todas.map((seccion) => seccion.titulo), RULETA];
+  const elegida = titulos.includes(pestana) ? pestana : titulos[0] || RULETA;
+  const buscando = Boolean(busqueda.trim());
+  const estadoWeb = ESTADO_WEB.map((item) => ({
+    ...item,
+    fila: filas.find((fila) => fila.clave === item.clave && fila.tipo === "toggle"),
+  })).filter((item) => item.fila);
 
   return (
     <>
@@ -290,6 +360,53 @@ export default function ConfiguracionAdmin() {
 
       {datos && (
         <>
+          {/* Estado de la web: lo que más se toca, de un vistazo. */}
+          {estadoWeb.length > 0 && (
+            <div className="mb-4 grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+              {estadoWeb.map(({ clave, titulo, prendido, apagado, fila }) => {
+                const activo = estaHabilitada(optimistas[clave] ?? fila!.valor);
+                return (
+                  <div
+                    key={clave}
+                    className={`relative overflow-hidden rounded-2xl border p-3.5 transition ${
+                      activo
+                        ? "border-emerald-500/40 bg-emerald-500/[0.08]"
+                        : "border-red-500/40 bg-red-500/[0.08]"
+                    }`}
+                  >
+                    <span
+                      aria-hidden
+                      className={`absolute -right-6 -top-6 h-20 w-20 rounded-full blur-2xl ${
+                        activo ? "bg-emerald-400/30" : "bg-red-400/30"
+                      }`}
+                    />
+                    <p className="relative text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                      {titulo}
+                    </p>
+                    <div className="relative mt-1 flex items-center justify-between gap-2">
+                      <p
+                        className={`flex items-center gap-1.5 text-base font-black ${
+                          activo ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        <span
+                          className={`h-2 w-2 rounded-full ${activo ? "animate-pulse bg-emerald-500" : "bg-red-500"}`}
+                        />
+                        {activo ? prendido : apagado}
+                      </p>
+                      <Interruptor
+                        activo={activo}
+                        onCambiar={(valor) => alCambiarToggle(fila!, valor)}
+                        deshabilitado={optimistas[clave] !== undefined}
+                        etiqueta={titulo}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="sticky top-[calc(49px+max(0.5rem,env(safe-area-inset-top)))] z-20 -mx-4 bg-[var(--page-bg)]/90 px-4 pb-3 pt-1 backdrop-blur-xl sm:mx-0 sm:px-0 lg:top-0">
             <label className="relative block">
               <span className="sr-only">Buscar una opción</span>
@@ -301,7 +418,7 @@ export default function ConfiguracionAdmin() {
                 type="search"
                 value={busqueda}
                 onChange={(evento) => setBusqueda(evento.target.value)}
-                placeholder="Buscar (ej. tienda, urgente, filamento)"
+                placeholder="Buscar en todo (ej. urgente, puntos, rojo)"
                 className={`${claseInput} h-11 pl-10 pr-11`}
               />
               {busqueda && (
@@ -315,42 +432,70 @@ export default function ConfiguracionAdmin() {
                 </button>
               )}
             </label>
+
+            {/* Pestañas por sección */}
+            {!buscando && (
+              <div className="-mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0">
+                {titulos.map((titulo) => {
+                  const info = infoSeccion(titulo);
+                  const Icono = info.icono;
+                  const activa = titulo === elegida;
+                  return (
+                    <button
+                      key={titulo}
+                      type="button"
+                      onClick={() => setPestana(titulo)}
+                      aria-pressed={activa}
+                      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-black transition ${
+                        activa
+                          ? "border-transparent text-white shadow-md"
+                          : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                      }`}
+                      style={activa ? { background: info.color } : undefined}
+                    >
+                      <Icono size={14} style={activa ? undefined : { color: info.color }} />
+                      {titulo}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {secciones.length === 0 ? (
-            busqueda ? (
+          {buscando ? (
+            encontradas.length === 0 ? (
               <Vacio
                 titulo="Nada coincide"
                 texto={`No hay opciones que contengan «${busqueda.trim()}».`}
                 icono={<Search size={30} strokeWidth={1.5} />}
               />
             ) : (
-              <Vacio
-                titulo="Sin opciones"
-                texto="La hoja Configuración no tiene filas para mostrar."
-              />
+              encontradas.map((seccion) => (
+                <SeccionConfig
+                  key={seccion.titulo}
+                  titulo={seccion.titulo}
+                  filas={seccion.filas}
+                  todasLasFilas={filas}
+                  optimistas={optimistas}
+                  onToggle={alCambiarToggle}
+                  guardar={guardar}
+                />
+              ))
             )
+          ) : elegida === RULETA ? (
+            <>
+              <CabeceraSeccion titulo={RULETA} />
+              <GirosRuleta />
+            </>
           ) : (
-            secciones.map((seccion, indice) => (
-              // La hoja puede repetir un título de sección.
-              <section key={`${seccion.titulo}-${indice}`}>
-                <div className={indice === 0 ? "-mt-4" : ""}>
-                  <TituloSeccion>{seccion.titulo}</TituloSeccion>
-                </div>
-                <Tarjeta className="divide-y divide-[var(--kint-panel-border)]">
-                  {seccion.filas.map((fila) => (
-                    <FilaAjuste
-                      key={fila.fila}
-                      fila={fila}
-                      filas={filas}
-                      valorOptimista={optimistas[fila.clave]}
-                      onToggle={(activo) => alCambiarToggle(fila, activo)}
-                      guardar={guardar}
-                    />
-                  ))}
-                </Tarjeta>
-              </section>
-            ))
+            <SeccionConfig
+              titulo={elegida}
+              filas={todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []}
+              todasLasFilas={filas}
+              optimistas={optimistas}
+              onToggle={alCambiarToggle}
+              guardar={guardar}
+            />
           )}
         </>
       )}
@@ -391,6 +536,357 @@ export default function ConfiguracionAdmin() {
         }}
       />
     </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Una sección                                                          */
+/* ------------------------------------------------------------------ */
+
+function CabeceraSeccion({ titulo, cantidad }: { titulo: string; cantidad?: number }) {
+  const info = infoSeccion(titulo);
+  const Icono = info.icono;
+  return (
+    <div
+      className="mb-3 mt-2 flex items-center gap-3 rounded-2xl border p-3.5"
+      style={{
+        borderColor: `color-mix(in srgb, ${info.color} 35%, transparent)`,
+        background: `linear-gradient(120deg, color-mix(in srgb, ${info.color} 16%, transparent), transparent 70%)`,
+      }}
+    >
+      <span
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-lg"
+        style={{ background: info.color, boxShadow: `0 8px 20px color-mix(in srgb, ${info.color} 40%, transparent)` }}
+      >
+        <Icono size={21} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-lg font-black leading-tight">{titulo}</p>
+        <p className="text-xs text-[var(--text-muted)]">{info.detalle}</p>
+      </div>
+      {cantidad !== undefined && (
+        <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-1 text-[11px] font-black text-[var(--text-muted)]">
+          {cantidad} {cantidad === 1 ? "opción" : "opciones"}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function SeccionConfig({
+  titulo,
+  filas,
+  todasLasFilas,
+  optimistas,
+  onToggle,
+  guardar,
+}: {
+  titulo: string;
+  filas: FilaConfig[];
+  todasLasFilas: FilaConfig[];
+  optimistas: Record<string, string>;
+  onToggle: (fila: FilaConfig, activo: boolean) => void;
+  guardar: Guardar;
+}) {
+  // Filamentos: una grilla de colores. Fidelidad: los hitos en cuadritos.
+  const colores = filas.filter((fila) => fila.clave.startsWith("filamento_") && fila.tipo === "toggle");
+  const hitos = filas
+    .filter((fila) => /^fidelidad_hito_\d+$/.test(fila.clave))
+    .sort((a, b) => Number(a.clave.split("_").pop()) - Number(b.clave.split("_").pop()));
+  const resto = filas.filter((fila) => !colores.includes(fila) && !hitos.includes(fila));
+  const llaves = resto.filter((fila) => fila.tipo === "toggle");
+  const valores = resto.filter((fila) => fila.tipo !== "toggle");
+
+  return (
+    <section className="mb-6">
+      <CabeceraSeccion titulo={titulo} cantidad={filas.length} />
+
+      {llaves.length > 0 && (
+        <div className="grid gap-2.5 md:grid-cols-2">
+          {llaves.map((fila) => (
+            <Tarjeta key={fila.fila}>
+              <FilaAjuste
+                fila={fila}
+                filas={todasLasFilas}
+                valorOptimista={optimistas[fila.clave]}
+                onToggle={(activo) => onToggle(fila, activo)}
+                guardar={guardar}
+              />
+            </Tarjeta>
+          ))}
+        </div>
+      )}
+
+      {valores.length > 0 && (
+        <div className={`grid gap-2.5 md:grid-cols-2 ${llaves.length ? "mt-2.5" : ""}`}>
+          {valores.map((fila) => (
+            <Tarjeta key={fila.fila}>
+              <FilaAjuste
+                fila={fila}
+                filas={todasLasFilas}
+                onToggle={() => undefined}
+                guardar={guardar}
+              />
+            </Tarjeta>
+          ))}
+        </div>
+      )}
+
+      {hitos.length > 0 && (
+        <Tarjeta className="mt-2.5 p-4">
+          <p className="font-bold">Cupones por cantidad de pedidos</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            Al llegar a esa cantidad de pedidos, el cliente recibe un cupón con ese descuento.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {hitos.map((fila) => (
+              <div key={fila.fila} className="rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] p-2.5">
+                <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Pedido n.º {fila.clave.split("_").pop()}
+                </p>
+                <EditorValor key={String(fila.valor)} fila={fila} filas={todasLasFilas} guardar={guardar} compacto />
+              </div>
+            ))}
+          </div>
+        </Tarjeta>
+      )}
+
+      {colores.length > 0 && (
+        <div className={`grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 ${resto.length ? "mt-2.5" : ""}`}>
+          {colores.map((fila) => {
+            const nombre = fila.etiqueta.replace(/^filamento\s+/i, "");
+            const activo = estaHabilitada(optimistas[fila.clave] ?? fila.valor);
+            const mini = fotoFilamento(nombre)?.mini;
+            return (
+              <div
+                key={fila.fila}
+                className={`flex items-center gap-2.5 rounded-2xl border p-2.5 transition ${
+                  activo
+                    ? "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
+                    : "border-dashed border-[var(--kint-panel-border)] bg-transparent opacity-60"
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-black/15 dark:ring-white/20"
+                  style={mini ? { backgroundImage: `url("${mini}")` } : { background: colorFilamento(nombre) }}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-bold">{nombre}</span>
+                <Interruptor
+                  activo={activo}
+                  onCambiar={(valor) => onToggle(fila, valor)}
+                  deshabilitado={optimistas[fila.clave] !== undefined}
+                  etiqueta={fila.etiqueta}
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Ruleta: giros de regalo                                              */
+/* ------------------------------------------------------------------ */
+
+const CANTIDADES_GIROS = [1, 3, 5, 10];
+
+function GirosRuleta() {
+  const { datos, setDatos, error, cargando, recargar } = useDatosAdmin("admin_ruleta_giros_listar", {});
+  const avisar = useAvisos();
+  const [email, setEmail] = useState("");
+  const [giros, setGiros] = useState(3);
+  const [nota, setNota] = useState("");
+  const [guardando, setGuardando] = useState("");
+  const [sugerencias, setSugerencias] = useState<ClienteAdmin[]>([]);
+  const lista = datos?.giros ?? [];
+
+  async function buscar(texto: string) {
+    setEmail(texto);
+    if (texto.trim().length < 2) {
+      setSugerencias([]);
+      return;
+    }
+    try {
+      const respuesta = await accionAdmin("admin_clientes_buscar", { q: texto.trim() });
+      setSugerencias(respuesta.clientes.slice(0, 5));
+    } catch {
+      setSugerencias([]);
+    }
+  }
+
+  async function guardarGiros(correo: string, cantidad: number, textoNota = "") {
+    setGuardando(correo + cantidad);
+    try {
+      const respuesta = await accionAdmin("admin_ruleta_giros_guardar", {
+        email: correo,
+        giros: cantidad,
+        nota: textoNota,
+      });
+      setDatos({ giros: respuesta.giros });
+      avisar(
+        cantidad === 0
+          ? "Giros quitados"
+          : cantidad === -1
+          ? "Listo: giros ilimitados"
+          : `Listo: ${cantidad} ${cantidad === 1 ? "giro" : "giros"} de regalo`
+      );
+      return true;
+    } catch (errorGuardado) {
+      avisar(errorGuardado instanceof Error ? errorGuardado.message : "No se pudo guardar.", "error");
+      return false;
+    } finally {
+      setGuardando("");
+    }
+  }
+
+  return (
+    <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
+      <Tarjeta className="p-4">
+        <p className="font-black">Regalar giros</p>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+          Se usan cuando no le toca la tirada normal y no le cambian la espera de 2 días. Le aparecen en /ruleta.
+        </p>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Cliente (correo o nombre)</span>
+          <input
+            value={email}
+            onChange={(evento) => void buscar(evento.target.value)}
+            placeholder="amigo@gmail.com"
+            autoComplete="off"
+            className={`${claseInput} h-11`}
+          />
+        </label>
+        {sugerencias.length > 0 && (
+          <div className="mt-1.5 overflow-hidden rounded-xl border border-[var(--kint-panel-border)]">
+            {sugerencias.map((cliente) => (
+              <button
+                key={cliente.email}
+                type="button"
+                onClick={() => {
+                  setEmail(cliente.email);
+                  setSugerencias([]);
+                }}
+                className="flex w-full items-center justify-between gap-2 border-b border-[var(--kint-panel-border)] px-3 py-2 text-left text-sm last:border-b-0 hover:bg-[var(--kint-panel-soft)]"
+              >
+                <span className="min-w-0 truncate font-bold">{cliente.alias || cliente.nombre}</span>
+                <span className="truncate text-xs text-[var(--text-muted)]">{cliente.email}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <p className="mb-1.5 mt-3 text-xs font-bold text-[var(--text-muted)]">Cuántos giros</p>
+        <div className="flex flex-wrap gap-1.5">
+          {[...CANTIDADES_GIROS, -1].map((cantidad) => (
+            <button
+              key={cantidad}
+              type="button"
+              onClick={() => setGiros(cantidad)}
+              aria-pressed={giros === cantidad}
+              className={`h-10 min-w-12 rounded-xl border px-3 text-sm font-black transition ${
+                giros === cantidad
+                  ? "border-transparent bg-fuchsia-500 text-white shadow-md"
+                  : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              }`}
+            >
+              {cantidad === -1 ? "∞ Ilimitados" : cantidad}
+            </button>
+          ))}
+          <input
+            type="number"
+            min={1}
+            max={999}
+            value={giros > 0 && !CANTIDADES_GIROS.includes(giros) ? giros : ""}
+            onChange={(evento) => setGiros(Math.max(1, Math.min(999, Math.floor(Number(evento.target.value) || 1))))}
+            placeholder="Otro"
+            aria-label="Otra cantidad"
+            className={`${claseInput} h-10 w-20`}
+          />
+        </div>
+
+        <label className="mt-3 block">
+          <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Nota (opcional, solo la ves vos)</span>
+          <input value={nota} onChange={(evento) => setNota(evento.target.value)} maxLength={80} placeholder="Ej.: mi amigo Juan" className={`${claseInput} h-11`} />
+        </label>
+
+        <Boton
+          variante="principal"
+          className="mt-4 w-full"
+          cargando={Boolean(guardando) && guardando === email.trim().toLowerCase() + giros}
+          disabled={!email.trim()}
+          icono={<Gift size={16} />}
+          onClick={async () => {
+            const ok = await guardarGiros(email.trim().toLowerCase(), giros, nota.trim());
+            if (ok) {
+              setEmail("");
+              setNota("");
+            }
+          }}
+        >
+          Regalar {giros === -1 ? "giros ilimitados" : `${giros} ${giros === 1 ? "giro" : "giros"}`}
+        </Boton>
+      </Tarjeta>
+
+      <Tarjeta className="p-4">
+        <div className="flex items-center justify-between">
+          <p className="font-black">Con giros de regalo</p>
+          <Boton variante="fantasma" tamano="chico" onClick={recargar} icono={<RefreshCw size={14} />} aria-label="Actualizar" className="h-9 w-9 px-0" />
+        </div>
+        {cargando && !datos ? (
+          <div className="mt-3">
+            <Esqueleto filas={2} />
+          </div>
+        ) : error && !datos ? (
+          <div className="mt-3">
+            <CajaError mensaje={error} onReintentar={recargar} />
+          </div>
+        ) : lista.length === 0 ? (
+          <p className="mt-6 text-center text-sm text-[var(--text-muted)]">Nadie tiene giros de regalo todavía.</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {lista.map((item) => (
+              <div key={item.email} className="flex items-center gap-3 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] p-2.5">
+                <span className="flex h-10 min-w-10 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/15 px-2 text-sm font-black text-fuchsia-500">
+                  {item.giros === -1 ? "∞" : item.giros}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{item.nombre || item.email}</p>
+                  <p className="truncate text-[11px] text-[var(--text-muted)]">
+                    {item.email}
+                    {item.nota ? ` · ${item.nota}` : ""}
+                  </p>
+                </div>
+                {item.giros !== -1 && (
+                  <Boton
+                    tamano="chico"
+                    variante="secundario"
+                    aria-label="Un giro más"
+                    cargando={guardando === item.email + (item.giros + 1)}
+                    onClick={() => void guardarGiros(item.email, item.giros + 1, item.nota)}
+                    className="w-9 px-0"
+                  >
+                    +1
+                  </Boton>
+                )}
+                <Boton
+                  tamano="chico"
+                  variante="peligro"
+                  aria-label="Quitar giros"
+                  cargando={guardando === item.email + 0}
+                  onClick={() => void guardarGiros(item.email, 0)}
+                  icono={<Trash2 size={14} />}
+                  className="w-9 px-0"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Tarjeta>
+    </div>
   );
 }
 
@@ -466,10 +962,12 @@ function EditorValor({
   fila,
   filas,
   guardar,
+  compacto = false,
 }: {
   fila: FilaConfig;
   filas: FilaConfig[];
   guardar: Guardar;
+  compacto?: boolean;
 }) {
   const avisar = useAvisos();
   const original = String(fila.valor ?? "");
@@ -537,8 +1035,9 @@ function EditorValor({
   const unidad = unidadConfig(fila, descripcion(fila.clave));
   const textoUnidad = [unidad.prefijo, unidad.sufijo].filter(Boolean).join(" ");
 
-  const anchoInput =
-    fila.tipo === "numero"
+  const anchoInput = compacto
+    ? "w-full"
+    : fila.tipo === "numero"
       ? unidad.sufijo && unidad.sufijo.length > 4
         ? "w-40"
         : "w-32"
@@ -560,7 +1059,7 @@ function EditorValor({
 
   return (
     <form
-      className="mt-2.5"
+      className={compacto ? "mt-1.5" : "mt-2.5"}
       onSubmit={(evento) => {
         evento.preventDefault();
         if (cambiado) void enviar(borrador);
@@ -664,7 +1163,7 @@ function EditorComentario({
             setBorrador(fila.comentario);
             setAbierto(true);
           }}
-          className="-ml-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-1 text-xs font-bold text-[var(--blue-main)] hover:underline dark:text-[var(--blue-soft)]"
+          className="-ml-1 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]"
         >
           <MessageSquareText size={14} />
           {fila.comentario

@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 /*
  * Ajustes de la cuenta del cliente (Apps Script: Cuenta_Kint3D.js).
  * 1. Correo → le llega un código de 4 caracteres.
- * 2. Código → sesión de 1 hora (token en sessionStorage).
+ * 2. Código → sesión de 1 día (token en localStorage: sigue abierta aunque cierres la pestaña).
  * 3. Ve sus pedidos y puntos, y cambia nombre, alias y celular.
  *    El correo no se cambia.
  */
@@ -51,6 +51,7 @@ type Cuenta = {
   email: string;
   nombre: string;
   alias: string;
+  aliasLibreDesde?: string; // "" = puede cambiarlo ya
   telefono: string;
   registro: string;
   topKint: boolean;
@@ -108,14 +109,14 @@ export default function CuentaPage() {
   const [error, setError] = useState("");
   const restaurado = useRef(false);
 
-  // Sesión guardada (1 hora): vuelve directo a la cuenta.
+  // Sesión guardada (1 día): vuelve directo a la cuenta.
   useEffect(() => {
     if (restaurado.current) return;
     restaurado.current = true;
 
     let guardada: { email: string; token: string } | null = null;
     try {
-      guardada = JSON.parse(sessionStorage.getItem(CLAVE_SESION) || "null");
+      guardada = JSON.parse(localStorage.getItem(CLAVE_SESION) || "null");
     } catch {
       guardada = null;
     }
@@ -131,7 +132,7 @@ export default function CuentaPage() {
         setCuenta(data.cuenta);
         setPaso("cuenta");
       } catch {
-        sessionStorage.removeItem(CLAVE_SESION);
+        localStorage.removeItem(CLAVE_SESION);
       } finally {
         setCargando(false);
       }
@@ -166,9 +167,9 @@ export default function CuentaPage() {
       setCuenta(data.cuenta);
       setPaso("cuenta");
       try {
-        sessionStorage.setItem(CLAVE_SESION, JSON.stringify({ email: email.trim(), token: data.token }));
+        localStorage.setItem(CLAVE_SESION, JSON.stringify({ email: email.trim(), token: data.token }));
       } catch {
-        // Sin sessionStorage: la sesión dura lo que la pestaña.
+        // Sin almacenamiento: la sesión dura lo que la página.
       }
     } catch (errorVerificar: unknown) {
       setError(errorVerificar instanceof Error ? errorVerificar.message : "El código no es correcto.");
@@ -179,7 +180,7 @@ export default function CuentaPage() {
 
   function salir() {
     try {
-      sessionStorage.removeItem(CLAVE_SESION);
+      localStorage.removeItem(CLAVE_SESION);
     } catch {
       // nada
     }
@@ -430,9 +431,29 @@ function PanelCuenta({
               Nombre público
             </span>
             <span className="mb-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
-              Es el que se ve en tus reseñas y en el ranking Top Kint (3 a 20 caracteres).
+              Es el que se ve en tus reseñas y en el ranking Top Kint (3 a 20 caracteres). Lo podés cambiar una vez cada 7 días.
             </span>
-            <input value={alias} onChange={(evento) => setAlias(evento.target.value)} autoComplete="username" autoCapitalize="none" maxLength={20} className={CLASE_INPUT} />
+            <input
+              value={alias}
+              onChange={(evento) => setAlias(evento.target.value)}
+              disabled={Boolean(cuenta.aliasLibreDesde)}
+              autoComplete="username"
+              autoCapitalize="none"
+              maxLength={20}
+              className={`${CLASE_INPUT} disabled:cursor-not-allowed disabled:opacity-60`}
+            />
+            {cuenta.aliasLibreDesde && (
+              <span className="mt-1.5 block text-[11px] font-bold leading-4 text-amber-600 dark:text-amber-400">
+                🔒 Lo vas a poder cambiar de nuevo el{" "}
+                {new Date(cuenta.aliasLibreDesde).toLocaleString("es-UY", {
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                .
+              </span>
+            )}
           </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">

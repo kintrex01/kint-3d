@@ -6,9 +6,8 @@
  * Se entra con la misma sesión de Ajustes (código por correo).
  */
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Star, Ticket } from "lucide-react";
+import { Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Star, Ticket } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 
@@ -29,6 +28,7 @@ type Estado = {
   premios: PremioRueda[];
   puede: boolean;
   proxima: string;
+  regalo?: number; // giros de regalo de Kint (-1 = ilimitados)
   puntos: number;
   alias: string;
   canjes: { id: string; nombre: string; puntos: number }[];
@@ -73,7 +73,7 @@ export default function RuletaPage() {
   // Sesión guardada por Ajustes (o por esta página).
   useEffect(() => {
     try {
-      const guardada = JSON.parse(sessionStorage.getItem(CLAVE_SESION) || "null");
+      const guardada = JSON.parse(localStorage.getItem(CLAVE_SESION) || "null");
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (guardada?.email && guardada?.token) setSesion(guardada);
     } catch {
@@ -91,7 +91,7 @@ export default function RuletaPage() {
     } catch (errorCarga) {
       const mensaje = errorCarga instanceof Error ? errorCarga.message : "No pudimos cargar la ruleta.";
       if (/sesi[oó]n/i.test(mensaje)) {
-        sessionStorage.removeItem(CLAVE_SESION);
+        localStorage.removeItem(CLAVE_SESION);
         setSesion(null);
       }
       setError(mensaje);
@@ -111,18 +111,12 @@ export default function RuletaPage() {
         <ThemeToggle />
       </div>
 
-      <section className="relative isolate -mx-4 mb-[-6rem] overflow-hidden px-4 pb-36 pt-28 sm:-mx-6 sm:px-6">
+      {/* El fondo sube hasta el borde de arriba (el menú deja h-28 / sm:h-32 libres). */}
+      <section className="relative isolate -mx-4 -mt-28 mb-[-7rem] overflow-hidden px-4 pb-32 pt-32 sm:-mx-6 sm:-mt-32 sm:px-6 sm:pt-24">
         <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
           <FondoKintAnimado />
         </div>
         <div className="relative z-10 mx-auto max-w-5xl">
-          <Link
-            href="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]"
-          >
-            <ArrowLeft size={16} />
-            Inicio
-          </Link>
           <p className="text-[11px] font-black uppercase tracking-[0.32em] text-red-500">Premios Kint</p>
           <h1 className="mt-2 bg-[linear-gradient(90deg,#f87171,#facc15_45%,#60a5fa)] bg-clip-text text-5xl font-black leading-none text-transparent sm:text-7xl">
             Ruleta Kint
@@ -187,7 +181,7 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
       const data = await llamar({ tipo: "cuenta_verificar", email: email.trim(), codigo: codigo.trim() });
       const sesion = { email: email.trim(), token: data.token };
       try {
-        sessionStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
+        localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
       } catch {
         // Dura lo que la pestaña.
       }
@@ -396,7 +390,7 @@ function Juego({
         setGanado(data.premio);
         const gano = ["puntos", "descuento", "regalo"].includes(data.premio.tipo);
         if (sonido) (gano || data.premio.tipo === "otra" ? fanfarria : pena)();
-        onEstado({ ...estado, puede: data.puede, proxima: data.proxima, puntos: data.puntos });
+        onEstado({ ...estado, puede: data.puede, proxima: data.proxima, regalo: data.regalo, puntos: data.puntos });
         if (gano) onRecargar();
       });
     } catch (errorGiro) {
@@ -454,6 +448,14 @@ function Juego({
               >
                 {sonido ? "🔊" : "🔇"}
               </button>
+              {estado.regalo ? (
+                <span
+                  title="Giros que te regaló Kint"
+                  className="inline-flex items-center gap-1 rounded-full bg-fuchsia-500/15 px-3 py-1.5 text-sm font-black text-fuchsia-500 ring-1 ring-inset ring-fuchsia-400/40"
+                >
+                  🎁 {estado.regalo === -1 ? "Giros ilimitados" : `${estado.regalo} ${estado.regalo === 1 ? "giro" : "giros"} de regalo`}
+                </span>
+              ) : null}
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-sm font-black text-amber-500 ring-1 ring-inset ring-amber-400/40">
                 <Star size={15} fill="currentColor" />
                 {estado.puntos.toLocaleString("es-UY")} puntos
