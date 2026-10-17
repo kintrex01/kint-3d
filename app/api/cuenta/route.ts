@@ -41,6 +41,8 @@ export async function POST(request: Request) {
         // Aparecer o no en el ranking Top Kint (solo al guardar).
         topKint: typeof body?.topKint === "boolean" ? body.topKint : undefined,
         opcion: String(body?.opcion || "").slice(0, 20),
+        // Ruleta: girar pagando con puntos.
+        conPuntos: body?.conPuntos === "si" || body?.conPuntos === true ? "si" : "",
       }),
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       cache: "no-store",

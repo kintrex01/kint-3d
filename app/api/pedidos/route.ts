@@ -2,6 +2,11 @@ import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 
+/* Lo que escribió el cliente va al correo como texto (no como HTML). */
+function escaparHtml(valor: unknown) {
+  return String(valor ?? "").replace(/[&<>"']/g, (letra) => `&#${letra.charCodeAt(0)};`);
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -597,24 +602,24 @@ if (archivosRegistrados.length > 0) {
       html: `
         <h2>Nuevo pedido recibido</h2>
         <p><strong>N° Pedido:</strong> ${data.pedido}</p>
-        <p><strong>Nombre:</strong> ${payload.nombre}</p>
+        <p><strong>Nombre:</strong> ${escaparHtml(payload.nombre)}</p>
 
-<p><strong>Alias:</strong> ${payload.alias}</p>
+<p><strong>Alias:</strong> ${escaparHtml(payload.alias)}</p>
 
-<p><strong>Email cliente:</strong> ${payload.email}</p>
-        <p><strong>WhatsApp:</strong> ${payload.telefono}</p>
+<p><strong>Email cliente:</strong> ${escaparHtml(payload.email)}</p>
+        <p><strong>WhatsApp:</strong> ${escaparHtml(payload.telefono)}</p>
         <p><strong>Fecha entrega:</strong> ${
           payload.fechaEntrega
             ? payload.fechasEntrega.length > 1
-              ? payload.fechasEntrega.join(", ")
-              : payload.fechaEntrega
+              ? escaparHtml(payload.fechasEntrega.join(", "))
+              : escaparHtml(payload.fechaEntrega)
             : "Sin fecha"
         }</p>
-        <p><strong>Escala:</strong> ${payload.escala}</p>
-        <p><strong>Color:</strong> ${payload.color}</p>
-        <p><strong>Armado:</strong> ${payload.armado}</p>
-        <p><strong>Alisado:</strong> ${payload.alisado}</p>
-        <p><strong>Boquilla:</strong> ${payload.boquilla}</p>
+        <p><strong>Escala:</strong> ${escaparHtml(payload.escala)}</p>
+        <p><strong>Color:</strong> ${escaparHtml(payload.color)}</p>
+        <p><strong>Armado:</strong> ${escaparHtml(payload.armado)}</p>
+        <p><strong>Alisado:</strong> ${escaparHtml(payload.alisado)}</p>
+        <p><strong>Boquilla:</strong> ${escaparHtml(payload.boquilla)}</p>
         <p>
   <strong>Pedido prioritario:</strong>
   ${
@@ -628,14 +633,14 @@ if (archivosRegistrados.length > 0) {
   <strong>Uso de imágenes autorizado:</strong>
   ${payload.usoImagenesAutorizado ? "Sí" : "No"}
 </p>
-        <p><strong>Archivo:</strong> ${archivosRegistrados.map(a => a.nombreArchivo).join(", ")}</p>
+        <p><strong>Archivo:</strong> ${escaparHtml(archivosRegistrados.map(a => a.nombreArchivo).join(", "))}</p>
         <p><strong>Archivo pesado:</strong> ${
   body.archivoPesadoWhatsapp
     ? "Sí, el cliente lo enviará por WhatsApp"
     : "No"
 }</p>
         <p><strong>Comentarios:</strong></p>
-        <p>${payload.comentarios || "Sin comentarios"}</p>
+        <p>${escaparHtml(payload.comentarios || "Sin comentarios")}</p>
       `,
     });
 

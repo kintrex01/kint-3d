@@ -30,6 +30,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // Tope por pedido: nadie puede pedir cientos de permisos de subida.
+    if (archivos.length > 15) {
+      throw new Error("Podés subir hasta 15 archivos por pedido.");
+    }
+
+    // Pedido real o el provisorio de Cotizar (todavía sin número).
+    if (!/^((KNT|TND)-\d{1,6}|COTIZACION-TEMP)$/.test(pedido)) {
+      throw new Error("El número de pedido no es válido.");
+    }
+
     const pedidoSeguro = pedido.replace(
       /[^A-Z0-9_-]/g,
       ""

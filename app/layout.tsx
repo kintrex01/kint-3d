@@ -4,6 +4,7 @@ import "./globals.css";
 import EstadoPagina from "../components/EstadoPagina";
 import MenuNavegacion from "../components/MenuNavegacion";
 import ScrollASeccion from "../components/ScrollASeccion";
+import BotonWhatsapp from "../components/BotonWhatsapp";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -92,6 +93,8 @@ export default function RootLayout({
   <ScrollASeccion />
 
   {children}
+
+  <BotonWhatsapp />
 </body>
     </html>
   );
