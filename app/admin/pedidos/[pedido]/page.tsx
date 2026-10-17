@@ -6,6 +6,20 @@ import { use, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
+  ClipboardList,
+  CircleDot,
+  Images,
+  History,
+  Paperclip,
+  Palette,
+  Percent,
+  Puzzle,
+  Quote,
+  Ruler,
+  ShoppingBag,
+  Sparkles,
+  Wallet,
+  Zap,
   ArrowRight,
   BellRing,
   CalendarDays,
@@ -36,8 +50,10 @@ import {
   Encabezado,
   Esqueleto,
   Hoja,
+  COLOR_FASE,
   Tarjeta,
   TituloSeccion,
+  faseEstado,
   claseInput,
   fechaDia,
   fechaHora,
@@ -59,6 +75,8 @@ import {
   ProgresoEstados,
 } from "@/components/admin/pedidos/partes";
 import { SeccionArchivos } from "@/components/admin/pedidos/ArchivosPedido";
+import { colorFilamento } from "@/lib/colores-filamento";
+import { Calculator, Inbox, FileText, CreditCard, BadgeCheck, Printer, PackageCheck, Truck, XCircle } from "lucide-react";
 import {
   SeccionPresupuesto,
   estadoPresupuesto,
@@ -400,6 +418,19 @@ export default function DetallePedidoAdmin({
     pedido.estado !== "Método de pago seleccionado";
   const vencida = entregaVencida(pedido.entrega, pedido.estado);
   const pago = pedido.pago;
+  const fase = faseEstado(pedido.estado);
+  const colorFase = COLOR_FASE[fase];
+  const IconoFase =
+    {
+      nuevo: Inbox,
+      presupuestado: FileText,
+      esperandoPago: CreditCard,
+      pagado: BadgeCheck,
+      imprimiendo: Printer,
+      terminado: PackageCheck,
+      entregado: Truck,
+      cancelado: XCircle,
+    }[fase] ?? Inbox;
 
   return (
     <>
@@ -420,54 +451,71 @@ export default function DetallePedidoAdmin({
         }
       />
 
-      {/* Cliente */}
-      <Tarjeta className="px-4 py-4">
-        <div className="flex flex-wrap gap-1.5">
-          <Chip tono={tonoEstado(pedido.estado)}>{textoEstado(pedido.estado)}</Chip>
-          {pedido.prioritario && (
-            <Chip tono="rojo">
-              <Flame size={11} aria-hidden />
-              Urgente
-            </Chip>
+      {/* Cliente: tarjeta con el color de la fase del pedido */}
+      <div
+        className="relative overflow-hidden rounded-3xl border p-5 shadow-[var(--shadow-soft)]"
+        style={{
+          borderColor: `${colorFase}66`,
+          background: `radial-gradient(120% 140% at 0% 0%, ${colorFase}38 0%, transparent 55%), radial-gradient(80% 80% at 100% 100%, ${colorFase}1f 0%, transparent 60%), var(--kint-panel)`,
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black text-white shadow"
+                style={{ background: colorFase }}
+              >
+                <IconoFase size={13} strokeWidth={2.6} />
+                {textoEstado(pedido.estado)}
+              </span>
+              {pedido.prioritario && (
+                <Chip tono="rojo">
+                  <Flame size={11} aria-hidden />
+                  Urgente
+                </Chip>
+              )}
+            </div>
+            <p className="mt-3 text-2xl font-black leading-tight sm:text-3xl">{pedido.nombre || "Sin nombre"}</p>
+            {pedido.email && (
+              <a
+                href={`mailto:${pedido.email}`}
+                className="mt-0.5 block break-all text-sm font-semibold text-[var(--text-muted)] underline-offset-2 hover:text-[var(--text-main)] hover:underline"
+              >
+                {pedido.email}
+              </a>
+            )}
+          </div>
+          {pago && pago.precioFinal > 0 && (
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Precio</p>
+              <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.precioFinal)}</p>
+              <p
+                className={`mt-1 text-[11px] font-black ${
+                  pago.confirmado ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--text-muted)]"
+                }`}
+              >
+                {pago.saldoConfirmado ? "Cobrado entero" : pago.confirmado ? "Seña cobrada" : "Sin cobrar"}
+              </p>
+            </div>
           )}
         </div>
-        <p className="mt-2 text-xl font-black leading-tight">
-          {pedido.nombre || "Sin nombre"}
-        </p>
-        {pedido.email && (
-          <a
-            href={`mailto:${pedido.email}`}
-            className="mt-0.5 block break-all text-sm font-semibold text-[var(--blue-main)] underline-offset-2 hover:underline dark:text-[var(--blue-soft)]"
-          >
-            {pedido.email}
-          </a>
-        )}
-        {pedido.codigo && (
-          <p className="mt-1 text-xs text-[var(--text-muted)]">
-            Código de seguimiento{" "}
-            <span className="font-mono font-bold text-[var(--text-main)]">
-              {pedido.codigo}
-            </span>
-          </p>
-        )}
+
         <div className="mt-4 grid grid-cols-2 gap-2">
           {whatsapp ? (
             <a
               href={whatsapp}
               target="_blank"
               rel="noopener noreferrer"
-              className={`${claseEnlaceBoton} border-emerald-600/40 text-emerald-700 dark:text-emerald-300`}
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#25d366] px-4 text-sm font-black text-white shadow-[0_8px_20px_rgba(37,211,102,0.3)] transition hover:brightness-105 active:scale-[0.98]"
             >
-              <MessageCircle size={16} />
+              <MessageCircle size={17} />
               WhatsApp
             </a>
           ) : (
-            <span
-              className={`${claseEnlaceBoton} cursor-not-allowed opacity-50`}
-              aria-disabled="true"
-            >
+            <span className={`${claseEnlaceBoton} cursor-not-allowed opacity-50`} aria-disabled="true">
               <MessageCircle size={16} />
-              Sin WhatsApp
+              Sin celular
             </span>
           )}
           {pedido.email ? (
@@ -476,16 +524,13 @@ export default function DetallePedidoAdmin({
               Correo
             </a>
           ) : (
-            <span
-              className={`${claseEnlaceBoton} cursor-not-allowed opacity-50`}
-              aria-disabled="true"
-            >
+            <span className={`${claseEnlaceBoton} cursor-not-allowed opacity-50`} aria-disabled="true">
               <Mail size={16} />
               Sin correo
             </span>
           )}
         </div>
-      </Tarjeta>
+      </div>
 
       <div className="mt-3">
         <ProgresoEstados estado={pedido.estado} />
@@ -504,8 +549,12 @@ export default function DetallePedidoAdmin({
       {/* Próximo paso */}
       {!cancelado && (
         <>
-          <TituloSeccion>Próximo paso</TituloSeccion>
-          <Tarjeta className="space-y-3 px-4 py-4">
+          <TituloSeccion icono={<Zap size={14} />} color={colorFase}>Próximo paso</TituloSeccion>
+          <div style={{ ["--fase" as string]: colorFase }}>
+          <Tarjeta
+            className="space-y-3 px-4 py-4"
+            color="border-[color-mix(in_srgb,var(--fase)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--fase)_14%,var(--kint-panel)),var(--kint-panel))]"
+          >
             {paso.tipo === "estado" && (
               <Boton
                 variante="principal"
@@ -538,73 +587,95 @@ export default function DetallePedidoAdmin({
               Cambiar estado
             </Boton>
           </Tarjeta>
+          </div>
         </>
       )}
 
-      {/* Datos del pedido */}
-      <TituloSeccion>Datos del pedido</TituloSeccion>
-      <Tarjeta>
-        <dl className="divide-y divide-[var(--kint-panel-border)]">
-          <FilaDato
-            etiqueta="Entrega"
-            accion={
-              !cancelado && (
-                <button
-                  type="button"
-                  onClick={abrirEntrega}
-                  aria-label="Cambiar fecha de entrega"
-                  className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[var(--text-muted)] transition hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
-                >
-                  <Pencil size={16} />
-                </button>
-              )
-            }
-          >
-            {pedido.entrega ? (
-              <span className={vencida ? "text-red-600 dark:text-red-400" : ""}>
-                {fechaDia(pedido.entrega)}
-                {pedido.estado !== "Entregado" && !cancelado && (
-                  <span className="block text-xs font-normal">
-                    {textoDiasHasta(pedido.entrega)}
-                  </span>
-                )}
-              </span>
-            ) : (
-              <span className="text-[var(--text-muted)]">Sin fecha</span>
-            )}
-          </FilaDato>
-          <FilaDato etiqueta="Escala">{pedido.escala || "—"}</FilaDato>
-          <FilaDato etiqueta="Color">{pedido.color || "—"}</FilaDato>
-          <FilaDato etiqueta="Armado">{pedido.armado || "—"}</FilaDato>
-          <FilaDato etiqueta="Alisado">{pedido.alisado || "—"}</FilaDato>
-          <FilaDato etiqueta="Boquilla">{pedido.boquilla || "—"}</FilaDato>
-          {(pedido.codigoDescuento || pedido.descuento > 0) && (
-            <FilaDato etiqueta="Descuento">
-              {pedido.codigoDescuento && (
-                <span className="font-mono">{pedido.codigoDescuento}</span>
+      {/* Datos del pedido: en cuadritos */}
+      <TituloSeccion icono={<ClipboardList size={14} />} color="#38bdf8">
+        Datos del pedido
+      </TituloSeccion>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <CuadroDato icono={<CalendarDays size={16} />} color="#fbbf24" titulo="Entrega">
+          {pedido.entrega ? (
+            <span className={vencida ? "text-red-600 dark:text-red-400" : ""}>
+              {fechaDia(pedido.entrega)}
+              {pedido.estado !== "Entregado" && !cancelado && (
+                <span className="block text-xs font-semibold text-[var(--text-muted)]">
+                  {textoDiasHasta(pedido.entrega)}
+                </span>
               )}
-              {pedido.codigoDescuento && pedido.descuento > 0 && " · "}
-              {pedido.descuento > 0 && `${pedido.descuento}%`}
-            </FilaDato>
+            </span>
+          ) : (
+            <span className="text-[var(--text-muted)]">Sin fecha</span>
           )}
-        </dl>
-        {pedido.comentarios && (
-          <div className="border-t border-[var(--kint-panel-border)] px-4 py-3.5">
-            <p className="text-xs font-bold text-[var(--text-muted)]">Comentarios</p>
-            <p className="mt-1 whitespace-pre-line break-words text-sm">
-              {pedido.comentarios}
-            </p>
-          </div>
+          {!cancelado && (
+            <button
+              type="button"
+              onClick={abrirEntrega}
+              className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-black text-[var(--blue-main)] hover:underline dark:text-sky-300"
+            >
+              <Pencil size={11} />
+              Cambiar
+            </button>
+          )}
+        </CuadroDato>
+        <CuadroDato icono={<Ruler size={16} />} color="#38bdf8" titulo="Escala">
+          {pedido.escala || "—"}
+        </CuadroDato>
+        <CuadroDato icono={<Palette size={16} />} color="#f472b6" titulo="Colores">
+          {pedido.color ? (
+            <span className="flex flex-wrap gap-x-2 gap-y-1">
+              {pedido.color.split(/\s*,\s*/).filter(Boolean).map((color) => (
+                <span key={color} className="inline-flex items-center gap-1">
+                  <span
+                    className="h-3 w-3 rounded-full ring-1 ring-black/20 dark:ring-white/25"
+                    style={{ background: colorFilamento(color) }}
+                  />
+                  {color}
+                </span>
+              ))}
+            </span>
+          ) : (
+            "—"
+          )}
+        </CuadroDato>
+        <CuadroDato icono={<Puzzle size={16} />} color="#a78bfa" titulo="Armado">
+          {/^s[ií]/i.test(pedido.armado) ? "Sí, armado" : pedido.armado ? "No" : "—"}
+        </CuadroDato>
+        <CuadroDato icono={<CircleDot size={16} />} color="#fb923c" titulo="Boquilla">
+          {pedido.boquilla || "—"}
+        </CuadroDato>
+        {/^s[ií]/i.test(pedido.alisado) && (
+          <CuadroDato icono={<Sparkles size={16} />} color="#34d399" titulo="Alisado">
+            Sí
+          </CuadroDato>
         )}
-      </Tarjeta>
+        {(pedido.codigoDescuento || pedido.descuento > 0) && (
+          <CuadroDato icono={<Percent size={16} />} color="#10b981" titulo="Descuento">
+            {pedido.codigoDescuento && <span className="font-mono">{pedido.codigoDescuento}</span>}
+            {pedido.codigoDescuento && pedido.descuento > 0 && " · "}
+            {pedido.descuento > 0 && `${pedido.descuento}%`}
+          </CuadroDato>
+        )}
+      </div>
+      {pedido.comentarios && (
+        <div className="mt-2.5 rounded-2xl border-l-4 border-sky-400/70 bg-[var(--kint-panel)] px-4 py-3 shadow-[var(--shadow-soft)]">
+          <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <Quote size={12} />
+            Comentarios del cliente
+          </p>
+          <p className="mt-1 whitespace-pre-line break-words text-sm">{pedido.comentarios}</p>
+        </div>
+      )}
 
       {/* Archivos y presupuesto: el orden en que trabaja el dueño. */}
-      <TituloSeccion>
+      <TituloSeccion icono={<Paperclip size={14} />} color="#94a3b8">
         Archivos{pedido.archivos.length > 0 ? ` (${pedido.archivos.length})` : ""}
       </TituloSeccion>
       <SeccionArchivos archivos={pedido.archivos} />
 
-      <TituloSeccion>Presupuesto</TituloSeccion>
+      <TituloSeccion icono={<Calculator size={14} />} color="#8b5cf6">Presupuesto</TituloSeccion>
       <SeccionPresupuesto
         pedido={pedido}
         onActualizado={(actualizado) => setDatos({ pedido: actualizado })}
@@ -613,7 +684,7 @@ export default function DetallePedidoAdmin({
 
       {pedido.extras && pedido.extras.length > 0 && (
         <>
-          <TituloSeccion>Extras de la tienda</TituloSeccion>
+          <TituloSeccion icono={<ShoppingBag size={14} />} color="#f87171">Extras de la tienda</TituloSeccion>
           <Tarjeta className="divide-y divide-[var(--kint-panel-border)]">
             {pedido.extras.map((extra) => (
               <div
@@ -641,7 +712,7 @@ export default function DetallePedidoAdmin({
       )}
 
       {/* Pago */}
-      <TituloSeccion>Pago</TituloSeccion>
+      <TituloSeccion icono={<Wallet size={14} />} color="#10b981">Pago</TituloSeccion>
       {pago ? (
         <Tarjeta>
           <dl className="divide-y divide-[var(--kint-panel-border)]">
@@ -717,14 +788,14 @@ export default function DetallePedidoAdmin({
 
       {pedido.fotoFinal && (
         <>
-          <TituloSeccion>Foto final</TituloSeccion>
+          <TituloSeccion icono={<Images size={14} />} color="#f472b6">Foto final</TituloSeccion>
           <FotoFinal link={pedido.fotoFinal} />
         </>
       )}
 
       {pedido.historial.length > 0 && (
         <>
-          <TituloSeccion>Historial</TituloSeccion>
+          <TituloSeccion icono={<History size={14} />} color="#94a3b8">Historial</TituloSeccion>
           <Historial lineas={pedido.historial} />
         </>
       )}
@@ -921,6 +992,34 @@ function EstadoComprobante({
           {accion}
         </div>
       )}
+    </div>
+  );
+}
+
+/* Dato del pedido en un cuadrito con ícono de color. */
+function CuadroDato({
+  icono,
+  color,
+  titulo,
+  children,
+}: {
+  icono: ReactNode;
+  color: string;
+  titulo: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-3.5 shadow-[var(--shadow-soft)]">
+      <p className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+        <span
+          className="flex h-7 w-7 items-center justify-center rounded-lg"
+          style={{ color, background: `color-mix(in srgb, ${color} 16%, transparent)` }}
+        >
+          {icono}
+        </span>
+        {titulo}
+      </p>
+      <div className="mt-2 break-words text-sm font-black">{children}</div>
     </div>
   );
 }

@@ -4,16 +4,39 @@
  * Secciones de solo lectura del detalle de un pedido de maqueta.
  */
 
-import { Check, ExternalLink, FileText, Flame, ImageIcon, XCircle } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  CreditCard,
+  ExternalLink,
+  FileText,
+  Flame,
+  ImageIcon,
+  Inbox,
+  PackageCheck,
+  Printer,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import {
   ESTADOS_PEDIDO,
   type ArchivoPedido,
   type OpcionPresupuesto,
 } from "@/lib/admin-tipos";
-import { Chip, Tarjeta, pesos } from "@/components/admin/ui";
+import { COLOR_FASE, Chip, Tarjeta, faseEstado, pesos } from "@/components/admin/ui";
 import { estaCancelado, idDrive } from "@/components/admin/pedidos/utilidades";
 
-/* Línea de progreso con los 7 pasos del pedido. */
+/* Línea de progreso con los 7 pasos del pedido: ícono, nombre y color de cada fase. */
+const PASOS_VISTA: Record<string, { corto: string; icono: typeof Inbox }> = {
+  Recibido: { corto: "Recibido", icono: Inbox },
+  Presupuestado: { corto: "Presupuesto", icono: FileText },
+  "Método de pago seleccionado": { corto: "Elige pago", icono: CreditCard },
+  "Pago confirmado": { corto: "Pagado", icono: BadgeCheck },
+  "En impresión": { corto: "Imprimiendo", icono: Printer },
+  Terminado: { corto: "Terminado", icono: PackageCheck },
+  Entregado: { corto: "Entregado", icono: Truck },
+};
+
 export function ProgresoEstados({ estado }: { estado: string }) {
   if (estaCancelado(estado)) {
     return (
@@ -34,58 +57,71 @@ export function ProgresoEstados({ estado }: { estado: string }) {
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-black">
           {actual >= 0 ? `Paso ${actual + 1} de ${ESTADOS_PEDIDO.length}` : "Estado"}
-          <span className="font-semibold text-[var(--text-muted)]">
-            {" "}· {estado || "Sin estado"}
-          </span>
         </p>
+        {siguiente && (
+          <p className="text-xs text-[var(--text-muted)]">
+            Sigue: <span className="font-black text-[var(--text-main)]">{siguiente}</span>
+          </p>
+        )}
       </div>
 
-      <ol className="mt-3 flex items-center" aria-label="Progreso del pedido">
+      <ol className="mt-4 grid grid-cols-7 gap-1" aria-label="Progreso del pedido">
         {ESTADOS_PEDIDO.map((paso, indice) => {
           const hecho = actual >= 0 && indice < actual;
           const esActual = indice === actual;
+          const vista = PASOS_VISTA[paso];
+          const Icono = vista?.icono ?? Inbox;
+          const color = COLOR_FASE[faseEstado(paso)];
           return (
             <li
               key={paso}
-              className={`flex items-center ${indice === 0 ? "" : "flex-1"}`}
+              className="relative flex flex-col items-center gap-1.5 text-center"
               aria-current={esActual ? "step" : undefined}
             >
               {indice > 0 && (
                 <span
                   aria-hidden
-                  className={`h-0.5 flex-1 rounded-full ${
-                    hecho || esActual
-                      ? "bg-[#1f3f85] dark:bg-[var(--blue-soft)]"
-                      : "bg-[var(--kint-panel-border)]"
-                  }`}
+                  className="absolute right-1/2 top-[17px] h-1 w-full -translate-y-1/2 rounded-full"
+                  style={{
+                    background:
+                      hecho || esActual
+                        ? `linear-gradient(90deg, ${COLOR_FASE[faseEstado(ESTADOS_PEDIDO[indice - 1])]}, ${color})`
+                        : "var(--kint-panel-border)",
+                  }}
                 />
               )}
               <span
                 title={paso}
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
-                  hecho
-                    ? "bg-[#1f3f85] text-white dark:bg-[var(--blue-soft)] dark:text-[#0f1f3d]"
-                    : esActual
-                    ? "bg-[#1f3f85] text-white ring-4 ring-[#1f3f85]/20 dark:bg-[var(--blue-soft)] dark:text-[#0f1f3d] dark:ring-[var(--blue-soft)]/25"
-                    : "border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] text-[var(--text-muted)]"
+                className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full transition ${
+                  esActual ? "scale-110 animate-pulse" : ""
+                }`}
+                style={
+                  hecho || esActual
+                    ? {
+                        background: color,
+                        color: "#ffffff",
+                        boxShadow: esActual ? `0 0 0 5px ${color}33, 0 6px 18px ${color}66` : undefined,
+                      }
+                    : { background: "var(--kint-panel-soft)", color: "var(--text-muted)", border: "1px solid var(--kint-panel-border)" }
+                }
+              >
+                {hecho ? <Check size={15} strokeWidth={3} /> : <Icono size={15} strokeWidth={2.3} />}
+              </span>
+              <span
+                className={`hidden text-[10px] font-black leading-tight sm:block ${
+                  esActual ? "text-[var(--text-main)]" : "text-[var(--text-muted)]"
                 }`}
               >
-                {hecho ? <Check size={12} strokeWidth={3} /> : indice + 1}
-                <span className="sr-only">
-                  {paso}
-                  {hecho ? " (hecho)" : esActual ? " (actual)" : ""}
-                </span>
+                {vista?.corto ?? paso}
+              </span>
+              <span className="sr-only">
+                {paso}
+                {hecho ? " (hecho)" : esActual ? " (actual)" : ""}
               </span>
             </li>
           );
         })}
       </ol>
-
-      {siguiente && (
-        <p className="mt-3 text-xs text-[var(--text-muted)]">
-          Sigue: <span className="font-bold text-[var(--text-main)]">{siguiente}</span>
-        </p>
-      )}
     </Tarjeta>
   );
 }

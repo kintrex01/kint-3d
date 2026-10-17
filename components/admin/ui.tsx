@@ -135,10 +135,32 @@ export function Encabezado({
   );
 }
 
-export function TituloSeccion({ children }: { children: ReactNode }) {
+export function TituloSeccion({
+  children,
+  icono,
+  color = "#60a5fa",
+}: {
+  children: ReactNode;
+  icono?: ReactNode;
+  color?: string;
+}) {
+  if (!icono) {
+    return (
+      <h2 className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        {children}
+      </h2>
+    );
+  }
   return (
-    <h2 className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+    <h2 className="mb-2.5 mt-7 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[var(--text-main)]">
+      <span
+        className="flex h-7 w-7 items-center justify-center rounded-lg"
+        style={{ color, background: `color-mix(in srgb, ${color} 18%, transparent)` }}
+      >
+        {icono}
+      </span>
       {children}
+      <span aria-hidden className="ml-1 h-px flex-1" style={{ background: `linear-gradient(90deg, ${color}55, transparent)` }} />
     </h2>
   );
 }
@@ -307,6 +329,18 @@ const CLASES_FASE: Record<Fase, string> = {
     "border-emerald-500/45 bg-[color-mix(in_srgb,#10b981_11%,var(--kint-panel))] shadow-[inset_4px_0_0_#10b981]",
   cancelado:
     "border-red-500/45 bg-[color-mix(in_srgb,#ef4444_9%,var(--kint-panel))] shadow-[inset_4px_0_0_#ef4444]",
+};
+
+/* Color de cada fase (para tarjetas, progreso y títulos). */
+export const COLOR_FASE: Record<Fase, string> = {
+  nuevo: "#64748b",
+  presupuestado: "#8b5cf6",
+  esperandoPago: "#eab308",
+  pagado: "#0ea5e9",
+  imprimiendo: "#f97316",
+  terminado: "#84cc16",
+  entregado: "#10b981",
+  cancelado: "#ef4444",
 };
 
 export function claseFase(fase: Fase) {
