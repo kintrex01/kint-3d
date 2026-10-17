@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
+  CalendarDays,
   CheckSquare,
   ChevronRight,
   ListOrdered,
@@ -10,6 +11,7 @@ import {
   RefreshCw,
   Search,
   ShoppingBag,
+  Inbox,
   Square,
   Trash2,
   X,
@@ -26,7 +28,8 @@ import {
   Segmentos,
   Vacio,
   claseInput,
-  fechaHora,
+  fechaDia,
+  fechaLlegada,
   pesos,
   tonoEstado,
   claseFase,
@@ -323,17 +326,22 @@ function FilaPedido({
             {textoEstado(pedido.estado)}
           </Chip>
         </span>
-        <span className="block truncate text-sm font-semibold">
-          {pedido.cliente || "Sin nombre"}
-          {pedido.email && (
-            <span className="font-normal text-[var(--text-muted)]"> · {pedido.email}</span>
+        <span className="block truncate text-sm font-semibold">{pedido.cliente || "Sin nombre"}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs font-semibold text-[var(--text-muted)]">
+          {pedido.fecha && (
+            <span className="inline-flex items-center gap-1">
+              <Inbox size={12} aria-hidden />
+              Llegó {fechaLlegada(pedido.fecha)}
+            </span>
           )}
+          <span className="inline-flex items-center gap-1">
+            <CalendarDays size={12} aria-hidden />
+            {pedido.entrega ? `Entrega ${fechaDia(pedido.entrega)}` : "Sin fecha de entrega"}
+          </span>
         </span>
-        <span className="block truncate text-xs text-[var(--text-muted)]">
-          {[pedido.fecha ? fechaHora(pedido.fecha) : "", pedido.detalle]
-            .filter(Boolean)
-            .join(" · ")}
-        </span>
+        {pedido.detalle && (
+          <span className="block truncate text-xs text-[var(--text-muted)]">{pedido.detalle}</span>
+        )}
       </span>
 
       <span className="shrink-0 text-right">

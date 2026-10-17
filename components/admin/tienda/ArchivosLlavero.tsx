@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { Download, LoaderCircle } from "lucide-react";
 import {
+  adornoDe,
   coloresPieza,
   limpiarBorde,
   textoVisible,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/llavero/personalizacion";
 import { colorFilamento } from "@/lib/colores-filamento";
 
-type Archivo = "3mf" | "borde" | "letras" | "anillo";
+type Archivo = "3mf" | "3mf-bambu" | "borde" | "letras" | "anillo";
 
 function nombreArchivo(texto: string) {
   return texto.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9 -]/g, "").trim() || "llavero";
@@ -65,7 +66,7 @@ export function ArchivosLlavero({
       const parteBorde = `${mascota ? "chapita" : "borde"}${borde ? ` (${borde})` : ""}`;
       const parteLetras = `${mascota ? "borde y nombre" : "letras"}${letras ? ` (${letras})` : ""}`;
 
-      if (archivo === "3mf") {
+      if (archivo === "3mf" || archivo === "3mf-bambu") {
         const { exportar3MF } = await import("@/lib/llavero/archivo3mf");
         // Un filamento por cada color distinto (1, 2, 3...).
         const filamentos: string[] = [];
@@ -99,7 +100,10 @@ export function ArchivosLlavero({
             filamento: filamento(partes.telefono),
           });
         }
-        descargar(exportar3MF(base, piezas), `${base}.3mf`);
+        descargar(
+          exportar3MF(base, piezas, { coloresBambu: archivo === "3mf-bambu" }),
+          `${base}${archivo === "3mf-bambu" ? " (colores Bambu)" : ""}.3mf`
+        );
       } else if (archivo === "anillo") {
         descargar(exportarSTL(geometria.anillo), `${base} - anillo${partes.anillo ? ` (${partes.anillo})` : ""}.stl`);
       } else if (archivo === "borde" || geometria.soloLetras) {
@@ -133,12 +137,17 @@ export function ArchivosLlavero({
         <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
           🐾 Chapita {mascota.forma} · tel. <strong className="text-[var(--text-main)]">{mascota.telefono}</strong> ·{" "}
           {mascota.fuente} · {mascota.tamano}
-          {mascota.huella ? " · con huellita" : ""}
+          {adornoDe(mascota) !== "Ninguno" ? ` · adorno: ${adornoDe(mascota)}` : ""}
+          {mascota.relieve ? " · en relieve" : ""}
+          {mascota.escalaNombre && mascota.escalaNombre !== 100 ? ` · nombre al ${mascota.escalaNombre}%` : ""}
         </span>
       ) : (
         <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
           {llavero?.fuente} · {llavero?.tamano} · {llavero?.fondo || "Contorno"}
           {llavero?.fondo !== "Solo letras" && <> · borde {String(limpiarBorde(llavero?.borde)).replace(".", ",")} mm</>}
+          {llavero?.fondo === "Placa" && llavero.esquinas !== undefined && (
+            <> · esquinas {llavero.esquinas ? `${String(llavero.esquinas).replace(".", ",")} mm` : "en punta"}</>
+          )}
           {llavero?.separacion ? (
             <> · separación {llavero.separacion > 0 ? "+" : ""}{llavero.separacion} mm</>
           ) : null}
@@ -180,6 +189,15 @@ export function ArchivosLlavero({
         {armando === "3mf" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
         Descargar 3MF (todas las partes con su color)
       </button>
+      <button
+        type="button"
+        onClick={() => void bajar("3mf-bambu")}
+        disabled={Boolean(armando)}
+        className="ml-1.5 mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+      >
+        {armando === "3mf-bambu" ? <LoaderCircle size={14} className="animate-spin" /> : <Download size={14} />}
+        3MF con colores para Bambu Studio
+      </button>
       <span className="mt-1.5 flex flex-wrap gap-1.5">
         {!soloLetras && (
         <button type="button" onClick={() => void bajar("borde")} disabled={Boolean(armando)} className={claseSecundario}>
@@ -198,6 +216,8 @@ export function ArchivosLlavero({
       </span>
       <span className="mt-1.5 block text-[11px] leading-4 text-[var(--text-muted)]">
         El 3MF se abre como una pieza con sus partes y cada una ya trae su filamento (1, 2, 3…, uno por color).
+        El verde además carga los colores en los filamentos del proyecto de Bambu Studio (después los cambiás por los
+        tuyos).
       </span>
       {error && <span className="mt-1 block text-[11px] font-bold text-red-600">{error}</span>}
     </span>

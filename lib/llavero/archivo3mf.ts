@@ -122,8 +122,34 @@ function colorRgba(hex: string) {
 
 export function exportar3MF(
   nombre: string,
-  piezas: { nombre: string; geometria: THREE.BufferGeometry; color?: string; filamento?: number }[]
+  piezas: { nombre: string; geometria: THREE.BufferGeometry; color?: string; filamento?: number }[],
+  opciones: { coloresBambu?: boolean } = {}
 ) {
+  /*
+   * Bambu Studio toma los colores de los filamentos del proyecto
+   * (project_settings.config): así cada parte ya se ve de su color.
+   */
+  const coloresFilamento: string[] = [];
+  piezas.forEach((pieza, indice) => {
+    const numero = pieza.filamento ?? indice + 1;
+    if (!coloresFilamento[numero - 1]) coloresFilamento[numero - 1] = (pieza.color || "#FFFFFF").toUpperCase();
+  });
+  for (let i = 0; i < coloresFilamento.length; i++) coloresFilamento[i] ||= "#FFFFFF";
+  const proyectoBambu = opciones.coloresBambu
+    ? [
+        {
+          nombre: "Metadata/project_settings.config",
+          texto: JSON.stringify(
+            {
+              filament_colour: coloresFilamento,
+              filament_type: coloresFilamento.map(() => "PLA"),
+            },
+            null,
+            4
+          ),
+        },
+      ]
+    : [];
   // Colores de cada parte (los ven Bambu Studio y los visores de 3MF).
   const conColor = piezas.some((pieza) => pieza.color);
   const materiales = conColor
@@ -183,5 +209,6 @@ export function exportar3MF(
           .join("") +
         `</object></config>`,
     },
+    ...proyectoBambu,
   ]);
 }

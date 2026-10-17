@@ -10,6 +10,12 @@ import { FlipHorizontal2, LoaderCircle, Minus, Palette, Plus, RotateCcw, Shoppin
 import VisorLlavero from "@/components/llavero/VisorLlavero";
 import { construirChapita, construirLlavero, type GeometriaLlavero } from "@/lib/llavero/geometria";
 import {
+  ADORNOS_CHAPITA,
+  ESCALA_NOMBRE_MAX,
+  ESCALA_NOMBRE_MIN,
+  ESQUINAS_MAX,
+  limpiarEscalaNombre,
+  limpiarEsquinas,
   BORDE_MAX,
   BORDE_MIN,
   BORDE_NORMAL,
@@ -92,6 +98,10 @@ type Diseno = {
   telefono: string;
   forma: string;
   huella: boolean;
+  adorno: string;
+  relieve: boolean;
+  escalaNombre: number;
+  esquinas: number;
   atrasColor: boolean;
   colorTelefono: string;
   colorBase: string;
@@ -162,7 +172,17 @@ export default function Personalizador({
   const [forma, setForma] = useState<string>(() =>
     FORMAS_CHAPITA.some((opcion) => opcion.nombre === inicial.forma) ? inicial.forma! : "Hueso"
   );
-  const [huella, setHuella] = useState(() => inicial.huella !== false);
+  const [adorno, setAdorno] = useState<string>(() =>
+    ADORNOS_CHAPITA.some((opcion) => opcion.nombre === inicial.adorno)
+      ? inicial.adorno!
+      : inicial.huella === false
+      ? "Ninguno"
+      : "Huellita"
+  );
+  const huella = adorno !== "Ninguno";
+  const [relieve, setRelieve] = useState(() => inicial.relieve === true);
+  const [escalaNombre, setEscalaNombre] = useState(() => limpiarEscalaNombre(inicial.escalaNombre ?? 100));
+  const [esquinas, setEsquinas] = useState(() => limpiarEsquinas(inicial.esquinas) ?? 2);
   const [atrasColor, setAtrasColor] = useState(() => inicial.atrasColor === true);
   const [colorTelefono, setColorTelefono] = useState(() =>
     inicial.colorTelefono && producto.colores.includes(inicial.colorTelefono)
@@ -202,13 +222,17 @@ export default function Personalizador({
       telefono,
       forma,
       huella,
+      adorno,
+      relieve,
+      escalaNombre,
+      esquinas,
       atrasColor,
       colorTelefono,
       colorBase,
       colorLetras,
       colorAnillo,
     });
-  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, atrasColor, colorTelefono, colorBase, colorLetras, colorAnillo]);
+  }, [texto, texto2, conLinea2, fuente, tamano, borde, fondo, separacion, renglones, telefono, forma, huella, adorno, relieve, escalaNombre, esquinas, atrasColor, colorTelefono, colorBase, colorLetras, colorAnillo]);
   // Como en el resto de la tienda: la cadena arranca sin elegir.
   const [cadena, setCadena] = useState("");
   const [cantidad, setCantidad] = useState(1);
@@ -241,6 +265,9 @@ export default function Personalizador({
             telefono: telefonoParaVer,
             forma,
             huella,
+            adorno,
+            relieve,
+            escalaNombre,
             atras: atrasColor ? "Color" : "Grabado",
             fuente,
             tamano,
@@ -254,6 +281,7 @@ export default function Personalizador({
             fondo,
             separacion,
             renglones,
+            esquinas,
           }))
         .then((nueva) => {
           if (cancelado) {
@@ -276,7 +304,7 @@ export default function Personalizador({
       cancelado = true;
       window.clearTimeout(espera);
     };
-  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, atrasColor, fuente, tamano, borde, fondo, separacion, renglones]);
+  }, [esMascota, textoParaVer, texto2ParaVer, telefonoParaVer, forma, huella, adorno, relieve, escalaNombre, atrasColor, fuente, tamano, borde, fondo, separacion, renglones, esquinas]);
 
   useEffect(
     () => () => {
@@ -323,7 +351,18 @@ export default function Personalizador({
         ? [colorBase, colorLetras, anilloEfectivo, colorTelefono]
         : [colorBase, colorLetras, anilloEfectivo],
       comentario: esMascota
-        ? formatearMascota({ texto, telefono, forma, huella, atras: atrasColor ? "Color" : "Grabado", fuente, tamano })
+        ? formatearMascota({
+            texto,
+            telefono,
+            forma,
+            huella,
+            adorno,
+            relieve,
+            escalaNombre,
+            atras: atrasColor ? "Color" : "Grabado",
+            fuente,
+            tamano,
+          })
         : formatearPersonalizacion({
         texto,
         texto2: conLinea2 ? texto2 : "",
@@ -333,6 +372,7 @@ export default function Personalizador({
         fondo,
         separacion,
         renglones,
+        esquinas: fondo === "Placa" ? esquinas : undefined,
       }),
       cantidad,
     });
@@ -569,15 +609,66 @@ export default function Personalizador({
                   </div>
                 </fieldset>
 
+                <fieldset>
+                  <legend className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                    <span>Adorno</span>
+                    <span className="text-[var(--text-main)]">{adorno}</span>
+                  </legend>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {ADORNOS_CHAPITA.map((opcion) => (
+                      <button
+                        key={opcion.nombre}
+                        type="button"
+                        title={opcion.nombre}
+                        aria-label={opcion.nombre}
+                        aria-pressed={adorno === opcion.nombre}
+                        onClick={() => setAdorno(opcion.nombre)}
+                        className={`flex h-11 items-center justify-center rounded-xl border text-lg transition ${
+                          adorno === opcion.nombre
+                            ? "border-[var(--blue-main)] bg-[var(--kint-selected-bg)] ring-1 ring-inset ring-[var(--blue-main)]"
+                            : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:border-[var(--kint-selected-border)]"
+                        }`}
+                      >
+                        {opcion.emoji}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <label className="block">
+                  <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                    <span>Tamaño del nombre</span>
+                    <span className="tabular-nums text-[var(--text-main)]">
+                      {escalaNombre === 100 ? "Normal" : `${escalaNombre}%`}
+                    </span>
+                  </span>
+                  <input
+                    type="range"
+                    min={ESCALA_NOMBRE_MIN}
+                    max={ESCALA_NOMBRE_MAX}
+                    step={5}
+                    value={escalaNombre}
+                    onChange={(evento) => setEscalaNombre(limpiarEscalaNombre(evento.target.value))}
+                    className="w-full accent-[var(--acento)] dark:accent-sky-400"
+                  />
+                  <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                    <span>Más chico</span>
+                    <button type="button" onClick={() => setEscalaNombre(100)} className="rounded px-1 hover:text-[var(--text-main)]">
+                      Normal
+                    </button>
+                    <span>Bien grande</span>
+                  </span>
+                </label>
+
                 <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--kint-panel-border)] px-3.5 py-3">
                   <span>
-                    <span className="block text-sm font-bold">🐾 Huellita</span>
-                    <span className="block text-[11px] text-[var(--text-muted)]">Una patita al lado del nombre</span>
+                    <span className="block text-sm font-bold">Nombre en relieve</span>
+                    <span className="block text-[11px] text-[var(--text-muted)]">El borde y el nombre sobresalen de la chapita</span>
                   </span>
                   <input
                     type="checkbox"
-                    checked={huella}
-                    onChange={(evento) => setHuella(evento.target.checked)}
+                    checked={relieve}
+                    onChange={(evento) => setRelieve(evento.target.checked)}
                     className="h-5 w-5 accent-[var(--acento)]"
                   />
                 </label>
@@ -733,6 +824,30 @@ export default function Personalizador({
             </fieldset>
             )}
 
+            {fondo === "Placa" && (
+              <label className="block">
+                <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
+                  <span>Esquinas</span>
+                  <span className="tabular-nums text-[var(--text-main)]">
+                    {esquinas === 0 ? "En punta" : `Redondeadas ${String(esquinas).replace(".", ",")} mm`}
+                  </span>
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={ESQUINAS_MAX}
+                  step={0.5}
+                  value={esquinas}
+                  onChange={(evento) => setEsquinas(limpiarEsquinas(evento.target.value) ?? 0)}
+                  className="w-full accent-[var(--acento)] dark:accent-sky-400"
+                />
+                <span className="mt-0.5 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                  <span>En punta (90°)</span>
+                  <span>Bien redondeadas</span>
+                </span>
+              </label>
+            )}
+
             <label className="block">
               <span className="mb-2 flex w-full justify-between text-xs font-bold text-[var(--text-muted)]">
                 <span>Separación entre letras</span>
@@ -842,10 +957,10 @@ export default function Personalizador({
             <button
               type="button"
               onClick={() => setVerColores(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-xs font-black uppercase tracking-[0.14em] text-white shadow-[0_8px_22px_rgba(220,38,38,0.28)] transition hover:-translate-y-0.5 hover:bg-red-500"
+              className="-mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-red-500 underline-offset-2 hover:underline"
             >
-              <Palette size={16} />
-              Ver los colores en la vida real
+              <Palette size={12} />
+              Ver cómo son los colores en la vida real
             </button>
 
             {producto.cadenas.length > 0 && (

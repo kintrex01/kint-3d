@@ -9,6 +9,7 @@ import {
   MessageSquareText,
   Palette,
   Percent,
+  Plus,
   Power,
   RefreshCw,
   Search,
@@ -22,7 +23,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
-import type { ClienteAdmin, FilaConfig } from "@/lib/admin-tipos";
+import type {
+  CanjeRuletaConfig,
+  ClienteAdmin,
+  ConfigRuleta,
+  FilaConfig,
+  PremioRuletaConfig,
+} from "@/lib/admin-tipos";
 import { colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   Boton,
@@ -211,7 +218,7 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
 };
 
 const RULETA = "Ruleta";
-const INFO_RULETA: InfoSeccion = { icono: Gift, color: "#d946ef", detalle: "Regalale giros a un cliente" };
+const INFO_RULETA: InfoSeccion = { icono: Gift, color: "#d946ef", detalle: "Premios, chances, giros, canjes y giros de regalo" };
 
 function infoSeccion(titulo: string): InfoSeccion {
   if (titulo === RULETA) return INFO_RULETA;
@@ -485,6 +492,8 @@ export default function ConfiguracionAdmin() {
           ) : elegida === RULETA ? (
             <>
               <CabeceraSeccion titulo={RULETA} />
+              <EditorRuleta />
+              <p className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Giros de regalo</p>
               <GirosRuleta />
             </>
           ) : (
@@ -1218,6 +1227,325 @@ function EditorComentario({
           Guardar
         </Boton>
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Ruleta: turnos, premios con su chance y canjes                       */
+/* ------------------------------------------------------------------ */
+
+const TIPOS_PREMIO: { valor: PremioRuletaConfig["tipo"]; nombre: string }[] = [
+  { valor: "puntos", nombre: "Puntos" },
+  { valor: "descuento", nombre: "Descuento %" },
+  { valor: "regalo", nombre: "Regalo (vale)" },
+  { valor: "regalo_tienda", nombre: "Producto de la tienda (sale uno al azar)" },
+  { valor: "otra", nombre: "Otra tirada" },
+];
+
+function rarezaDe(chance: number) {
+  if (chance >= 10) return "Común";
+  if (chance >= 4) return "Raro";
+  if (chance >= 1.5) return "Épico";
+  return "Legendario";
+}
+
+function EditorRuleta() {
+  const { datos, setDatos, error, cargando, recargar } = useDatosAdmin("admin_ruleta_config_listar", {});
+  const avisar = useAvisos();
+  const [borrador, setBorrador] = useState<ConfigRuleta | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const config = borrador ?? datos?.config ?? null;
+  const cambiado = Boolean(borrador);
+
+  function cambiar(cambios: Partial<ConfigRuleta>) {
+    if (!config) return;
+    setBorrador({ ...config, ...cambios });
+  }
+  function cambiarPremio(indice: number, cambios: Partial<PremioRuletaConfig>) {
+    if (!config) return;
+    cambiar({ premios: config.premios.map((premio, i) => (i === indice ? { ...premio, ...cambios } : premio)) });
+  }
+  function cambiarCanje(indice: number, cambios: Partial<CanjeRuletaConfig>) {
+    if (!config) return;
+    cambiar({ canjes: config.canjes.map((canje, i) => (i === indice ? { ...canje, ...cambios } : canje)) });
+  }
+
+  async function guardar() {
+    if (!config) return;
+    setGuardando(true);
+    try {
+      const respuesta = await accionAdmin("admin_ruleta_config_guardar", { config });
+      setDatos(respuesta);
+      setBorrador(null);
+      avisar("Ruleta guardada");
+    } catch (errorGuardado) {
+      avisar(errorGuardado instanceof Error ? errorGuardado.message : "No se pudo guardar.", "error");
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  if (cargando && !datos) return <Esqueleto filas={4} />;
+  if (error && !datos) return <CajaError mensaje={error} onReintentar={recargar} />;
+  if (!config) return null;
+
+  const activos = config.premios.filter((premio) => premio.activo);
+  const promedio =
+    activos.length && config.porciones
+      ? (activos.reduce((suma, premio) => suma + premio.chance, 0) / activos.length) * Math.min(config.porciones, activos.length)
+      : 0;
+  const numero = (valor: string) => Number(valor.replace(",", ".")) || 0;
+  const campoChico = `${claseInput} h-10`;
+
+  return (
+    <div className="space-y-3">
+      {/* Turnos */}
+      <Tarjeta className="p-4">
+        <p className="font-black">Giros</p>
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Un giro cada (horas)</span>
+            <input type="number" min={1} max={720} value={config.horas} onChange={(e) => cambiar({ horas: numero(e.target.value) })} className={campoChico} />
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">48 = cada 2 días</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Se guardan hasta</span>
+            <input type="number" min={1} max={20} value={config.acumulables} onChange={(e) => cambiar({ acumulables: numero(e.target.value) })} className={campoChico} />
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">giros sin usar</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Girar con puntos</span>
+            <input type="number" min={0} value={config.costoPuntos} onChange={(e) => cambiar({ costoPuntos: numero(e.target.value) })} className={campoChico} />
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">✨ por giro (0 = no se puede)</span>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-bold text-[var(--text-muted)]">Premios por día</span>
+            <input type="number" min={2} max={10} value={config.porciones} onChange={(e) => cambiar({ porciones: numero(e.target.value) })} className={campoChico} />
+            <span className="mt-0.5 block text-[10px] text-[var(--text-muted)]">se sortean de la lista</span>
+          </label>
+        </div>
+        <p className="mb-1.5 mt-4 text-xs font-bold text-[var(--text-muted)]">Qué ve el cliente de las chances</p>
+        <div className="flex flex-wrap gap-1.5">
+          {(
+            [
+              ["rareza", "Rareza (Común, Raro, Épico…)"],
+              ["porcentaje", "Rareza y %"],
+              ["nada", "Nada"],
+            ] as const
+          ).map(([valor, texto]) => (
+            <button
+              key={valor}
+              type="button"
+              onClick={() => cambiar({ mostrar: valor })}
+              aria-pressed={config.mostrar === valor}
+              className={`h-9 rounded-xl border px-3 text-xs font-black transition ${
+                config.mostrar === valor
+                  ? "border-transparent bg-fuchsia-500 text-white"
+                  : "border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              }`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+      </Tarjeta>
+
+      {/* Premios */}
+      <Tarjeta className="p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="font-black">Premios ({activos.length} activos)</p>
+          <p className="text-[11px] text-[var(--text-muted)]">
+            Chance = % de que salga ese premio el día que está en la rueda. Lo que falta hasta 100 es «Sin suerte».
+            En un día promedio se gana ~{Math.round(promedio)}% de las veces.
+          </p>
+        </div>
+        <div className="mt-3 space-y-2">
+          {config.premios.map((premio, indice) => (
+            <div
+              key={premio.id + indice}
+              className={`grid grid-cols-2 gap-2 rounded-xl border p-2.5 sm:grid-cols-[1.3fr_1.4fr_0.8fr_0.8fr_auto] sm:items-end ${
+                premio.activo ? "border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)]" : "border-dashed border-[var(--kint-panel-border)] opacity-60"
+              }`}
+            >
+              <label className="col-span-2 block sm:col-span-1">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">Tipo</span>
+                <select
+                  value={premio.tipo}
+                  onChange={(e) => cambiarPremio(indice, { tipo: e.target.value as PremioRuletaConfig["tipo"] })}
+                  className={campoChico}
+                >
+                  {TIPOS_PREMIO.map((tipo) => (
+                    <option key={tipo.valor} value={tipo.valor}>
+                      {tipo.nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="col-span-2 block sm:col-span-1">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">
+                  {premio.tipo === "regalo" ? "Nombre en la rueda" : "Nombre (vacío = automático)"}
+                </span>
+                <input
+                  value={premio.nombre}
+                  maxLength={28}
+                  onChange={(e) => cambiarPremio(indice, { nombre: e.target.value })}
+                  placeholder={premio.tipo === "puntos" ? `${premio.valor} puntos` : premio.tipo === "descuento" ? `${premio.valor}% OFF` : ""}
+                  disabled={premio.tipo === "regalo_tienda" || premio.tipo === "otra"}
+                  className={`${campoChico} disabled:opacity-50`}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">
+                  {premio.tipo === "puntos" ? "Puntos" : premio.tipo === "descuento" ? "% OFF" : "Valor"}
+                </span>
+                <input
+                  value={String(premio.valor ?? "")}
+                  onChange={(e) =>
+                    cambiarPremio(indice, {
+                      valor: premio.tipo === "puntos" || premio.tipo === "descuento" ? numero(e.target.value) : e.target.value,
+                    })
+                  }
+                  disabled={premio.tipo === "regalo_tienda" || premio.tipo === "otra"}
+                  className={`${campoChico} disabled:opacity-50`}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
+                  Chance %<span className="text-fuchsia-500">{rarezaDe(premio.chance)}</span>
+                </span>
+                <input
+                  type="number"
+                  step={0.1}
+                  min={0.1}
+                  max={60}
+                  value={premio.chance}
+                  onChange={(e) => cambiarPremio(indice, { chance: numero(e.target.value) })}
+                  className={campoChico}
+                />
+              </label>
+              <div className="col-span-2 flex items-center justify-end gap-1 sm:col-span-1">
+                <Interruptor activo={premio.activo} onCambiar={(activo) => cambiarPremio(indice, { activo })} etiqueta="Activo" />
+                <Boton
+                  tamano="chico"
+                  variante="fantasma"
+                  aria-label="Borrar premio"
+                  onClick={() => cambiar({ premios: config.premios.filter((_, i) => i !== indice) })}
+                  icono={<Trash2 size={14} />}
+                  className="w-9 px-0"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <Boton
+          variante="secundario"
+          tamano="chico"
+          className="mt-2.5"
+          icono={<Plus size={14} />}
+          onClick={() =>
+            cambiar({
+              premios: [
+                ...config.premios,
+                { id: `nuevo${Date.now().toString(36)}`, tipo: "puntos", nombre: "", valor: 50, chance: 5, color: "", activo: true },
+              ],
+            })
+          }
+        >
+          Agregar premio
+        </Boton>
+      </Tarjeta>
+
+      {/* Canjes */}
+      <Tarjeta className="p-4">
+        <p className="font-black">Canjes de puntos</p>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">Lo que el cliente puede cambiar por puntos cuando quiera.</p>
+        <div className="mt-3 space-y-2">
+          {config.canjes.map((canje, indice) => (
+            <div key={canje.id + indice} className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] p-2.5 sm:grid-cols-[2fr_1fr_0.8fr_0.7fr_auto] sm:items-end">
+              <label className="col-span-2 block sm:col-span-1">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">Nombre</span>
+                <input value={canje.nombre} maxLength={60} onChange={(e) => cambiarCanje(indice, { nombre: e.target.value })} className={campoChico} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">Tipo</span>
+                <select value={canje.tipo} onChange={(e) => cambiarCanje(indice, { tipo: e.target.value as CanjeRuletaConfig["tipo"] })} className={campoChico}>
+                  <option value="descuento">Descuento %</option>
+                  <option value="regalo">Regalo (vale)</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">{canje.tipo === "descuento" ? "% OFF" : "Qué recibe"}</span>
+                <input
+                  value={String(canje.valor ?? "")}
+                  onChange={(e) => cambiarCanje(indice, { valor: canje.tipo === "descuento" ? numero(e.target.value) : e.target.value })}
+                  className={campoChico}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-bold text-[var(--text-muted)]">Cuesta ✨</span>
+                <input type="number" min={1} value={canje.puntos} onChange={(e) => cambiarCanje(indice, { puntos: numero(e.target.value) })} className={campoChico} />
+              </label>
+              <div className="flex items-center justify-end">
+                <Boton
+                  tamano="chico"
+                  variante="fantasma"
+                  aria-label="Borrar canje"
+                  onClick={() => cambiar({ canjes: config.canjes.filter((_, i) => i !== indice) })}
+                  icono={<Trash2 size={14} />}
+                  className="w-9 px-0"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <Boton
+          variante="secundario"
+          tamano="chico"
+          className="mt-2.5"
+          icono={<Plus size={14} />}
+          onClick={() =>
+            cambiar({
+              canjes: [...config.canjes, { id: `canje${Date.now().toString(36)}`, nombre: "", puntos: 200, tipo: "regalo", valor: "" }],
+            })
+          }
+        >
+          Agregar canje
+        </Boton>
+      </Tarjeta>
+
+      {/* Vista previa de hoy */}
+      {datos && (
+        <Tarjeta className="p-4">
+          <p className="font-black">Rueda de hoy {cambiado && <span className="text-xs font-bold text-amber-500">(guardá para ver los cambios)</span>}</p>
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {datos.hoy.map((premio, indice) => (
+              <span
+                key={`${premio.nombre}-${indice}`}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${
+                  premio.misterio ? "bg-amber-400/20 text-amber-500 ring-1 ring-inset ring-amber-400/50" : "bg-[var(--kint-panel-soft)]"
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ background: premio.color }} />
+                {premio.misterio && "❓ "}
+                {premio.nombre} · {String(premio.chance).replace(".", ",")}%
+              </span>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-[var(--text-muted)]">❓ = el misterio del día (el más raro): el cliente no ve qué es hasta que lo gana.</p>
+        </Tarjeta>
+      )}
+
+      {cambiado && (
+        <div className="sticky bottom-3 z-20 flex justify-end gap-2 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)]/95 p-2.5 shadow-xl backdrop-blur">
+          <Boton variante="fantasma" disabled={guardando} onClick={() => setBorrador(null)}>
+            Deshacer
+          </Boton>
+          <Boton variante="principal" cargando={guardando} onClick={() => void guardar()}>
+            Guardar ruleta
+          </Boton>
+        </div>
+      )}
     </div>
   );
 }

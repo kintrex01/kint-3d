@@ -21,6 +21,9 @@ import {
   TAMANOS_LLAVERO,
   bordeMm,
   INTERLINEADO,
+  adornoDe,
+  limpiarEscalaNombre,
+  limpiarEsquinas,
   limpiarRenglones,
   limpiarSeparacion,
   type PersonalizacionLlavero,
@@ -280,12 +283,16 @@ export async function construirLlavero(personalizacion: PersonalizacionLlavero):
     base = letras;
   } else {
     if (fondo === "Placa") {
-      // Rectángulo lleno con las esquinas redondeadas.
-      const radio = Math.min(margen, 3);
-      base = engordar(
-        [rectangulo(todo.minX - margen + radio, todo.minY - margen + radio, todo.maxX + margen - radio, todo.maxY + margen - radio)],
-        radio
+      // Rectángulo lleno; las esquinas las elige el cliente (0 = en punta).
+      const elegido = limpiarEsquinas(personalizacion.esquinas);
+      const radio = Math.min(elegido ?? Math.min(margen, 3), margen + Math.min(todo.maxX - todo.minX, todo.maxY - todo.minY) / 2);
+      const rectanguloPlaca = rectangulo(
+        todo.minX - margen + radio,
+        todo.minY - margen + radio,
+        todo.maxX + margen - radio,
+        todo.maxY + margen - radio
       );
+      base = radio > 0.05 ? engordar([rectanguloPlaca], radio) : [rectanguloPlaca];
     } else {
       // Contorno: banda por la mitad de cada renglón para unir las letras sueltas.
       const rellenos: Contornos = [];
@@ -462,6 +469,75 @@ function formaChapita(forma: string, k: number) {
   };
 }
 
+/* Corazoncito centrado en (cx, cy), de unos 5,5k de ancho. */
+function corazoncito(cx: number, cy: number, k: number): Contornos {
+  const puntos: Contorno = [];
+  const s = 0.17 * k;
+  for (let indice = 0; indice < 60; indice++) {
+    const t = (indice / 60) * Math.PI * 2;
+    const x = 16 * Math.pow(Math.sin(t), 3);
+    const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+    puntos.push({ X: Math.round((cx + x * s) * ESCALA), Y: Math.round((cy + 0.5 * k + y * s) * ESCALA) });
+  }
+  return unir([puntos]);
+}
+
+/* Estrella de 5 puntas. */
+function estrellita(cx: number, cy: number, k: number): Contornos {
+  const puntos: Contorno = [];
+  for (let indice = 0; indice < 10; indice++) {
+    const angulo = Math.PI / 2 + (indice * Math.PI) / 5;
+    const radio = indice % 2 ? 1.3 * k : 3.1 * k;
+    puntos.push({
+      X: Math.round((cx + Math.cos(angulo) * radio) * ESCALA),
+      Y: Math.round((cy + Math.sin(angulo) * radio) * ESCALA),
+    });
+  }
+  // Puntas apenas redondeadas (se imprimen mejor).
+  return engordar(engordar(unir([puntos]), -0.25), 0.25);
+}
+
+/* Huesito. */
+function huesito(cx: number, cy: number, k: number): Contornos {
+  const r = 1.05 * k;
+  return unir([
+    rectangulo(cx - 2.4 * k, cy - 0.7 * k, cx + 2.4 * k, cy + 0.7 * k),
+    circulo(cx - 2.6 * k, cy - 0.8 * k, r, 24),
+    circulo(cx - 2.6 * k, cy + 0.8 * k, r, 24),
+    circulo(cx + 2.6 * k, cy - 0.8 * k, r, 24),
+    circulo(cx + 2.6 * k, cy + 0.8 * k, r, 24),
+  ]);
+}
+
+/* Coronita: base + tres picos con bolitas. */
+function coronita(cx: number, cy: number, k: number): Contornos {
+  const punto = (x: number, y: number) => ({ X: Math.round((cx + x * k) * ESCALA), Y: Math.round((cy + y * k) * ESCALA) });
+  const silueta: Contorno = [
+    punto(-3, -2.2),
+    punto(3, -2.2),
+    punto(3.2, 1.6),
+    punto(1.6, -0.2),
+    punto(0, 2.2),
+    punto(-1.6, -0.2),
+    punto(-3.2, 1.6),
+  ];
+  return unir([
+    silueta,
+    circulo(cx - 3.2 * k, cy + 1.9 * k, 0.6 * k, 16),
+    circulo(cx, cy + 2.5 * k, 0.6 * k, 16),
+    circulo(cx + 3.2 * k, cy + 1.9 * k, 0.6 * k, 16),
+  ]);
+}
+
+function dibujarAdorno(adorno: string, cx: number, cy: number, k: number): Contornos {
+  if (adorno === "Corazón") return corazoncito(cx, cy, k);
+  if (adorno === "Estrella") return estrellita(cx, cy, k);
+  if (adorno === "Hueso") return huesito(cx, cy, k);
+  if (adorno === "Corona") return coronita(cx, cy, k);
+  if (adorno === "Huellita") return huellita(cx, cy, k);
+  return [];
+}
+
 /* Huellita: almohadilla + cuatro deditos. */
 function huellita(cx: number, cy: number, k: number): Contornos {
   return unir([
@@ -517,10 +593,12 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
   const ANCHO_BORDE = 1.3;
   const reborde = operar(ClipperLib.ClipType.ctDifference, cuerpo, engordar(cuerpo, -ANCHO_BORDE));
 
-  // Nombre centrado (igual con o sin huellita), lejos del borde.
+  // Nombre centrado (igual con o sin adorno), lejos del borde; el cliente elige qué tan grande.
+  const escala = limpiarEscalaNombre(datos.escalaNombre) / 100;
   const zona = forma.zona;
-  let nombre = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho, zona.alto);
-  if (datos.huella) nombre = unir([...nombre, ...huellita(forma.huella.x, forma.huella.y, k)]);
+  let nombre = textoEnCaja(fuente, datos.texto.trim() || "Koni", zona.cx, zona.cy, zona.ancho * escala, zona.alto * escala);
+  const adorno = adornoDe(datos);
+  if (adorno !== "Ninguno") nombre = unir([...nombre, ...dibujarAdorno(adorno, forma.huella.x, forma.huella.y, k)]);
   nombre = operar(ClipperLib.ClipType.ctIntersection, nombre, engordar(cuerpo, -(ANCHO_BORDE + 1.1)));
 
   const arribaColor = unir([...reborde, ...nombre]);
@@ -552,8 +630,14 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
 
   const capaAbajo = extruir(abajoResto, 0, ABAJO);
   const capaMedio = extruir(cuerpo, ABAJO, ALTO_CHAPITA - ABAJO - ARRIBA);
-  const capaArriba = extruir(arribaResto, ALTO_CHAPITA - ARRIBA, ARRIBA);
-  const geometriaColor = extruir(arribaColor, ALTO_CHAPITA - ARRIBA, ARRIBA);
+  // Relieve: el borde y el nombre van arriba de la chapita entera (sobresalen 0,8 mm).
+  const RELIEVE = 0.8;
+  const capaArriba = datos.relieve
+    ? extruir(cuerpo, ALTO_CHAPITA - ARRIBA, ARRIBA)
+    : extruir(arribaResto, ALTO_CHAPITA - ARRIBA, ARRIBA);
+  const geometriaColor = datos.relieve
+    ? extruir(arribaColor, ALTO_CHAPITA, RELIEVE)
+    : extruir(arribaColor, ALTO_CHAPITA - ARRIBA, ARRIBA);
   const geometriaAnillo = extruir(anillo, 0, ALTO_CHAPITA);
   const geometriaTelefono =
     datos.atras === "Color" && telefono.length ? extruir(telefono, 0, ABAJO) : undefined;
@@ -570,7 +654,7 @@ export async function construirChapita(datos: PersonalizacionMascota): Promise<G
     aro: { x: centro.x - dx, y: centro.y - dy, angulo: -Math.PI / 2 },
     ancho: Math.round((total.maxX - total.minX) * 10) / 10,
     alto: Math.round((total.maxY - total.minY) * 10) / 10,
-    grosor: ALTO_CHAPITA,
+    grosor: datos.relieve ? ALTO_CHAPITA + 0.8 : ALTO_CHAPITA,
     areaCm2: Math.round((area / (ESCALA * ESCALA) / 100) * 10) / 10,
   };
 }

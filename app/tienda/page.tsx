@@ -39,7 +39,7 @@ import {
 } from "react";
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
-import { coloresPieza, leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
+import { adornoDe, coloresPieza, leerMascota, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
@@ -278,7 +278,9 @@ function detalleLinea(linea: {
   if (mascota) {
     return [
       `“${mascota.texto}” · tel. ${mascota.telefono}`,
-      `${mascota.forma} · ${mascota.fuente} · ${mascota.tamano}${mascota.huella ? " · con huellita" : ""}`,
+      `${mascota.forma} · ${mascota.fuente} · ${mascota.tamano}${
+        adornoDe(mascota) !== "Ninguno" ? ` · ${adornoDe(mascota).toLowerCase()}` : ""
+      }${mascota.relieve ? " · en relieve" : ""}`,
       colores.length >= 2 ? `Chapita ${colores[0]}, borde y nombre ${colores[1]}` : "",
       colores.length >= 2 ? `anillo ${coloresPieza(mascota, colores).anillo}` : "",
       coloresPieza(mascota, colores).telefono ? `teléfono ${coloresPieza(mascota, colores).telefono}` : "",

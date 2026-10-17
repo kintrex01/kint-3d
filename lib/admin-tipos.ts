@@ -237,7 +237,8 @@ export type ResenaAdmin = {
 export type PedidoGeneral = {
   tipo: "maqueta" | "tienda";
   pedido: string;
-  fecha: string; // ISO ("" si no se sabe)
+  fecha: string; // ISO ("" si no se sabe): cuándo llegó
+  entrega?: string; // "yyyy-mm-dd" o "": para cuándo lo quiere
   cliente: string;
   email: string;
   estado: string;
@@ -530,6 +531,48 @@ export type AccionesAdmin = {
     pedido: { email: string; giros: number; nota?: string };
     respuesta: { giros: GiroRegalo[] };
   };
+  admin_ruleta_config_listar: {
+    pedido: SinDatos;
+    respuesta: VistaRuletaAdmin;
+  };
+  admin_ruleta_config_guardar: {
+    pedido: { config: ConfigRuleta };
+    respuesta: VistaRuletaAdmin;
+  };
+};
+
+export type PremioRuletaConfig = {
+  id: string;
+  tipo: "puntos" | "descuento" | "regalo" | "regalo_tienda" | "otra";
+  nombre: string; // vacío = automático ("25 puntos", "10% OFF")
+  valor: string | number;
+  chance: number; // % si sale ese día
+  color: string; // "" = el del tipo
+  activo: boolean;
+};
+
+export type CanjeRuletaConfig = {
+  id: string;
+  nombre: string;
+  puntos: number;
+  tipo: "descuento" | "regalo";
+  valor: string | number;
+};
+
+export type ConfigRuleta = {
+  horas: number; // cada cuántas horas se gana un giro
+  acumulables: number; // cuántos se guardan como máximo
+  costoPuntos: number; // 0 = no se gira con puntos
+  porciones: number; // premios que entran cada día
+  mostrar: "rareza" | "porcentaje" | "nada";
+  premios: PremioRuletaConfig[];
+  canjes: CanjeRuletaConfig[];
+};
+
+export type VistaRuletaAdmin = {
+  config: ConfigRuleta;
+  hoy: { nombre: string; tipo: string; chance: number; color: string; misterio: boolean }[];
+  cambiaEn: string;
 };
 
 /* Giros de la ruleta que el dueño le regala a un cliente. */
@@ -581,4 +624,6 @@ export const ACCIONES_ADMIN = [
   "admin_cliente_estado",
   "admin_ruleta_giros_listar",
   "admin_ruleta_giros_guardar",
+  "admin_ruleta_config_listar",
+  "admin_ruleta_config_guardar",
 ] as const satisfies readonly TipoAccionAdmin[];

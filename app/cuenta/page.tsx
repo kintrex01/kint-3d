@@ -21,7 +21,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 
 /*
  * Ajustes de la cuenta del cliente (Apps Script: Cuenta_Kint3D.js).
- * 1. Correo → le llega un código de 4 caracteres.
+ * 1. Correo → le llega un código de 5 caracteres.
  * 2. Código → sesión de 1 día (token en localStorage: sigue abierta aunque cierres la pestaña).
  * 3. Ve sus pedidos y puntos, y cambia nombre, alias y celular.
  *    El correo no se cambia.
@@ -158,7 +158,7 @@ export default function CuentaPage() {
   }
 
   async function verificar(valor = codigo) {
-    if (valor.trim().length !== 4) return;
+    if (valor.trim().length !== 5) return;
     setCargando(true);
     setError("");
     try {
@@ -217,7 +217,7 @@ export default function CuentaPage() {
               <span className="mb-1 block text-sm font-black">Tu correo</span>
               <span className="mb-3 block text-xs leading-5 text-[var(--text-muted)]">
                 El mismo con el que hiciste tus pedidos. Te mandamos un código de
-                4 caracteres para entrar.
+                5 caracteres para entrar.
               </span>
               <input
                 type="email"
@@ -251,15 +251,15 @@ export default function CuentaPage() {
             <input
               value={codigo}
               onChange={(evento) => {
-                const limpio = evento.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+                const limpio = evento.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5);
                 setCodigo(limpio);
-                if (limpio.length === 4) void verificar(limpio);
+                if (limpio.length === 5) void verificar(limpio);
               }}
               autoComplete="one-time-code"
               autoCapitalize="characters"
               inputMode="text"
-              aria-label="Código de 4 caracteres"
-              placeholder="····"
+              aria-label="Código de 5 caracteres"
+              placeholder="·····"
               className={`${CLASE_INPUT} mt-4 text-center text-3xl font-black tracking-[0.6em]`}
               autoFocus
             />
@@ -267,7 +267,7 @@ export default function CuentaPage() {
             <button
               type="button"
               onClick={() => void verificar()}
-              disabled={cargando || codigo.length !== 4}
+              disabled={cargando || codigo.length !== 5}
               className={`${CLASE_BOTON} mt-4`}
             >
               {cargando ? <LoaderCircle size={16} className="animate-spin" /> : <Check size={16} />}

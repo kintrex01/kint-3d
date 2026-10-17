@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronRight,
+  Inbox,
   Flame,
   Package,
   ReceiptText,
@@ -25,6 +26,7 @@ import {
   claseFase,
   faseEstado,
   fechaDia,
+  fechaLlegada,
   textoDiasHasta,
   textoEstado,
   tonoEstado,
@@ -286,6 +288,12 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
           </p>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {pedido.fecha && (
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">
+                <Inbox size={13} aria-hidden />
+                Llegó {fechaLlegada(pedido.fecha)}
+              </span>
+            )}
             <span
               className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
                 vencida
@@ -296,7 +304,7 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
               <CalendarDays size={13} aria-hidden />
               {pedido.entrega ? (
                 <>
-                  {fechaDia(pedido.entrega)}
+                  Entrega {fechaDia(pedido.entrega)}
                   {!cancelado && pedido.estado !== "Entregado" && (
                     <span>· {textoDiasHasta(pedido.entrega)}</span>
                   )}

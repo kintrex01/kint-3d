@@ -106,7 +106,17 @@ export type PersonalizacionLlavero = {
   fondo?: string; // "Contorno" si no viene
   separacion?: number; // mm extra entre letras (0 si no viene)
   renglones?: number; // mm extra entre los dos renglones (0 = juntitos)
+  esquinas?: number; // placa: radio de las esquinas en mm (0 = en punta; sin dato = automático)
 };
+
+/* Placa: radio de las esquinas. */
+export const ESQUINAS_MAX = 6;
+export function limpiarEsquinas(valor: unknown) {
+  if (valor === undefined || valor === null || valor === "") return undefined;
+  const numero = Number(String(valor).replace(",", "."));
+  if (!Number.isFinite(numero)) return undefined;
+  return Math.min(ESQUINAS_MAX, Math.max(0, Math.round(numero * 2) / 2));
+}
 
 export function limpiarTextoLlavero(texto: string) {
   return texto.replace(/\s+/g, " ").trimStart().slice(0, MAX_LETRAS_LLAVERO);
@@ -137,6 +147,9 @@ export function formatearPersonalizacion(personalizacion: PersonalizacionLlavero
     `Fondo: ${personalizacion.fondo || "Contorno"}`,
     `Separación: ${limpiarSeparacion(personalizacion.separacion)}`,
     personalizacion.texto2?.trim() ? `Entre renglones: ${limpiarRenglones(personalizacion.renglones)}` : "",
+    personalizacion.fondo === "Placa" && limpiarEsquinas(personalizacion.esquinas) !== undefined
+      ? `Esquinas: ${limpiarEsquinas(personalizacion.esquinas)}`
+      : "",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -165,7 +178,8 @@ export function leerPersonalizacion(comentario: string): PersonalizacionLlavero 
     campos["entre renglones"] !== undefined
       ? limpiarRenglones(campos["entre renglones"])
       : limpiarRenglones(Number(campos["renglones"] ?? 0) + altoLetra * (1.6 - INTERLINEADO));
-  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones };
+  const esquinas = limpiarEsquinas(campos["esquinas"]);
+  return { texto, texto2: campos["texto 2"] || "", fuente, tamano, borde, fondo, separacion, renglones, esquinas };
 }
 
 /* "“Antonio / Arquitecto”" para mostrar. */
@@ -202,11 +216,37 @@ export type PersonalizacionMascota = {
   texto: string;
   telefono: string;
   forma: string;
-  huella: boolean;
+  huella: boolean; // = hay adorno (pedidos viejos: solo la huellita)
+  adorno?: string; // ADORNOS_CHAPITA ("Ninguno" = sin adorno)
   atras?: "Grabado" | "Color"; // teléfono hueco o relleno de otro color
+  relieve?: boolean; // borde y nombre sobresalen (si no, todo al ras)
+  escalaNombre?: number; // % del tamaño del nombre (100 = normal)
   fuente: string;
   tamano: string;
 };
+
+export const ADORNOS_CHAPITA = [
+  { nombre: "Huellita", emoji: "🐾" },
+  { nombre: "Corazón", emoji: "❤️" },
+  { nombre: "Estrella", emoji: "⭐" },
+  { nombre: "Hueso", emoji: "🦴" },
+  { nombre: "Corona", emoji: "👑" },
+  { nombre: "Ninguno", emoji: "—" },
+] as const;
+
+export const ESCALA_NOMBRE_MIN = 60;
+export const ESCALA_NOMBRE_MAX = 130;
+export function limpiarEscalaNombre(valor: unknown) {
+  const numero = Number(valor);
+  if (!Number.isFinite(numero) || valor === "" || valor === undefined || valor === null) return 100;
+  return Math.min(ESCALA_NOMBRE_MAX, Math.max(ESCALA_NOMBRE_MIN, Math.round(numero / 5) * 5));
+}
+
+/* Adorno elegido (los pedidos viejos solo tienen "Huella: Sí/No"). */
+export function adornoDe(datos: Pick<PersonalizacionMascota, "huella" | "adorno">) {
+  if (datos.adorno && ADORNOS_CHAPITA.some((opcion) => opcion.nombre === datos.adorno)) return datos.adorno;
+  return datos.huella ? "Huellita" : "Ninguno";
+}
 
 export function formatearMascota(datos: Omit<PersonalizacionMascota, "tipo">) {
   return [
@@ -214,8 +254,11 @@ export function formatearMascota(datos: Omit<PersonalizacionMascota, "tipo">) {
     `Texto: ${datos.texto.trim()}`,
     `Teléfono: ${datos.telefono.trim()}`,
     `Forma: ${datos.forma}`,
-    `Huella: ${datos.huella ? "Sí" : "No"}`,
+    `Huella: ${adornoDe(datos) !== "Ninguno" ? "Sí" : "No"}`,
+    `Adorno: ${adornoDe(datos)}`,
     `Atrás: ${datos.atras === "Color" ? "Color" : "Grabado"}`,
+    `Relieve: ${datos.relieve ? "Sí" : "No"}`,
+    `Nombre: ${limpiarEscalaNombre(datos.escalaNombre)}`,
     `Fuente: ${datos.fuente}`,
     `Tamaño: ${datos.tamano}`,
   ].join(" | ");
@@ -242,7 +285,10 @@ export function leerMascota(comentario: string): PersonalizacionMascota | null {
     telefono,
     forma,
     huella: campos["huella"] !== "No",
+    adorno: adornoDe({ huella: campos["huella"] !== "No", adorno: campos["adorno"] }),
     atras: campos["atrás"] === "Color" ? "Color" : "Grabado",
+    relieve: campos["relieve"] === "Sí",
+    escalaNombre: limpiarEscalaNombre(campos["nombre"]),
     fuente,
     tamano,
   };

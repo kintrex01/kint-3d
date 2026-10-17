@@ -61,6 +61,13 @@ export function fechaHora(iso: string) {
   ).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`;
 }
 
+/* ISO completo → "vie 10 jul, 13:51" (cuándo llegó un pedido). */
+export function fechaLlegada(iso: string) {
+  const fecha = new Date(iso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  return `${DIAS_CORTOS[fecha.getDay()]} ${fechaHora(iso)}`;
+}
+
 /* Días desde hoy hasta "yyyy-mm-dd" (0 = hoy, 1 = mañana, -1 = ayer). */
 export function diasHasta(iso: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");

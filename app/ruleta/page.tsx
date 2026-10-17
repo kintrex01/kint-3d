@@ -1,20 +1,37 @@
 "use client";
 
 /*
- * Ruleta Kint: una tirada cada 2 días por cuenta, con premios que cambian
- * cada día (Premios_Kint3D.js). También se canjean puntos por premios.
- * Se entra con la misma sesión de Ajustes (código por correo).
+ * Ruleta Kint: se gana un giro cada X horas y se guardan hasta N; también se
+ * gira con puntos. Los premios cambian cada día a las 00 y el más raro va
+ * tapado (Premios_Kint3D.js). Se canjean puntos y se ve el Top Kint.
+ * Se entra con la misma sesión de Mi cuenta (código por correo).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Star, Ticket } from "lucide-react";
+import { Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Ticket, Trophy } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 
 const CLAVE_SESION = "kint-cuenta-sesion-v1";
 
 type Sesion = { email: string; token: string };
-type PremioRueda = { nombre: string; color: string; tipo: string; tamano?: number };
+type PremioRueda = {
+  nombre: string;
+  color: string;
+  tipo: string; // "misterio" = el premio más raro, tapado
+  tamano?: number;
+  rareza?: string;
+  chance?: number | null; // solo si se muestran los %
+};
+type Giros = {
+  puede: boolean;
+  proxima: string;
+  normales: number;
+  acumulables: number;
+  extras: number;
+  regalo: number; // -1 = ilimitados
+};
+type PuestoTop = { puesto: number; alias: string; puntos: number };
 type MiPremio = {
   fecha: string;
   origen: string;
@@ -29,12 +46,18 @@ type Estado = {
   puede: boolean;
   proxima: string;
   regalo?: number; // giros de regalo de Kint (-1 = ilimitados)
+  giros: Giros;
+  costoPuntos: number; // 0 = no se gira con puntos
+  horas: number;
+  mostrar: "rareza" | "porcentaje" | "nada";
+  cambiaEn: string;
   puntos: number;
   alias: string;
   canjes: { id: string; nombre: string; puntos: number }[];
+  top?: { habilitado: boolean; ranking: PuestoTop[]; miPuesto: { puesto: number; puntos: number } | null };
   misPremios: MiPremio[];
 };
-type Ganado = { nombre: string; tipo: string; codigo: string; vence: string };
+type Ganado = { nombre: string; tipo: string; codigo: string; vence: string; misterio?: boolean };
 
 async function llamar(cuerpo: Record<string, string>) {
   const response = await fetch("/api/cuenta", {
@@ -106,13 +129,13 @@ export default function RuletaPage() {
   }, [sesion, cargar]);
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-4 pb-24 text-[var(--text-main)] sm:px-6">
+    <main className="relative -mt-28 min-h-screen overflow-hidden px-4 pb-24 text-[var(--text-main)] sm:-mt-32 sm:px-6">
       <div className="fixed right-6 top-6 z-[1000]">
         <ThemeToggle />
       </div>
 
       {/* El fondo sube hasta el borde de arriba (el menú deja h-28 / sm:h-32 libres). */}
-      <section className="relative isolate -mx-4 -mt-28 mb-[-7rem] overflow-hidden px-4 pb-32 pt-32 sm:-mx-6 sm:-mt-32 sm:px-6 sm:pt-24">
+      <section className="relative isolate -mx-4 mb-[-7rem] overflow-hidden px-4 pb-32 pt-32 sm:-mx-6 sm:px-6 sm:pt-24">
         <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_50%,transparent)]">
           <FondoKintAnimado />
         </div>
@@ -122,8 +145,8 @@ export default function RuletaPage() {
             Ruleta Kint
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--text-muted)]">
-            Girala una vez cada 2 días. Los premios cambian todos los días: puntos, descuentos, regalos de la
-            tienda y hasta tiradas extra.
+            Juntá giros, giralos cuando quieras y competí en el Top Kint. Los premios cambian todos los días a las
+            00:00 y el más grande siempre es un misterio.
           </p>
         </div>
       </section>
@@ -200,7 +223,7 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
       </span>
       <h2 className="mt-4 text-2xl font-black">Entrá con tu correo</h2>
       <p className="mt-1 text-sm text-[var(--text-muted)]">
-        Te mandamos un código de 4 caracteres para que la ruleta sea tuya. Usá el mismo correo de tus pedidos.
+        Te mandamos un código de 5 caracteres para que la ruleta sea tuya. Usá el mismo correo de tus pedidos.
       </p>
 
       <label className="mt-5 block text-xs font-bold text-[var(--text-muted)]">
@@ -224,9 +247,9 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
           Código que te llegó
           <input
             value={codigo}
-            onChange={(evento) => setCodigo(evento.target.value.toUpperCase().slice(0, 4))}
+            onChange={(evento) => setCodigo(evento.target.value.toUpperCase().slice(0, 5))}
             autoFocus
-            placeholder="AB12"
+            placeholder="AB12C"
             className="mt-1.5 h-14 w-full rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-input-bg)] px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15"
           />
         </label>
@@ -236,7 +259,7 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
 
       <button
         type="button"
-        disabled={cargando || (!enviado ? !email.includes("@") : codigo.length < 4)}
+        disabled={cargando || (!enviado ? !email.includes("@") : codigo.length < 5)}
         onClick={() => void (enviado ? verificar() : pedirCodigo())}
         className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(135deg,#ef4444,#b91c1c)] text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_12px_30px_rgba(220,38,38,0.35)] transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-50"
       >
@@ -260,7 +283,7 @@ function Ingreso({ onListo }: { onListo: (sesion: Sesion) => void }) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Rueda, premios y canjes                                             */
+/* Rueda, premios del día, Top Kint y canjes                           */
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
@@ -298,6 +321,33 @@ function frenado(t: number) {
 
 const DURACION_GIRO = 9000;
 const VUELTAS = 8;
+const BOMBITAS = 36;
+
+/* Texto de cada porción: a lo largo del radio, con la letra que entra. */
+const RADIO_TEXTO = 94; // centro del texto
+const LARGO_TEXTO = 82; // del botón del centro hasta el borde
+
+function textoPorcion(porcion: { nombre: string; tipo: string; ancho: number }) {
+  if (porcion.tipo === "misterio") return { texto: "❓ ???", tamano: Math.min(14, porcion.ancho * 0.9) };
+  const anchoArco = ((2 * Math.PI * RADIO_TEXTO) / 360) * porcion.ancho;
+  const nombre = porcion.nombre;
+  const porAlto = anchoArco * 0.62;
+  const porLargo = LARGO_TEXTO / (Math.max(nombre.length, 4) * 0.6);
+  const tamano = Math.min(13, porAlto, porLargo);
+  if (tamano >= 7) return { texto: nombre, tamano };
+  // No entra: un dibujito.
+  const icono =
+    porcion.tipo === "regalo" ? "🎁" : porcion.tipo === "puntos" ? "✨" : porcion.tipo === "descuento" ? "%" : porcion.tipo === "otra" ? "🔄" : "😬";
+  return { texto: icono, tamano: Math.max(8, Math.min(13, porAlto)) };
+}
+
+const COLOR_RAREZA: Record<string, string> = {
+  Común: "bg-slate-400/15 text-slate-400 ring-slate-400/30",
+  Raro: "bg-sky-400/15 text-sky-400 ring-sky-400/40",
+  Épico: "bg-violet-400/15 text-violet-400 ring-violet-400/40",
+  Legendario: "bg-amber-400/15 text-amber-400 ring-amber-400/50",
+  "???": "bg-[linear-gradient(90deg,#f59e0b33,#ec489933)] text-amber-300 ring-amber-300/60",
+};
 
 function Juego({
   sesion,
@@ -342,7 +392,17 @@ function Juego({
     });
   }, [estado.premios]);
 
-  const espera = !estado.puede && estado.proxima ? faltaPara(estado.proxima, ahora) : "";
+  const giros = estado.giros;
+  const totalGiros =
+    giros.regalo === -1 ? Infinity : giros.normales + giros.extras + Math.max(0, giros.regalo);
+  const espera = giros.proxima ? faltaPara(giros.proxima, ahora) : "";
+  const cambian = faltaPara(estado.cambiaEn, ahora);
+  const puedeComprar = estado.costoPuntos > 0 && !estado.puede;
+  const alcanzaComprar = estado.puntos >= estado.costoPuntos;
+  // Premios de hoy: del más raro al más común (el misterio primero).
+  const premiosHoy = estado.premios
+    .filter((premio) => premio.tipo !== "nada")
+    .sort((a, b) => (a.tipo === "misterio" ? -1 : b.tipo === "misterio" ? 1 : (a.tamano ?? 0) - (b.tamano ?? 0)));
 
   function porcionEn(rotacion: number) {
     const bajoFlecha = (((360 - (rotacion % 360)) % 360) + 360) % 360;
@@ -373,24 +433,38 @@ function Juego({
     requestAnimationFrame(paso);
   }
 
-  async function girar() {
-    if (girando || !estado.puede) return;
+  async function girar(conPuntos = false) {
+    if (girando || (!estado.puede && !conPuntos)) return;
     setError("");
     setGirando(true);
     if (sonido) tic(); // habilita el audio con el toque
     try {
-      const data = await llamar({ tipo: "ruleta_girar", email: sesion.email, token: sesion.token });
+      const data = await llamar({
+        tipo: "ruleta_girar",
+        email: sesion.email,
+        token: sesion.token,
+        ...(conPuntos ? { conPuntos: "si" } : {}),
+      });
       const porcion = porciones[data.indice];
       // Cae en un lugar al azar de la porción ganadora (no siempre en el medio).
       const dentro = porcion ? porcion.inicio + porcion.ancho * (0.2 + Math.random() * 0.6) : 0;
       const actual = angulo.current;
       const destino = actual - (actual % 360) + 360 * VUELTAS + (360 - dentro);
+      // Los puntos gastados se ven al toque.
+      if (conPuntos) onEstado({ ...estado, puntos: estado.puntos - estado.costoPuntos });
       animar(destino, () => {
         setGirando(false);
         setGanado(data.premio);
         const gano = ["puntos", "descuento", "regalo"].includes(data.premio.tipo);
         if (sonido) (gano || data.premio.tipo === "otra" ? fanfarria : pena)();
-        onEstado({ ...estado, puede: data.puede, proxima: data.proxima, regalo: data.regalo, puntos: data.puntos });
+        onEstado({
+          ...estado,
+          giros: data.giros,
+          puede: data.puede,
+          proxima: data.proxima,
+          regalo: data.regalo,
+          puntos: data.puntos,
+        });
         if (gano) onRecargar();
       });
     } catch (errorGiro) {
@@ -425,7 +499,8 @@ function Juego({
     }
   }
 
-  const BOMBITAS = 36;
+  const tarjeta =
+    "rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 backdrop-blur-xl";
 
   return (
     <>
@@ -433,13 +508,14 @@ function Juego({
         @keyframes kint-bombita { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
         @keyframes kint-brillo { 0%, 100% { opacity: 0.45; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.04); } }
         @keyframes kint-chispa { 0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
+        @keyframes kint-misterio { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
       `}</style>
       <div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-start">
         {/* Rueda */}
         <div className="relative overflow-hidden rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 shadow-[0_30px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-lg font-black">¡Hola, {estado.alias || "Kint"}!</p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={alternarSonido}
@@ -448,17 +524,17 @@ function Juego({
               >
                 {sonido ? "🔊" : "🔇"}
               </button>
-              {estado.regalo ? (
-                <span
-                  title="Giros que te regaló Kint"
-                  className="inline-flex items-center gap-1 rounded-full bg-fuchsia-500/15 px-3 py-1.5 text-sm font-black text-fuchsia-500 ring-1 ring-inset ring-fuchsia-400/40"
-                >
-                  🎁 {estado.regalo === -1 ? "Giros ilimitados" : `${estado.regalo} ${estado.regalo === 1 ? "giro" : "giros"} de regalo`}
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-3 py-1.5 text-sm font-black text-amber-500 ring-1 ring-inset ring-amber-400/40">
-                <Star size={15} fill="currentColor" />
-                {estado.puntos.toLocaleString("es-UY")} puntos
+              <span
+                title="Giros que tenés para usar"
+                className="inline-flex items-center gap-1 rounded-full bg-fuchsia-500/15 px-3 py-1.5 text-sm font-black text-fuchsia-500 ring-1 ring-inset ring-fuchsia-400/40"
+              >
+                🎟️ {totalGiros === Infinity ? "∞" : totalGiros}
+              </span>
+              <span
+                title="Tus puntos"
+                className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-3 py-1.5 text-sm font-black text-amber-500 ring-1 ring-inset ring-amber-400/40"
+              >
+                {estado.puntos.toLocaleString("es-UY")} ✨
               </span>
             </div>
           </div>
@@ -507,7 +583,6 @@ function Juego({
               ref={rueda}
               viewBox="0 0 320 320"
               className="relative z-10 h-full w-full drop-shadow-[0_24px_40px_rgba(0,0,0,0.5)]"
-
               aria-label="Ruleta de premios"
               role="img"
             >
@@ -516,6 +591,11 @@ function Juego({
                   <stop offset="0" stopColor="#fef3c7" />
                   <stop offset="0.5" stopColor="#d97706" />
                   <stop offset="1" stopColor="#78350f" />
+                </linearGradient>
+                <linearGradient id="kint-misterio" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="#fde047" />
+                  <stop offset="0.5" stopColor="#f59e0b" />
+                  <stop offset="1" stopColor="#db2777" />
                 </linearGradient>
                 <radialGradient id="kint-sombra" cx="0.5" cy="0.5" r="0.5">
                   <stop offset="0.7" stopColor="rgba(0,0,0,0)" />
@@ -534,34 +614,28 @@ function Juego({
                 const x2 = 160 + 142 * Math.cos(fin);
                 const y2 = 160 + 142 * Math.sin(fin);
                 const medio = porcion.inicio + porcion.ancho / 2;
-                const chiquita = porcion.ancho < 22;
-                const texto = chiquita
-                  ? porcion.tipo === "regalo"
-                    ? "🎁"
-                    : porcion.tipo === "nada"
-                    ? "😬"
-                    : "★"
-                  : porcion.nombre.length > 16
-                  ? `${porcion.nombre.slice(0, 15)}…`
-                  : porcion.nombre;
+                const misterio = porcion.tipo === "misterio";
+                const { texto, tamano } = textoPorcion(porcion);
                 return (
                   <g key={`${porcion.nombre}-${indice}`}>
                     <path
                       d={`M160,160 L${x1},${y1} A142,142 0 ${grande},1 ${x2},${y2} Z`}
-                      fill={porcion.color}
+                      fill={misterio ? "url(#kint-misterio)" : porcion.color}
                       stroke="#fde68a"
                       strokeOpacity="0.55"
                       strokeWidth="1.5"
+                      style={misterio ? { animation: "kint-misterio 1.6s ease-in-out infinite" } : undefined}
                     />
                     <text
-                      x="160"
-                      y={chiquita ? 38 : 44}
-                      transform={`rotate(${medio} 160 160)`}
+                      x={160 + RADIO_TEXTO}
+                      y="160"
+                      transform={`rotate(${medio - 90} 160 160)`}
                       textAnchor="middle"
+                      dominantBaseline="central"
                       fill="#ffffff"
-                      fontSize={chiquita ? 14 : porcion.ancho < 40 ? 9 : porcion.nombre.length > 12 ? 10 : 12}
+                      fontSize={tamano}
                       fontWeight="900"
-                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.4)", strokeWidth: 2.5 }}
+                      style={{ paintOrder: "stroke", stroke: "rgba(0,0,0,0.45)", strokeWidth: 2.5 }}
                     >
                       {texto}
                     </text>
@@ -603,48 +677,158 @@ function Juego({
             {girando
               ? "¡Girando…!"
               : estado.puede
-              ? "¡Tenés una tirada! Tocá «Girar»."
+              ? totalGiros === Infinity
+                ? "Tenés giros ilimitados. ¡Dale!"
+                : `¡Tenés ${totalGiros} ${totalGiros === 1 ? "giro" : "giros"}! Tocá «Girar».`
               : espera
-              ? `Tu próxima tirada en ${espera}.`
+              ? `Tu próximo giro en ${espera}.`
               : "Volvé pronto para girar de nuevo."}
           </p>
           <p className="mt-1 text-center text-[11px] text-[var(--text-muted)]">
-            Los premios se reclaman poniendo el código en «Código de descuento» al cotizar o en el seguimiento.
+            Ganás un giro cada {estado.horas >= 24 && estado.horas % 24 === 0 ? `${estado.horas / 24} ${estado.horas === 24 ? "día" : "días"}` : `${estado.horas} h`} y
+            guardás hasta {giros.acumulables}
+            {giros.proxima && giros.normales > 0 ? ` (el próximo llega en ${espera})` : ""}.
+          </p>
+
+          {puedeComprar && (
+            <button
+              type="button"
+              onClick={() => void girar(true)}
+              disabled={girando || !alcanzaComprar}
+              className="mx-auto mt-4 flex h-11 items-center justify-center gap-2 rounded-xl border border-amber-400/50 bg-amber-400/10 px-5 text-sm font-black text-amber-500 transition enabled:hover:-translate-y-0.5 enabled:hover:bg-amber-400/20 disabled:opacity-50"
+            >
+              Girar ahora por {estado.costoPuntos} ✨
+              {!alcanzaComprar && (
+                <span className="text-[11px] font-bold opacity-80">· te faltan {estado.costoPuntos - estado.puntos}</span>
+              )}
+            </button>
+          )}
+
+          <p className="mt-4 text-center text-[11px] text-[var(--text-muted)]">
+            Los premios se reclaman con el código en «Código de descuento o premio» al cotizar o en el seguimiento.
           </p>
           {error && <p className="mt-2 text-center text-sm font-bold text-red-500">{error}</p>}
         </div>
 
-        {/* Costado: canjes y premios */}
+        {/* Costado */}
         <div className="space-y-6">
-          <div className="rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 backdrop-blur-xl">
-            <p className="flex items-center gap-2 text-base font-black">
-              <Gift size={18} className="text-red-500" />
-              Canjeá tus puntos
+          {/* Premios de hoy */}
+          <div className={tarjeta}>
+            <p className="flex items-center justify-between gap-2 text-base font-black">
+              <span className="flex items-center gap-2">
+                <Sparkles size={18} className="text-amber-400" />
+                Premios de hoy
+              </span>
+              {cambian && (
+                <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-1 text-[10px] font-black text-[var(--text-muted)]">
+                  Cambian en {cambian}
+                </span>
+              )}
             </p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Cuando quieras, sin necesidad de comprar.</p>
-            <div className="mt-4 space-y-2">
-              {estado.canjes.map((canje) => {
-                const alcanza = estado.puntos >= canje.puntos;
-                return (
-                  <button
-                    key={canje.id}
-                    type="button"
-                    disabled={!alcanza || Boolean(canjeando)}
-                    onClick={() => void canjear(canje.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-4 py-3 text-left transition enabled:hover:border-amber-400/60 enabled:hover:bg-amber-400/10 disabled:opacity-50"
-                  >
-                    <span className="text-sm font-bold">{canje.nombre}</span>
-                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-black text-amber-500">
-                      {canjeando === canje.id ? <LoaderCircle size={12} className="animate-spin" /> : <Star size={12} fill="currentColor" />}
-                      {canje.puntos}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <ul className="mt-3 space-y-1.5">
+              {premiosHoy.map((premio, indice) => (
+                <li
+                  key={`${premio.nombre}-${indice}`}
+                  className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 ${
+                    premio.tipo === "misterio"
+                      ? "bg-[linear-gradient(90deg,rgba(245,158,11,0.18),rgba(219,39,119,0.14))] ring-1 ring-inset ring-amber-400/40"
+                      : "bg-[var(--kint-panel-soft)]"
+                  }`}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-bold">
+                    <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: premio.color }} />
+                    <span className="truncate">{premio.tipo === "misterio" ? "❓ Premio misterioso" : premio.nombre}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {premio.chance !== null && premio.chance !== undefined && premio.tipo !== "misterio" && (
+                      <span className="text-[11px] font-black tabular-nums text-[var(--text-muted)]">
+                        {String(premio.chance).replace(".", ",")}%
+                      </span>
+                    )}
+                    {estado.mostrar !== "nada" && premio.rareza && (
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ring-1 ring-inset ${COLOR_RAREZA[premio.rareza] ?? COLOR_RAREZA.Común}`}>
+                        {premio.rareza}
+                      </span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2.5 text-[11px] leading-4 text-[var(--text-muted)]">
+              Todos los días a las 00:00 salen premios nuevos. El más grande va tapado: solo lo descubre quien lo gana.
+            </p>
           </div>
 
-          <div className="rounded-[2rem] border border-[var(--kint-panel-border)] bg-[color-mix(in_srgb,var(--kint-panel)_80%,transparent)] p-5 backdrop-blur-xl">
+          {/* Top Kint */}
+          {estado.top?.habilitado && estado.top.ranking.length > 0 && (
+            <div className={tarjeta}>
+              <p className="flex items-center justify-between gap-2 text-base font-black">
+                <span className="flex items-center gap-2">
+                  <Trophy size={18} className="text-amber-400" />
+                  Top Kint
+                </span>
+                {estado.top.miPuesto && (
+                  <span className="rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-black text-amber-500">
+                    Vos: #{estado.top.miPuesto.puesto}
+                  </span>
+                )}
+              </p>
+              <ol className="mt-3 space-y-1">
+                {estado.top.ranking.map((item) => {
+                  const soyYo = item.alias === estado.alias;
+                  return (
+                    <li
+                      key={item.puesto}
+                      className={`flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-sm ${
+                        soyYo ? "bg-amber-400/15 ring-1 ring-inset ring-amber-400/40" : ""
+                      }`}
+                    >
+                      <span className="w-6 text-center font-black">
+                        {item.puesto === 1 ? "🥇" : item.puesto === 2 ? "🥈" : item.puesto === 3 ? "🥉" : item.puesto}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-bold">{item.alias || "Anónimo"}</span>
+                      <span className="font-black tabular-nums text-amber-500">{item.puntos.toLocaleString("es-UY")} ✨</span>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="mt-2 text-[11px] text-[var(--text-muted)]">Sumá puntos con tus pedidos y con la ruleta para subir.</p>
+            </div>
+          )}
+
+          {/* Canjes */}
+          {estado.canjes.length > 0 && (
+            <div className={tarjeta}>
+              <p className="flex items-center gap-2 text-base font-black">
+                <Gift size={18} className="text-red-500" />
+                Canjeá tus puntos
+              </p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Cuando quieras, sin necesidad de comprar.</p>
+              <div className="mt-4 space-y-2">
+                {estado.canjes.map((canje) => {
+                  const alcanza = estado.puntos >= canje.puntos;
+                  return (
+                    <button
+                      key={canje.id}
+                      type="button"
+                      disabled={!alcanza || Boolean(canjeando)}
+                      onClick={() => void canjear(canje.id)}
+                      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-4 py-3 text-left transition enabled:hover:border-amber-400/60 enabled:hover:bg-amber-400/10 disabled:opacity-50"
+                    >
+                      <span className="text-sm font-bold">{canje.nombre}</span>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-xs font-black text-amber-500">
+                        {canjeando === canje.id && <LoaderCircle size={12} className="animate-spin" />}
+                        {canje.puntos} ✨
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Mis premios */}
+          <div className={tarjeta}>
             <p className="flex items-center gap-2 text-base font-black">
               <Ticket size={18} className="text-sky-400" />
               Mis premios
@@ -700,8 +884,13 @@ function CodigoCopiable({ codigo, vence }: { codigo: string; vence: string }) {
 /* Cartel del premio, con papelitos de colores. */
 function Resultado({ ganado, onCerrar }: { ganado: Ganado; onCerrar: () => void }) {
   const gano = ["puntos", "descuento", "regalo"].includes(ganado.tipo);
-  const titulo =
-    ganado.tipo === "otra" ? "¡Otra tirada!" : ganado.tipo === "nada" ? "Esta vez no hubo suerte" : "¡Ganaste!";
+  const titulo = ganado.misterio
+    ? "¡Descubriste el premio misterioso!"
+    : ganado.tipo === "otra"
+    ? "¡Otra tirada!"
+    : ganado.tipo === "nada"
+    ? "Esta vez no hubo suerte"
+    : "¡Ganaste!";
   const [papelitos] = useState(() =>
     Array.from({ length: 40 }, (_, indice) => ({
       izquierda: Math.random() * 100,
@@ -735,7 +924,7 @@ function Resultado({ ganado, onCerrar }: { ganado: Ganado; onCerrar: () => void 
         className="relative w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/15 bg-[radial-gradient(120%_120%_at_0%_0%,var(--acento-claro),var(--acento-oscuro)_50%,var(--acento-fondo))] p-7 text-center text-white shadow-2xl"
       >
         <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/15 text-3xl">
-          {gano ? "🎉" : ganado.tipo === "otra" ? "🔄" : "🍀"}
+          {ganado.misterio ? "🏆" : gano ? "🎉" : ganado.tipo === "otra" ? "🔄" : "🍀"}
         </span>
         <p className="mt-4 text-sm font-black uppercase tracking-[0.2em] text-white/60">{titulo}</p>
         <p className="mt-1 text-3xl font-black">{ganado.nombre}</p>
@@ -752,7 +941,7 @@ function Resultado({ ganado, onCerrar }: { ganado: Ganado; onCerrar: () => void 
             : ganado.tipo === "otra"
             ? "Tocá «Girar» de nuevo."
             : ganado.tipo === "nada"
-            ? "En 2 días tenés otra oportunidad."
+            ? "Juntá giros y probá de nuevo."
             : "Te lo mandamos también por correo."}
         </p>
         <button
