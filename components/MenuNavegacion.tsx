@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SelectorFondo from "@/components/SelectorFondo";
 import { usePathname } from "next/navigation";
 import {
   Box,
@@ -608,6 +609,8 @@ abierto
               pathname={pathname}
               cerrar={cerrarMenu}
             />
+
+            <SelectorFondo />
           </div>
         </aside>
       </div>

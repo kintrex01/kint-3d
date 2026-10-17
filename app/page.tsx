@@ -407,7 +407,10 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   )}
 
 <section className="relative isolate overflow-hidden px-8 pt-12">
-  <FondoKintAnimado />
+  {/* Se desvanece abajo: se funde con el fondo de pantalla elegido. */}
+  <div className="absolute inset-0 [mask-image:linear-gradient(to_bottom,black_75%,transparent)]">
+    <FondoKintAnimado />
+  </div>
 
   <div className="absolute right-8 top-24 z-30 hidden xl:block">
   <EstadisticasInicio />

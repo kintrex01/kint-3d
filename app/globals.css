@@ -631,3 +631,127 @@ html .kint-main-btn.kint-tienda-main:hover {
   background: #ffffff;
   color: #b91c1c;
 }
+
+/* ================================================================
+ * FONDOS DE PANTALLA (lib/fondos.ts · el cliente elige en el menú)
+ * Cada fondo tiene su color y su dibujo. Cubren toda la página
+ * (body::before fijo), así nunca queda negro debajo del inicio,
+ * y tiñen el humo animado de arriba (filtro sobre .fondo-kint-webgl).
+ * ================================================================ */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.4s ease;
+}
+
+/* ---------- Humo azul (el de siempre) ---------- */
+html.dark:not([data-fondo]),
+html.dark[data-fondo="humo"] {
+  --page-bg: #040b16;
+}
+html.dark:not([data-fondo]) body::before,
+html.dark[data-fondo="humo"] body::before {
+  background:
+    radial-gradient(60% 50% at 12% 18%, rgba(29, 79, 154, 0.32), transparent 70%),
+    radial-gradient(55% 45% at 88% 72%, rgba(143, 199, 232, 0.12), transparent 70%),
+    radial-gradient(40% 35% at 50% 100%, rgba(29, 79, 154, 0.18), transparent 70%);
+}
+html:not(.dark):not([data-fondo]) body::before,
+html:not(.dark)[data-fondo="humo"] body::before {
+  background:
+    radial-gradient(60% 50% at 12% 18%, rgba(143, 199, 232, 0.35), transparent 70%),
+    radial-gradient(55% 45% at 88% 72%, rgba(29, 79, 154, 0.10), transparent 70%);
+}
+
+/* ---------- Fuego (rojo con brasas) ---------- */
+html[data-fondo="fuego"].dark {
+  --page-bg: #130405;
+}
+html[data-fondo="fuego"]:not(.dark) {
+  --page-bg: #fff5f1;
+}
+html[data-fondo="fuego"].dark body::before {
+  background:
+    radial-gradient(rgba(255, 170, 110, 0.32) 1px, transparent 1.6px) 0 0 / 28px 28px,
+    radial-gradient(70% 45% at 20% 100%, rgba(220, 38, 38, 0.38), transparent 70%),
+    radial-gradient(50% 40% at 85% 85%, rgba(249, 115, 22, 0.25), transparent 70%),
+    radial-gradient(45% 35% at 70% 10%, rgba(127, 29, 29, 0.35), transparent 70%);
+}
+html[data-fondo="fuego"]:not(.dark) body::before {
+  background:
+    radial-gradient(rgba(220, 38, 38, 0.10) 1px, transparent 1.6px) 0 0 / 28px 28px,
+    radial-gradient(70% 45% at 20% 100%, rgba(248, 113, 113, 0.30), transparent 70%),
+    radial-gradient(50% 40% at 85% 85%, rgba(251, 146, 60, 0.25), transparent 70%);
+}
+html[data-fondo="fuego"] .fondo-kint-webgl {
+  filter: hue-rotate(150deg) saturate(1.7) brightness(1.05);
+}
+
+/* ---------- Aurora (verde y celeste en franjas) ---------- */
+html[data-fondo="aurora"].dark {
+  --page-bg: #03130f;
+}
+html[data-fondo="aurora"]:not(.dark) {
+  --page-bg: #f0fbf6;
+}
+html[data-fondo="aurora"].dark body::before {
+  background:
+    linear-gradient(115deg, transparent 15%, rgba(16, 185, 129, 0.20) 32%, transparent 48%,
+      rgba(56, 189, 248, 0.16) 64%, transparent 80%),
+    radial-gradient(60% 40% at 80% 0%, rgba(45, 212, 191, 0.22), transparent 70%);
+}
+html[data-fondo="aurora"]:not(.dark) body::before {
+  background:
+    linear-gradient(115deg, transparent 15%, rgba(16, 185, 129, 0.16) 32%, transparent 48%,
+      rgba(56, 189, 248, 0.14) 64%, transparent 80%);
+}
+html[data-fondo="aurora"] .fondo-kint-webgl {
+  filter: hue-rotate(-60deg) saturate(1.4);
+}
+
+/* ---------- Neón (violeta con cuadrícula) ---------- */
+html[data-fondo="neon"].dark {
+  --page-bg: #0c0416;
+}
+html[data-fondo="neon"]:not(.dark) {
+  --page-bg: #faf5ff;
+}
+html[data-fondo="neon"].dark body::before {
+  background:
+    linear-gradient(rgba(168, 85, 247, 0.09) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(168, 85, 247, 0.09) 1px, transparent 1px) 0 0 / 44px 44px,
+    radial-gradient(55% 45% at 85% 15%, rgba(236, 72, 153, 0.28), transparent 70%),
+    radial-gradient(55% 45% at 10% 90%, rgba(124, 58, 237, 0.30), transparent 70%);
+}
+html[data-fondo="neon"]:not(.dark) body::before {
+  background:
+    linear-gradient(rgba(124, 58, 237, 0.07) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(124, 58, 237, 0.07) 1px, transparent 1px) 0 0 / 44px 44px,
+    radial-gradient(55% 45% at 85% 15%, rgba(236, 72, 153, 0.14), transparent 70%);
+}
+html[data-fondo="neon"] .fondo-kint-webgl {
+  filter: hue-rotate(65deg) saturate(1.6);
+}
+
+/* ---------- Grafito (gris con puntos) ---------- */
+html[data-fondo="grafito"].dark {
+  --page-bg: #111214;
+}
+html[data-fondo="grafito"]:not(.dark) {
+  --page-bg: #f4f4f3;
+}
+html[data-fondo="grafito"].dark body::before {
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.6px) 0 0 / 22px 22px,
+    radial-gradient(60% 50% at 50% 0%, rgba(255, 255, 255, 0.06), transparent 70%);
+}
+html[data-fondo="grafito"]:not(.dark) body::before {
+  background: radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1.6px) 0 0 / 22px 22px;
+}
+html[data-fondo="grafito"] .fondo-kint-webgl {
+  filter: grayscale(1) contrast(1.08);
+}

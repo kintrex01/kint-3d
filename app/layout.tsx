@@ -56,6 +56,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${montserrat.variable} h-full antialiased`}
     >
+      <head>
+        {/* Tema y fondo elegidos, antes de pintar (sin parpadeo). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var d=document.documentElement;if(localStorage.getItem('theme')==='dark')d.classList.add('dark');var f=localStorage.getItem('kint-fondo');if(f)d.setAttribute('data-fondo',f);}catch(e){}",
+          }}
+        />
+      </head>
       <body
   suppressHydrationWarning
   className="flex min-h-full flex-col"
