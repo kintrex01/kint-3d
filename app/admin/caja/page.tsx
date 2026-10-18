@@ -35,6 +35,7 @@ import {
   useAvisos,
 } from "@/components/admin/ui";
 import { MESES_LARGOS, useHoyMontevideo } from "@/components/admin/fechas";
+import { GastosFijos } from "@/components/admin/caja/GastosFijos";
 
 /*
  * Caja: lo que entra (pagos de clientes que confirmaste) y lo que sale
@@ -529,6 +530,8 @@ export default function CajaAdmin() {
               </Tarjeta>
             </div>
           </div>
+
+          <GastosFijos fijos={datos?.fijos ?? []} onDatos={setDatos} />
 
           {/* Movimientos */}
           <h2 className="mb-3 text-lg font-black">Movimientos</h2>

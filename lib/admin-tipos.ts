@@ -247,6 +247,9 @@ export type PedidoGeneral = {
   detalle: string;
 };
 
+/* Gasto que se repite cada mes (se anota solo el día "dia"). */
+export type GastoFijo = { id: string; nombre: string; monto: number; dia: number; categoria: string };
+
 /* Caja: ingresos (pagos confirmados) y gastos. Ver Caja_Kint3D.js. */
 export type MovimientoCaja = {
   id: string; // "KNT-0013|sena" (automático) o "M-..." (cargado a mano)
@@ -516,7 +519,15 @@ export type AccionesAdmin = {
   };
   admin_caja_listar: {
     pedido: SinDatos;
-    respuesta: { movimientos: MovimientoCaja[]; desde: string };
+    respuesta: { movimientos: MovimientoCaja[]; fijos?: GastoFijo[]; desde: string };
+  };
+  admin_caja_fijo_guardar: {
+    pedido: { id?: string; nombre: string; monto: number; dia: number; categoria?: string };
+    respuesta: { movimientos: MovimientoCaja[]; fijos?: GastoFijo[]; desde: string };
+  };
+  admin_caja_fijo_borrar: {
+    pedido: { id: string };
+    respuesta: { movimientos: MovimientoCaja[]; fijos?: GastoFijo[]; desde: string };
   };
   admin_caja_guardar: {
     pedido: {
@@ -717,6 +728,8 @@ export const ACCIONES_ADMIN = [
   "admin_caja_listar",
   "admin_caja_guardar",
   "admin_caja_borrar",
+  "admin_caja_fijo_guardar",
+  "admin_caja_fijo_borrar",
   "admin_calc_listar",
   "admin_calc_guardar",
   "admin_clientes_buscar",
