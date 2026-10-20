@@ -945,7 +945,7 @@ const telefonoCompleto = (() => {
 
 const camposPendientes = [
   {
-    nombre: "Nombre o apodo",
+    nombre: "Tu nombre",
     completo: Boolean(nombre.trim()),
   },
   ...(necesitaTelefono
@@ -1610,50 +1610,34 @@ return (
   </div>
 )}
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-blue-300/70 bg-blue-50/80 shadow-[0_10px_35px_rgba(29,79,154,0.08)] dark:border-blue-800/70 dark:bg-blue-950/25">
-  <div className="p-6 sm:p-7">
-
-    <div className="inline-flex items-center gap-2 rounded-full border border-blue-300/70 bg-blue-100/80 px-3 py-1.5 dark:border-blue-700/60 dark:bg-blue-900/40">
-      <span className="text-sm">💡</span>
-
-      <p className="text-[10px] font-black uppercase tracking-[0.20em] text-blue-700 dark:text-blue-300">
-        Ayuda opcional
-      </p>
-    </div>
-
-    <h2 className="mt-4 text-xl font-black text-[var(--text-main)]">
-      ¿Es tu primera vez imprimiendo en 3D?
-    </h2>
-
-    <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
-      Te explicamos cómo preparar tu modelo, qué
-      archivos podés enviar y cómo evitar errores
-      antes de solicitar la cotización.
-    </p>
-
-    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-      <Link
-        href="/tutorial"
-        className="inline-flex items-center justify-center rounded-xl bg-red-600 px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-white transition hover:bg-red-700"
-      >
-        Sí, es mi primera vez
-      </Link>
-
-      <Link
-        href="/tutorial-avanzado"
-        className="inline-flex items-center justify-center rounded-xl border border-blue-300 bg-white/60 px-6 py-3 text-xs font-black uppercase tracking-[0.14em] text-[var(--text-main)] transition hover:border-blue-500 hover:text-blue-600 dark:border-blue-700 dark:bg-blue-950/20"
-      >
-        Ya tengo un archivo STL
-      </Link>
-    </div>
-
-    <p className="mt-4 text-xs leading-6 text-[var(--text-muted)]">
-      También podés continuar directamente con el
-      formulario. Revisamos cada archivo antes de
-      preparar el presupuesto.
-    </p>
-  </div>
-</section>
+        {/* Sugerencia discreta: las guías se abren en otra pestaña para no perder el formulario. */}
+        <aside className="mb-8 flex items-start gap-3 rounded-xl border border-dashed border-[var(--border-color)] px-4 py-3">
+          <span className="mt-0.5 text-base" aria-hidden>💡</span>
+          <p className="text-sm leading-6 text-[var(--text-muted)]">
+            <span className="font-semibold text-[var(--text-main)]">
+              ¿Primera vez imprimiendo en 3D?
+            </span>{" "}
+            Si querés, mirá cómo preparar tu archivo antes de enviarlo:{" "}
+            <Link
+              href="/tutorial"
+              target="_blank"
+              className="whitespace-nowrap font-semibold text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
+            >
+              Guía para principiantes ↗
+            </Link>
+            {" · "}
+            <Link
+              href="/tutorial-avanzado"
+              target="_blank"
+              className="whitespace-nowrap font-semibold text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
+            >
+              Guía avanzada STL ↗
+            </Link>
+            <span className="mt-1 block text-xs">
+              Se abren en otra pestaña, no perdés lo que completaste. Si ya tenés tu archivo, seguí abajo.
+            </span>
+          </p>
+        </aside>
 
         <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -1740,14 +1724,15 @@ return (
     </div>
 
     <div className="mb-6">
-      <label className="mb-2 block font-semibold text-[var(--text-main)]">
+      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
         Nombre público *
+        <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+          👁 Lo ve todo el mundo
+        </span>
       </label>
 
       <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
-        Es el nombre que se ve en tus reseñas y en el ranking Top Kint
-        (tu correo y tu celular nunca se muestran). Queda asociado a tu
-        cuenta y lo podés cambiar en Ajustes.
+        Aparece en tus reseñas y en el ranking Top Kint. Podés usar un apodo.
       </p>
 
       <input
@@ -1786,11 +1771,21 @@ return (
               : `✕ ${mensajeAlias}`}
           </p>
         )}
+
+      {alias.trim() && (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Así te van a ver:{" "}
+          <span className="font-bold text-[var(--text-main)]">★★★★★ {alias.trim()}</span>
+        </p>
+      )}
     </div>
 
     <div className="mb-6">
-      <label className="mb-2 block font-semibold text-[var(--text-main)]">
-        Nombre o Apodo *
+      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
+        Tu nombre *
+        <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
+          🔒 Privado, solo para Kint 3D
+        </span>
       </label>
 
       <input
@@ -1804,8 +1799,11 @@ return (
     </div>
 
   <div className="">
-    <label className="mb-2 block font-semibold text-[var(--text-main)]">
-      Celular (WhatsApp) <span className="text-red-600">*</span>
+    <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
+      <span>Celular (WhatsApp) <span className="text-red-600">*</span></span>
+      <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
+        🔒 Privado
+      </span>
     </label>
     <p className="mb-3 text-sm text-[var(--text-muted)]">
       Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
