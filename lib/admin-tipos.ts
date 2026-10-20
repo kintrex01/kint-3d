@@ -43,7 +43,7 @@ export type PagoPedido = {
   estado: string; // Pagos H
   confirmado: boolean; // Pagos J
   comprobante: string; // Pagos I (link)
-  modalidad: string; // Pagos L ("Seña 20%" / "Pago total")
+  modalidad: string; // Pagos L ("Seña 25%" / "Pago total")
   importe: number; // Pagos M
   saldoPendiente: number; // Pagos N
   comprobanteSaldo: string; // Pagos O (link)

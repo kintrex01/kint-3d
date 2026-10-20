@@ -677,7 +677,7 @@ export default function TutorialPage() {
         <p className="mt-5 leading-8 text-[var(--text-muted)]">
           Trabajamos por orden de llegada. El pedido queda listo para
           entrar a la cola de producción cuando elegís una opción de
-          presupuesto y confirmamos el pago de la seña mínima del 20%
+          presupuesto y confirmamos el pago de la seña
           o el pago total.
         </p>
 

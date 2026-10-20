@@ -69,6 +69,7 @@ const DESCRIPCIONES: Record<string, string> = {
   alisado: "Ofrece el servicio de alisado en /cotizar",
   tienda_abierta: "Si está apagado, la tienda no acepta compras",
   tienda_sena_porcentaje: "Porcentaje de seña en la tienda",
+  sena_porcentaje: "Porcentaje de seña en las maquetas (lo que paga el cliente para empezar)",
   pedidos_por_mayor:
     "Desde cuántas unidades de un producto se cobra el precio por mayor",
   gran_pedido_por_mayor:
@@ -176,7 +177,7 @@ function validarNumero(
   }
   if (numero < 0) return { error: "No puede ser negativo." };
 
-  if (clave === "tienda_sena_porcentaje" && (numero <= 0 || numero >= 100)) {
+  if ((clave === "tienda_sena_porcentaje" || clave === "sena_porcentaje") && (numero <= 0 || numero >= 100)) {
     return { error: "La seña tiene que estar entre 1 y 99." };
   }
   if (clave === "pedidos_por_mayor" && (!Number.isInteger(numero) || numero < 2)) {

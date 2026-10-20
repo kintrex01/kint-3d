@@ -16,6 +16,20 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+/* Porcentaje de una modalidad de pago ("Seña 25%" → 25); 0 si no es seña. */
+function porcentajeSena(modalidad: unknown) {
+  const texto = String(modalidad || "").trim();
+  if (!/^seña/i.test(texto)) return 0;
+  const coincidencia = texto.match(/(\d+(?:[.,]\d+)?)\s*%/);
+  return coincidencia ? Number(coincidencia[1].replace(",", ".")) : 20;
+}
+
+/* La seña que se ofrece hoy (Configuración › "Seña porcentaje"). */
+function opcionSena(resultado: { senaPorcentaje?: unknown } | null) {
+  const porcentaje = Number(resultado?.senaPorcentaje);
+  return `Seña ${porcentaje > 0 && porcentaje < 100 ? porcentaje : 20}%`;
+}
+
 function SeguimientoContent() {
   const [pedido, setPedido] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -1002,8 +1016,8 @@ async function confirmarMetodoPago() {
 
   const precioFinal = Number(resultado.precio) || 0;
   const importe =
-    modalidadPago === "Seña 20%"
-      ? Math.round(precioFinal * 0.2)
+    porcentajeSena(modalidadPago)
+      ? Math.round(precioFinal * porcentajeSena(modalidadPago) / 100)
       : precioFinal;
 
   const saldoPendiente = precioFinal - importe;
@@ -2133,7 +2147,7 @@ resultado.precio !== "Pendiente"
 
       <div className="grid gap-4 sm:grid-cols-2">
   {[
-    "Seña 20%",
+    opcionSena(resultado),
     "Pago total",
   ].map((opcion) => {
     const precioFinal =
@@ -2142,12 +2156,12 @@ resultado.precio !== "Pendiente"
       ) || 0;
 
     const esSena =
-      opcion === "Seña 20%";
+      porcentajeSena(opcion) > 0;
 
     const importe =
       esSena
         ? Math.round(
-            precioFinal * 0.2
+            precioFinal * porcentajeSena(opcion) / 100
           )
         : precioFinal;
 
@@ -2246,7 +2260,7 @@ dark:hover:shadow-[0_18px_45px_rgba(199,109,124,0.16)]
           dark:text-white
         ">
           {esSena
-            ? "Pagar seña 20%"
+            ? `Pagar seña ${porcentajeSena(opcion)}%`
             : "Pagar el total"}
         </p>
 
@@ -2388,7 +2402,7 @@ Cuenta: 26557312<br />
 
           <div className="mb-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-5 text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
   <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-600">
-    {resultado.modalidad === "Seña 20%"
+    {porcentajeSena(resultado.modalidad) > 0
   ? "Seña a transferir"
   : "Total a transferir"}
   </p>
@@ -2400,7 +2414,7 @@ Cuenta: 26557312<br />
     ).toLocaleString("es-UY")}
   </p>
 
-  {resultado.modalidad === "Seña 20%" && (
+  {porcentajeSena(resultado.modalidad) > 0 && (
     <div className="mt-5 border-t border-red-200 pt-4">
       <p className="text-xs font-bold uppercase tracking-[0.18em]">
         Saldo pendiente
@@ -2676,7 +2690,7 @@ aplicada al pedido.
               </p>
 
               <p>
-  {resultado.modalidad === "Seña 20%"
+  {porcentajeSena(resultado.modalidad) > 0
     ? "Nueva seña "
     : "Nuevo total "}
 
@@ -2697,9 +2711,9 @@ aplicada al pedido.
       );
 
       const nuevoImporte =
-        resultado.modalidad === "Seña 20%"
+        porcentajeSena(resultado.modalidad)
           ? Math.round(
-              nuevoTotal * 0.2
+              nuevoTotal * porcentajeSena(resultado.modalidad) / 100
             )
           : nuevoTotal;
 
@@ -2840,7 +2854,7 @@ aplicada al pedido.
 
     <div className="border-t border-[var(--border-color)] pt-6">
       <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
-        {resultado.modalidad === "Seña 20%"
+        {porcentajeSena(resultado.modalidad) > 0
           ? "Seña transferida"
           : "Total a transferir"}
       </p>
@@ -2852,7 +2866,7 @@ aplicada al pedido.
         ).toLocaleString("es-UY")}
       </p>
 
-      {resultado.modalidad === "Seña 20%" && (
+      {porcentajeSena(resultado.modalidad) > 0 && (
         <div className="mt-5">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
             Saldo pendiente
@@ -2868,7 +2882,7 @@ aplicada al pedido.
       )}
     </div>
 
-    {resultado.modalidad === "Seña 20%" &&
+    {porcentajeSena(resultado.modalidad) > 0 &&
       Number(resultado.saldoPendiente) > 0 &&
       resultado.estado !== "Entregado" &&
       resultado.pagoConfirmado === "Sí" &&

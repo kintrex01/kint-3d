@@ -639,7 +639,7 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
               [
   "03",
   "Imprimimos",
-  "Una vez elegido el presupuesto y confirmado el pago de la seña mínima del 20% o el pago total, comenzamos la impresión.",
+  "Una vez elegido el presupuesto y confirmado el pago de la seña o el pago total, comenzamos la impresión.",
 ],
               [
   "04",

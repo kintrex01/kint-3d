@@ -76,7 +76,7 @@ const TEMAS: { titulo: string; emoji: string; preguntas: Pregunta[] }[] = [
       {
         pregunta: "¿Cómo funciona el pago?",
         respuesta:
-          "Después de elegir un presupuesto podés pagar una seña del 20% o el importe total. La impresión comienza únicamente cuando confirmamos el pago.",
+          "Después de elegir un presupuesto podés pagar una seña (un porcentaje del total) o el importe total. La impresión comienza únicamente cuando confirmamos el pago.",
       },
       {
         pregunta: "¿Cuánto demora un pedido?",
