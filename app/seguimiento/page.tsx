@@ -1091,7 +1091,9 @@ async function subirComprobante() {
       throw new Error(data.error || "No se pudo subir el comprobante.");
     }
 
-    setMensajeArchivo("Comprobante enviado correctamente.");
+    setMensajeArchivo(
+      "Comprobante enviado. Un administrador va a verificar el pago y, cuando lo confirme, empieza la impresión. Te avisamos por correo."
+    );
     setArchivosExtra([]);
     await actualizarPedidoSilenciosamente();
   } catch (error: any) {
@@ -3230,8 +3232,23 @@ aplicada al pedido.
             Comprobante enviado correctamente
           </p>
 
-          <p className="mt-3 text-sm font-semibold">
-            Esperando confirmación.
+          <p className="mt-3 text-sm leading-6">
+            Un administrador de Kint 3D tiene que verificar que el saldo llegó.
+            Cuando lo confirme te avisamos por correo. No tenés que hacer nada más.
+          </p>
+        </div>
+      ) : resultado.estadoPago === "Esperando validación" ? (
+        <div className="rounded-2xl border border-amber-500 bg-amber-50 px-6 py-5 text-center text-black dark:bg-[#010003] dark:text-[var(--text-main)]">
+          <p className="text-3xl">⏳</p>
+
+          <p className="mt-2 text-sm font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400">
+            Comprobante recibido · verificando el pago
+          </p>
+
+          <p className="mt-3 text-sm leading-6">
+            Un administrador de Kint 3D tiene que verificar que el pago llegó.
+            Una vez verificado, empieza el proceso de impresión y te avisamos por correo.
+            No tenés que hacer nada más.
           </p>
         </div>
       ) : resultado.estadoPago ===

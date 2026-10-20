@@ -2129,6 +2129,19 @@ return (
     y ensamblado.
   </p>
 
+  <ul className="mb-3 space-y-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-5 text-[var(--text-main)]">
+    <li>
+      <strong>💲 Tiene un costo extra</strong> que se suma al presupuesto.
+    </li>
+    <li>
+      <strong>📁 Subí también el archivo completamente armado</strong> (el modelo entero, como tiene que quedar).
+      Si no lo subís, lo tomamos como que no querés el servicio.
+    </li>
+    <li>
+      <strong>📅 No está disponible en días de entregas</strong> ni en los días cercanos. Tenelo en cuenta al elegir la fecha.
+    </li>
+  </ul>
+
   {armadoHabilitado ? (
     <select
       value={armado}
