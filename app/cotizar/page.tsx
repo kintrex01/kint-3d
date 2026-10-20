@@ -1260,13 +1260,16 @@ if (archivos.length > 0) {
     const archivo = archivos[i];
     const firmado = firmaData.archivos[i];
 
-    const { error: uploadError } = await supabase.storage
-      .from("kint-archivos")
-      .uploadToSignedUrl(
-        firmado.ruta,
-        firmado.token,
-        archivo
-      );
+    // Reintenta si el servidor de archivos tiene un corte corto.
+    let uploadError: { message: string } | null = null;
+    for (let intento = 0; intento < 3; intento++) {
+      if (intento) await new Promise((listo) => setTimeout(listo, 2000 * intento));
+      const resultado = await supabase.storage
+        .from("kint-archivos")
+        .uploadToSignedUrl(firmado.ruta, firmado.token, archivo);
+      uploadError = resultado.error;
+      if (!uploadError) break;
+    }
 
     if (uploadError) {
       throw new Error(

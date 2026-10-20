@@ -127,16 +127,19 @@ export async function POST(request: Request) {
       const ruta =
         `${pedidoSeguro}/${randomUUID()}/${nombreFinal}`;
 
-      const {
-        data,
-        error,
-      } = await supabase.storage
-        .from("kint-archivos")
-        .createSignedUploadUrl(ruta);
+      // Si Supabase tiene un corte corto (ej. se reinicia), se reintenta.
+      let data: { signedUrl: string; token: string; path: string } | null = null;
+      let ultimoError = "";
+      for (let intento = 0; intento < 4 && !data; intento++) {
+        if (intento) await new Promise((listo) => setTimeout(listo, 1500 * intento));
+        const resultado = await supabase.storage.from("kint-archivos").createSignedUploadUrl(ruta);
+        if (resultado.error) ultimoError = resultado.error.message;
+        else data = resultado.data;
+      }
 
-      if (error) {
+      if (!data) {
         throw new Error(
-          error.message
+          `El servidor de archivos no responde (${ultimoError}). Esperá un minuto y probá de nuevo.`
         );
       }
 
