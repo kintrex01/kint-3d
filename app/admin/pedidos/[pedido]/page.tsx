@@ -68,6 +68,7 @@ import {
   FilaDato,
   entregaVencida,
   estaCancelado,
+  situacionPago,
 } from "@/components/admin/pedidos/utilidades";
 import {
   FotoFinal,
@@ -492,13 +493,11 @@ export default function DetallePedidoAdmin({
             <div className="shrink-0 text-right">
               <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Precio</p>
               <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.precioFinal)}</p>
-              <p
-                className={`mt-1 text-[11px] font-black ${
-                  pago.confirmado ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--text-muted)]"
-                }`}
-              >
-                {pago.saldoConfirmado ? "Cobrado entero" : pago.confirmado ? "Seña cobrada" : "Sin cobrar"}
-              </p>
+              {situacionPago(pedido) && (
+                <Chip tono={situacionPago(pedido)!.tono} className="mt-1.5">
+                  {situacionPago(pedido)!.texto}
+                </Chip>
+              )}
             </div>
           )}
         </div>

@@ -7,7 +7,7 @@
 import { ArrowDownUp, Search, X } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { ESTADO_CANCELADO, type PedidoResumen } from "@/lib/admin-tipos";
-import { claseInput, diasHasta } from "@/components/admin/ui";
+import { claseInput, diasHasta, pesos } from "@/components/admin/ui";
 
 /* Minúsculas y sin tildes, para buscar sin importar cómo se escribió. */
 export function normalizar(texto: string) {
@@ -35,6 +35,40 @@ export function saldoPorValidar(pedido: PedidoResumen) {
   return Boolean(
     pedido.pago?.comprobanteSaldo && !pedido.pago.saldoConfirmado
   );
+}
+
+/*
+ * Cómo está el pago de un pedido, en una frase: quién debe y cuánto.
+ * null = cancelado o sin presupuesto elegido todavía (no hay precio).
+ */
+export type SituacionPago = {
+  tipo: "pagado" | "debeSaldo" | "revisar" | "sinPagar";
+  texto: string;
+  tono: "verde" | "rojo" | "ambar" | "gris";
+  debe: number;
+};
+
+export function situacionPago(pedido: Pick<PedidoResumen, "estado" | "pago">): SituacionPago | null {
+  const pago = pedido.pago;
+  if (estaCancelado(pedido.estado) || !pago || !(pago.precioFinal > 0)) return null;
+
+  const total = pago.precioFinal;
+  const saldo = Math.max(0, pago.saldoPendiente || 0);
+  const esSena = /^seña/i.test(pago.modalidad || "");
+
+  if (pago.comprobanteSaldo && !pago.saldoConfirmado) {
+    return { tipo: "revisar", texto: `Revisar comprobante del saldo (${pesos(saldo)})`, tono: "ambar", debe: saldo };
+  }
+  if (pago.comprobante && !pago.confirmado) {
+    return { tipo: "revisar", texto: "Revisar comprobante", tono: "ambar", debe: total };
+  }
+  if (pago.confirmado && (!esSena || pago.saldoConfirmado || saldo <= 0)) {
+    return { tipo: "pagado", texto: "Pagado entero", tono: "verde", debe: 0 };
+  }
+  if (pago.confirmado) {
+    return { tipo: "debeSaldo", texto: `Pagó la seña · debe ${pesos(saldo)}`, tono: "rojo", debe: saldo };
+  }
+  return { tipo: "sinPagar", texto: `Sin pagar · ${pesos(total)}`, tono: "gris", debe: total };
 }
 
 /* La fecha de entrega ya pasó y el pedido sigue sin entregarse. */

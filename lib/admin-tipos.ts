@@ -243,7 +243,9 @@ export type PedidoGeneral = {
   email: string;
   estado: string;
   monto: number;
-  pagado: boolean;
+  pagado: boolean; // pagó algo (seña o total)
+  sena?: boolean; // lo que pagó fue una seña
+  debe?: number; // lo que falta cobrar (0 = pagado entero o sin precio)
   detalle: string;
 };
 

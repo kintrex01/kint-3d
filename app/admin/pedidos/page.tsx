@@ -8,8 +8,8 @@ import {
   Inbox,
   Flame,
   Package,
-  ReceiptText,
   RefreshCw,
+  Wallet,
 } from "lucide-react";
 import { useDatosAdmin } from "@/lib/admin-cliente";
 import type { PedidoResumen } from "@/lib/admin-tipos";
@@ -27,6 +27,7 @@ import {
   faseEstado,
   fechaDia,
   fechaLlegada,
+  pesos,
   textoDiasHasta,
   textoEstado,
   tonoEstado,
@@ -38,12 +39,13 @@ import {
   estaCancelado,
   pagoPorValidar,
   saldoPorValidar,
+  situacionPago,
   SelectorOrden,
   ordenarLista,
   useOrdenGuardado,
 } from "@/components/admin/pedidos/utilidades";
 
-type Filtro = "todos" | "porHacer" | "activos" | "entregados" | "cancelados";
+type Filtro = "todos" | "porHacer" | "porCobrar" | "activos" | "entregados" | "cancelados";
 
 /* Estados en los que el próximo paso es del dueño. */
 const ESTADOS_POR_HACER = [
@@ -69,6 +71,8 @@ function cumpleFiltro(pedido: PedidoResumen, filtro: Filtro) {
       return true;
     case "porHacer":
       return necesitaAtencion(pedido);
+    case "porCobrar":
+      return (situacionPago(pedido)?.debe ?? 0) > 0;
     case "activos":
       return !cancelado && pedido.estado !== "Entregado";
     case "entregados":
@@ -87,6 +91,10 @@ const VACIOS: Record<Filtro, { titulo: string; texto: string }> = {
   porHacer: {
     titulo: "Nada pendiente",
     texto: "No hay pedidos esperando algo de tu parte. ¡Bien ahí!",
+  },
+  porCobrar: {
+    titulo: "Nadie te debe",
+    texto: "Todos los pedidos con presupuesto están pagados enteros.",
   },
   activos: {
     titulo: "Sin pedidos activos",
@@ -120,6 +128,7 @@ export default function PedidosAdmin() {
     const cuenta: Record<Filtro, number> = {
       todos: 0,
       porHacer: 0,
+      porCobrar: 0,
       activos: 0,
       entregados: 0,
       cancelados: 0,
@@ -130,6 +139,23 @@ export default function PedidosAdmin() {
       }
     }
     return cuenta;
+  }, [pedidos]);
+
+  /* Plata por cobrar: total, y lo que ya se entregó sin terminar de pagar. */
+  const deuda = useMemo(() => {
+    let total = 0;
+    let entregados = 0;
+    let montoEntregados = 0;
+    for (const pedido of pedidos) {
+      const debe = situacionPago(pedido)?.debe ?? 0;
+      if (debe <= 0) continue;
+      total += debe;
+      if (pedido.estado === "Entregado") {
+        entregados += 1;
+        montoEntregados += debe;
+      }
+    }
+    return { total, entregados, montoEntregados };
   }, [pedidos]);
 
   const visibles = useMemo(
@@ -157,6 +183,7 @@ export default function PedidosAdmin() {
   const opciones: { valor: Filtro; texto: string; cantidad?: number }[] = [
     { valor: "todos", texto: "Todos", cantidad: cantidades.todos },
     { valor: "porHacer", texto: "Por hacer", cantidad: cantidades.porHacer },
+    { valor: "porCobrar", texto: "Por cobrar", cantidad: cantidades.porCobrar },
     { valor: "activos", texto: "Todos activos", cantidad: cantidades.activos },
     { valor: "entregados", texto: "Entregados", cantidad: cantidades.entregados },
   ];
@@ -188,6 +215,32 @@ export default function PedidosAdmin() {
           />
         }
       />
+
+      {datos && deuda.total > 0 && (
+        <button
+          type="button"
+          onClick={() => setFiltro("porCobrar")}
+          className="mb-3 flex w-full items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left transition hover:border-red-500/60"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-600 dark:text-red-400">
+            <Wallet size={19} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black">
+              Por cobrar: {pesos(deuda.total)} en {cantidades.porCobrar}{" "}
+              {cantidades.porCobrar === 1 ? "pedido" : "pedidos"}
+            </span>
+            {deuda.entregados > 0 ? (
+              <span className="block text-xs font-bold text-red-600 dark:text-red-400">
+                Ojo: {deuda.entregados} ya {deuda.entregados === 1 ? "entregado" : "entregados"} sin pagar entero ({pesos(deuda.montoEntregados)})
+              </span>
+            ) : (
+              <span className="block text-xs text-[var(--text-muted)]">Tocá para ver quién te debe</span>
+            )}
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)]" />
+        </button>
+      )}
 
       <Buscador
         valor={busqueda}
@@ -258,8 +311,7 @@ export default function PedidosAdmin() {
 
 function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
   const vencida = entregaVencida(pedido.entrega, pedido.estado);
-  const porValidar = pagoPorValidar(pedido);
-  const saldo = saldoPorValidar(pedido);
+  const pago = situacionPago(pedido);
   const cancelado = estaCancelado(pedido.estado);
 
   return (
@@ -314,7 +366,7 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
               )}
             </span>
 
-            {(pedido.prioritario || porValidar || saldo) && (
+            {(pedido.prioritario || pago) && (
               <span className="flex flex-wrap gap-1.5">
                 {pedido.prioritario && (
                   <Chip tono="rojo">
@@ -322,16 +374,10 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
                     Urgente
                   </Chip>
                 )}
-                {porValidar && (
-                  <Chip tono="ambar">
-                    <ReceiptText size={11} aria-hidden />
-                    Pago por validar
-                  </Chip>
-                )}
-                {saldo && (
-                  <Chip tono="ambar">
-                    <ReceiptText size={11} aria-hidden />
-                    Saldo por validar
+                {pago && (
+                  <Chip tono={pago.tono}>
+                    <Wallet size={11} aria-hidden />
+                    {pago.texto}
                   </Chip>
                 )}
               </span>

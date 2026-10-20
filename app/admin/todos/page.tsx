@@ -14,6 +14,7 @@ import {
   Inbox,
   Square,
   Trash2,
+  Wallet,
   X,
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
@@ -44,7 +45,7 @@ import {
  * (pedidos de prueba): se borran de todos lados (ver PedidosTodos_Kint3D.js).
  */
 
-type Filtro = "todos" | "maqueta" | "tienda";
+type Filtro = "todos" | "maqueta" | "tienda" | "porCobrar";
 
 const SIN_DATOS = {};
 
@@ -75,7 +76,9 @@ export default function TodosLosPedidos() {
     () =>
       pedidos.filter(
         (pedido) =>
-          (filtro === "todos" || pedido.tipo === filtro) && coincide(busqueda, pedido)
+          (filtro === "todos" ||
+            (filtro === "porCobrar" ? (pedido.debe ?? 0) > 0 : pedido.tipo === filtro)) &&
+          coincide(busqueda, pedido)
       ),
     [pedidos, filtro, busqueda]
   );
@@ -84,7 +87,9 @@ export default function TodosLosPedidos() {
     todos: pedidos.length,
     maqueta: pedidos.filter((pedido) => pedido.tipo === "maqueta").length,
     tienda: pedidos.filter((pedido) => pedido.tipo === "tienda").length,
+    porCobrar: pedidos.filter((pedido) => (pedido.debe ?? 0) > 0).length,
   };
+  const totalPorCobrar = pedidos.reduce((suma, pedido) => suma + (pedido.debe ?? 0), 0);
 
   function alternar(numero: string) {
     setElegidos((actuales) => {
@@ -156,6 +161,26 @@ export default function TodosLosPedidos() {
         }
       />
 
+      {datos && totalPorCobrar > 0 && (
+        <button
+          type="button"
+          onClick={() => setFiltro("porCobrar")}
+          className="mb-3 flex w-full items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-left transition hover:border-red-500/60"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/15 text-red-600 dark:text-red-400">
+            <Wallet size={19} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-black">
+              Por cobrar: {pesos(totalPorCobrar)} en {cantidades.porCobrar}{" "}
+              {cantidades.porCobrar === 1 ? "pedido" : "pedidos"}
+            </span>
+            <span className="block text-xs text-[var(--text-muted)]">Maquetas y tienda · tocá para ver quién te debe</span>
+          </span>
+          <ChevronRight size={18} className="shrink-0 text-[var(--text-muted)]" />
+        </button>
+      )}
+
       <div className="relative mb-3">
         <Search
           size={17}
@@ -178,6 +203,7 @@ export default function TodosLosPedidos() {
             { valor: "todos", texto: "Todos", cantidad: cantidades.todos },
             { valor: "maqueta", texto: "Maquetas", cantidad: cantidades.maqueta },
             { valor: "tienda", texto: "Tienda", cantidad: cantidades.tienda },
+            { valor: "porCobrar", texto: "Por cobrar", cantidad: cantidades.porCobrar },
           ]}
         />
         {datos && pedidos.length > 0 && (
@@ -348,13 +374,23 @@ function FilaPedido({
         <span className="block font-black tabular-nums">
           {pedido.monto > 0 ? pesos(pedido.monto) : "—"}
         </span>
-        <span
-          className={`block text-[10px] font-bold ${
-            pedido.pagado ? "text-emerald-700 dark:text-emerald-400" : "text-[var(--text-muted)]"
-          }`}
-        >
-          {pedido.pagado ? "Pagado" : "Sin pagar"}
-        </span>
+        {pedido.monto > 0 && (
+          <span
+            className={`block text-[10px] font-bold ${
+              (pedido.debe ?? 0) <= 0
+                ? "text-emerald-700 dark:text-emerald-400"
+                : pedido.pagado
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-[var(--text-muted)]"
+            }`}
+          >
+            {(pedido.debe ?? 0) <= 0
+              ? "Pagado entero"
+              : pedido.pagado
+                ? `Seña paga · debe ${pesos(pedido.debe ?? 0)}`
+                : "Sin pagar"}
+          </span>
+        )}
       </span>
 
       {!seleccionando && pedido.tipo === "maqueta" && (
