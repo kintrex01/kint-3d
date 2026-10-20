@@ -8,6 +8,7 @@
 
 import { exigirAdmin } from "@/lib/admin-auth";
 import { ACCIONES_ADMIN } from "@/lib/admin-tipos";
+import { borrarArchivosPedidos } from "@/lib/archivos-pedido";
 
 export const maxDuration = 60;
 
@@ -55,6 +56,17 @@ export async function POST(request: Request) {
       data = JSON.parse(text);
     } catch {
       throw new Error("Apps Script no devolvió una respuesta válida.");
+    }
+
+    // Pedido borrado o cancelado: sus archivos de Supabase también se van.
+    if (data?.ok) {
+      const pedidos =
+        tipo === "admin_borrar_pedidos"
+          ? data.borrados
+          : tipo === "admin_pedido_cancelar" || tipo === "admin_tienda_cancelar"
+            ? [body.pedido]
+            : null;
+      if (Array.isArray(pedidos)) await borrarArchivosPedidos(pedidos);
     }
 
     return Response.json(data, { status: data?.ok ? 200 : 400 });

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { borrarArchivosPedidos } from "@/lib/archivos-pedido";
 
 /* Lo que escribió el cliente va al correo como texto (no como HTML). */
 function escaparHtml(valor: unknown) {
@@ -380,6 +381,10 @@ if (
     if (!data.ok) {
       throw new Error(data.error || "Error en Apps Script");
     }
+
+    // Los números de pedidos borrados se reusan: si quedó algo viejo
+    // en esa carpeta, se limpia antes de guardar los archivos nuevos.
+    await borrarArchivosPedidos([data.pedido]);
 
     const archivosOriginales =
   payload.archivosOriginales.length > 0
