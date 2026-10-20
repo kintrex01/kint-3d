@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Calculator,
+  Ruler,
   CalendarDays,
   Home,
   ListOrdered,
@@ -46,6 +47,7 @@ export const ENLACES_ADMIN: Enlace[] = [
   { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered, grupo: "Pedidos", color: "#94a3b8" },
   { href: "/admin/caja", texto: "Caja", icono: Wallet, grupo: "Negocio", color: "#34d399" },
   { href: "/admin/calculadora", texto: "Calculadora", icono: Calculator, grupo: "Negocio", color: "#a78bfa" },
+  { href: "/admin/escalador", texto: "Escalador", icono: Ruler, grupo: "Negocio", color: "#38bdf8" },
   { href: "/admin/productos", texto: "Productos", icono: Wrench, grupo: "Catálogo", color: "#fb923c" },
   { href: "/admin/resenas", texto: "Reseñas", icono: Star, grupo: "Catálogo", color: "#facc15" },
   { href: "/admin/clientes", texto: "Clientes", icono: Users, grupo: "Catálogo", color: "#f472b6" },
