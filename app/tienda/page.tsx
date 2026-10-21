@@ -4437,11 +4437,14 @@ export default function TiendaPage() {
                       onChange={(evento) =>
                         setComentario(evento.target.value)
                       }
-                      placeholder="Si es para regalo, un detalle que quieras contarnos..."
+                      placeholder="Algún detalle que quieras contarnos..."
                       rows={3}
                       maxLength={1000}
                       className={`${CLASE_INPUT} resize-none`}
                     />
+                    <span className="mt-1.5 block text-xs text-[var(--text-muted)]">
+                      🎁 No hacemos envoltorio de regalo: los productos se entregan sin envolver.
+                    </span>
                   </label>
                 </div>
               </PasoCheckout>

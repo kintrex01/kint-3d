@@ -140,6 +140,11 @@ const TEMAS: { titulo: string; emoji: string; preguntas: Pregunta[] }[] = [
         respuesta:
           "Al confirmar la compra te mostramos cómo pagar (una seña o el total). Después la seguís en «Consultar pedido» con el número de compra y tu correo, igual que una maqueta.",
       },
+      {
+        pregunta: "¿Lo envuelven para regalo?",
+        respuesta:
+          "Por ahora no: los productos se entregan sin envoltorio, moño ni caja de regalo.",
+      },
     ],
   },
   {
