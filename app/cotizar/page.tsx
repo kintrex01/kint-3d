@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
+import { marcarPaso } from "@/lib/embudo";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
 const supabase = createClient(
@@ -1026,6 +1027,20 @@ const camposPendientes = [
 const todoListo =
   camposPendientes.length === 0;
 
+/* Embudo anónimo: hasta qué paso llega cada visita (se ve en el panel). */
+useEffect(() => {
+  if (!cargandoConfiguracion) marcarPaso("entro");
+}, [cargandoConfiguracion]);
+useEffect(() => {
+  if (clienteExiste !== null) marcarPaso("correo");
+}, [clienteExiste]);
+useEffect(() => {
+  if (archivos.length > 0 || archivoPesadoWhatsapp) marcarPaso("archivo");
+}, [archivos.length, archivoPesadoWhatsapp]);
+useEffect(() => {
+  if (todoListo) marcarPaso("completo");
+}, [todoListo]);
+
   const escalaCalculadora = (() => {
   const valorEscala =
     escala === "Otra escala"
@@ -1406,6 +1421,7 @@ setErrorRepeticion("");
     setNumeroPedido(data.pedido || "");
     setPremioReclamado(data.premioReclamado || "");
     setExtrasEnviados(Array.isArray(data.extras) ? data.extras : []);
+    marcarPaso("envio");
     setEnviado(true);
   } catch (error) {
     console.error(error);

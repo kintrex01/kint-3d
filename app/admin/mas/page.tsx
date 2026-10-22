@@ -9,6 +9,7 @@ const DESCRIPCIONES: Record<string, string> = {
   "/admin/todos": "Maquetas y tienda juntos; borrar pedidos de prueba",
   "/admin/caja": "Ingresos, gastos y cuánta plata hay",
   "/admin/calculadora": "Costo real de una impresión y presupuesto a un pedido",
+  "/admin/embudo": "Dónde abandona la gente que entra a cotizar",
   "/admin/escalador": "Medida real ↔ maqueta, imprimibilidad y escalar un STL",
   "/admin/productos": "Precios, por mayor, cadenas, fotos y activos",
   "/admin/resenas": "Aprobar y ocultar reseñas",
