@@ -650,6 +650,11 @@ if (archivosRegistrados.length > 0) {
   ${payload.usoImagenesAutorizado ? "Sí" : "No"}
 </p>
         <p><strong>Archivo:</strong> ${escaparHtml(archivosRegistrados.map(a => a.nombreArchivo).join(", "))}</p>
+        ${
+          String(body.precioEstimado || "").trim()
+            ? `<p><strong>Precio estimado que vio el cliente:</strong> ${escaparHtml(String(body.precioEstimado).slice(0, 60))}</p>`
+            : ""
+        }
         <p><strong>Archivo pesado:</strong> ${
   body.archivoPesadoWhatsapp
     ? "Sí, el cliente lo enviará por WhatsApp"

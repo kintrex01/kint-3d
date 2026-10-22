@@ -8,6 +8,8 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import { marcarPaso } from "@/lib/embudo";
+import { estimarPrecio, medirSTL } from "@/lib/precio-estimado";
+import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
 const supabase = createClient(
@@ -160,6 +162,9 @@ const [telefono, setTelefono] = useState("");
   useState(false);
   const [archivos, setArchivos] = useState<File[]>([]);
   const [archivoPesadoWhatsapp, setArchivoPesadoWhatsapp] = useState(false);
+  // Volumen y medidas de los STL elegidos, para el precio estimado.
+  const [medidasArchivos, setMedidasArchivos] = useState<{ mm3: number; mm2: number; medidas: number[] }[] | null>(null);
+  const [midiendoArchivos, setMidiendoArchivos] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
@@ -936,6 +941,13 @@ const armadoCompleto =
   !armadoHabilitado ||
   Boolean(armado);
 
+/* Precio estimado: activo salvo que se apague en Configuración. */
+const precioEstimadoActivo =
+  !configuracion.precio_estimado ||
+  ["habilitada", "habilitado"].includes(
+    String(configuracion.precio_estimado.valor || "").trim().toLowerCase()
+  );
+
 /* Opciones únicas: se eligen solas y no se muestran (menos para leer). */
 const coloresDisponibles = filamentosConfigurados.filter((item) => item.habilitado);
 const colorUnico = coloresDisponibles.length === 1 ? coloresDisponibles[0].nombre : "";
@@ -1026,6 +1038,26 @@ const camposPendientes = [
 
 const todoListo =
   camposPendientes.length === 0;
+
+/* Precio estimado: se miden los STL apenas se eligen (en el navegador). */
+useEffect(() => {
+  let cancelado = false;
+  const stls = archivos.filter((archivo) => /\.stl$/i.test(archivo.name));
+  setMidiendoArchivos(stls.length > 0);
+  Promise.all(stls.map((archivo) => archivo.arrayBuffer().then(medirSTL)))
+    .then((medidas) => {
+      if (!cancelado) setMedidasArchivos(medidas.length ? medidas : null);
+    })
+    .catch(() => {
+      if (!cancelado) setMedidasArchivos(null);
+    })
+    .finally(() => {
+      if (!cancelado) setMidiendoArchivos(false);
+    });
+  return () => {
+    cancelado = true;
+  };
+}, [archivos]);
 
 /* Embudo anónimo: hasta qué paso llega cada visita (se ve en el panel). */
 useEffect(() => {
@@ -1366,6 +1398,12 @@ alisado: alisadoHabilitado
 archivosOriginales,
 archivoPesadoWhatsapp,
 usoImagenesAutorizado: aceptaUsoImagenes,
+// Lo que vio el cliente como precio estimado (solo para el correo al dueño).
+precioEstimado: (() => {
+  if (!precioEstimadoActivo || !medidasArchivos) return "";
+  const estimacion = estimarPrecio(medidasArchivos, escalaCalculadora || 0);
+  return estimacion.tipo === "precio" ? `$${estimacion.desde} a $${estimacion.hasta} (~${estimacion.gramos} g)` : "";
+})(),
       }),
       headers: {
         "Content-Type": "application/json",
@@ -1944,6 +1982,16 @@ return (
       </p>
     ))}
   </div>
+)}
+
+{/* Precio estimado (se apaga en Configuración › Precio estimado). */}
+{precioEstimadoActivo && archivos.length > 0 && (
+  <TarjetaPrecioEstimado
+    medidas={medidasArchivos}
+    midiendo={midiendoArchivos}
+    haySkp={archivos.some((archivo) => !/\.stl$/i.test(archivo.name))}
+    escala={escalaCalculadora || 0}
+  />
 )}
 
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">

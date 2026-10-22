@@ -69,6 +69,7 @@ const DESCRIPCIONES: Record<string, string> = {
   alisado: "Ofrece el servicio de alisado en /cotizar",
   tienda_abierta: "Si está apagado, la tienda no acepta compras",
   tienda_sena_porcentaje: "Porcentaje de seña en la tienda",
+  precio_estimado: "Muestra un precio aproximado en /cotizar cuando el cliente sube un STL",
   sena_porcentaje: "Porcentaje de seña en las maquetas (lo que paga el cliente para empezar)",
   pedidos_por_mayor:
     "Desde cuántas unidades de un producto se cobra el precio por mayor",
