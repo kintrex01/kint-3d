@@ -189,8 +189,12 @@ export type ProductoAdmin = {
   personalizable: boolean; // el cliente lo arma en 3D
   tipoPersonalizado?: "Llavero" | "Mascota" | ""; // llavero con nombre o chapita de mascota
   activo: boolean;
+  // Combo (columna "Combo"): fijo = siempre esos; elegir = el cliente elige `cantidad`.
+  combo?: ComboAdmin;
   fotos: number; // cuántas fotos encuentra la tienda (celda o carpeta)
 };
+
+export type ComboAdmin = { tipo: "" | "fijo" | "elegir"; cantidad: number; productos: string[] };
 
 export type ProductoEntrada = Omit<ProductoAdmin, "fotos">;
 

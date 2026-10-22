@@ -44,6 +44,14 @@ import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPerson
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
+import {
+  ComboFicha,
+  EtiquetaCombo,
+  comentarioCombo,
+  leerComentarioCombo,
+  normalizarCombo,
+  type ComboTienda,
+} from "@/components/tienda/ComboTienda";
 
 type Foto = {
   url: string;
@@ -80,6 +88,8 @@ type Producto = {
   // Para ordenar: posición en la hoja (más alto = más nuevo) y unidades vendidas.
   orden: number;
   vendidos: number;
+  // Combo fijo o a elección (null = producto común).
+  combo: ComboTienda | null;
 };
 
 type ResenaProducto = {
@@ -313,13 +323,16 @@ function detalleLinea(linea: {
       .join(" · ");
   }
 
+  const combo = leerComentarioCombo(linea.comentario || "");
+
   return [
+    combo ? `Combo: ${combo.elegidos.join(" + ")}` : "",
     linea.variante || "",
     colores.length
       ? `${colores.length > 1 ? "Colores" : "Color"} ${colores.join(" + ")}`
       : "",
     linea.cadena ? `Cadena ${linea.cadena}` : "",
-    linea.comentario ? `“${linea.comentario}”` : "",
+    combo ? (combo.resto ? `“${combo.resto}”` : "") : linea.comentario ? `“${linea.comentario}”` : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -621,6 +634,7 @@ function normalizarCatalogo(data: any): Catalogo {
                 : "",
             orden: Number(producto.orden) || 0,
             vendidos: Number(producto.vendidos) || 0,
+            combo: normalizarCombo(producto.combo),
             resenas: Array.isArray(producto.resenas)
               ? producto.resenas
                   .map((resena) => ({
@@ -1020,7 +1034,8 @@ function TarjetaProducto({
 
   const cadenaElegida = producto.cadenas.includes(cadena) ? cadena : "";
   const faltaCadena = producto.cadenas.length > 0 && !cadenaElegida;
-  const conVariantes = producto.variantes.length > 0;
+  // Con variantes o combo a elección, se elige en la ficha.
+  const conVariantes = producto.variantes.length > 0 || producto.combo?.tipo === "elegir";
 
   const indice = Math.min(indiceFoto, Math.max(0, fotos.length - 1));
   const fotoActual = fotos[indice];
@@ -1111,6 +1126,7 @@ function TarjetaProducto({
       {compacta ? (
         <div className="flex flex-1 flex-col gap-0.5 p-3 pb-3 sm:p-4 [&>button:last-child]:mt-3">
           <EtiquetasProducto etiquetas={producto.etiquetas} />
+          {producto.combo && <EtiquetaCombo combo={producto.combo} precio={producto.precio} />}
           <h3 className="text-sm font-black leading-tight sm:text-base">
             <button
               type="button"
@@ -1152,6 +1168,11 @@ function TarjetaProducto({
       ) : (
       <div className="flex flex-1 flex-col p-5">
         <EtiquetasProducto etiquetas={producto.etiquetas} className="mb-1" />
+        {producto.combo && (
+          <div className="mb-1.5">
+            <EtiquetaCombo combo={producto.combo} precio={producto.precio} />
+          </div>
+        )}
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-black leading-tight">
             <button
@@ -1250,7 +1271,7 @@ function TarjetaProducto({
                 Agregado
               </>
             ) : conVariantes ? (
-              "Elegir variante"
+              producto.combo?.tipo === "elegir" ? `Elegí tus ${producto.combo.cantidad}` : "Elegir variante"
             ) : faltaCadena ? (
               "Elegí la cadena"
             ) : (
@@ -1736,6 +1757,8 @@ function FichaProducto({
   const [colores, setColores] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [verComentario, setVerComentario] = useState(false);
+  // Combo a elección: los productos elegidos (se puede repetir).
+  const [comboElegidos, setComboElegidos] = useState<string[]>([]);
   const [cantidad, setCantidad] = useState(1);
   const [error, setError] = useState("");
 
@@ -1842,6 +1865,7 @@ function FichaProducto({
 
   const varianteElegida = producto.variantes.includes(variante) ? variante : "";
   const faltaVariante = producto.variantes.length > 0 && !varianteElegida;
+  const faltaCombo = producto.combo?.tipo === "elegir" && comboElegidos.length !== producto.combo.cantidad;
 
   // Por mayor: mismo producto, variante y colores (la cadena puede variar).
   const coloresEfectivos = elegirColores && colores.length ? colores : coloresDefecto;
@@ -1858,6 +1882,8 @@ function FichaProducto({
     ? "La tienda está en pausa: por ahora no se pueden agregar productos."
     : faltaVariante
     ? "Elegí la variante."
+    : faltaCombo
+    ? `Elegí ${producto.combo?.cantidad} para el combo (${comboElegidos.length} de ${producto.combo?.cantidad}).`
     : faltaCadena
     ? `Elegí la cadena (${producto.cadenas.join(" o ")}).`
     : faltanColores
@@ -1900,7 +1926,10 @@ function FichaProducto({
       variante: varianteElegida,
       cadena: cadenaElegida,
       colores: coloresElegidos,
-      comentario: comentario.trim(),
+      comentario:
+        producto.combo?.tipo === "elegir"
+          ? comentarioCombo(comboElegidos, comentario)
+          : comentario.trim(),
       cantidad,
     });
 
@@ -2081,6 +2110,19 @@ function FichaProducto({
               <p className="mt-3 whitespace-pre-line rounded-xl bg-[var(--kint-panel-soft)] px-3.5 py-2.5 text-sm leading-6 text-[var(--text-main)]">
                 {producto.descripcion}
               </p>
+            )}
+
+            {producto.combo && (
+              <ComboFicha
+                combo={producto.combo}
+                precio={producto.precio}
+                elegidos={comboElegidos}
+                onCambiar={(elegidos) => {
+                  setError("");
+                  setComboElegidos(elegidos);
+                }}
+                falta={faltaCombo}
+              />
             )}
 
             <PreciosPorCantidad

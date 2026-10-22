@@ -5,6 +5,7 @@ import {
   Check,
   DollarSign,
   FolderOpen,
+  Gift,
   ImageIcon,
   Layers,
   Minus,
@@ -17,7 +18,8 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
-import type { ProductoAdmin, ProductoEntrada } from "@/lib/admin-tipos";
+import type { ComboAdmin, ProductoAdmin, ProductoEntrada } from "@/lib/admin-tipos";
+import { COMBO_VACIO, EditorCombo, errorCombo } from "@/components/admin/productos/EditorCombo";
 import {
   Boton,
   CajaError,
@@ -56,6 +58,7 @@ type Formulario = {
   tipoPersonalizado: "Llavero" | "Mascota";
   maxColores: string;
   activo: boolean;
+  combo: ComboAdmin;
 };
 
 type Errores = Partial<
@@ -65,7 +68,8 @@ type Errores = Partial<
     | "precioMayor"
     | "precioGranMayor"
     | "limitesColores"
-    | "variantes",
+    | "variantes"
+    | "combo",
     string
   >
 >;
@@ -87,6 +91,7 @@ const FORMULARIO_NUEVO: Formulario = {
   tipoPersonalizado: "Llavero",
   maxColores: "",
   activo: true,
+  combo: COMBO_VACIO,
 };
 
 function aFormulario(producto: ProductoAdmin): Formulario {
@@ -109,6 +114,7 @@ function aFormulario(producto: ProductoAdmin): Formulario {
     tipoPersonalizado: producto.tipoPersonalizado === "Mascota" ? "Mascota" : "Llavero",
     maxColores: producto.maxColores ? String(producto.maxColores) : "",
     activo: producto.activo,
+    combo: producto.combo?.tipo ? { ...producto.combo, productos: [...producto.combo.productos] } : COMBO_VACIO,
   };
 }
 
@@ -129,6 +135,7 @@ function aEntrada(producto: ProductoAdmin): ProductoEntrada {
     tipoPersonalizado: producto.tipoPersonalizado === "Mascota" ? "Mascota" : "Llavero",
     maxColores: producto.maxColores || 0,
     activo: producto.activo,
+    combo: producto.combo || COMBO_VACIO,
   };
 }
 
@@ -212,6 +219,9 @@ function validar(formulario: Formulario, productos: ProductoAdmin[]) {
       errores.variantes = "Hay dos variantes con el mismo título.";
     }
   }
+
+  const problemaCombo = errorCombo(formulario.combo, formulario.personalizable);
+  if (problemaCombo) errores.combo = problemaCombo;
 
   return errores;
 }
@@ -306,6 +316,14 @@ function TarjetaProducto({
           <p className="text-xs font-semibold text-[var(--text-muted)]">
             {producto.variantes.length} variantes: {producto.variantes.join(" · ")}
           </p>
+        )}
+
+        {producto.combo?.tipo && (
+          <Chip tono="verde">
+            {producto.combo.tipo === "fijo"
+              ? `Combo: ${producto.combo.productos.join(" + ")}`
+              : `Combo: elige ${producto.combo.cantidad} de ${producto.combo.productos.length}`}
+          </Chip>
         )}
 
         {(producto.cadenas.length > 0 || (producto.colores || []).length > 0) && (
@@ -858,6 +876,7 @@ export default function ProductosAdmin() {
       tipoPersonalizado: formulario.personalizable ? formulario.tipoPersonalizado : "",
       maxColores: numero(formulario.maxColores),
       activo: formulario.activo,
+      combo: formulario.combo,
     };
 
     setGuardando(true);
@@ -1268,6 +1287,21 @@ export default function ProductosAdmin() {
                   </p>
                 )}
               </fieldset>
+            </Seccion>
+
+            <Seccion
+              icono={<Gift size={17} />}
+              titulo="Combo"
+              descripcion="Vendé varios juntos más barato: fijos o que el cliente elija."
+            >
+              <EditorCombo
+                valor={formulario.combo}
+                onCambiar={(combo) => cambiar({ combo })}
+                productos={productos}
+                nombreActual={formulario.nombreOriginal || formulario.nombre}
+                precio={numero(formulario.precio)}
+                error={intentado ? errores.combo || "" : ""}
+              />
             </Seccion>
 
             <Seccion
