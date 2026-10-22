@@ -365,7 +365,12 @@ function cambiarTema() {
           response.ok &&
           data.ok
         ) {
-          setResultado(data);
+          // Cada 25 s: los puntos y beneficios ya cargados se conservan (no se vuelven a pedir).
+          setResultado((actual: any) =>
+            actual && actual.pedido === data.pedido && !actual.extrasPendientes
+              ? { ...data, fidelidad: actual.fidelidad, puntos: actual.puntos, beneficios: actual.beneficios, extrasPendientes: false }
+              : data
+          );
         }
       } catch (error) {
         console.error(
