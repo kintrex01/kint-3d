@@ -19,10 +19,12 @@ export async function GET(request: Request) {
       );
     }
 
+    // Primero lo importante (rápido); los puntos y beneficios se piden aparte con ?extras=1.
+    const extras = searchParams.get("extras") === "1";
     const response = await fetch(
       `${process.env.GOOGLE_APPS_SCRIPT_URL}?pedido=${encodeURIComponent(
         pedido
-      )}&codigo=${encodeURIComponent(codigo)}`
+      )}&codigo=${encodeURIComponent(codigo)}${extras ? "&tipo=seguimiento_extras" : "&liviano=1"}`
     );
 
     const text = await response.text();

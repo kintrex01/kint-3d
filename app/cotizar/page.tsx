@@ -194,8 +194,9 @@ const [
   errorRepeticion,
   setErrorRepeticion,
 ] = useState("");
+// Viene marcada: el que no quiera que se usen las fotos la destilda.
 const [aceptaUsoImagenes, setAceptaUsoImagenes] =
-  useState(false);
+  useState(true);
 
 const [medidaCalculadora, setMedidaCalculadora] =
   useState("");
@@ -1400,7 +1401,7 @@ setErrorRepeticion("");
 
     setArchivos([]);
     setArchivoPesadoWhatsapp(false);
-    setAceptaUsoImagenes(false);
+    setAceptaUsoImagenes(true);
 
     setNumeroPedido(data.pedido || "");
     setPremioReclamado(data.premioReclamado || "");

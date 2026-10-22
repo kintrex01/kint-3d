@@ -33,12 +33,39 @@ function opcionSena(resultado: { senaPorcentaje?: unknown } | null) {
 function SeguimientoContent() {
   const [pedido, setPedido] = useState("");
   const [codigo, setCodigo] = useState("");
+
   // Compras de la tienda (TND): se consultan con número + email.
   const [email, setEmail] = useState("");
   const [compraTienda, setCompraTienda] =
     useState<CompraTienda | null>(null);
   const [cargando, setCargando] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
+
+  /* El pedido llega primero; puntos, fidelidad y beneficios se suman apenas están. */
+  const pedidoSinExtras = resultado?.extrasPendientes ? String(resultado.pedido || "") : "";
+  useEffect(() => {
+    if (!pedidoSinExtras || !codigo) return;
+    let cancelado = false;
+    fetch(
+      `/api/seguimiento?pedido=${encodeURIComponent(pedidoSinExtras)}&codigo=${encodeURIComponent(codigo)}&extras=1`,
+      { cache: "no-store" }
+    )
+      .then((respuesta) => respuesta.json())
+      .then((extras) => {
+        if (cancelado || !extras?.ok) return;
+        setResultado((actual: any) =>
+          actual && actual.pedido === pedidoSinExtras
+            ? { ...actual, fidelidad: extras.fidelidad, puntos: extras.puntos, beneficios: extras.beneficios, extrasPendientes: false }
+            : actual
+        );
+      })
+      .catch(() => {
+        // Sin extras: el pedido igual se ve.
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [pedidoSinExtras, codigo]);
   const [error, setError] = useState("");
   const [archivosExtra, setArchivosExtra] = useState<File[]>([]);
 const [subiendoArchivo, setSubiendoArchivo] = useState(false);
@@ -295,7 +322,12 @@ function cambiarTema() {
       );
     }
 
-    setResultado(data);
+    // Mientras se recargan los puntos y beneficios, quedan los que ya se veían.
+    setResultado((actual: any) =>
+      actual && actual.pedido === data.pedido && !actual.extrasPendientes
+        ? { ...data, fidelidad: actual.fidelidad, puntos: actual.puntos, beneficios: actual.beneficios }
+        : data
+    );
   } catch (error) {
     console.error(
       "No se pudo actualizar silenciosamente:",
