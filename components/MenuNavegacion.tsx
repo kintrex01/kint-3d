@@ -136,10 +136,10 @@ const enlacesPreparacion: EnlaceMenu[] = [
     icono: Calculator,
   },
   {
-  nombre: "Ver mi modelo en 3D",
+  nombre: "Escalar y ver mi STL",
   href: "/preparador-3d",
   icono: Ruler,
-  etiqueta: "Vista previa 3D",
+  etiqueta: "Escalá tu archivo",
 },
 ];
 

@@ -1,6 +1,7 @@
 "use client";
 
 import ThemeToggle from "../../components/ThemeToggle";
+import Link from "next/link";
 import Escalador from "@/components/Escalador";
 
 export default function EscaladorPage() {
@@ -26,6 +27,21 @@ export default function EscaladorPage() {
             de tu modelo antes de exportarlo.
           </p>
         </section>
+
+        {/* Con el archivo en mano: se escala solo en /preparador-3d. */}
+        <Link
+          href="/preparador-3d"
+          className="mb-6 flex items-center gap-4 rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] transition hover:border-red-600"
+        >
+          <span className="text-2xl" aria-hidden>📦</span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-black">¿Ya tenés tu archivo STL? Subilo y te lo escalamos</span>
+            <span className="block text-xs leading-5 text-[var(--text-muted)]">
+              Elegís la escala (ej. 1:100) y te descargás el archivo listo. ¿Tenés un SKP? Te explicamos cómo pasarlo a STL.
+            </span>
+          </span>
+          <span className="text-xl text-red-600" aria-hidden>→</span>
+        </Link>
 
         <Escalador />
       </div>

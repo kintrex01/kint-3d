@@ -1933,6 +1933,13 @@ setCantidadPiezas(null);
 setCargando(true);
 
     try {
+      // SKP (SketchUp) no se puede abrir en el navegador: se explica cómo pasarlo a STL.
+      if (archivo.name.toLowerCase().endsWith(".skp")) {
+        throw new Error(
+          "Los archivos SKP no se pueden abrir acá. En SketchUp andá a Archivo → Exportar → Modelo 3D, elegí STL (en milímetros) y subí ese archivo."
+        );
+      }
+
       if (
         !archivo.name
           .toLowerCase()
@@ -2401,7 +2408,7 @@ requestAnimationFrame(() => {
 
   <input
     type="file"
-    accept=".stl"
+    accept=".stl,.skp"
     className="hidden"
     disabled={cargando}
     onChange={cargarSTL}
