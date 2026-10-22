@@ -70,7 +70,7 @@ function ImagenFilamento({
   if (intento >= fuentes.length && extras.color) {
     return (
       <div
-        className="mx-auto h-24 w-24 rounded-full border-4 border-white/70 shadow-inner"
+        className="mx-auto h-16 w-16 sm:h-24 sm:w-24 rounded-full border-4 border-white/70 shadow-inner"
         style={{ background: extras.color }}
         aria-label={nombre}
       />
@@ -79,7 +79,7 @@ function ImagenFilamento({
 
   if (intento >= fuentes.length) {
     return (
-      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-center text-[11px] font-medium text-[var(--text-muted)] opacity-70">
+      <div className="mx-auto flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] px-3 text-center text-[11px] font-medium text-[var(--text-muted)] opacity-70">
         Próximamente
       </div>
     );
@@ -94,7 +94,7 @@ function ImagenFilamento({
           (actual) => actual + 1
         )
       }
-      className={`mx-auto h-24 w-24 object-contain ${
+      className={`mx-auto h-16 w-16 sm:h-24 sm:w-24 object-contain ${
         !habilitado
           ? "grayscale-[35%] brightness-90"
           : ""
@@ -151,6 +151,7 @@ const [telefono, setTelefono] = useState("");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
+  const [masOpciones, setMasOpciones] = useState(false);
   // Productos de la tienda que suma a su pedido.
   const [extras, setExtras] = useState<ExtraElegido[]>([]);
   const [extrasEnviados, setExtrasEnviados] = useState<string[]>([]);
@@ -933,6 +934,37 @@ const armadoCompleto =
   !armadoHabilitado ||
   Boolean(armado);
 
+/* Opciones únicas: se eligen solas y no se muestran (menos para leer). */
+const coloresDisponibles = filamentosConfigurados.filter((item) => item.habilitado);
+const colorUnico = coloresDisponibles.length === 1 ? coloresDisponibles[0].nombre : "";
+const mostrarBoquilla = boquilla02Habilitada && boquilla04Habilitada;
+const boquillaPorDefecto =
+  boquilla02Habilitada && !boquilla04Habilitada
+    ? "0.2 mm — Máximo detalle"
+    : boquilla04Habilitada && !boquilla02Habilitada
+    ? "0.4 mm — Mejor equilibrio"
+    : "Que Kint 3D decida";
+
+useEffect(() => {
+  if (cargandoConfiguracion) return;
+  if (!mostrarBoquilla && boquilla !== boquillaPorDefecto) setBoquilla(boquillaPorDefecto);
+  else if (mostrarBoquilla && !boquilla) setBoquilla("Que Kint 3D decida");
+}, [cargandoConfiguracion, mostrarBoquilla, boquilla, boquillaPorDefecto]);
+
+useEffect(() => {
+  if (cargandoConfiguracion) return;
+  if (armadoHabilitado && !armado) setArmado("No requiero este servicio");
+}, [cargandoConfiguracion, armadoHabilitado, armado]);
+
+useEffect(() => {
+  if (colorUnico && (color.length !== 1 || color[0] !== colorUnico)) setColor([colorUnico]);
+}, [colorUnico, color]);
+
+/* Con beneficios (VALE, descuentos) o algo ya elegido, "Más opciones" se abre solo. */
+useEffect(() => {
+  if (beneficiosDisponibles.length > 0 || pedidoPrioritario) setMasOpciones(true);
+}, [beneficiosDisponibles.length, pedidoPrioritario]);
+
 /* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
 // Solo se saltea si ya sabemos que la cuenta tiene uno guardado.
 const necesitaTelefono =
@@ -1645,7 +1677,7 @@ return (
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Lo utilizaremos para identificarte y enviarte actualizaciones de tus pedidos.
+    📩 Por este correo te llegan el presupuesto y todas las novedades de tu pedido.
   </p>
 
   <input
@@ -1851,9 +1883,7 @@ return (
             Archivo 3D
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Subí tu modelo STL o SKP. El límite máximo por archivo es de 50 MB.
-            Si tu archivo pesa más, marcá la opción de abajo, llena el formulario y pon un comentario al respecto, o envialo por WhatsApp luego de llenar el formulario. 
-          
+            Subí tu modelo STL o SKP (hasta 50 MB por archivo).
           </p>
 
           <div
@@ -1918,25 +1948,15 @@ return (
 </label>
 
 
-          <div className="mt-3 rounded-xl border border-red-600 bg-red-600/10 p-4">
-  <p className="text-sm font-bold text-red-500">
-    📩 IMPORTANTE: Toda la comunicación de tu pedido se realizará a través de este correo electrónico.
-  </p>
-
-  <p className="mt-2 text-sm text-[var(--text-muted)]">
-    Aquí recibirás el presupuesto, actualizaciones del pedido y la notificación cuando tu impresión esté terminada.
-  </p>
-</div>
         </div>
 
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Fecha de entrega
+            Fecha de entrega <span className="text-sm font-normal text-[var(--text-muted)]">(opcional)</span>
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Indicá para cuándo necesitás la pieza. Si no tenés una fecha exacta,
-            podés dejar este campo vacío.
+            Para cuándo la necesitás. Si no tenés fecha, dejalo vacío.
           </p>
           {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
           <div className="rounded-2xl bg-[var(--kint-panel)]">
@@ -1949,77 +1969,12 @@ return (
           </div>
         </div>
 
-{pedidoUrgenteHabilitado && (
-  <div
-    className={`mb-6 rounded-2xl border p-5 transition ${
-      pedidoPrioritario
-        ? "border-red-600 bg-red-600/10"
-        : "border-[var(--border-color)] bg-[var(--page-bg)]"
-    } ${
-      !pedidoUrgenteDisponible
-        ? "opacity-60"
-        : ""
-    }`}
-  >
-    <label
-      className={`flex items-start gap-4 ${
-        pedidoUrgenteDisponible
-          ? "cursor-pointer"
-          : "cursor-not-allowed"
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={pedidoPrioritario}
-        disabled={!pedidoUrgenteDisponible}
-        onChange={(e) =>
-          setPedidoPrioritario(e.target.checked)
-        }
-        className="mt-1 h-5 w-5 accent-red-600"
-      />
-
-      <span>
-        <span className="block font-bold text-[var(--text-main)]">
-  Pedido urgente
-
-  {pedidoUrgenteValor > 0 && (
-    <span className="ml-2 text-red-600">
-      · +{pedidoUrgenteValor}% en el precio
-    </span>
-  )}
-</span>
-
-<span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
-  {pedidoUrgenteComentario}
-</span>
-
-        {pedidoUrgenteDisponible ? (
-          <span className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">
-            Cupos disponibles: {pedidoUrgenteCupos}
-          </span>
-        ) : (
-          <span className="mt-3 block text-sm font-bold text-red-600">
-            No hay cupos urgentes disponibles en este momento.
-          </span>
-        )}
-
-        {pedidoPrioritario && (
-          <span className="mt-3 block text-sm font-bold text-red-600">
-            ✓ Pedido urgente seleccionado
-          </span>
-        )}
-      </span>
-    </label>
-  </div>
-)}
-
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Escala de impresión
+            Escala de impresión <span className="text-red-600">*</span>
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Elegí la escala de tu maqueta o pieza. Si no encontrás la que
-            necesitás, usá la opción «Otra escala».
+            Si no está la tuya, elegí «Otra escala».
           </p>
          <select
   value={escala}
@@ -2062,6 +2017,8 @@ return (
 )}
         </div>
 
+{/* Un solo color disponible: va elegido solo y no se muestra. */}
+{!colorUnico && (
         <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Color de impresión <span className="text-red-600">*</span>
@@ -2071,7 +2028,7 @@ return (
     Podés elegir uno o varios colores.
   </p>
 
-<div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+<div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-4">
   {filamentosConfigurados.map((item) => (
     <button
       key={item.nombre}
@@ -2088,7 +2045,7 @@ return (
             : [...actual, item.nombre]
         );
       }}
-      className={`rounded-2xl border p-3 transition ${
+      className={`rounded-2xl border p-2 transition sm:p-3 ${
         !item.habilitado
           ? "cursor-not-allowed border-[var(--border-color)] bg-[var(--page-bg)] opacity-[0.72]"
           : color.includes(item.nombre)
@@ -2102,7 +2059,7 @@ return (
   comentario={item.comentario}
 />
 
-      <p className="mt-2 text-center text-sm font-semibold">
+      <p className="mt-1.5 text-center text-xs font-semibold sm:mt-2 sm:text-sm">
         {item.nombre}
       </p>
 
@@ -2117,10 +2074,13 @@ return (
 </div>
 
 </div>
+)}
 
+{/* Sin servicio de armado: no se muestra (se manda "No requiero"). */}
+{armadoHabilitado && (
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Armado de piezas
+    Armado de piezas <span className="text-red-600">*</span>
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
@@ -2164,10 +2124,13 @@ return (
     </div>
   )}
 </div>
+)}
 
+{/* Una sola boquilla (o ninguna) habilitada: va puesta sola y no se muestra. */}
+{mostrarBoquilla && (
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Boquilla
+            Boquilla <span className="text-red-600">*</span>
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Un mayor diámetro aumenta la velocidad de impresión, pero reduce el
@@ -2217,6 +2180,7 @@ return (
 <option>Que Kint 3D decida</option>
           </select>
         </div>
+)}
 
 {escalaCalculadora &&
  boquillaCalculadora && (
@@ -2445,6 +2409,96 @@ return (
 
 <SumarProductosCotizar elegidos={extras} onCambiar={setExtras} />
 
+{/* Lo opcional, plegado: menos para leer. Se abre solo si hay algo elegido o beneficios. */}
+<details
+  open={masOpciones}
+  onToggle={(evento) => setMasOpciones(evento.currentTarget.open)}
+  className="group mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]"
+>
+  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
+    <div>
+      <p className="font-bold text-[var(--text-main)]">
+        Más opciones <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
+      </p>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">
+        {[
+          pedidoUrgenteHabilitado && (pedidoPrioritario ? "✓ Urgente" : "Pedido urgente"),
+          codigoDescuento.trim() ? "✓ Código" : "Código de descuento o premio",
+          comentarios.trim() ? "✓ Comentario" : "Comentarios",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    </div>
+    <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">+</span>
+  </summary>
+
+  <div className="border-t border-[var(--border-color)] p-5">
+{pedidoUrgenteHabilitado && (
+  <div
+    className={`mb-6 rounded-2xl border p-5 transition ${
+      pedidoPrioritario
+        ? "border-red-600 bg-red-600/10"
+        : "border-[var(--border-color)] bg-[var(--page-bg)]"
+    } ${
+      !pedidoUrgenteDisponible
+        ? "opacity-60"
+        : ""
+    }`}
+  >
+    <label
+      className={`flex items-start gap-4 ${
+        pedidoUrgenteDisponible
+          ? "cursor-pointer"
+          : "cursor-not-allowed"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={pedidoPrioritario}
+        disabled={!pedidoUrgenteDisponible}
+        onChange={(e) =>
+          setPedidoPrioritario(e.target.checked)
+        }
+        className="mt-1 h-5 w-5 accent-red-600"
+      />
+
+      <span>
+        <span className="block font-bold text-[var(--text-main)]">
+  Pedido urgente
+
+  {pedidoUrgenteValor > 0 && (
+    <span className="ml-2 text-red-600">
+      · +{pedidoUrgenteValor}% en el precio
+    </span>
+  )}
+</span>
+
+<span className="mt-2 block text-sm leading-6 text-[var(--text-muted)]">
+  {pedidoUrgenteComentario}
+</span>
+
+        {pedidoUrgenteDisponible ? (
+          <span className="mt-3 block text-xs font-semibold text-[var(--text-muted)]">
+            Cupos disponibles: {pedidoUrgenteCupos}
+          </span>
+        ) : (
+          <span className="mt-3 block text-sm font-bold text-red-600">
+            No hay cupos urgentes disponibles en este momento.
+          </span>
+        )}
+
+        {pedidoPrioritario && (
+          <span className="mt-3 block text-sm font-bold text-red-600">
+            ✓ Pedido urgente seleccionado
+          </span>
+        )}
+      </span>
+    </label>
+  </div>
+)}
+
+
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Código de descuento o premio
@@ -2519,7 +2573,7 @@ return (
   )}
 </div>
 
-        <div className="mb-8">
+        <div>
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Comentarios
           </label>
@@ -2531,6 +2585,9 @@ return (
             placeholder="Escribe detalles importantes..."
           />
         </div>
+
+  </div>
+</details>
 
 <div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] p-4">
   <label className="flex cursor-pointer items-start gap-3">
