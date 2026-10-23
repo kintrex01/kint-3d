@@ -111,3 +111,31 @@ export function estimarPrecio(piezas: { mm3: number; mm2: number; medidas: numbe
   const hasta = Math.max(desde + (desde >= 300 ? 50 : 20), redondear(precio * 1.35));
   return { tipo: "precio", desde, hasta, gramos, horas, medidas };
 }
+
+/*
+ * Rango con los datos del laminador (horas, minutos, gramos): misma cuenta
+ * que «Te recomiendo» de la Calculadora del panel, con insumos de $30
+ * (desde) a $100 (hasta). Urgente suma el recargo % de Configuración.
+ * Ej.: 1 h 15 min y 20 g → $180 a $390.
+ */
+export const INSUMOS_DESDE = 30;
+export const INSUMOS_HASTA = 100;
+
+export function rangoPorDatos(datos: { horas: number; minutos: number; gramos: number; recargoUrgente: number }) {
+  const horas = Math.max(0, datos.horas || 0);
+  const minutos = Math.max(0, datos.minutos || 0);
+  const gramos = Math.max(0, datos.gramos || 0);
+  if (!(gramos > 0) || !(horas * 60 + minutos > 0)) return null;
+
+  const perfil = perfilNuevo();
+  const factor = 1 + Math.max(0, datos.recargoUrgente || 0) / 100;
+  const conInsumos = (insumos: number) => {
+    const precio = precioRecomendado(perfil, { horas, minutos, gramos, insumos, piezas: 1 }) * factor;
+    const paso = precio >= 500 ? 50 : 10;
+    return Math.ceil(precio / paso) * paso;
+  };
+
+  const desde = conInsumos(INSUMOS_DESDE);
+  const hasta = conInsumos(INSUMOS_HASTA);
+  return desde > 0 ? { desde, hasta: Math.max(desde, hasta) } : null;
+}

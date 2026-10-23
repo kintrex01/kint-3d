@@ -139,6 +139,7 @@ export async function POST(request: Request) {
         fechasEntrega: Array.isArray(body.fechasEntrega)
           ? (body.fechasEntrega as unknown[]).slice(0, 10).map((dia) => String(dia || "").slice(0, 10))
           : [],
+        retiroDomicilio: body.retiroDomicilio === true,
         modalidad: String(body.modalidad || ""),
         total: Number(body.total),
         items,

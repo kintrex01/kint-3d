@@ -120,6 +120,7 @@ export default function CalendarioEntrega({
   dias,
   onCambiarDias,
   onBloqueados,
+  onFeriados,
 }: {
   /* Fecha elegida (con varios días, el primero). */
   valor: string;
@@ -129,6 +130,8 @@ export default function CalendarioEntrega({
   onCambiarDias?: (dias: string[]) => void;
   /* Avisa al padre qué días están bloqueados (para validar). */
   onBloqueados?: (fechas: string[]) => void;
+  /* Avisa al padre qué días son feriado (recargo de la tienda). */
+  onFeriados?: (fechas: string[]) => void;
 }) {
   const [calendario, setCalendario] = useState<Calendario | null>(null);
   const [error, setError] = useState(false);
@@ -164,6 +167,7 @@ export default function CalendarioEntrega({
 
         setCalendario(nuevo);
         onBloqueados?.(nuevo.bloqueados.map((dia) => dia.fecha));
+        onFeriados?.(nuevo.feriados.map((dia) => dia.fecha));
       })
       .catch(() => {
         if (activo) setError(true);

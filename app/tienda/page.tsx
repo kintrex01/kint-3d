@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import GarantiaKint from "@/components/GarantiaKint";
 import {
   ArrowLeft,
   ArrowRight,
@@ -107,6 +108,8 @@ type Catalogo = {
   // Desde cuántas unidades de un producto rige cada precio por mayor.
   mayorDesde: number;
   granMayorDesde: number;
+  // Recargo por pedido si todos los días elegidos son fin de semana o feriado.
+  recargoFinde: number;
   // Desplegable "Colores" de la hoja Tienda: para productos sin colores propios.
   coloresGlobales: string[];
   productos: Producto[];
@@ -151,6 +154,8 @@ type CompraConfirmada = {
   montoPagado: number;
   saldoPendiente: number;
   lineas: LineaDetallada[];
+  // Recargo por entrega en fin de semana o feriado (0 si no hubo).
+  recargoEntrega: number;
   // true si la compra ya estaba registrada (reintento con el mismo idCompra).
   repetida: boolean;
 };
@@ -598,6 +603,8 @@ function normalizarCatalogo(data: any): Catalogo {
     maxUnidades: Number(data.maxUnidades) || 200,
     mayorDesde: Number(data.mayorDesde) || 10,
     granMayorDesde: Number(data.granMayorDesde) || 0,
+    // 0 si Apps Script todavía no lo informa: así el total coincide con el suyo.
+    recargoFinde: Math.max(0, Number(data.recargoFinde) || 0),
     coloresGlobales,
     productos: Array.isArray(data.productos)
       ? (data.productos as Producto[]).map((producto) => {
@@ -2904,6 +2911,9 @@ export default function TiendaPage() {
   const [fechaEntrega, setFechaEntrega] = useState("");
   // Días que le sirven para la entrega (fechaEntrega = el primero).
   const [diasEntrega, setDiasEntrega] = useState<string[]>([]);
+  // Feriados del calendario y si retira en el domicilio del fabricante.
+  const [feriados, setFeriados] = useState<string[]>([]);
+  const [retiroDomicilio, setRetiroDomicilio] = useState(false);
   const [diasBloqueados, setDiasBloqueados] = useState<string[]>([]);
   const [comentario, setComentario] = useState("");
   const [modalidad, setModalidad] = useState<Modalidad | "">("");
@@ -3303,8 +3313,30 @@ export default function TiendaPage() {
   const pasoVisible: Paso =
     tiendaAbierta && lineas.length ? paso : 0;
 
+  /*
+   * Si todos los días elegidos son sábado, domingo o feriado (sin facultad),
+   * la entrega suma un recargo, salvo que retire en el domicilio del fabricante.
+   * Misma regla que Apps Script (kintTiendaEntregaEspecial_).
+   */
+  const diasElegidos = diasEntrega.length
+    ? diasEntrega
+    : fechaEntrega
+    ? [fechaEntrega]
+    : [];
+  const soloSinFacultad =
+    diasElegidos.length > 0 &&
+    diasElegidos.every((dia) => {
+      const [anio, mes, numero] = dia.split("-").map(Number);
+      const semana = new Date(anio, mes - 1, numero, 12).getDay();
+      return semana === 0 || semana === 6 || feriados.includes(dia);
+    });
+  const recargoFinde = catalogo?.recargoFinde || 0;
+  const recargoEntrega =
+    soloSinFacultad && !retiroDomicilio ? recargoFinde : 0;
+
   const total = redondear(
-    lineas.reduce((suma, linea) => suma + linea.subtotal, 0)
+    lineas.reduce((suma, linea) => suma + linea.subtotal, 0) +
+      recargoEntrega
   );
   const ahorroMayor = redondear(
     lineas.reduce(
@@ -3579,6 +3611,7 @@ export default function TiendaPage() {
           comentario: comentario.trim(),
           fechaEntrega,
           fechasEntrega: diasEntrega,
+          retiroDomicilio: soloSinFacultad && retiroDomicilio,
           modalidad,
           total,
           items: lineas.map((linea) => ({
@@ -3631,6 +3664,7 @@ export default function TiendaPage() {
         montoPagado: Number(data.montoPagado) || montoAhora,
         saldoPendiente: Number(data.saldoPendiente) || 0,
         lineas,
+        recargoEntrega,
       });
 
       setCarrito([]);
@@ -3641,6 +3675,7 @@ export default function TiendaPage() {
       setComentario("");
       setFechaEntrega("");
       setDiasEntrega([]);
+      setRetiroDomicilio(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (errorCompra: unknown) {
       setError(
@@ -3730,6 +3765,15 @@ export default function TiendaPage() {
                 </span>
               </li>
             ))}
+
+            {confirmada.recargoEntrega > 0 && (
+              <li className="flex justify-between gap-4 py-3 text-sm">
+                <span>Entrega fin de semana o feriado</span>
+                <span className="font-bold">
+                  {pesos(confirmada.recargoEntrega)}
+                </span>
+              </li>
+            )}
 
             <li className="flex justify-between gap-4 py-3 text-sm font-black">
               <span>Total</span>
@@ -3914,6 +3958,7 @@ export default function TiendaPage() {
             />
             {TEXTO_ENTREGA}
           </p>
+          <GarantiaKint className="mt-3 max-w-xl" />
         </header>
       </section>
 
@@ -4299,6 +4344,11 @@ export default function TiendaPage() {
                           : ""}
                       </li>
                     ))}
+                    {recargoEntrega > 0 && (
+                      <li>
+                        Entrega fin de semana o feriado · {pesos(recargoEntrega)}
+                      </li>
+                    )}
                   </ul>
                 </div>
 
@@ -4467,7 +4517,33 @@ export default function TiendaPage() {
                       dias={diasEntrega}
                       onCambiarDias={setDiasEntrega}
                       onBloqueados={setDiasBloqueados}
+                      onFeriados={setFeriados}
                     />
+
+                    {soloSinFacultad && recargoFinde > 0 && (
+                      <div className="mt-3 rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4 text-sm leading-6">
+                        <p className="font-bold">
+                          {retiroDomicilio
+                            ? "Retirás en el domicilio del fabricante: sin recargo."
+                            : `Elegiste solo fines de semana o feriados: la entrega suma ${pesos(recargoFinde)} al pedido.`}
+                        </p>
+                        <label className="mt-2 flex cursor-pointer items-start gap-2">
+                          <input
+                            type="checkbox"
+                            checked={retiroDomicilio}
+                            onChange={(evento) =>
+                              setRetiroDomicilio(evento.target.checked)
+                            }
+                            className="mt-1"
+                          />
+                          <span>
+                            Prefiero retirarlo en el domicilio del
+                            fabricante (sin costo). Te pasamos la dirección
+                            por WhatsApp.
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
 
                   <label className="block">

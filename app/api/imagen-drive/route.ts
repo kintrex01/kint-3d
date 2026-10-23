@@ -31,7 +31,14 @@ export async function GET(request: Request) {
           status: 200,
           headers: {
             "Content-Type": contentType,
-            "Cache-Control": "public, max-age=3600",
+            /*
+             * s-maxage: la CDN de Vercel guarda la foto y no vuelve a pasar
+             * por esta función en cada visita (cada pasada cuenta para el
+             * límite de transferencia del plan). Una foto nueva en Drive
+             * tiene otro ID, así que guardarla una semana no trae problemas.
+             */
+            "Cache-Control":
+              "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
           },
         });
       }

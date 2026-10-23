@@ -411,28 +411,54 @@ function Juego({
     return porciones.findIndex((porcion) => bajoFlecha >= porcion.inicio && bajoFlecha < porcion.inicio + porcion.ancho);
   }
 
+  /* Mueve la rueda y hace "tic" con la flecha al pasar de porción. */
+  function pintar(actual: number, anterior: { porcion: number }) {
+    angulo.current = actual;
+    if (rueda.current) rueda.current.style.transform = `rotate(${actual}deg)`;
+    const debajo = porcionEn(actual);
+    if (debajo !== anterior.porcion) {
+      anterior.porcion = debajo;
+      if (sonido) tic();
+      flecha.current?.animate(
+        [{ transform: "translateX(-50%) rotate(-22deg)" }, { transform: "translateX(-50%) rotate(0deg)" }],
+        { duration: 140, easing: "ease-out" }
+      );
+    }
+  }
+
   function animar(destino: number, alTerminar: () => void) {
     const desde = angulo.current;
     const comienzo = performance.now();
-    let anterior = porcionEn(desde);
+    const anterior = { porcion: porcionEn(desde) };
     const paso = (momento: number) => {
       const t = Math.min(1, (momento - comienzo) / DURACION_GIRO);
-      const actual = desde + (destino - desde) * frenado(t);
-      angulo.current = actual;
-      if (rueda.current) rueda.current.style.transform = `rotate(${actual}deg)`;
-      const debajo = porcionEn(actual);
-      if (debajo !== anterior) {
-        anterior = debajo;
-        if (sonido) tic();
-        flecha.current?.animate(
-          [{ transform: "translateX(-50%) rotate(-22deg)" }, { transform: "translateX(-50%) rotate(0deg)" }],
-          { duration: 140, easing: "ease-out" }
-        );
-      }
+      pintar(desde + (destino - desde) * frenado(t), anterior);
       if (t < 1) requestAnimationFrame(paso);
       else alTerminar();
     };
     requestAnimationFrame(paso);
+  }
+
+  /*
+   * Gira apenas se toca el botón, mientras Apps Script decide el premio.
+   * Va a la velocidad con la que arranca el frenado, así el empalme no se nota.
+   * Devuelve la función que la detiene.
+   */
+  function girarSinFin() {
+    const velocidad = (5 * 360 * VUELTAS) / DURACION_GIRO; // grados por ms
+    const anterior = { porcion: porcionEn(angulo.current) };
+    let previo = performance.now();
+    let activo = true;
+    const paso = (momento: number) => {
+      if (!activo) return;
+      pintar(angulo.current + velocidad * (momento - previo), anterior);
+      previo = momento;
+      requestAnimationFrame(paso);
+    };
+    requestAnimationFrame(paso);
+    return () => {
+      activo = false;
+    };
   }
 
   async function girar(conPuntos = false) {
@@ -440,6 +466,7 @@ function Juego({
     setError("");
     setGirando(true);
     if (sonido) tic(); // habilita el audio con el toque
+    const detener = girarSinFin();
     try {
       const data = await llamar({
         tipo: "ruleta_girar",
@@ -447,6 +474,7 @@ function Juego({
         token: sesion.token,
         ...(conPuntos ? { conPuntos: "si" } : {}),
       });
+      detener();
       const porcion = porciones[data.indice];
       // Cae en un lugar al azar de la porción ganadora (no siempre en el medio).
       const dentro = porcion ? porcion.inicio + porcion.ancho * (0.2 + Math.random() * 0.6) : 0;
@@ -470,6 +498,7 @@ function Juego({
         if (gano) onRecargar();
       });
     } catch (errorGiro) {
+      detener();
       setError(errorGiro instanceof Error ? errorGiro.message : "No se pudo girar.");
       setGirando(false);
     }
@@ -673,7 +702,7 @@ function Juego({
               disabled={girando || !estado.puede}
               className="absolute left-1/2 top-1/2 z-20 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-[5px] border-amber-200 bg-[radial-gradient(circle_at_30%_25%,#fca5a5,#dc2626_45%,#7f1d1d)] text-xs font-black uppercase tracking-[0.12em] text-white shadow-[0_10px_30px_rgba(220,38,38,0.6),inset_0_-6px_12px_rgba(0,0,0,0.35)] transition enabled:hover:scale-105 enabled:active:scale-95 disabled:cursor-not-allowed"
             >
-              {girando ? <LoaderCircle size={24} className="animate-spin" /> : estado.puede ? "Girar" : "🔒"}
+              {girando ? "¡Suerte!" : estado.puede ? "Girar" : "🔒"}
             </button>
           </div>
 

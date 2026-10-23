@@ -1,5 +1,6 @@
 "use client";
 import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import GarantiaKint from "@/components/GarantiaKint";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -8,7 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import { marcarPaso } from "@/lib/embudo";
-import { estimarPrecio, medirSTL } from "@/lib/precio-estimado";
+import { medirSTL } from "@/lib/precio-estimado";
 import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
@@ -165,6 +166,8 @@ const [telefono, setTelefono] = useState("");
   // Volumen y medidas de los STL elegidos, para el precio estimado.
   const [medidasArchivos, setMedidasArchivos] = useState<{ mm3: number; mm2: number; medidas: number[] }[] | null>(null);
   const [midiendoArchivos, setMidiendoArchivos] = useState(false);
+  // Rango que vio el cliente en «¿Cuánto saldría?» (va en el correo al dueño).
+  const [rangoEstimado, setRangoEstimado] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [numeroPedido, setNumeroPedido] = useState("");
@@ -1399,11 +1402,7 @@ archivosOriginales,
 archivoPesadoWhatsapp,
 usoImagenesAutorizado: aceptaUsoImagenes,
 // Lo que vio el cliente como precio estimado (solo para el correo al dueño).
-precioEstimado: (() => {
-  if (!precioEstimadoActivo || !medidasArchivos) return "";
-  const estimacion = estimarPrecio(medidasArchivos, escalaCalculadora || 0);
-  return estimacion.tipo === "precio" ? `$${estimacion.desde} a $${estimacion.hasta} (~${estimacion.gramos} g)` : "";
-})(),
+precioEstimado: precioEstimadoActivo ? rangoEstimado : "",
       }),
       headers: {
         "Content-Type": "application/json",
@@ -1622,6 +1621,7 @@ return (
               </span>
             ))}
           </div>
+          <GarantiaKint className="mt-4" />
         </div>
       </section>
 
@@ -1985,12 +1985,13 @@ return (
 )}
 
 {/* Precio estimado (se apaga en Configuración › Precio estimado). */}
-{precioEstimadoActivo && archivos.length > 0 && (
+{precioEstimadoActivo && (
   <TarjetaPrecioEstimado
     medidas={medidasArchivos}
     midiendo={midiendoArchivos}
-    haySkp={archivos.some((archivo) => !/\.stl$/i.test(archivo.name))}
     escala={escalaCalculadora || 0}
+    recargoUrgente={pedidoUrgenteDisponible ? pedidoUrgenteValor : 0}
+    onRango={setRangoEstimado}
   />
 )}
 
