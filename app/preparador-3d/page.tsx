@@ -9,6 +9,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { milimetrosPorUnidad } from "@/lib/precio-estimado";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -32,14 +33,24 @@ type FiltrosProblemas = {
   flotantes: boolean;
 };
 
-type TamanoCama = 180 | 300;
+type TamanoCama = number;
 
 type Vista3D =
   | "modelo"
   | "cama"
-  | "superior";
+  | "superior"
+  // Cámara suelta: girar, mover y acercar hacia donde apunta el mouse.
+  | "libre";
 
-const tamanosCama: TamanoCama[] = [180, 300];
+/* Camas de las impresoras Bambu Lab (lado en mm). La H2D es 325 × 320. */
+const camasImpresora: { mm: TamanoCama; nombre: string }[] = [
+  { mm: 180, nombre: "A1 mini" },
+  { mm: 256, nombre: "A1 · P1S · X1" },
+  { mm: 320, nombre: "H2D" },
+];
+
+/* En qué unidad viene el STL: SketchUp exporta en metros. */
+type UnidadArchivo = "m" | "mm";
 
 const coloresModelo = [
   { nombre: "Blanco", valor: "#f4f4f4" },
@@ -1372,7 +1383,11 @@ export default function Preparador3D() {
   );
 
   const [tamanoCama, setTamanoCama] =
-    useState<TamanoCama>(180);
+    useState<TamanoCama>(320);
+
+  // Se adivina al cargar el archivo (lib/precio-estimado: milimetrosPorUnidad).
+  const [unidadArchivo, setUnidadArchivo] =
+    useState<UnidadArchivo>("mm");
 
   const [nombreArchivo, setNombreArchivo] =
     useState("");
@@ -1705,8 +1720,9 @@ function aplicarEscala(nuevoPorcentaje: number) {
     return;
   }
 
+  // Hasta 100.000%: un archivo en metros a 1:10 se agranda ×100.
   const porcentajeSeguro = Math.min(
-  1000,
+  100000,
   Math.max(0.01, nuevoPorcentaje)
 );
 
@@ -1747,7 +1763,8 @@ function aplicarEscala(nuevoPorcentaje: number) {
 }
 
 function cambiarEscalaArquitectonica(
-  valor: string
+  valor: string,
+  unidad: UnidadArchivo = unidadArchivo
 ) {
   setEscalaSeleccionada(valor);
 
@@ -1776,7 +1793,8 @@ function cambiarEscalaArquitectonica(
    * 1:200  = 0.5%
    * 1:500  = 0.2%
    */
-  const porcentaje = 100 / denominador;
+  // En metros, 1 unidad del archivo = 1000 mm reales.
+  const porcentaje = (100 * (unidad === "m" ? 1000 : 1)) / denominador;
 
   aplicarEscala(porcentaje);
 
@@ -1785,6 +1803,14 @@ function cambiarEscalaArquitectonica(
 requestAnimationFrame(() => {
   cambiarVista("modelo");
 });
+}
+
+/* Cambiar metros ↔ milímetros vuelve a aplicar la escala elegida. */
+function cambiarUnidadArchivo(unidad: UnidadArchivo) {
+  setUnidadArchivo(unidad);
+  if (escalaSeleccionada) {
+    cambiarEscalaArquitectonica(escalaSeleccionada, unidad);
+  }
 }
 
 function descargarSTLPreparado() {
@@ -2085,6 +2111,9 @@ escena.add(modelo);
 setNombreArchivo(archivo.name);
 setEscalaPorcentaje(100);
 setEscalaSeleccionada("");
+setUnidadArchivo(
+  milimetrosPorUnidad(Math.max(tamano.x, tamano.y, tamano.z)) === 1000 ? "m" : "mm"
+);
 setColorModelo("Rojo");
 
       setMedidas({
@@ -2230,6 +2259,26 @@ requestAnimationFrame(() => {
   if (!camara || !controles || !cama) {
     return;
   }
+
+  /*
+   * VISTA LIBRE: la cámara queda donde está y se suelta: arrastrar gira,
+   * clic derecho (o dos dedos) mueve, la rueda acerca hacia el mouse.
+   */
+  if (tipo === "libre") {
+    controles.enablePan = true;
+    controles.screenSpacePanning = true;
+    controles.zoomToCursor = true;
+    controles.minDistance = 0.01;
+    controles.maxDistance = tamanoCama * 40;
+    camara.near = 0.01;
+    camara.far = Math.max(camara.far, tamanoCama * 40);
+    camara.updateProjectionMatrix();
+    controles.update();
+    return;
+  }
+
+  controles.enablePan = false;
+  controles.zoomToCursor = false;
 
   const caja = new THREE.Box3();
 
@@ -2465,23 +2514,23 @@ requestAnimationFrame(() => {
               Cama de impresión
             </p>
 
-            <div className="grid grid-cols-2 gap-2">
-              {tamanosCama.map((tamano) => (
+            <div className="grid grid-cols-3 gap-2">
+              {camasImpresora.map((cama) => (
                 <button
-                  key={tamano}
+                  key={cama.mm}
                   type="button"
                   onClick={() =>
-                    setTamanoCama(tamano)
+                    setTamanoCama(cama.mm)
                   }
                   className={`rounded-lg border px-2 py-3 text-[10px] font-bold transition ${
-                    tamanoCama === tamano
+                    tamanoCama === cama.mm
                       ? "border-red-600 bg-red-600 text-white"
                       : "border-[var(--border-color)] hover:border-red-600"
                   }`}
                 >
-                  {tamano}
+                  {cama.nombre}
                   <span className="block text-[8px] font-normal">
-                    mm
+                    {cama.mm} mm
                   </span>
                 </button>
               ))}
@@ -2500,6 +2549,32 @@ requestAnimationFrame(() => {
     <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em]">
       Escalar modelo
     </p>
+
+    <p className="mb-1.5 text-[10px] font-semibold text-[var(--text-muted)]">
+      Tu archivo está en:
+    </p>
+    <div className="mb-3 grid grid-cols-2 gap-1.5 rounded-xl border border-[var(--border-color)] p-1">
+      {(
+        [
+          ["m", "Metros"],
+          ["mm", "Milímetros"],
+        ] as const
+      ).map(([valor, texto]) => (
+        <button
+          key={valor}
+          type="button"
+          aria-pressed={unidadArchivo === valor}
+          onClick={() => cambiarUnidadArchivo(valor)}
+          className={`rounded-lg py-2 text-[11px] font-bold transition ${
+            unidadArchivo === valor
+              ? "bg-red-600 text-white"
+              : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+          }`}
+        >
+          {texto}
+        </button>
+      ))}
+    </div>
 
     <select
       value={escalaSeleccionada}
@@ -2527,9 +2602,8 @@ requestAnimationFrame(() => {
     </select>
 
     <p className="mt-3 text-[10px] leading-5 text-[var(--text-muted)]">
-  Si tu STL ya está a escala, no cambies nada.
-  Elegí una escala solamente si el archivo fue
-  exportado a tamaño real.
+  SketchUp exporta en metros. Si tu STL ya está a
+  escala, dejá «Tamaño actual del archivo».
 </p>
 
     {escalaSeleccionada && (
@@ -3185,6 +3259,22 @@ requestAnimationFrame(() => {
         Superior
       </button>
 
+      <button
+        type="button"
+        onClick={() => {
+          setVistaActiva("libre");
+          cambiarVista("libre");
+        }}
+        title="Girá, mové la cámara y acercate a donde quieras"
+        className={`rounded-lg border px-3 py-2 text-[9px] font-bold uppercase tracking-[0.07em] transition ${
+          vistaActiva === "libre"
+            ? "border-red-600 bg-red-600 text-white"
+            : "border-[var(--border-color)] hover:border-red-600 hover:text-red-600"
+        }`}
+      >
+        Libre
+      </button>
+
 {kintCheck &&
   (kintCheck.aristasAbiertas > 0 ||
     kintCheck.aristasNoManifold > 0 ||
@@ -3207,6 +3297,12 @@ requestAnimationFrame(() => {
 
     </div>
   </div>
+
+  {vistaActiva === "libre" && (
+    <p className="px-4 pb-2 text-[10px] text-[var(--text-muted)] sm:px-5">
+      Arrastrá para girar · clic derecho o dos dedos para mover · rueda o pellizco para acercarte a donde apuntás
+    </p>
+  )}
 
   {/* Visor */}
   <div
