@@ -33,6 +33,14 @@ export type ResultadoReparacion = {
 };
 
 export type OpcionesReparacion = {
+  /*
+   * "suave" (por defecto, el botón del visor): solo lo que no cambia cómo se
+   * ve el modelo. No le da espesor a caras sueltas, no saca caras dobles ni
+   * internas, solo tapa huecos chicos y planos, y no da vuelta piezas
+   * abiertas. "completo": todo (más agresivo; en modelos de arquitectura de
+   * SketchUp deformaba: muros sacados, miles de caras engrosadas).
+   */
+  modo?: "suave" | "completo";
   // Espesor para las caras sueltas, en unidades del archivo (el visor lo pasa según la escala).
   espesorLamina?: number;
 };
@@ -45,7 +53,7 @@ function claveArista(a: number, b: number) {
 }
 
 /* Saca aplastados, repetidos y caras dobles enfrentadas. */
-function limpiar(tris: Tri[], P: number[], tamano: number, cuenta: Pick<ResultadoReparacion, "aplastadosQuitados" | "duplicadosQuitados" | "carasDoblesQuitadas">) {
+function limpiar(tris: Tri[], P: number[], tamano: number, cuenta: Pick<ResultadoReparacion, "aplastadosQuitados" | "duplicadosQuitados" | "carasDoblesQuitadas">, quitarDobles = true) {
   const areaMinima = tamano * tamano * 1e-12;
   const lista: Tri[] = [];
   const quitar = new Set<number>();
@@ -86,7 +94,10 @@ function limpiar(tris: Tri[], P: number[], tamano: number, cuenta: Pick<Resultad
       const o = lista[otra];
       const mo = o[0] < o[1] ? (o[0] < o[2] ? 0 : 2) : o[1] < o[2] ? 1 : 2;
       if (o[(mo + 1) % 3] === segundo) cuenta.duplicadosQuitados++;
-      else {
+      else if (!quitarDobles) {
+        // Suave: se dejan las dos (un muro de una cara exportado de los dos lados se sigue viendo).
+        lista.push(t);
+      } else {
         // Enfrentadas: las dos sobran (cara de espesor cero entre dos piezas).
         quitar.add(otra);
         cuenta.carasDoblesQuitadas += 2;
@@ -191,7 +202,7 @@ function cascaras(tris: Tri[], indice = indiceAristas(tris)) {
  * Cose los bordes abiertos: une vértices de borde casi pegados (rajas) y
  * parte las aristas que tienen un vértice de otra cara encima (aristas en T).
  */
-function coser(tris: Tri[], P: number[], tamano: number, cuenta: ResultadoReparacion) {
+function coser(tris: Tri[], P: number[], tamano: number, cuenta: ResultadoReparacion, quitarDobles = true) {
   // Solo las rajas de verdad (micro-cortes de la exportación): en un edificio de 180 m son
   // ~2 mm. Con más, dos muros de SketchUp a 2 cm se pegaban y se estiraban.
   const tol = tamano * 1e-5;
@@ -228,7 +239,7 @@ function coser(tris: Tri[], P: number[], tamano: number, cuenta: ResultadoRepara
     if (destino.size) {
       cuenta.rajasCerradas += destino.size;
       const nuevos = tris.map((t) => t.map((v) => destino.get(v) ?? v) as Tri);
-      tris = limpiar(nuevos, P, tamano, cuenta);
+      tris = limpiar(nuevos, P, tamano, cuenta, quitarDobles);
       continue;
     }
 
@@ -311,8 +322,12 @@ function orientar(tris: Tri[]) {
     if (visitado[inicio]) continue;
     visitado[inicio] = 1;
     const pila = [inicio];
+    // Caras de esta pieza y cuáles se dieron vuelta (al final se respeta a la mayoría).
+    const pieza: number[] = [];
+    const vueltas = new Set<number>();
     while (pila.length) {
       const i = pila.pop()!;
+      pieza.push(i);
       const t = tris[i];
       for (let k = 0; k < 3; k++) {
         const a = t[k], b = t[(k + 1) % 3];
@@ -323,11 +338,17 @@ function orientar(tris: Tri[]) {
         visitado[j] = 1;
         if (tieneArista(tris[j], a, b)) {
           tris[j] = [tris[j][0], tris[j][2], tris[j][1]];
-          dadasVuelta++;
+          vueltas.add(j);
         }
         pila.push(j);
       }
     }
+    // Si quedó dada vuelta la mayoría, era la primera cara la que estaba al revés:
+    // se invierte toda la pieza (así se toca lo menos posible).
+    if (vueltas.size * 2 > pieza.length) {
+      for (const i of pieza) tris[i] = [tris[i][0], tris[i][2], tris[i][1]];
+      dadasVuelta += pieza.length - vueltas.size;
+    } else dadasVuelta += vueltas.size;
   }
   return dadasVuelta;
 }
@@ -521,7 +542,7 @@ function taparNoPlano(lazo: number[], P: number[], vecinas: Vecinas, tamano: num
 }
 
 /* Tapa todos los agujeros; los planos del mismo plano se tapan juntos (islas). */
-function taparAgujeros(tris: Tri[], P: number[], tamano: number) {
+function taparAgujeros(tris: Tri[], P: number[], tamano: number, respetarAberturas = false) {
   const { id, indice } = cascaras(tris);
   const infos = lazosDeBorde(tris, id, indice).map(({ lazo, cascara }) => infoLazo(lazo, cascara, P));
   const parches: { t: Tri; cascara: number }[] = [];
@@ -529,9 +550,64 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number) {
   const hecho = new Set<InfoLazo>();
   const tolPlano = tamano * 1e-4;
 
+  // Normal de la cara de la cáscara que toca el borde a-b.
+  const normalVecina = (a: number, b: number, cascara: number) => {
+    const j = indice.de(a, b).find((k) => id[k] === cascara);
+    if (j === undefined) return null;
+    const t = tris[j];
+    const p0 = new THREE.Vector3().fromArray(P, t[0] * 3);
+    return new THREE.Vector3().fromArray(P, t[1] * 3).sub(p0).cross(new THREE.Vector3().fromArray(P, t[2] * 3).sub(p0)).normalize();
+  };
+  /*
+   * ¿Es una abertura y no un agujero? Si la mayor parte del borde toca caras en el
+   * mismo plano que el hueco (el hueco de una pérgola, una ventana, un patio), es una
+   * abertura a propósito: no se tapa. Un agujero de verdad (falta la tapa de una
+   * caja) está rodeado de caras en ángulo.
+   */
+  const esAbertura = (info: InfoLazo) => {
+    let enPlano = 0, total = 0;
+    for (let i = 0; i < info.lazo.length; i++) {
+      const a = info.lazo[i], b = info.lazo[(i + 1) % info.lazo.length];
+      const largo = Math.hypot(P[a * 3] - P[b * 3], P[a * 3 + 1] - P[b * 3 + 1], P[a * 3 + 2] - P[b * 3 + 2]);
+      total += largo;
+      const n = normalVecina(a, b, info.cascara);
+      // Plano de verdad (menos de 2°): una superficie curva fina no cuenta como abertura.
+      if (n && Math.abs(n.dot(info.normal)) > 0.9995) enPlano += largo;
+    }
+    return total > 0 && enPlano > total * 0.5;
+  };
+  let aberturas = 0;
+  // Tamaño de cada cáscara (para medir los huecos contra su propia pieza).
+  const cajas = new Map<number, THREE.Box3>();
+  if (respetarAberturas) tris.forEach((t, i) => {
+    const caja = cajas.get(id[i]) || cajas.set(id[i], new THREE.Box3()).get(id[i])!;
+    for (const v of t) caja.expandByPoint(new THREE.Vector3(P[v * 3], P[v * 3 + 1], P[v * 3 + 2]));
+  });
+
   for (const info of [...infos].sort((a, b) => b.area - a.area)) {
     if (hecho.has(info)) continue;
     hecho.add(info);
+    /*
+     * Suave: no se inventan caras. Un hueco "de verdad" (falta una cara) y una abertura a
+     * propósito (un lucernario, una pérgola, una ventana sin mochetas) son iguales en la
+     * geometría: tapar uno cambiaba modelos de clientes. Solo se cierran las rajas finitas
+     * (ancho ≈ 2 × área / perímetro casi cero), que no se ven.
+     */
+    let perimetro = 0;
+    for (let i = 0; i < info.lazo.length; i++) {
+      const a = info.lazo[i], b = info.lazo[(i + 1) % info.lazo.length];
+      perimetro += Math.hypot(P[a * 3] - P[b * 3], P[a * 3 + 1] - P[b * 3 + 1], P[a * 3 + 2] - P[b * 3 + 2]);
+    }
+    const ancho = (2 * info.area) / Math.max(perimetro, 1e-30);
+    const pieza = cajas.get(info.cascara)?.getSize(new THREE.Vector3()).length() || tamano;
+    if (respetarAberturas && (ancho > tamano * 1e-4 || ancho > pieza * 1e-3)) {
+      aberturas++;
+      continue;
+    }
+    if (respetarAberturas && info.plano && esAbertura(info)) {
+      aberturas++;
+      continue;
+    }
     if (!info.plano) {
       // Diagonal prohibida: una arista que ya tiene esta misma cáscara (taparía encima de sus caras).
       const deLaCascara = (x: number, y: number) => indice.de(x, y).filter((j) => id[j] === info.cascara);
@@ -568,7 +644,7 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number) {
       agregar(triangularEnPlano(info.lazo, [], info.normal, P) || abanico(info.lazo, P), info.cascara);
     }
   }
-  return { parches, cascara: id, agujeros: infos.length };
+  return { parches, cascara: id, agujeros: infos.length - aberturas };
 }
 
 /* ¿El punto está adentro de esos triángulos cerrados? (rayo, cuenta cruces) */
@@ -633,16 +709,17 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
     carasInternasQuitadas: 0,
   };
 
+  const suave = opciones.modo !== "completo";
   let tris: Tri[] = [];
   for (let i = 0; i + 2 < idx.length; i += 3) tris.push([Number(idx[i]), Number(idx[i + 1]), Number(idx[i + 2])]);
 
   // 1 y 2: limpiar y coser.
-  tris = limpiar(tris, P, tamano, cuenta);
-  tris = coser(tris, P, tamano, cuenta);
+  tris = limpiar(tris, P, tamano, cuenta, !suave);
+  tris = coser(tris, P, tamano, cuenta, !suave);
   // 3: orientación pareja.
   cuenta.carasDadasVuelta += orientar(tris);
   // 4: tapas (cada una sabe de qué cáscara es).
-  const { parches: tapas, cascara, agujeros } = taparAgujeros(tris, P, tamano);
+  const { parches: tapas, cascara, agujeros } = taparAgujeros(tris, P, tamano, suave);
   cuenta.agujerosTapados = agujeros;
 
   const area = (t: Tri) => {
@@ -672,6 +749,34 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
   conTapa.forEach((c) => {
     if ((2 * Math.abs(volumenTotal.get(c) || 0)) / Math.max(areaTotal.get(c) || 0, 1e-30) < tamano * 1e-4) laminas.add(c);
   });
+
+  if (suave) {
+    // Solo se tapa si el parche es chico al lado de su pieza (falta una cara, no media pieza).
+    const areaPropia = new Map<number, number>(), areaTapas = new Map<number, number>();
+    tris.forEach((t, i) => areaPropia.set(cascara[i], (areaPropia.get(cascara[i]) || 0) + area(t)));
+    for (const { t, cascara: c } of tapas) areaTapas.set(c, (areaTapas.get(c) || 0) + area(t));
+    const aceptadas = tapas.filter((x) => !laminas.has(x.cascara) && (areaTapas.get(x.cascara) || 0) <= (areaPropia.get(x.cascara) || 0) * 0.3);
+    cuenta.agujerosTapados = new Set(aceptadas.map((x) => x.cascara)).size ? Math.min(agujeros, aceptadas.length) : 0;
+    const resultado = [
+      ...tris.map((t, i) => ({ t, tapa: false, grupo: cascara[i] })),
+      ...aceptadas.map((x) => ({ t: x.t, tapa: true, grupo: x.cascara })),
+    ];
+    // Solo se da vuelta una pieza que quedó cerrada (en una abierta el "adentro" no se sabe).
+    const indice = indiceAristas(resultado.map((x) => x.t));
+    const abiertas = new Set<number>();
+    for (const x of resultado) for (let k = 0; k < 3; k++) {
+      if (indice.usos(x.t[k], x.t[(k + 1) % 3]) === 1) abiertas.add(x.grupo);
+    }
+    const volumenes = new Map<number, number>();
+    for (const x of resultado) volumenes.set(x.grupo, (volumenes.get(x.grupo) || 0) + volumen(x.t));
+    for (const x of resultado) {
+      if (!abiertas.has(x.grupo) && (volumenes.get(x.grupo) || 0) < 0) {
+        x.t = [x.t[0], x.t[2], x.t[1]];
+        if (!x.tapa) cuenta.carasDadasVuelta++;
+      }
+    }
+    return armar(resultado);
+  }
 
   // grupo = la cáscara de origen (con sus tapas): se orienta como un todo.
   let resultado: { t: Tri; tapa: boolean; grupo: number }[] = [
@@ -718,21 +823,25 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
     }
   });
 
-  const aPosiciones = (lista: { t: Tri }[]) => {
-    const salida = new Float32Array(lista.length * 9);
-    lista.forEach(({ t }, i) => {
-      for (let k = 0; k < 3; k++) {
-        salida[i * 9 + k * 3] = P[t[k] * 3];
-        salida[i * 9 + k * 3 + 1] = P[t[k] * 3 + 1];
-        salida[i * 9 + k * 3 + 2] = P[t[k] * 3 + 2];
-      }
-    });
-    return salida;
-  };
-  const final = new THREE.BufferGeometry();
-  final.setAttribute("position", new THREE.BufferAttribute(aPosiciones(resultado), 3));
-  final.computeVertexNormals();
-  cuenta.geometria = final;
-  cuenta.parches = aPosiciones(resultado.filter((x) => x.tapa));
-  return cuenta;
+  return armar(resultado);
+
+  function armar(lista: { t: Tri; tapa: boolean }[]) {
+    const aPosiciones = (elegidos: { t: Tri }[]) => {
+      const salida = new Float32Array(elegidos.length * 9);
+      elegidos.forEach(({ t }, i) => {
+        for (let k = 0; k < 3; k++) {
+          salida[i * 9 + k * 3] = P[t[k] * 3];
+          salida[i * 9 + k * 3 + 1] = P[t[k] * 3 + 1];
+          salida[i * 9 + k * 3 + 2] = P[t[k] * 3 + 2];
+        }
+      });
+      return salida;
+    };
+    const final = new THREE.BufferGeometry();
+    final.setAttribute("position", new THREE.BufferAttribute(aPosiciones(lista), 3));
+    final.computeVertexNormals();
+    cuenta.geometria = final;
+    cuenta.parches = aPosiciones(lista.filter((x) => x.tapa));
+    return cuenta;
+  }
 }

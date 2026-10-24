@@ -36,7 +36,7 @@ const INFO: Record<
     claseGravedad: "bg-red-600 text-white",
     que: "La pieza no está cerrada: falta alguna cara. La impresora puede dejar huecos o relleno raro en esa zona.",
     sketchup:
-      "Entrá al grupo y fijate en Información de la entidad: si no dice «Volumen», no es sólido. Dibujá con Línea sobre el borde que falta para que se cree la cara. O tocá «Reparar automáticamente».",
+      "Entrá al grupo y fijate en Información de la entidad: si no dice «Volumen», no es sólido. Dibujá con Línea sobre el borde que falta para que se cree la cara. Si es una abertura a propósito (un lucernario, una pérgola), dejala: la revisamos nosotros.",
     seArregla: true,
   },
   pegadas: {
@@ -112,8 +112,7 @@ export default function DiagnosticoMalla({
           <ul className="mt-1 space-y-0.5">
             {reparacion.agujerosTapados > 0 && (
               <li>
-                • {reparacion.agujerosTapados} {reparacion.agujerosTapados === 1 ? "agujero tapado" : "agujeros tapados"} (en verde en el
-                visor)
+                • {reparacion.agujerosTapados} {reparacion.agujerosTapados === 1 ? "raja finita cerrada" : "rajas finitas cerradas"}
               </li>
             )}
             {reparacion.laminasEngrosadas > 0 && (
@@ -151,8 +150,8 @@ export default function DiagnosticoMalla({
           </ul>
           {reparacion.quedanAgujeros > 0 && (
             <p className="mt-1.5 font-semibold text-amber-700 dark:text-amber-400">
-              Quedan {reparacion.quedanAgujeros} {reparacion.quedanAgujeros === 1 ? "borde" : "bordes"} sin cerrar: mandalo igual, lo
-              revisamos nosotros.
+              Quedan {reparacion.quedanAgujeros} {reparacion.quedanAgujeros === 1 ? "hueco" : "huecos"} sin cerrar (no los inventamos: pueden
+              ser aberturas a propósito). Mandalo igual, lo revisamos nosotros.
             </p>
           )}
           <button
@@ -262,8 +261,8 @@ export default function DiagnosticoMalla({
       )}
       {reparable && !reparacion && (
         <p className="mt-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
-          Tapa agujeros, cose rajas, da vuelta las caras al revés, le da espesor a las caras sueltas y saca caras de más. Lo
-          que se agrega queda en verde. Tu archivo original no se modifica: descargás una copia arreglada.
+          Da vuelta las caras al revés, cose rajas finitas y saca triángulos repetidos o aplastados. No agrega ni saca nada
+          que se vea: los huecos y aberturas quedan como están (los revisamos nosotros). Tu archivo original no se modifica.
         </p>
       )}
     </div>
