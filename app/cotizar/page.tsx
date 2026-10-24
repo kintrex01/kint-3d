@@ -11,6 +11,7 @@ import CalendarioEntrega from "@/components/CalendarioEntrega";
 import { marcarPaso } from "@/lib/embudo";
 import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-recordado";
 import { medirSTL } from "@/lib/precio-estimado";
+import { guardarParaVisor } from "@/lib/archivos-para-visor";
 import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
@@ -1191,6 +1192,21 @@ const estadoCalculadora =
     ? "justo"
     : "si";
 
+  /* Abre el visor 3D con los STL elegidos (pasan por el navegador, sin subirse). */
+  async function revisarEnVisor() {
+    // La pestaña se abre ya (si no, el navegador la bloquea) y después se le da la dirección.
+    const ventana = window.open("", "_blank");
+    try {
+      const id = await guardarParaVisor(archivos.filter((archivo) => /.stl$/i.test(archivo.name)));
+      const direccion = `/preparador-3d?archivos=${id}`;
+      if (ventana) ventana.location.href = direccion;
+      else window.open(direccion, "_blank");
+    } catch {
+      ventana?.close();
+      alert("No pudimos abrir el visor. Probá de nuevo.");
+    }
+  }
+
   async function enviarPedido() {
 
 if (cargandoConfiguracion) {
@@ -2056,6 +2072,23 @@ return (
         • {archivo.name}
       </p>
     ))}
+  </div>
+)}
+
+{/* Filtro antes de enviar: el visor 3D muestra errores y consejos (se abre en otra pestaña). */}
+{archivos.some((archivo) => /.stl$/i.test(archivo.name)) && (
+  <div className="mt-3 rounded-xl border border-sky-500/40 bg-sky-500/10 p-4">
+    <button
+      type="button"
+      onClick={() => void revisarEnVisor()}
+      className="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-sky-700"
+    >
+      🔍 Revisá tu archivo antes de enviarlo
+    </button>
+    <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+      Te mostramos en 3D si tiene errores y cómo imprimirlo mejor (más rápido y más barato). Se abre en otra pestaña:
+      no perdés lo que completaste.
+    </p>
   </div>
 )}
 

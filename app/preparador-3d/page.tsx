@@ -15,6 +15,7 @@ import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMal
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
 import ConsejosImpresion from "@/components/ConsejosImpresion";
+import { leerParaVisor } from "@/lib/archivos-para-visor";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -1315,6 +1316,10 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [consejos, setConsejos] = useState<Consejos | null>(null);
   const [cortesVisibles, setCortesVisibles] = useState(false);
 
+  // Archivos que llegaron de Cotizar o de un pedido (link del correo).
+  const [archivosRecibidos, setArchivosRecibidos] = useState<File[]>([]);
+  const [origenArchivos, setOrigenArchivos] = useState<{ pedido: string; codigo: string } | null>(null);
+
   const [filtrosProblemas, setFiltrosProblemas] =
   useState<FiltrosProblemas>({
     bordesAbiertos: true,
@@ -1950,6 +1955,7 @@ function cambiarColorModelo(nombre: string) {
   material.needsUpdate = true;
 }
 
+
   async function cargarSTL(
     evento: ChangeEvent<HTMLInputElement>
   ) {
@@ -1959,6 +1965,11 @@ function cambiarColorModelo(nombre: string) {
     evento.target.value = "";
 
     if (!archivo) return;
+    await abrirArchivoSTL(archivo);
+  }
+
+  /* Abre un STL: del botón, de Cotizar o de un pedido. */
+  async function abrirArchivoSTL(archivo: File) {
 
     setError("");
 setCantidadPiezas(null);
@@ -2156,6 +2167,59 @@ requestAnimationFrame(() => {
       setCargando(false);
     }
   }
+
+  /*
+   * Llegó con archivos: ?archivos=<id> (Cotizar, sin subir nada) o
+   * ?pedido=KNT-0018&codigo=… (link del correo: los archivos del pedido).
+   */
+  useEffect(() => {
+    const parametros = new URLSearchParams(window.location.search);
+    const id = parametros.get("archivos");
+    const pedido = (parametros.get("pedido") || "").toUpperCase();
+    const codigo = parametros.get("codigo") || "";
+    if (!id && !(pedido && codigo)) return;
+
+    let cancelado = false;
+    (async () => {
+      try {
+        let archivos: File[] = [];
+        if (id) {
+          archivos = await leerParaVisor(id);
+        } else {
+          const respuesta = await fetch(
+            `/api/seguimiento?pedido=${encodeURIComponent(pedido)}&codigo=${encodeURIComponent(codigo)}`,
+            { cache: "no-store" }
+          );
+          const datos = await respuesta.json();
+          if (!datos.ok) throw new Error(datos.error || "No encontramos ese pedido.");
+          if (!cancelado) setOrigenArchivos({ pedido, codigo });
+          const enlaces = (Array.isArray(datos.archivos) ? datos.archivos : []).filter(
+            (archivo: { nombreArchivo?: string; link?: string }) => /\.stl$/i.test(archivo.nombreArchivo || "") && archivo.link
+          );
+          archivos = await Promise.all(
+            enlaces.map(async (archivo: { nombreArchivo: string; link: string }) => {
+              const contenido = await fetch(archivo.link).then((r) => r.blob());
+              return new File([contenido], archivo.nombreArchivo);
+            })
+          );
+          if (!archivos.length && !cancelado) {
+            setError("Tu pedido no tiene archivos STL: el visor solo abre STL (los SKP los revisamos nosotros).");
+          }
+        }
+        const stls = archivos.filter((archivo) => /\.stl$/i.test(archivo.name));
+        if (cancelado || !stls.length) return;
+        setArchivosRecibidos(stls);
+        await abrirArchivoSTL(stls[0]);
+      } catch (problema) {
+        if (!cancelado) setError(problema instanceof Error ? problema.message : "No pudimos abrir tus archivos.");
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+    // Solo al entrar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* "Reparar automáticamente": cambia la geometría por la arreglada y vuelve a analizar. */
   function repararModelo() {
@@ -2653,6 +2717,50 @@ requestAnimationFrame(() => {
     </span>
   )}
 </div>
+
+{(archivosRecibidos.length > 0 || origenArchivos) && (
+  <div className="mt-3 rounded-xl border border-sky-400/40 bg-sky-500/10 px-4 py-3">
+    <p className="text-[11px] font-bold">
+      {origenArchivos ? `Archivos de tu pedido ${origenArchivos.pedido}` : "Tus archivos de Cotizar"}
+    </p>
+    {archivosRecibidos.length > 1 && (
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {archivosRecibidos.map((archivo) => (
+          <button
+            key={archivo.name}
+            type="button"
+            disabled={cargando}
+            onClick={() => void abrirArchivoSTL(archivo)}
+            className={`max-w-full truncate rounded-lg border px-2.5 py-1.5 text-[10px] font-bold transition ${
+              nombreArchivo === archivo.name
+                ? "border-red-600 bg-red-600 text-white"
+                : "border-[var(--border-color)] hover:border-red-600"
+            }`}
+          >
+            {archivo.name}
+          </button>
+        ))}
+      </div>
+    )}
+    <p className="mt-2 text-[10px] leading-4 text-[var(--text-muted)]">
+      Revisá los problemas y los consejos de abajo.{" "}
+      {origenArchivos ? (
+        <>
+          Si hace falta, podés reemplazar el archivo desde el{" "}
+          <Link
+            href={`/seguimiento?pedido=${encodeURIComponent(origenArchivos.pedido)}&codigo=${encodeURIComponent(origenArchivos.codigo)}`}
+            className="font-bold text-[var(--text-main)] underline underline-offset-2"
+          >
+            seguimiento de tu pedido
+          </Link>
+          .
+        </>
+      ) : (
+        "Si algo no te cierra, corregilo en SketchUp y volvé a subirlo en Cotizar."
+      )}
+    </p>
+  </div>
+)}
 
 <label className="mt-3 block cursor-pointer rounded-xl border border-red-600 px-4 py-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-red-600 transition hover:bg-red-600 hover:text-white">
   {cargando
