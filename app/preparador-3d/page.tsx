@@ -15,6 +15,8 @@ import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMal
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
 import ConsejosImpresion from "@/components/ConsejosImpresion";
+import PrepararImpresion from "@/components/PrepararImpresion";
+import { prepararParaImprimir } from "@/lib/preparar-impresion";
 import { leerParaVisor } from "@/lib/archivos-para-visor";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
@@ -1316,6 +1318,11 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [consejos, setConsejos] = useState<Consejos | null>(null);
   const [cortesVisibles, setCortesVisibles] = useState(false);
 
+  // "Preparar para imprimir": la versión lista (en la cama) y su resumen.
+  const preparadoRef = useRef<THREE.Mesh | null>(null);
+  const [preparacion, setPreparacion] = useState<{ partes: number; acostadas: number; cortes: number; camas: number } | null>(null);
+  const [preparando, setPreparando] = useState(false);
+
   // Archivos que llegaron de Cotizar o de un pedido (link del correo).
   const [archivosRecibidos, setArchivosRecibidos] = useState<File[]>([]);
   const [origenArchivos, setOrigenArchivos] = useState<{ pedido: string; codigo: string } | null>(null);
@@ -1673,6 +1680,12 @@ const nivelKintScore =
     }
 
     soltarPivoteRef.current?.();
+    if (preparadoRef.current) {
+      preparadoRef.current.parent?.remove(preparadoRef.current);
+      preparadoRef.current = null;
+      if (modeloRef.current) modeloRef.current.visible = true;
+      setPreparacion(null);
+    }
     const camaNueva = crearCama(tamanoCama);
 
     camaRef.current = camaNueva;
@@ -1723,6 +1736,7 @@ requestAnimationFrame(() => {
 
 function aplicarEscala(nuevoPorcentaje: number) {
   const modelo = modeloRef.current;
+  volverAlOriginal();
 
   if (!modelo) {
     return;
@@ -2039,6 +2053,7 @@ const resultadoCheck: ResultadoKintCheck = {
   aristasNoManifold: analisis.pegadas.cantidad,
   triangulosDegenerados: analisis.aplastados.cantidad,
 };
+volverAlOriginal();
 setAnalisisMalla(analisis);
 setReparacion(null);
 setConsejos(analizarConsejos(geometria, 1));
@@ -2253,6 +2268,7 @@ requestAnimationFrame(() => {
         quitarHijo(modelo, "marca-zona");
         quitarHijo(modelo, "planos-corte");
         setCortesVisibles(false);
+        volverAlOriginal();
         setConsejos(analizarConsejos(resultado.geometria, 1));
         if (resultado.parches.length) modelo.add(crearParches(resultado.parches));
 
@@ -2285,6 +2301,79 @@ requestAnimationFrame(() => {
         setReparando(false);
       }
     }, 30);
+  }
+
+  /* Saca la versión preparada y vuelve a mostrar el modelo. */
+  function volverAlOriginal() {
+    const preparado = preparadoRef.current;
+    if (preparado) {
+      preparado.parent?.remove(preparado);
+      preparado.geometry.dispose();
+      (preparado.material as THREE.Material).dispose();
+      preparadoRef.current = null;
+    }
+    if (modeloRef.current) modeloRef.current.visible = true;
+    setPreparacion(null);
+  }
+
+  /* Escala, acuesta, corta por plantas y acomoda en la cama (lib/preparar-impresion). */
+  function prepararModelo(opciones: { acostar: boolean; cortar: boolean }) {
+    const modelo = modeloRef.current;
+    const escena = escenaRef.current;
+    if (!modelo || !escena || !consejos) return;
+    setPreparando(true);
+    window.setTimeout(() => {
+      try {
+        volverAlOriginal();
+        const resultado = prepararParaImprimir(modelo.geometry, {
+          mmPorUnidad: escalaPorcentaje / 100,
+          cortes: consejos.cortes,
+          acostar: opciones.acostar,
+          cortar: opciones.cortar,
+          cama: tamanoCama,
+        });
+        colorearPorPiezas(resultado.geometria);
+        const preparado = new THREE.Mesh(
+          resultado.geometria,
+          new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.55, metalness: 0.05 })
+        );
+        preparado.add(crearBordes(resultado.geometria));
+        // Z del archivo → arriba; las partes van de 0 a la cama en X e Y: se centra en la cama.
+        preparado.rotation.x = -Math.PI / 2;
+        preparado.position.set(-tamanoCama / 2, 0, tamanoCama / 2);
+        escena.add(preparado);
+        preparadoRef.current = preparado;
+        modelo.visible = false;
+        setPreparacion({
+          partes: resultado.partes,
+          acostadas: resultado.acostadas,
+          cortes: resultado.cortes,
+          camas: resultado.camas,
+        });
+        setVistaActiva("cama");
+        requestAnimationFrame(() => cambiarVista("cama"));
+      } catch (problema) {
+        setError(problema instanceof Error ? problema.message : "No se pudo preparar el modelo.");
+      } finally {
+        setPreparando(false);
+      }
+    }, 30);
+  }
+
+  function descargarPreparado() {
+    const preparado = preparadoRef.current;
+    if (!preparado || !nombreArchivo) return;
+    const datos = new STLExporter().parse(new THREE.Mesh(preparado.geometry), { binary: true });
+    const copia = new Uint8Array(datos.byteLength);
+    copia.set(new Uint8Array(datos.buffer, datos.byteOffset, datos.byteLength));
+    const url = URL.createObjectURL(new Blob([copia.buffer], { type: "model/stl" }));
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = `${nombreArchivo.replace(/\.stl$/i, "")}-listo${escalaSeleccionada ? `-1-${escalaSeleccionada}` : ""}.stl`;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    URL.revokeObjectURL(url);
   }
 
   /* Lleva la cámara a una zona (coordenadas del archivo) y la marca con una esfera. */
@@ -3220,6 +3309,19 @@ requestAnimationFrame(() => {
       cortesVisibles={cortesVisibles}
       onVerParada={verPiezaParada}
       onAlternarCortes={alternarCortes}
+    />
+  )}
+
+  {consejos && (
+    <PrepararImpresion
+      hayParadas={consejos.paradas.length > 0}
+      hayCortes={consejos.cortes.length > 0}
+      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
+      resultado={preparacion}
+      preparando={preparando}
+      onPreparar={prepararModelo}
+      onDescargar={descargarPreparado}
+      onVolver={volverAlOriginal}
     />
   )}
 
