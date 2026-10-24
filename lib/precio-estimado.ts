@@ -62,35 +62,48 @@ const CAMA_MM = 250;
 export type Estimacion =
   | { tipo: "precio"; desde: number; hasta: number; gramos: number; horas: number; medidas: number[] }
   | { tipo: "elegiEscala" }
-  | { tipo: "muyGrande" }
+  | { tipo: "muyGrande"; medidas: number[] }
   | { tipo: "sinDatos" };
 
 /*
- * piezas: lo medido de cada STL. escala: el N de "1:N" (0 si no eligió).
- * Si el archivo no entra en la cama, se asume que está en tamaño real y
- * se achica con la escala elegida.
+ * El STL no dice en qué unidades se exportó desde SketchUp. Como el modelo
+ * está en tamaño real (1:1), se elige la unidad (mm, cm o m) con la que el
+ * lado más largo da un tamaño real razonable: de 50 cm a 300 m.
+ * Ej.: un edificio de 20 m llega como 20 (m) o 20000 (mm).
+ */
+export function milimetrosPorUnidad(lado: number) {
+  for (const unidad of [1, 10, 1000]) {
+    const metros = (lado * unidad) / 1000;
+    if (metros >= 0.5 && metros <= 300) return unidad;
+  }
+  return lado < 0.5 ? 1000 : 1;
+}
+
+/*
+ * piezas: lo medido de cada STL (en tamaño real). escala: el N de "1:N";
+ * 1 = sin escala (pieza que no es maqueta, se toma tal cual en mm);
+ * 0 = todavía no eligió: no se calcula nada.
  */
 export function estimarPrecio(piezas: { mm3: number; mm2: number; medidas: number[] }[], escala: number): Estimacion {
   if (!piezas.length) return { tipo: "sinDatos" };
+  if (!(escala >= 1)) return { tipo: "elegiEscala" };
+
+  const ladoModelo = Math.max(...piezas.map((pieza) => Math.max(...pieza.medidas)));
+  if (!(ladoModelo > 0)) return { tipo: "sinDatos" };
+  const factor = escala === 1 ? 1 : milimetrosPorUnidad(ladoModelo) / escala;
 
   let mm3 = 0;
   let mm2 = 0;
-  // Medidas finales (a escala) de la pieza más grande, para mostrarlas.
+  // Medidas finales (a escala, en mm) de la pieza más grande, para mostrarlas.
   let medidas: number[] = [0, 0, 0];
   for (const pieza of piezas) {
-    const lado = Math.max(...pieza.medidas);
-    if (!(lado > 0) || !(pieza.mm3 > 0)) return { tipo: "sinDatos" };
-    let factor = 1;
-    if (lado > CAMA_MM) {
-      if (!(escala > 1)) return { tipo: "elegiEscala" };
-      factor = 1 / escala;
-    }
-    if (lado * factor > CAMA_MM * 1.2) return { tipo: "muyGrande" };
+    if (!(pieza.mm3 > 0)) return { tipo: "sinDatos" };
     mm3 += pieza.mm3 * factor ** 3;
     mm2 += pieza.mm2 * factor ** 2;
     const finales = pieza.medidas.map((medida) => medida * factor);
     if (Math.max(...finales) > Math.max(...medidas)) medidas = finales;
   }
+  if (Math.max(...medidas) > CAMA_MM * 1.2) return { tipo: "muyGrande", medidas };
 
   // Se imprimen las paredes (~0,8 mm) y un relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³.
   // (Con el pedido KNT-0018 da 24 g; fueron 20 g.)

@@ -2182,7 +2182,8 @@ return (
     <TarjetaPrecioEstimado
       medidas={medidasArchivos}
       midiendo={midiendoArchivos}
-      escala={escalaCalculadora || 0}
+      // "No es necesario" = pieza que no es maqueta: se toma tal cual (1:1).
+      escala={escala === "No es necesario" ? 1 : escalaCalculadora || 0}
       recargoUrgente={pedidoUrgenteDisponible ? pedidoUrgenteValor : 0}
       onRango={setRangoEstimado}
     />

@@ -5,9 +5,10 @@ import { estimarPrecio, rangoPorDatos } from "@/lib/precio-estimado";
 
 /*
  * Cotizar: precio aproximado con horas, minutos y gramos (los que da el
- * laminador) y si es urgente. Si el cliente subió un STL, los campos
- * arrancan con lo medido del archivo y los puede corregir.
- * Solo se muestra el rango: los insumos van de $30 a $100.
+ * laminador) y si es urgente. Sin escala elegida no se calcula nada: el
+ * modelo viene en tamaño real y primero se lleva a la escala de la maqueta.
+ * Si el cliente subió un STL, los campos arrancan con lo medido del archivo
+ * ya escalado y los puede corregir. Los insumos van de $30 a $100.
  */
 
 type Medidas = { mm3: number; mm2: number; medidas: number[] };
@@ -24,8 +25,16 @@ function prellenado(medidas: Medidas[] | null, escala: number) {
   };
 }
 
+function centimetros(mm: number) {
+  const cm = mm / 10;
+  return cm.toLocaleString("es-UY", { maximumFractionDigits: cm < 10 ? 1 : 0 });
+}
+
 const claseCampo =
   "w-full rounded-xl border border-sky-400/40 bg-[var(--card-bg)] px-3 py-2.5 text-lg font-black tabular-nums text-[var(--text-main)] outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-400/30";
+
+const claseCaja =
+  "mt-3 overflow-hidden rounded-2xl border border-sky-400/40 bg-[linear-gradient(135deg,rgba(14,165,233,0.12),rgba(37,99,235,0.06))] p-4";
 
 export default function TarjetaPrecioEstimado({
   medidas,
@@ -36,6 +45,7 @@ export default function TarjetaPrecioEstimado({
 }: {
   medidas: Medidas[] | null;
   midiendo: boolean;
+  // N de "1:N"; 1 = sin escala (pieza que no es maqueta); 0 = todavía no eligió.
   escala: number;
   // % de recargo urgente (0 si no hay pedidos urgentes).
   recargoUrgente: number;
@@ -52,21 +62,50 @@ export default function TarjetaPrecioEstimado({
     setValores(prellenado(medidas, escala));
   }
 
+  const sinEscala = !(escala >= 1);
+  const estimacion = medidas && !sinEscala ? estimarPrecio(medidas, escala) : null;
+  const muyGrande = estimacion?.tipo === "muyGrande";
+
   const numero = (texto: string) => Math.max(0, Number(texto.replace(",", ".")) || 0);
-  const rango = rangoPorDatos({
-    horas: numero(valores.horas),
-    minutos: numero(valores.minutos),
-    gramos: numero(valores.gramos),
-    recargoUrgente: urgente ? recargoUrgente : 0,
-  });
+  const rango =
+    sinEscala || muyGrande
+      ? null
+      : rangoPorDatos({
+          horas: numero(valores.horas),
+          minutos: numero(valores.minutos),
+          gramos: numero(valores.gramos),
+          recargoUrgente: urgente ? recargoUrgente : 0,
+        });
 
   const textoRango = rango
-    ? `$${rango.desde} a $${rango.hasta} (${valores.horas || 0} h ${valores.minutos || 0} min, ${valores.gramos} g${urgente ? ", urgente" : ""})`
+    ? `$${rango.desde} a $${rango.hasta} (${valores.horas || 0} h ${valores.minutos || 0} min, ${valores.gramos} g${urgente ? ", urgente" : ""}${escala > 1 ? `, escala 1:${escala}` : ""})`
     : "";
 
   useEffect(() => {
     onRango?.(textoRango);
   }, [textoRango, onRango]);
+
+  if (sinEscala) {
+    return (
+      <p className={`${claseCaja} text-sm leading-6 text-[var(--text-main)]`}>
+        <strong>📏 Elegí la escala de la maqueta</strong> (más abajo). Tu modelo está en tamaño real: lo llevamos a
+        esa escala y ahí te mostramos el precio aproximado.
+      </p>
+    );
+  }
+
+  if (estimacion?.tipo === "muyGrande") {
+    const [ancho, largo, alto] = estimacion.medidas;
+    return (
+      <p className={`${claseCaja} text-sm leading-6 text-[var(--text-main)]`}>
+        <strong>
+          A 1:{escala} tu maqueta mediría {centimetros(ancho)} × {centimetros(largo)} × {centimetros(alto)} cm
+        </strong>
+        , más grande que la impresora. La imprimimos en partes: te mandamos el precio en el presupuesto. Si esperabas
+        otro tamaño, revisá la escala.
+      </p>
+    );
+  }
 
   const campos = [
     { clave: "horas", etiqueta: "Horas", unidad: "h" },
@@ -75,10 +114,17 @@ export default function TarjetaPrecioEstimado({
   ] as const;
 
   return (
-    <div className="mt-3 overflow-hidden rounded-2xl border border-sky-400/40 bg-[linear-gradient(135deg,rgba(14,165,233,0.12),rgba(37,99,235,0.06))] p-4">
+    <div className={claseCaja}>
       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
         ¿Cuánto saldría?
       </p>
+
+      {estimacion?.tipo === "precio" && (
+        <p className="mt-2 text-sm font-semibold text-[var(--text-main)]">
+          📏 Tu maqueta{escala > 1 ? ` a 1:${escala}` : ""}: {centimetros(estimacion.medidas[0])} ×{" "}
+          {centimetros(estimacion.medidas[1])} × {centimetros(estimacion.medidas[2])} cm
+        </p>
+      )}
 
       <div className="mt-3 grid grid-cols-3 gap-2">
         {campos.map((campo) => (
