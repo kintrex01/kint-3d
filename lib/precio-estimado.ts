@@ -93,6 +93,18 @@ export function milimetrosPorUnidad(lado: number) {
  * 1 = sin escala (pieza que no es maqueta, se toma tal cual en mm);
  * 0 = todavía no eligió: no se calcula nada.
  */
+/* Gramos y horas de impresión (H2D) para un volumen y superficie ya a escala, en mm. */
+export function gramosYHoras(mm3: number, mm2: number) {
+  // Paredes (~0,8 mm) y relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³. Calibrado con
+  // Bambu Studio: edificio a 1:250 (27 × 16 × 15 cm) = 130 g; KNT-0018 = 20 g.
+  const cm3 = Math.min(mm3, mm2 * 0.8 + mm3 * 0.15) / 1000;
+  const gramos = Math.max(3, Math.round(cm3 * 1.24 * 0.65));
+  // H2D: las piezas chicas salen a ~12 g/h y las grandes a ~36 g/h (130 g → 3 h 32 min;
+  // 20 g → 1 h 55 min), más la preparación.
+  const horas = gramos / Math.min(36, 8 + gramos / 4.5) + 0.3;
+  return { gramos, horas };
+}
+
 export function estimarPrecio(
   piezas: { mm3: number; mm2: number; medidas: number[] }[],
   escala: number,
@@ -121,13 +133,7 @@ export function estimarPrecio(
   }
   // Aunque no entre en la impresora se calcula igual: lo que importa es el costo y el tiempo.
 
-  // Paredes (~0,8 mm) y relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³. Calibrado con
-  // Bambu Studio: edificio a 1:250 (27 × 16 × 15 cm) = 130 g; KNT-0018 = 20 g.
-  const cm3 = Math.min(mm3, mm2 * 0.8 + mm3 * 0.15) / 1000;
-  const gramos = Math.max(3, Math.round(cm3 * 1.24 * 0.65));
-  // H2D: las piezas chicas salen a ~12 g/h y las grandes a ~36 g/h (130 g → 3 h 32 min;
-  // 20 g → 1 h 55 min), más la preparación.
-  const horas = gramos / Math.min(36, 8 + gramos / 4.5) + 0.3;
+  const { gramos, horas } = gramosYHoras(mm3, mm2);
   const precio = precioRecomendado(perfilNuevo(), { horas, minutos: 0, gramos, insumos: 0, piezas: 1 });
   if (!(precio > 0)) return { tipo: "sinDatos" };
 

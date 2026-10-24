@@ -12,6 +12,10 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { milimetrosPorUnidad } from "@/lib/precio-estimado";
 import { analizarMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
 import { repararMalla, type ResultadoReparacion } from "@/lib/reparar-malla";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { SimuladorCapas, volumenYSuperficie } from "@/lib/visor-efectos";
+import { gramosYHoras } from "@/lib/precio-estimado";
+import SimuladorImpresion, { type EstadoSimulacion } from "@/components/SimuladorImpresion";
 import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMalla";
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
@@ -1311,6 +1315,12 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   // El archivo tal como vino (para "Ver mi archivo original" después de reparar).
   const originalRef = useRef<THREE.BufferGeometry | null>(null);
 
+  // Efectos: escaneo al abrir y "Ver cómo se imprime" (lib/visor-efectos).
+  const simuladorRef = useRef<SimuladorCapas | null>(null);
+  const [simulacion, setSimulacion] = useState<EstadoSimulacion | null>(null);
+  // Hasta cuándo laten los parches verdes después de reparar.
+  const pulsoParchesRef = useRef(0);
+
   // Consejos (en unidades del archivo: se pasan a mm con la escala del visor).
   const [consejos, setConsejos] = useState<Consejos | null>(null);
   const [cortesVisibles, setCortesVisibles] = useState(false);
@@ -1427,6 +1437,15 @@ const nivelKintScore =
     renderizador.shadowMap.type =
       THREE.PCFSoftShadowMap;
 
+    // Luz de estudio: reflejos suaves del ambiente y tono de cine.
+    renderizador.toneMapping = THREE.ACESFilmicToneMapping;
+    renderizador.toneMappingExposure = 1.05;
+    renderizador.localClippingEnabled = true;
+    const generadorAmbiente = new THREE.PMREMGenerator(renderizador);
+    escena.environment = generadorAmbiente.fromScene(new RoomEnvironment(), 0.04).texture;
+    generadorAmbiente.dispose();
+    simuladorRef.current = new SimuladorCapas(escena);
+
     renderizadorRef.current = renderizador;
     contenedor.appendChild(
       renderizador.domElement
@@ -1436,7 +1455,7 @@ const nivelKintScore =
       new THREE.HemisphereLight(
         0xffffff,
         0x485568,
-        2.2
+        1.1
       );
 
     escena.add(luzAmbiente);
@@ -1614,8 +1633,28 @@ const nivelKintScore =
     window.addEventListener("pointerup", alSoltar);
     controles.addEventListener("change", alCambiar);
 
+    let ultimoAviso = 0;
     function animar() {
       controles.update();
+      const ahora = performance.now();
+      const simulador = simuladorRef.current;
+      if (simulador?.cuadro(ahora) && simulador.modoActual === "impresion" && ahora - ultimoAviso > 90) {
+        ultimoAviso = ahora;
+        setSimulacion((estado) =>
+          estado && (estado.fraccion !== simulador.fraccion || estado.pausa !== simulador.enPausa)
+            ? { ...estado, fraccion: simulador.fraccion, pausa: simulador.enPausa }
+            : estado
+        );
+      }
+      // Lo recién reparado late en verde unos segundos.
+      const parches = modeloRef.current?.getObjectByName("parches-reparacion") as THREE.Mesh | undefined;
+      if (parches) {
+        const color = (parches.material as THREE.MeshBasicMaterial).color;
+        if (ahora < pulsoParchesRef.current) {
+          const k = 0.5 + 0.5 * Math.sin(ahora / 110);
+          color.setRGB(0.13 + 0.75 * k, 0.77 + 0.23 * k, 0.37 + 0.55 * k);
+        } else color.set(0x22c55e);
+      }
       renderizador.render(escena, camara);
 
       animacionRef.current =
@@ -1677,6 +1716,8 @@ const nivelKintScore =
     }
 
     soltarPivoteRef.current?.();
+    simuladorRef.current?.detener();
+    setSimulacion(null);
     if (preparadoRef.current) {
       preparadoRef.current.parent?.remove(preparadoRef.current);
       preparadoRef.current = null;
@@ -2173,6 +2214,9 @@ requestAnimationFrame(() => {
 // Si tiene algo que se arregla solo, se arregla ya (el cliente no tiene que tocar nada).
 if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados.cantidad > 0) {
   window.setTimeout(() => repararModelo(true), 60);
+} else {
+  // Aparece de abajo hacia arriba, como si lo escaneáramos.
+  window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 60);
 }
 
     } catch (problema) {
@@ -2308,12 +2352,33 @@ if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados
         const { geometria, parches, ...cuentas } = resultado;
         const analisis = aplicarGeometria(geometria, parches);
         setReparacion({ ...cuentas, automatica, quedanAgujeros: analisis?.agujeros.lazos || 0 });
+        const latir = () => {
+          pulsoParchesRef.current = performance.now() + 3500;
+        };
+        if (automatica && modeloRef.current) simuladorRef.current?.empezar(modeloRef.current, "escaneo", 1500, latir);
+        else latir();
       } catch (problema) {
         setError(problema instanceof Error ? problema.message : "No se pudo reparar el modelo.");
       } finally {
         setReparando(false);
       }
     }, 30);
+  }
+
+  /* "Ver cómo se imprime": capa por capa sobre lo que se ve (el modelo o la versión preparada). */
+  function verImpresion() {
+    const objetivo = preparadoRef.current ?? modeloRef.current;
+    const simulador = simuladorRef.current;
+    if (!objetivo || !simulador) return;
+    const caja = new THREE.Box3().setFromObject(objetivo);
+    const altoMm = Math.max(caja.max.y - caja.min.y, 0.2);
+    const { mm3, mm2 } = volumenYSuperficie(objetivo);
+    const { gramos, horas } = gramosYHoras(mm3, mm2);
+    const capas = Math.max(1, Math.ceil(altoMm / 0.2));
+    simulador.empezar(objetivo, "impresion", Math.min(16000, 6000 + capas * 8), () =>
+      setSimulacion((estado) => estado && { ...estado, fraccion: 1, pausa: true })
+    );
+    setSimulacion({ fraccion: 0, pausa: false, capas, horas, gramos, altoMm });
   }
 
   /* "Ver mi archivo original": vuelve al STL tal como vino. */
@@ -2325,6 +2390,8 @@ if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados
 
   /* Saca la versión preparada y vuelve a mostrar el modelo. */
   function volverAlOriginal() {
+    simuladorRef.current?.detener();
+    setSimulacion(null);
     const preparado = preparadoRef.current;
     if (preparado) {
       preparado.parent?.remove(preparado);
@@ -3926,6 +3993,29 @@ if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados
   <div className="pointer-events-none absolute bottom-3 left-3 hidden rounded-lg border border-[var(--border-color)] bg-[var(--page-bg)]/90 px-3 py-2 text-[8px] font-semibold uppercase tracking-[0.07em] backdrop-blur sm:block">
     Arrastrar: girar · Rueda: zoom
   </div>
+
+  {medidas && !mostrarProblemas && (
+    <SimuladorImpresion
+      estado={simulacion}
+      onEmpezar={verImpresion}
+      onReproducir={() => {
+        simuladorRef.current?.reproducir();
+        setSimulacion((estado) => estado && { ...estado, pausa: false, fraccion: estado.fraccion >= 1 ? 0 : estado.fraccion });
+      }}
+      onPausar={() => {
+        simuladorRef.current?.pausar();
+        setSimulacion((estado) => estado && { ...estado, pausa: true });
+      }}
+      onFijar={(fraccion) => {
+        simuladorRef.current?.fijar(fraccion);
+        setSimulacion((estado) => estado && { ...estado, fraccion, pausa: true });
+      }}
+      onCerrar={() => {
+        simuladorRef.current?.detener();
+        setSimulacion(null);
+      }}
+    />
+  )}
 
 </section>
         </div>
