@@ -155,9 +155,6 @@ const [telefono, setTelefono] = useState("");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
-  // Corrección: el archivo nuevo se suma a un pedido que ya existe.
-  const [codigoCorreccion, setCodigoCorreccion] = useState("");
-  const [correccionEnviada, setCorreccionEnviada] = useState(false);
   // "Mi modelo cumple los requisitos" (obligatoria).
   const [cumpleRequisitos, setCumpleRequisitos] = useState(false);
   const [masOpciones, setMasOpciones] = useState(false);
@@ -997,9 +994,7 @@ const telefonoCompleto = (() => {
   return digitos.length >= 8 && digitos.length <= 15;
 })();
 
-const esCorreccion = codigoCorreccion.trim() !== "";
-
-const camposPendientesNuevo = [
+const camposPendientes = [
   {
     nombre: "Tu nombre",
     completo: Boolean(nombre.trim()),
@@ -1050,15 +1045,6 @@ const camposPendientesNuevo = [
   (campo) => !campo.completo
 );
 
-// Corrección: correo, código, archivo nuevo y requisitos (el resto queda como en el pedido).
-const camposPendientes = esCorreccion
-  ? [
-      { nombre: "Correo electrónico", completo: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) },
-      { nombre: "Código de pedido (tipo KNT-0018)", completo: /^KNT-\d{4,6}$/.test(codigoCorreccion.trim()) },
-      { nombre: "Archivo corregido", completo: archivos.length > 0 },
-      { nombre: "Requisitos del modelo", completo: cumpleRequisitos },
-    ].filter((campo) => !campo.completo)
-  : camposPendientesNuevo;
 
 const todoListo =
   camposPendientes.length === 0;
@@ -1193,119 +1179,7 @@ const estadoCalculadora =
     ? "justo"
     : "si";
 
-  /* Corrección: el archivo nuevo se suma a un pedido que ya existe (el anterior no se borra). */
-  async function enviarCorreccion() {
-    const pedidoCorreccion = codigoCorreccion.trim().toUpperCase();
-
-    if (!/^KNT-\d{4,6}$/.test(pedidoCorreccion)) {
-      alert("El código de pedido tiene que ser como KNT-0018. Si es un pedido nuevo, dejalo vacío.");
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      alert("Poné el correo con el que hiciste ese pedido.");
-      return;
-    }
-    if (!archivos.length) {
-      alert("Subí el archivo corregido.");
-      return;
-    }
-    if (!cumpleRequisitos) {
-      alert("Marcá que tu modelo cumple los requisitos.");
-      return;
-    }
-
-    setEnviando(true);
-
-    try {
-      // ¿Existe ese pedido con este correo? Si no, no se sube nada.
-      const consulta = await fetch(
-        `/api/seguimiento?pedido=${encodeURIComponent(pedidoCorreccion)}&codigo=${encodeURIComponent(email.trim())}`,
-        { cache: "no-store" }
-      );
-      const pedidoExistente = await consulta.json().catch(() => null);
-
-      if (!pedidoExistente?.ok) {
-        alert(
-          `No encontramos el pedido ${pedidoCorreccion} con el correo ${email.trim()}. Revisá el código (está en el correo de confirmación) o dejalo vacío si es un pedido nuevo.`
-        );
-        return;
-      }
-
-      const estadoPedido = String(pedidoExistente.estado || "");
-      if (["En impresión", "Terminado", "Entregado"].includes(estadoPedido) || estadoPedido.includes("❌")) {
-        alert(`El pedido ${pedidoCorreccion} ya está «${estadoPedido}» y no se puede corregir. Escribinos por WhatsApp.`);
-        return;
-      }
-
-      // Los archivos van a la carpeta del pedido, al lado de los anteriores.
-      const firmaResponse = await fetch("/api/archivos-firma", {
-        method: "POST",
-        body: JSON.stringify({
-          pedido: pedidoCorreccion,
-          archivos: archivos.map((archivo) => ({ nombre: archivo.name, size: archivo.size })),
-        }),
-      });
-      const firmaData = await firmaResponse.json();
-      if (!firmaData.ok) {
-        throw new Error(firmaData.error || "No se pudo preparar el archivo.");
-      }
-
-      for (let i = 0; i < archivos.length; i++) {
-        const firmado = firmaData.archivos[i];
-        let uploadError: { message: string } | null = null;
-        for (let intento = 0; intento < 3; intento++) {
-          if (intento) await new Promise((listo) => setTimeout(listo, 2000 * intento));
-          const resultado = await supabase.storage
-            .from("kint-archivos")
-            .uploadToSignedUrl(firmado.ruta, firmado.token, archivos[i]);
-          uploadError = resultado.error;
-          if (!uploadError) break;
-        }
-        if (uploadError) {
-          throw new Error(`No se pudo subir ${archivos[i].name}: ${uploadError.message}`);
-        }
-      }
-
-      // Se anota en la hoja Archivos del pedido (Apps Script verifica pedido y correo).
-      const registro = await fetch("/api/archivos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pedido: pedidoCorreccion,
-          codigo: email.trim(),
-          archivos: firmaData.archivos.map((archivo: { nombreArchivo: string; link: string; ruta: string }) => ({
-            nombreArchivo: archivo.nombreArchivo,
-            link: archivo.link,
-            idDrive: archivo.ruta,
-          })),
-        }),
-      });
-      const registroData = await registro.json();
-      if (!registroData.ok) {
-        throw new Error(registroData.error || "No se pudo agregar el archivo al pedido.");
-      }
-
-      setArchivos([]);
-      setCodigoCorreccion("");
-      setCumpleRequisitos(false);
-      setExtrasEnviados([]);
-      setPremioReclamado("");
-      setNumeroPedido(pedidoCorreccion);
-      setCorreccionEnviada(true);
-      setEnviado(true);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo enviar la corrección.");
-    } finally {
-      setEnviando(false);
-    }
-  }
-
   async function enviarPedido() {
-
-if (codigoCorreccion.trim()) {
-  await enviarCorreccion();
-  return;
-}
 
 if (cargandoConfiguracion) {
   alert(
@@ -1689,7 +1563,7 @@ if (enviado) {
         </div>
 
         <h1 className="mb-4 text-4xl font-bold text-[var(--text-main)]">
-          {correccionEnviada ? "Recibimos tu corrección" : "Tu pedido fue enviado"}
+          Tu pedido fue enviado
         </h1>
         <div className="mb-6">
   <p className="text-sm uppercase tracking-widest text-[var(--text-muted)]">
@@ -1714,9 +1588,8 @@ if (enviado) {
         )}
 
         <p className="mb-8 max-w-xl text-lg text-[var(--text-muted)]">
-          {correccionEnviada
-            ? "Sumamos el archivo nuevo a tu pedido (el anterior queda guardado). Lo revisamos y te avisamos por correo."
-            : "Recibimos tu solicitud correctamente. Pronto recibirás actualizaciones sobre el estado de tu pedido."}
+          Recibimos tu solicitud correctamente. Pronto recibirás
+          actualizaciones sobre el estado de tu pedido.
         </p>
 
         <Link href="/">
@@ -2074,36 +1947,18 @@ return (
 )}
 
         <div className="mb-6">
-          <label htmlFor="codigo-correccion" className="mb-2 block font-semibold text-[var(--text-main)]">
-            Código de pedido (si es una corrección){" "}
-            <span className="text-sm font-normal text-[var(--text-muted)]">(opcional)</span>
-          </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Si ya hiciste el pedido y querés mandar el archivo corregido, poné su código. El archivo nuevo se suma a ese
-            pedido y el anterior no se borra.
-          </p>
-          <input
-            id="codigo-correccion"
-            value={codigoCorreccion}
-            onChange={(e) => setCodigoCorreccion(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 11))}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-            placeholder="KNT-0018"
-            autoComplete="off"
-          />
-          {esCorreccion && (
-            <p className="mt-2 text-xs font-semibold text-sky-700 dark:text-sky-300">
-              Corrección: solo necesitamos el correo del pedido, el archivo nuevo y que cumpla los requisitos. El resto
-              queda como en el pedido original.
-            </p>
-          )}
-        </div>
-
-        <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Archivo 3D
           </label>
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Subí tu modelo STL o SKP (hasta 50 MB por archivo).
+          </p>
+          <p className="-mt-2 mb-3 text-xs text-[var(--text-muted)]">
+            ¿Ya hiciste el pedido y querés mandar otro archivo o reemplazarlo?{" "}
+            <Link href="/seguimiento" className="font-semibold text-[var(--text-main)] underline underline-offset-4">
+              Hacelo desde Consultar pedido
+            </Link>
+            .
           </p>
 
           <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-6 text-[var(--text-main)]">
@@ -2978,7 +2833,7 @@ return (
           {enviando
   ? "Enviando..."
   : todoListo
-  ? esCorreccion ? "Enviar corrección" : "Enviar Cotización"
+  ? "Enviar Cotización"
   : "Completá los datos pendientes"}
         </button>
 
