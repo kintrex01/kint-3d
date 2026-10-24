@@ -12,6 +12,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { milimetrosPorUnidad } from "@/lib/precio-estimado";
 import { analizarMalla, repararMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
 import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMalla";
+import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -55,6 +56,8 @@ const camasImpresora: { mm: TamanoCama; nombre: string }[] = [
 type UnidadArchivo = "m" | "mm";
 
 const coloresModelo = [
+  // Cada sólido de un color: se distinguen las piezas.
+  { nombre: "Por piezas", valor: "conic-gradient(#60a5fa, #f472b6, #34d399, #fbbf24, #60a5fa)" },
   { nombre: "Blanco", valor: "#f4f4f4" },
   { nombre: "Negro", valor: "#181818" },
   { nombre: "Rojo", valor: "#ef0000" },
@@ -1240,6 +1243,9 @@ export default function Preparador3D() {
   const problemasRef =
   useRef<THREE.Group | null>(null);
 
+  // Suelta el punto de giro (cuando un botón mueve la cámara).
+  const soltarPivoteRef = useRef<(() => void) | null>(null);
+
   const camaRef = useRef<THREE.Group | null>(
     null
   );
@@ -1297,6 +1303,8 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [reparacion, setReparacion] = useState<{
     aplastadosQuitados: number;
     duplicadosQuitados: number;
+    carasDoblesQuitadas: number;
+    carasDadasVuelta: number;
     agujerosTapados: number;
   } | null>(null);
   const [reparando, setReparando] = useState(false);
@@ -1527,6 +1535,70 @@ const nivelKintScore =
     }
     contenedor.addEventListener("wheel", alRuedar, { capture: true, passive: false });
 
+    /*
+     * Girar alrededor del punto donde se hace clic (no del centro de la pieza).
+     * OrbitControls gira la cámara alrededor de su centro (target); después de
+     * cada giro se corre cámara y centro lo justo para que el punto tocado
+     * quede quieto. Se ve un puntito en ese punto mientras se arrastra.
+     */
+    let pivote: THREE.Vector3 | null = null;
+    const giroAnterior = camara.quaternion.clone();
+    const puntoPivote = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 16, 12),
+      new THREE.MeshBasicMaterial({ color: 0xd946ef, depthTest: false })
+    );
+    puntoPivote.renderOrder = 70;
+    puntoPivote.visible = false;
+    escena.add(puntoPivote);
+
+    function alApretar(evento: PointerEvent) {
+      if (evento.button !== 0) return;
+      const modelo = modeloRef.current;
+      pivote = null;
+      if (!modelo) return;
+      const rect = renderizador.domElement.getBoundingClientRect();
+      rayo.setFromCamera(
+        new THREE.Vector2(
+          ((evento.clientX - rect.left) / rect.width) * 2 - 1,
+          -((evento.clientY - rect.top) / rect.height) * 2 + 1
+        ),
+        camara
+      );
+      const material = modelo instanceof THREE.Mesh ? modelo.material : null;
+      const lado = material instanceof THREE.Material ? material.side : THREE.FrontSide;
+      if (material instanceof THREE.Material) material.side = THREE.DoubleSide;
+      const choque = rayo.intersectObject(modelo, false)[0];
+      if (material instanceof THREE.Material) material.side = lado;
+      if (!choque) return;
+      pivote = choque.point.clone();
+      giroAnterior.copy(camara.quaternion);
+      puntoPivote.position.copy(pivote);
+      puntoPivote.scale.setScalar(Math.max(camara.position.distanceTo(pivote) * 0.006, 0.01));
+      puntoPivote.visible = true;
+    }
+    function alSoltar() {
+      puntoPivote.visible = false;
+    }
+    function alCambiar() {
+      if (!pivote) {
+        giroAnterior.copy(camara.quaternion);
+        return;
+      }
+      const giro = camara.quaternion.clone().multiply(giroAnterior.clone().invert());
+      const desdeCentro = pivote.clone().sub(controles.target);
+      const correccion = desdeCentro.clone().sub(desdeCentro.clone().applyQuaternion(giro));
+      camara.position.add(correccion);
+      controles.target.add(correccion);
+      giroAnterior.copy(camara.quaternion);
+    }
+    soltarPivoteRef.current = () => {
+      pivote = null;
+      puntoPivote.visible = false;
+    };
+    renderizador.domElement.addEventListener("pointerdown", alApretar, { capture: true });
+    window.addEventListener("pointerup", alSoltar);
+    controles.addEventListener("change", alCambiar);
+
     function animar() {
       controles.update();
       renderizador.render(escena, camara);
@@ -1540,6 +1612,9 @@ const nivelKintScore =
     return () => {
       observador.disconnect();
       contenedor.removeEventListener("wheel", alRuedar, { capture: true });
+      renderizador.domElement.removeEventListener("pointerdown", alApretar, { capture: true });
+      window.removeEventListener("pointerup", alSoltar);
+      controles.removeEventListener("change", alCambiar);
 
       if (animacionRef.current !== null) {
         cancelAnimationFrame(
@@ -1586,6 +1661,7 @@ const nivelKintScore =
       liberarObjeto(camaRef.current);
     }
 
+    soltarPivoteRef.current?.();
     const camaNueva = crearCama(tamanoCama);
 
     camaRef.current = camaNueva;
@@ -1850,7 +1926,10 @@ function cambiarColorModelo(nombre: string) {
 
   setColorModelo(nombre);
 
-  material.color.set(color.valor);
+  // "Por piezas" usa los colores por vértice (lib/visor-ayudas: colorearPorPiezas).
+  const porPiezas = nombre === "Por piezas";
+  material.vertexColors = porPiezas && Boolean(modelo.geometry.getAttribute("color"));
+  material.color.set(porPiezas ? "#ffffff" : color.valor);
 
   if (nombre === "Cristal") {
     material.transparent = true;
@@ -1959,10 +2038,12 @@ setKintCheck(
 );
 
 geometria.computeVertexNormals();
+colorearPorPiezas(geometria);
 
       const material =
         new THREE.MeshStandardMaterial({
-          color: 0xef0000,
+          color: 0xffffff,
+          vertexColors: true,
           roughness: 0.55,
           metalness: 0.05,
         });
@@ -1974,6 +2055,8 @@ geometria.computeVertexNormals();
 
       modelo.castShadow = true;
       modelo.receiveShadow = true;
+      // Aristas como en SketchUp: se entiende mucho mejor la forma.
+      modelo.add(crearBordes(geometria));
 
       const marcadoresProblemas =
   crearMarcadoresProblemas(
@@ -2040,7 +2123,7 @@ setEscalaSeleccionada("");
 setUnidadArchivo(
   milimetrosPorUnidad(Math.max(tamano.x, tamano.y, tamano.z)) === 1000 ? "m" : "mm"
 );
-setColorModelo("Rojo");
+setColorModelo("Por piezas");
 
       setMedidas({
         ancho: tamano.x,
@@ -2086,6 +2169,18 @@ requestAnimationFrame(() => {
         modelo.geometry = resultado.geometria;
         anterior.dispose();
 
+        colorearPorPiezas(resultado.geometria);
+        const materialModelo = modelo.material;
+        if (materialModelo instanceof THREE.MeshStandardMaterial) {
+          materialModelo.vertexColors = colorModelo === "Por piezas" && !mostrarProblemas;
+          materialModelo.needsUpdate = true;
+        }
+        quitarHijo(modelo, "bordes-modelo");
+        modelo.add(crearBordes(resultado.geometria));
+        quitarHijo(modelo, "parches-reparacion");
+        quitarHijo(modelo, "marca-zona");
+        if (resultado.parches.length) modelo.add(crearParches(resultado.parches));
+
         const cajasFlotantes = detectarPiezasFlotantes(resultado.geometria);
         const analisis = analizarMalla(resultado.geometria);
         const marcadores = crearMarcadoresProblemas(resultado.geometria, cajasFlotantes, analisis.tolerancia);
@@ -2105,6 +2200,8 @@ requestAnimationFrame(() => {
         setReparacion({
           aplastadosQuitados: resultado.aplastadosQuitados,
           duplicadosQuitados: resultado.duplicadosQuitados,
+          carasDoblesQuitadas: resultado.carasDoblesQuitadas,
+          carasDadasVuelta: resultado.carasDadasVuelta,
           agujerosTapados: resultado.agujerosTapados,
         });
       } catch (problema) {
@@ -2129,7 +2226,12 @@ requestAnimationFrame(() => {
       agujeros: "bordes-abiertos",
       pegadas: "no-manifold",
       aplastados: "triangulos-defectuosos",
+      alReves: "",
     };
+
+    // Esfera violeta alrededor de la zona: se ve dónde está aunque sea chico.
+    quitarHijo(modelo, "marca-zona");
+    modelo.add(crearMarcaZona(zona.centro, zona.radio));
     const problemas = problemasRef.current;
     if (problemas) {
       Object.entries(nombres).forEach(([clave, nombre]) => {
@@ -2229,6 +2331,7 @@ requestAnimationFrame(() => {
        * neutralizamos el modelo para que
        * rojo, amarillo y naranja destaquen.
        */
+      material.vertexColors = false;
       material.color.set("#e5e7eb");
       material.transparent = true;
       material.opacity = 0.55;
@@ -2244,7 +2347,11 @@ requestAnimationFrame(() => {
             opcion.nombre === colorModelo
         );
 
-      if (colorOriginal) {
+      if (colorModelo === "Por piezas") {
+        material.vertexColors = Boolean(modelo.geometry.getAttribute("color"));
+        material.color.set("#ffffff");
+      } else if (colorOriginal) {
+        material.vertexColors = false;
         material.color.set(
           colorOriginal.valor
         );
@@ -2274,6 +2381,7 @@ requestAnimationFrame(() => {
 }
 
   function cambiarVista(tipo: Vista3D) {
+  soltarPivoteRef.current?.();
   const camara = camaraRef.current;
   const controles = controlesRef.current;
   const cama = camaRef.current;
@@ -2675,7 +2783,7 @@ requestAnimationFrame(() => {
           <span
             className="h-5 w-5 rounded-full border border-black/10 shadow-sm"
             style={{
-              backgroundColor: color.valor,
+              background: color.valor,
             }}
           />
 
@@ -2827,7 +2935,9 @@ requestAnimationFrame(() => {
       onClick={descargarSTLPreparado}
       className="w-full rounded-xl bg-red-600 px-4 py-3.5 text-[10px] font-black uppercase tracking-[0.14em] text-white transition hover:bg-red-700"
     >
-      {escalaSeleccionada
+      {reparacion
+        ? `Descargar STL reparado${escalaSeleccionada ? ` · 1:${escalaSeleccionada}` : ""}`
+        : escalaSeleccionada
         ? `Descargar STL · 1:${escalaSeleccionada}`
         : "Descargar STL preparado"}
     </button>
@@ -2916,6 +3026,7 @@ requestAnimationFrame(() => {
       reparando={reparando}
       onVer={verProblema}
       onReparar={repararModelo}
+      onDescargar={descargarSTLPreparado}
     />
   )}
 

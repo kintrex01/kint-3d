@@ -9,9 +9,15 @@ import type { AnalisisMalla, ZonaProblema } from "@/lib/analisis-malla";
  * solo lo que se puede arreglar automáticamente (agujeros y triángulos).
  */
 
-export type TipoProblema = "agujeros" | "pegadas" | "aplastados";
+export type TipoProblema = "agujeros" | "pegadas" | "aplastados" | "alReves";
 
-type Reparacion = { aplastadosQuitados: number; duplicadosQuitados: number; agujerosTapados: number };
+type Reparacion = {
+  aplastadosQuitados: number;
+  duplicadosQuitados: number;
+  carasDoblesQuitadas: number;
+  carasDadasVuelta: number;
+  agujerosTapados: number;
+};
 
 const INFO: Record<
   TipoProblema,
@@ -34,7 +40,7 @@ const INFO: Record<
     claseGravedad: "bg-amber-500 text-white",
     que: "Dos piezas se tocan justo en un borde (por ejemplo, una pared apoyada sobre la losa). El laminador las une y casi siempre se imprime bien.",
     sketchup:
-      "Normalmente no hace falta hacer nada. Si una pared queda colgando de una sola arista, movela para que apoye con toda su base.",
+      "Normalmente no hace falta hacer nada. «Reparar» saca las caras dobles entre piezas apiladas. Si una pared queda colgando de una sola arista, movela para que apoye con toda su base.",
     seArregla: false,
   },
   aplastados: {
@@ -46,6 +52,15 @@ const INFO: Record<
     sketchup: "No hace falta tocar nada. Si querés, «Reparar» los saca del archivo.",
     seArregla: true,
   },
+  alReves: {
+    titulo: "Caras dadas vuelta",
+    color: "#2563eb",
+    gravedad: "Leve",
+    claseGravedad: "bg-amber-500 text-white",
+    que: "Algunas caras miran para adentro. En SketchUp son las que se ven azules (el revés de la cara). Pueden confundir al laminador.",
+    sketchup: "Seleccioná las caras azules → clic derecho → Invertir caras. O tocá «Reparar automáticamente».",
+    seArregla: true,
+  },
 };
 
 export default function DiagnosticoMalla({
@@ -55,6 +70,7 @@ export default function DiagnosticoMalla({
   reparando,
   onVer,
   onReparar,
+  onDescargar,
 }: {
   analisis: AnalisisMalla;
   piezasFlotantes: number;
@@ -62,10 +78,11 @@ export default function DiagnosticoMalla({
   reparando: boolean;
   onVer: (tipo: TipoProblema, zona: ZonaProblema) => void;
   onReparar: () => void;
+  onDescargar: () => void;
 }) {
-  const [posicion, setPosicion] = useState<Record<TipoProblema, number>>({ agujeros: 0, pegadas: 0, aplastados: 0 });
-  const tipos = (["agujeros", "pegadas", "aplastados"] as const).filter((tipo) => analisis[tipo].cantidad > 0);
-  const reparable = analisis.agujeros.cantidad > 0 || analisis.aplastados.cantidad > 0;
+  const [posicion, setPosicion] = useState<Record<TipoProblema, number>>({ agujeros: 0, pegadas: 0, aplastados: 0, alReves: 0 });
+  const tipos = (["agujeros", "alReves", "pegadas", "aplastados"] as const).filter((tipo) => analisis[tipo].cantidad > 0);
+  const reparable = tipos.length > 0;
 
   function ver(tipo: TipoProblema, paso: number) {
     const zonas = analisis[tipo].zonas;
@@ -80,11 +97,35 @@ export default function DiagnosticoMalla({
       <p className="text-[10px] font-bold uppercase tracking-[0.22em]">Qué le pasa a tu modelo</p>
 
       {reparacion && (
-        <p className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold leading-5 text-emerald-700 dark:text-emerald-400">
-          ✓ Reparado: {reparacion.agujerosTapados} {reparacion.agujerosTapados === 1 ? "agujero tapado" : "agujeros tapados"},{" "}
-          {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados} triángulos sacados. El STL que descargues ya va
-          arreglado.
-        </p>
+        <div className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-[11px] leading-5 text-emerald-800 dark:text-emerald-300">
+          <p className="font-bold">✓ Modelo reparado</p>
+          <ul className="mt-1 space-y-0.5">
+            {reparacion.agujerosTapados > 0 && (
+              <li>
+                • {reparacion.agujerosTapados} {reparacion.agujerosTapados === 1 ? "agujero tapado" : "agujeros tapados"} (en verde en el
+                visor)
+              </li>
+            )}
+            {reparacion.carasDadasVuelta > 0 && <li>• {reparacion.carasDadasVuelta} caras dadas vuelta para que miren afuera</li>}
+            {reparacion.carasDoblesQuitadas > 0 && <li>• {reparacion.carasDoblesQuitadas} caras dobles sacadas entre piezas</li>}
+            {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados > 0 && (
+              <li>• {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados} triángulos aplastados o repetidos sacados</li>
+            )}
+            {reparacion.agujerosTapados +
+              reparacion.carasDadasVuelta +
+              reparacion.carasDoblesQuitadas +
+              reparacion.aplastadosQuitados +
+              reparacion.duplicadosQuitados ===
+              0 && <li>• No había nada que se pudiera arreglar solo.</li>}
+          </ul>
+          <button
+            type="button"
+            onClick={onDescargar}
+            className="mt-2.5 w-full rounded-lg bg-emerald-600 px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition hover:bg-emerald-700"
+          >
+            Descargar STL reparado
+          </button>
+        </div>
       )}
 
       {tipos.length === 0 && piezasFlotantes === 0 ? (
@@ -177,8 +218,8 @@ export default function DiagnosticoMalla({
       )}
       {reparable && !reparacion && (
         <p className="mt-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
-          Tapa los agujeros y saca los triángulos aplastados. Las piezas pegadas no se tocan. Tu archivo original no se
-          modifica: descargás una copia arreglada.
+          Tapa agujeros, da vuelta las caras al revés y saca caras dobles y triángulos aplastados. Lo que se tapa queda en
+          verde. Tu archivo original no se modifica: descargás una copia arreglada.
         </p>
       )}
     </div>
