@@ -56,8 +56,8 @@ export function medirSTL(buffer: ArrayBuffer) {
   return { mm3: Math.abs(volumen), mm2: superficie, medidas };
 }
 
-/* Lado más largo que entra en la impresora (mm). */
-const CAMA_MM = 250;
+/* Lado más largo que entra en la impresora (mm): Bambu Lab H2D, 325 × 320. */
+const CAMA_MM = 320;
 
 export type Estimacion =
   | { tipo: "precio"; desde: number; hasta: number; gramos: number; horas: number; medidas: number[] }
@@ -72,6 +72,18 @@ export type Estimacion =
  * lado más largo da un tamaño real razonable (de 2 m a 300 m).
  * Ej.: un edificio de 60 m llega como 60 (m) o 60000 (mm).
  */
+/*
+ * En qué está el archivo: "m" y "mm" = tamaño real (1:1) exportado en esa
+ * unidad; "escala" = ya está a escala, listo para imprimir (en mm).
+ */
+export type UnidadArchivo = "m" | "mm" | "escala";
+
+/* La unidad que se adivina por el tamaño (ver milimetrosPorUnidad). */
+export function unidadDetectada(piezas: { medidas: number[] }[]): UnidadArchivo {
+  const lado = Math.max(0, ...piezas.map((pieza) => Math.max(...pieza.medidas)));
+  return milimetrosPorUnidad(lado) === 1000 ? "m" : "mm";
+}
+
 export function milimetrosPorUnidad(lado: number) {
   for (const unidad of [1000, 1, 10]) {
     const metros = (lado * unidad) / 1000;
@@ -85,13 +97,20 @@ export function milimetrosPorUnidad(lado: number) {
  * 1 = sin escala (pieza que no es maqueta, se toma tal cual en mm);
  * 0 = todavía no eligió: no se calcula nada.
  */
-export function estimarPrecio(piezas: { mm3: number; mm2: number; medidas: number[] }[], escala: number): Estimacion {
+export function estimarPrecio(
+  piezas: { mm3: number; mm2: number; medidas: number[] }[],
+  escala: number,
+  // Sin dato: se adivina por el tamaño.
+  unidad?: UnidadArchivo
+): Estimacion {
   if (!piezas.length) return { tipo: "sinDatos" };
-  if (!(escala >= 1)) return { tipo: "elegiEscala" };
+  const yaAEscala = unidad === "escala" || escala === 1;
+  if (!yaAEscala && !(escala >= 1)) return { tipo: "elegiEscala" };
 
   const ladoModelo = Math.max(...piezas.map((pieza) => Math.max(...pieza.medidas)));
   if (!(ladoModelo > 0)) return { tipo: "sinDatos" };
-  const factor = escala === 1 ? 1 : milimetrosPorUnidad(ladoModelo) / escala;
+  const milimetros = unidad === "m" ? 1000 : unidad === "mm" ? 1 : milimetrosPorUnidad(ladoModelo);
+  const factor = yaAEscala ? 1 : milimetros / escala;
 
   let mm3 = 0;
   let mm2 = 0;
@@ -104,15 +123,15 @@ export function estimarPrecio(piezas: { mm3: number; mm2: number; medidas: numbe
     const finales = pieza.medidas.map((medida) => medida * factor);
     if (Math.max(...finales) > Math.max(...medidas)) medidas = finales;
   }
-  if (Math.max(...medidas) > CAMA_MM * 1.2) return { tipo: "muyGrande", medidas };
+  if (Math.max(...medidas) > CAMA_MM) return { tipo: "muyGrande", medidas };
 
-  // Se imprimen las paredes (~0,8 mm) y un relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³.
-  // (Con el pedido KNT-0018 da 24 g; fueron 20 g.)
+  // Paredes (~0,8 mm) y relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³. Calibrado con
+  // Bambu Studio: edificio a 1:250 (27 × 16 × 15 cm) = 130 g; KNT-0018 = 20 g.
   const cm3 = Math.min(mm3, mm2 * 0.8 + mm3 * 0.15) / 1000;
-  const gramos = Math.max(3, Math.round(cm3 * 1.24));
-  // Las piezas chicas salen a ~10 g/h y las grandes a ~20 g/h (presupuestos reales:
-  // 160 g → 7 h 45 min), más la preparación.
-  const horas = gramos / Math.min(20, 9 + gramos / 12) + 0.3;
+  const gramos = Math.max(3, Math.round(cm3 * 1.24 * 0.65));
+  // H2D: las piezas chicas salen a ~12 g/h y las grandes a ~36 g/h (130 g → 3 h 32 min;
+  // 20 g → 1 h 55 min), más la preparación.
+  const horas = gramos / Math.min(36, 8 + gramos / 4.5) + 0.3;
   const precio = precioRecomendado(perfilNuevo(), { horas, minutos: 0, gramos, insumos: 0, piezas: 1 });
   if (!(precio > 0)) return { tipo: "sinDatos" };
 

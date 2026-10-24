@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { estimarPrecio, rangoPorDatos } from "@/lib/precio-estimado";
+import { estimarPrecio, rangoPorDatos, unidadDetectada, type UnidadArchivo } from "@/lib/precio-estimado";
 
 /*
  * Cotizar: precio aproximado con horas, minutos y gramos (los que da el
@@ -13,9 +13,9 @@ import { estimarPrecio, rangoPorDatos } from "@/lib/precio-estimado";
 
 type Medidas = { mm3: number; mm2: number; medidas: number[] };
 
-function prellenado(medidas: Medidas[] | null, escala: number) {
+function prellenado(medidas: Medidas[] | null, escala: number, unidad: UnidadArchivo) {
   if (!medidas) return { horas: "", minutos: "", gramos: "" };
-  const estimacion = estimarPrecio(medidas, escala);
+  const estimacion = estimarPrecio(medidas, escala, unidad);
   if (estimacion.tipo !== "precio") return { horas: "", minutos: "", gramos: "" };
   const totalMinutos = Math.max(15, Math.round((estimacion.horas * 60) / 5) * 5);
   return {
@@ -52,18 +52,23 @@ export default function TarjetaPrecioEstimado({
   // Lo que vio el cliente, para el correo al dueño.
   onRango?: (texto: string) => void;
 }) {
-  const [valores, setValores] = useState(() => prellenado(medidas, escala));
+  // En qué está el archivo: arranca con la que se adivina por el tamaño.
+  const [unidad, setUnidad] = useState<UnidadArchivo>(() => (medidas ? unidadDetectada(medidas) : "m"));
+  const [valores, setValores] = useState(() => prellenado(medidas, escala, unidad));
   const [urgente, setUrgente] = useState(false);
-  const [base, setBase] = useState({ medidas, escala });
+  const [base, setBase] = useState({ medidas, escala, unidad });
 
-  // Archivo o escala nuevos: los campos vuelven a lo medido.
-  if (base.medidas !== medidas || base.escala !== escala) {
-    setBase({ medidas, escala });
-    setValores(prellenado(medidas, escala));
+  // Archivo nuevo: se vuelve a adivinar la unidad. Archivo, escala o unidad nuevos: los campos vuelven a lo medido.
+  if (base.medidas !== medidas || base.escala !== escala || base.unidad !== unidad) {
+    const unidadNueva = base.medidas !== medidas && medidas ? unidadDetectada(medidas) : unidad;
+    if (unidadNueva !== unidad) setUnidad(unidadNueva);
+    setBase({ medidas, escala, unidad: unidadNueva });
+    setValores(prellenado(medidas, escala, unidadNueva));
   }
 
-  const sinEscala = !(escala >= 1);
-  const estimacion = medidas && !sinEscala ? estimarPrecio(medidas, escala) : null;
+  const yaAEscala = unidad === "escala" && Boolean(medidas);
+  const sinEscala = !(escala >= 1) && !yaAEscala;
+  const estimacion = medidas && !sinEscala ? estimarPrecio(medidas, escala, unidad) : null;
   const muyGrande = estimacion?.tipo === "muyGrande";
 
   const numero = (texto: string) => Math.max(0, Number(texto.replace(",", ".")) || 0);
@@ -85,25 +90,63 @@ export default function TarjetaPrecioEstimado({
     onRango?.(textoRango);
   }, [textoRango, onRango]);
 
+
+  const selectorUnidad =
+    medidas && escala !== 1 ? (
+      <div className="mb-3">
+        <p className="mb-1.5 text-[11px] font-bold text-[var(--text-muted)]">Tu archivo está en:</p>
+        <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-sky-400/40 p-1">
+          {(
+            [
+              ["m", "Metros"],
+              ["mm", "Milímetros"],
+              ["escala", "Ya a escala"],
+            ] as const
+          ).map(([valor, texto]) => (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={unidad === valor}
+              onClick={() => setUnidad(valor)}
+              className={`rounded-lg px-2 py-1.5 text-xs font-black transition ${
+                unidad === valor ? "bg-sky-600 text-white" : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
+              }`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">
+          SketchUp exporta en metros. «Ya a escala» si tu archivo ya tiene el tamaño de la maqueta.
+        </p>
+      </div>
+    ) : null;
+
   if (sinEscala) {
     return (
-      <p className={`${claseCaja} text-sm leading-6 text-[var(--text-main)]`}>
+      <div className={claseCaja}>
+        {selectorUnidad}
+        <p className="text-sm leading-6 text-[var(--text-main)]">
         <strong>📏 Elegí la escala acá arriba.</strong> Tu modelo está en tamaño real: lo llevamos a esa escala y te
         mostramos el precio aproximado.
-      </p>
+        </p>
+      </div>
     );
   }
 
   if (estimacion?.tipo === "muyGrande") {
     const [ancho, largo, alto] = estimacion.medidas;
     return (
-      <p className={`${claseCaja} text-sm leading-6 text-[var(--text-main)]`}>
+      <div className={claseCaja}>
+        {selectorUnidad}
+        <p className="text-sm leading-6 text-[var(--text-main)]">
         <strong>
-          A 1:{escala} tu maqueta mediría {centimetros(ancho)} × {centimetros(largo)} × {centimetros(alto)} cm
+          {yaAEscala ? "Tu maqueta mide" : `A 1:${escala} tu maqueta mediría`} {centimetros(ancho)} × {centimetros(largo)} × {centimetros(alto)} cm
         </strong>
         , más grande que la impresora. La imprimimos en partes: te mandamos el precio en el presupuesto. Si esperabas
-        otro tamaño, revisá la escala.
-      </p>
+        otro tamaño, revisá la escala o en qué está tu archivo.
+        </p>
+      </div>
     );
   }
 
@@ -115,13 +158,15 @@ export default function TarjetaPrecioEstimado({
 
   return (
     <div className={claseCaja}>
-      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
+      <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-sky-700 dark:text-sky-300">
         ¿Cuánto saldría?
       </p>
 
+      {selectorUnidad}
+
       {estimacion?.tipo === "precio" && (
         <p className="mt-2 text-sm font-semibold text-[var(--text-main)]">
-          📏 Tu maqueta{escala > 1 ? ` a 1:${escala}` : ""}: {centimetros(estimacion.medidas[0])} ×{" "}
+          📏 Tu maqueta{escala > 1 && !yaAEscala ? ` a 1:${escala}` : ""}: {centimetros(estimacion.medidas[0])} ×{" "}
           {centimetros(estimacion.medidas[1])} × {centimetros(estimacion.medidas[2])} cm
         </p>
       )}
@@ -165,7 +210,8 @@ export default function TarjetaPrecioEstimado({
       </p>
 
       <p className="mt-2 text-[11px] leading-5 text-[var(--text-muted)]">
-        Aproximado. El precio final te lo mandamos en el presupuesto.
+        Es un cálculo aproximado y puede tener errores: el precio final te lo mandamos en el presupuesto, después
+        de revisar tu archivo.
       </p>
     </div>
   );
