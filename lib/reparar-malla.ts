@@ -192,7 +192,9 @@ function cascaras(tris: Tri[], indice = indiceAristas(tris)) {
  * parte las aristas que tienen un vértice de otra cara encima (aristas en T).
  */
 function coser(tris: Tri[], P: number[], tamano: number, cuenta: ResultadoReparacion) {
-  const tol = tamano * 5e-4;
+  // Solo las rajas de verdad (micro-cortes de la exportación): en un edificio de 180 m son
+  // ~2 mm. Con más, dos muros de SketchUp a 2 cm se pegaban y se estiraban.
+  const tol = tamano * 1e-5;
   const tol2 = tol * tol;
   for (let vuelta = 0; vuelta < 6; vuelta++) {
     const abiertas = aristasAbiertas(tris);
@@ -362,7 +364,7 @@ function lazosDeBorde(tris: Tri[], cascara: Int32Array, indice: IndiceAristas) {
   return lazos;
 }
 
-type InfoLazo = { lazo: number[]; cascara: number; normal: THREE.Vector3; centro: THREE.Vector3; area: number; plano: boolean };
+type InfoLazo = { lazo: number[]; cascara: number; normal: THREE.Vector3; centro: THREE.Vector3; area: number; plano: boolean; curvatura: number };
 
 function infoLazo(lazo: number[], cascara: number, P: number[]): InfoLazo {
   const normal = new THREE.Vector3();
@@ -383,7 +385,8 @@ function infoLazo(lazo: number[], cascara: number, P: number[]): InfoLazo {
     lejos = Math.max(lejos, Math.abs(p.dot(normal)));
     tam = Math.max(tam, p.length());
   }
-  return { lazo, cascara, normal, centro, area, plano: area > 0 && lejos <= tam * 2e-3 };
+  // curvatura: cuánto se aparta del plano, comparado con su tamaño (0 = plano).
+  return { lazo, cascara, normal, centro, area, plano: area > 0 && lejos <= tam * 2e-3, curvatura: tam > 0 ? lejos / tam : 1 };
 }
 
 /* Base 2D de un plano. */
@@ -501,9 +504,20 @@ function partirEnPlanos(lazo: number[], P: number[], vecinas: Vecinas, profundid
   return uno && otro ? [...uno, ...otro] : null;
 }
 
-function taparNoPlano(lazo: number[], P: number[], vecinas: Vecinas): Tri[] {
+function taparNoPlano(lazo: number[], P: number[], vecinas: Vecinas, tamano: number): Tri[] {
+  const enPlanos = partirEnPlanos(lazo, P, vecinas);
+  if (enPlanos) return enPlanos;
+  // Hueco suave (un pedazo de superficie curva): se tapa proyectado. Uno "doblado" que va
+  // por varios planos (piso y muro) y es grande no se inventa: saldrían triángulos largos
+  // cruzando el modelo. Queda abierto y lo revisamos a mano. Los chicos, en abanico.
   const info = infoLazo(lazo, 0, P);
-  return partirEnPlanos(lazo, P, vecinas) || triangularEnPlano(lazo, [], info.normal, P) || abanico(lazo, P);
+  if (info.curvatura <= 0.3) {
+    const proyectada = triangularEnPlano(lazo, [], info.normal, P);
+    if (proyectada) return proyectada;
+  }
+  const caja = new THREE.Box3();
+  for (const v of lazo) caja.expandByPoint(new THREE.Vector3(P[v * 3], P[v * 3 + 1], P[v * 3 + 2]));
+  return caja.getSize(new THREE.Vector3()).length() > tamano * 0.05 ? [] : abanico(lazo, P);
 }
 
 /* Tapa todos los agujeros; los planos del mismo plano se tapan juntos (islas). */
@@ -530,7 +544,7 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number) {
           const p0 = new THREE.Vector3().fromArray(P, t[0] * 3);
           return new THREE.Vector3().fromArray(P, t[1] * 3).sub(p0).cross(new THREE.Vector3().fromArray(P, t[2] * 3).sub(p0)).normalize();
         },
-      }), info.cascara);
+      }, tamano), info.cascara);
       continue;
     }
     // Islas: lazos del mismo plano, recorridos al revés y adentro de este.
@@ -666,7 +680,7 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
   ];
   if (laminas.size) {
     const solidos = resultado.map((x) => x.t);
-    const espesor = opciones.espesorLamina && opciones.espesorLamina > 0 ? opciones.espesorLamina : tamano * 0.004;
+    const espesor = opciones.espesorLamina && opciones.espesorLamina > 0 ? opciones.espesorLamina : tamano * 0.0015;
     const porLamina = new Map<number, Tri[]>();
     tris.forEach((t, i) => {
       if (laminas.has(cascara[i])) (porLamina.get(cascara[i]) || porLamina.set(cascara[i], []).get(cascara[i])!).push(t);

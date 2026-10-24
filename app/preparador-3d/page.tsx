@@ -2211,13 +2211,9 @@ requestAnimationFrame(() => {
   cambiarVista("modelo");
 });
 
-// Si tiene algo que se arregla solo, se arregla ya (el cliente no tiene que tocar nada).
-if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados.cantidad > 0) {
-  window.setTimeout(() => repararModelo(true), 60);
-} else {
-  // Aparece de abajo hacia arriba, como si lo escaneáramos.
-  window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 60);
-}
+// Aparece de abajo hacia arriba, como si lo escaneáramos. La reparación NO corre sola:
+// cambiaba modelos de clientes sin que lo pidieran; ahora es solo con el botón.
+window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 60);
 
     } catch (problema) {
       const mensaje =

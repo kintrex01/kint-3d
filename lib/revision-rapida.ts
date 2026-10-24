@@ -24,6 +24,7 @@ export type RevisionRapida = {
 };
 
 const LIMITE_SUBIDA = 50 * 1024 * 1024;
+const ARREGLAR_EN_COTIZAR = false;
 
 export async function revisarArchivos(archivos: File[]): Promise<RevisionRapida> {
   const resultado: RevisionRapida = {
@@ -47,7 +48,8 @@ export async function revisarArchivos(archivos: File[]): Promise<RevisionRapida>
       resultado.paradas += consejos.paradas.length;
       if (consejos.cortes.length) resultado.partes = Math.max(resultado.partes, consejos.cortes.length + 1);
 
-      if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados.cantidad > 0) {
+      // Desactivado: la copia arreglada cambiaba modelos de clientes. Solo se avisa.
+      if (ARREGLAR_EN_COTIZAR && analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados.cantidad > 0) {
         const arreglo = repararMalla(geometria);
         const datos = new STLExporter().parse(new THREE.Mesh(arreglo.geometria), { binary: true });
         arreglo.geometria.dispose();

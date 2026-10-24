@@ -1389,12 +1389,8 @@ if (
 
     const archivosOriginales = [];
 
-// Los STL que la revisión arregló se mandan arreglados (salvo que el cliente no quiera).
-const aEnviar = archivos.map((archivo) =>
-  (!enviarOriginal && revision && revision !== "revisando"
-    ? revision.reparados.find((par) => par.original === archivo)?.reparado
-    : undefined) || archivo
-);
+// Se manda siempre el archivo del cliente tal como lo subió (nunca una copia modificada).
+const aEnviar = archivos;
 
 if (aEnviar.length > 0) {
   const firmaResponse = await fetch("/api/archivos-firma", {
@@ -2145,12 +2141,12 @@ return (
                 )}
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   {enviarOriginal
-                    ? "Vas a enviar tu archivo original, sin arreglar."
-                    : "Vamos a enviar la copia arreglada. No tenés que hacer nada."}
+                    ? "Vas a enviar solo tu archivo original, sin arreglar."
+                    : "Vamos a enviar tu archivo y también la copia arreglada. No tenés que hacer nada."}
                 </p>
                 <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--text-muted)]">
                   <input type="checkbox" checked={enviarOriginal} onChange={(e) => setEnviarOriginal(e.target.checked)} />
-                  Prefiero enviar mi archivo original sin arreglar
+                  Enviar solo mi archivo original (sin la copia arreglada)
                 </label>
               </div>
             )}
