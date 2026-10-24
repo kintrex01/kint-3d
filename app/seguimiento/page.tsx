@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -3362,6 +3364,17 @@ aplicada al pedido.
       <p className="mb-3 text-xs leading-5 text-[var(--text-muted)]">
         Estos son los archivos vinculados actualmente a tu pedido.
       </p>
+
+      {/* Visor 3D con los STL del pedido: errores y consejos (preparador-3d). */}
+      {resultado.archivos.some((archivo: { nombreArchivo?: string }) => /.stl$/i.test(archivo.nombreArchivo || "")) && (
+        <Link
+          href={`/preparador-3d?pedido=${encodeURIComponent(resultado.pedido)}&codigo=${encodeURIComponent(codigo)}`}
+          target="_blank"
+          className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-sky-700"
+        >
+          🔍 Revisar mis archivos en 3D (errores y consejos)
+        </Link>
+      )}
 
       <div className="space-y-1.5">
         {resultado.archivos.map(

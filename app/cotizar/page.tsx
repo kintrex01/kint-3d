@@ -181,6 +181,8 @@ const [telefono, setTelefono] = useState("");
   // Volumen y medidas de los STL elegidos, para el precio estimado.
   const [medidasArchivos, setMedidasArchivos] = useState<{ mm3: number; mm2: number; medidas: number[] }[] | null>(null);
   const [midiendoArchivos, setMidiendoArchivos] = useState(false);
+  // Revisión rápida del STL (lib/revision-rapida): null = sin STL; "revisando" mientras analiza.
+  const [revision, setRevision] = useState<import("@/lib/revision-rapida").RevisionRapida | "revisando" | null>(null);
   // Rango que vio el cliente en «¿Cuánto saldría?» (va en el correo al dueño).
   const [rangoEstimado, setRangoEstimado] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -1079,6 +1081,30 @@ useEffect(() => {
     });
   return () => {
     cancelado = true;
+  };
+}, [archivos]);
+
+/* Revisión rápida: se carga el análisis solo si hay STL (no pesa en la página). */
+useEffect(() => {
+  const stls = archivos.filter((archivo) => /\.stl$/i.test(archivo.name));
+  if (!stls.length) {
+    setRevision(null);
+    return;
+  }
+  let cancelado = false;
+  setRevision("revisando");
+  const espera = window.setTimeout(async () => {
+    try {
+      const { revisarArchivos } = await import("@/lib/revision-rapida");
+      const resultado = await revisarArchivos(stls);
+      if (!cancelado) setRevision(resultado);
+    } catch {
+      if (!cancelado) setRevision(null);
+    }
+  }, 50);
+  return () => {
+    cancelado = true;
+    window.clearTimeout(espera);
   };
 }, [archivos]);
 
@@ -2078,6 +2104,34 @@ return (
 {/* Filtro antes de enviar: el visor 3D muestra errores y consejos (se abre en otra pestaña). */}
 {archivos.some((archivo) => /.stl$/i.test(archivo.name)) && (
   <div className="mt-3 rounded-xl border border-sky-500/40 bg-sky-500/10 p-4">
+    {revision === "revisando" ? (
+      <p className="mb-3 animate-pulse text-sm font-semibold text-[var(--text-muted)]">Revisando tu archivo…</p>
+    ) : revision ? (
+      (() => {
+        const avisos = [
+          revision.agujeros > 0 && `${revision.agujeros} ${revision.agujeros === 1 ? "agujero" : "agujeros"} (caras que faltan)`,
+          revision.carasAlReves && "caras dadas vuelta",
+          revision.paradas > 0 &&
+            `${revision.paradas} ${revision.paradas === 1 ? "pieza parada" : "piezas paradas"}: conviene acostarlas`,
+          revision.partes > 0 && `conviene cortarlo en ${revision.partes} partes para no usar soportes`,
+        ].filter(Boolean) as string[];
+        return avisos.length ? (
+          <div className="mb-3 text-sm">
+            <p className="font-bold text-amber-700 dark:text-amber-400">⚠ Revisión rápida: encontramos cosas para mejorar</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-[var(--text-main)]">
+              {avisos.map((aviso) => (
+                <li key={aviso}>{aviso}</li>
+              ))}
+            </ul>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Tocá el botón para verlo en 3D y repararlo. Igual podés enviarlo así.</p>
+          </div>
+        ) : (
+          <p className="mb-3 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+            ✓ Revisión rápida: no encontramos problemas en tu archivo.
+          </p>
+        );
+      })()
+    ) : null}
     <button
       type="button"
       onClick={() => void revisarEnVisor()}
