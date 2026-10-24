@@ -120,6 +120,8 @@ export function estimarPrecio(piezas: { mm3: number; mm2: number; medidas: numbe
  */
 export const INSUMOS_DESDE = 30;
 export const INSUMOS_HASTA = 100;
+/* El tope del rango va 20% más arriba: margen para cobrar más si hace falta. */
+export const MARGEN_HASTA = 1.2;
 
 export function rangoPorDatos(datos: { horas: number; minutos: number; gramos: number; recargoUrgente: number }) {
   const horas = Math.max(0, datos.horas || 0);
@@ -129,13 +131,13 @@ export function rangoPorDatos(datos: { horas: number; minutos: number; gramos: n
 
   const perfil = perfilNuevo();
   const factor = 1 + Math.max(0, datos.recargoUrgente || 0) / 100;
-  const conInsumos = (insumos: number) => {
-    const precio = precioRecomendado(perfil, { horas, minutos, gramos, insumos, piezas: 1 }) * factor;
+  const conInsumos = (insumos: number, margen = 1) => {
+    const precio = precioRecomendado(perfil, { horas, minutos, gramos, insumos, piezas: 1 }) * factor * margen;
     const paso = precio >= 500 ? 50 : 10;
     return Math.ceil(precio / paso) * paso;
   };
 
   const desde = conInsumos(INSUMOS_DESDE);
-  const hasta = conInsumos(INSUMOS_HASTA);
+  const hasta = conInsumos(INSUMOS_HASTA, MARGEN_HASTA);
   return desde > 0 ? { desde, hasta: Math.max(desde, hasta) } : null;
 }
