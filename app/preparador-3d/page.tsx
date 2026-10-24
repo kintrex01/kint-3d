@@ -10,6 +10,8 @@ import {
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { milimetrosPorUnidad } from "@/lib/precio-estimado";
+import { analizarMalla, repararMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
+import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMalla";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -659,149 +661,11 @@ function contarPiezasSeparadas(
   return Math.max(piezas.size, 1);
 }
 
-function analizarGeometriaSTL(
-  geometria: THREE.BufferGeometry
-): ResultadoKintCheck {
-  const copia = geometria.clone();
-
-  copia.deleteAttribute("normal");
-
-  const geometriaIndexada =
-    BufferGeometryUtils.mergeVertices(
-      copia,
-      0.001
-    );
-
-  if (geometriaIndexada !== copia) {
-    copia.dispose();
-  }
-
-  const indice =
-    geometriaIndexada.getIndex();
-
-  const posiciones =
-    geometriaIndexada.getAttribute(
-      "position"
-    );
-
-  if (!indice || !posiciones) {
-    geometriaIndexada.dispose();
-
-    return {
-      aristasAbiertas: 0,
-      aristasNoManifold: 0,
-      triangulosDegenerados: 0,
-    };
-  }
-
-  const aristas =
-    new Map<string, number>();
-
-  let triangulosDegenerados = 0;
-
-  const puntoA = new THREE.Vector3();
-  const puntoB = new THREE.Vector3();
-  const puntoC = new THREE.Vector3();
-
-  const ladoAB = new THREE.Vector3();
-  const ladoAC = new THREE.Vector3();
-  const cruz = new THREE.Vector3();
-
-  function registrarArista(
-    a: number,
-    b: number
-  ) {
-    const menor = Math.min(a, b);
-    const mayor = Math.max(a, b);
-
-    const clave = `${menor}-${mayor}`;
-
-    aristas.set(
-      clave,
-      (aristas.get(clave) ?? 0) + 1
-    );
-  }
-
-  const indices = indice.array;
-
-  for (
-    let numero = 0;
-    numero + 2 < indices.length;
-    numero += 3
-  ) {
-    const a = Number(indices[numero]);
-    const b = Number(indices[numero + 1]);
-    const c = Number(indices[numero + 2]);
-
-    registrarArista(a, b);
-    registrarArista(b, c);
-    registrarArista(c, a);
-
-    puntoA.fromBufferAttribute(
-      posiciones,
-      a
-    );
-
-    puntoB.fromBufferAttribute(
-      posiciones,
-      b
-    );
-
-    puntoC.fromBufferAttribute(
-      posiciones,
-      c
-    );
-
-    ladoAB.subVectors(
-      puntoB,
-      puntoA
-    );
-
-    ladoAC.subVectors(
-      puntoC,
-      puntoA
-    );
-
-    cruz.crossVectors(
-      ladoAB,
-      ladoAC
-    );
-
-    if (
-      a === b ||
-      b === c ||
-      c === a ||
-      cruz.lengthSq() <= 1e-16
-    ) {
-      triangulosDegenerados++;
-    }
-  }
-
-  let aristasAbiertas = 0;
-  let aristasNoManifold = 0;
-
-  aristas.forEach((cantidad) => {
-    if (cantidad === 1) {
-      aristasAbiertas++;
-    }
-
-    if (cantidad > 2) {
-      aristasNoManifold++;
-    }
-  });
-
-  geometriaIndexada.dispose();
-
-  return {
-    aristasAbiertas,
-    aristasNoManifold,
-    triangulosDegenerados,
-  };
-}
-
 function crearMarcadoresProblemas(
   geometria: THREE.BufferGeometry,
-  cajasFlotantes: THREE.Box3[]
+  cajasFlotantes: THREE.Box3[],
+  // Relativa al tamaño del modelo (lib/analisis-malla): igual en metros o en mm.
+  tolerancia: number
 ) {
   const grupo = new THREE.Group();
 
@@ -815,7 +679,7 @@ function crearMarcadoresProblemas(
   const geometriaIndexada =
     BufferGeometryUtils.mergeVertices(
       copia,
-      0.001
+      tolerancia
     );
 
   if (geometriaIndexada !== copia) {
@@ -890,10 +754,6 @@ function crearMarcadoresProblemas(
     const b = Number(indices[numero + 1]);
     const c = Number(indices[numero + 2]);
 
-    registrarArista(a, b);
-    registrarArista(b, c);
-    registrarArista(c, a);
-
     puntoA.fromBufferAttribute(
       posiciones,
       a
@@ -928,7 +788,7 @@ function crearMarcadoresProblemas(
       a === b ||
       b === c ||
       c === a ||
-      cruz.lengthSq() <= 1e-16
+      cruz.length() / 2 <= tolerancia * tolerancia
     ) {
       centroTriangulo
         .copy(puntoA)
@@ -941,7 +801,13 @@ function crearMarcadoresProblemas(
         centroTriangulo.y,
         centroTriangulo.z
       );
+      // Un triángulo aplastado no cuenta para los bordes (igual que el análisis).
+      continue;
     }
+
+    registrarArista(a, b);
+    registrarArista(b, c);
+    registrarArista(c, a);
   }
 
   const aristasAbiertas: number[] = [];
@@ -1425,6 +1291,16 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [piezasFlotantes, setPiezasFlotantes] =
   useState(0);
 
+  // Análisis con zonas (para "Ver dónde") y resultado de "Reparar".
+  const [analisisMalla, setAnalisisMalla] =
+    useState<AnalisisMalla | null>(null);
+  const [reparacion, setReparacion] = useState<{
+    aplastadosQuitados: number;
+    duplicadosQuitados: number;
+    agujerosTapados: number;
+  } | null>(null);
+  const [reparando, setReparando] = useState(false);
+
   const [filtrosProblemas, setFiltrosProblemas] =
   useState<FiltrosProblemas>({
     bordesAbiertos: true,
@@ -1607,6 +1483,50 @@ const nivelKintScore =
 
     observador.observe(contenedor);
 
+    /*
+     * Zoom parejo: el de OrbitControls avanza un % de lo que falta hasta el
+     * centro y se va frenando. Acá cada paso de la rueda mueve la cámara (y el
+     * centro) lo mismo hacia donde apunta el mouse, sin atravesar la pieza.
+     * El pellizco en el celular sigue siendo el de OrbitControls.
+     */
+    const rayo = new THREE.Raycaster();
+    function alRuedar(evento: WheelEvent) {
+      evento.preventDefault();
+      evento.stopPropagation();
+
+      const rect = renderizador.domElement.getBoundingClientRect();
+      const raton = new THREE.Vector2(
+        ((evento.clientX - rect.left) / rect.width) * 2 - 1,
+        -((evento.clientY - rect.top) / rect.height) * 2 + 1
+      );
+      rayo.setFromCamera(raton, camara);
+
+      const modelo = modeloRef.current;
+      const tamanoModelo = modelo
+        ? new THREE.Box3().setFromObject(modelo).getSize(new THREE.Vector3()).length()
+        : 300;
+      const distanciaCentro = camara.position.distanceTo(controles.target);
+      const fuerza = Math.min(3, Math.max(0.5, Math.abs(evento.deltaY) / 100));
+      const acercar = evento.deltaY < 0;
+      let paso = Math.max(tamanoModelo * 0.05, distanciaCentro * 0.12) * fuerza;
+
+      if (acercar && modelo) {
+        // Doble cara: también frena contra el interior (modelos con agujeros).
+      const material = modelo instanceof THREE.Mesh ? modelo.material : null;
+      const lado = material instanceof THREE.Material ? material.side : THREE.FrontSide;
+      if (material instanceof THREE.Material) material.side = THREE.DoubleSide;
+      const choque = rayo.intersectObject(modelo, false)[0];
+      if (material instanceof THREE.Material) material.side = lado;
+        if (choque && choque.distance < paso * 1.5) paso = choque.distance * 0.5;
+      }
+
+      const mover = rayo.ray.direction.clone().multiplyScalar(acercar ? paso : -paso);
+      camara.position.add(mover);
+      controles.target.add(mover);
+      controles.update();
+    }
+    contenedor.addEventListener("wheel", alRuedar, { capture: true, passive: false });
+
     function animar() {
       controles.update();
       renderizador.render(escena, camara);
@@ -1619,6 +1539,7 @@ const nivelKintScore =
 
     return () => {
       observador.disconnect();
+      contenedor.removeEventListener("wheel", alRuedar, { capture: true });
 
       if (animacionRef.current !== null) {
         cancelAnimationFrame(
@@ -2016,10 +1937,14 @@ const cajasFlotantes =
     geometria
   );
 
-const resultadoCheck =
-  analizarGeometriaSTL(
-    geometria
-  );
+const analisis = analizarMalla(geometria);
+const resultadoCheck: ResultadoKintCheck = {
+  aristasAbiertas: analisis.agujeros.cantidad,
+  aristasNoManifold: analisis.pegadas.cantidad,
+  triangulosDegenerados: analisis.aplastados.cantidad,
+};
+setAnalisisMalla(analisis);
+setReparacion(null);
 
 setCantidadPiezas(
   piezasDetectadas
@@ -2053,7 +1978,8 @@ geometria.computeVertexNormals();
       const marcadoresProblemas =
   crearMarcadoresProblemas(
     geometria,
-    cajasFlotantes
+    cajasFlotantes,
+    analisis.tolerancia
   );
 
   modelo.add(marcadoresProblemas);
@@ -2138,6 +2064,103 @@ requestAnimationFrame(() => {
     } finally {
       setCargando(false);
     }
+  }
+
+  /* "Reparar automáticamente": cambia la geometría por la arreglada y vuelve a analizar. */
+  function repararModelo() {
+    const modelo = modeloRef.current;
+    if (!modelo) return;
+    setReparando(true);
+
+    // Un cuadro de espera antes del cálculo pesado, para que se vea "Reparando…".
+    window.setTimeout(() => {
+      try {
+        const resultado = repararMalla(modelo.geometry);
+        const anterior = modelo.geometry;
+
+        if (problemasRef.current) {
+          modelo.remove(problemasRef.current);
+          liberarObjeto(problemasRef.current);
+        }
+
+        modelo.geometry = resultado.geometria;
+        anterior.dispose();
+
+        const cajasFlotantes = detectarPiezasFlotantes(resultado.geometria);
+        const analisis = analizarMalla(resultado.geometria);
+        const marcadores = crearMarcadoresProblemas(resultado.geometria, cajasFlotantes, analisis.tolerancia);
+        marcadores.visible = mostrarProblemas;
+        modelo.add(marcadores);
+        problemasRef.current = marcadores;
+
+        setFiltrosProblemas({ bordesAbiertos: true, noManifold: true, triangulos: true, flotantes: true });
+        setAnalisisMalla(analisis);
+        setKintCheck({
+          aristasAbiertas: analisis.agujeros.cantidad,
+          aristasNoManifold: analisis.pegadas.cantidad,
+          triangulosDegenerados: analisis.aplastados.cantidad,
+        });
+        setPiezasFlotantes(cajasFlotantes.length);
+        setCantidadPiezas(contarPiezasSeparadas(resultado.geometria));
+        setReparacion({
+          aplastadosQuitados: resultado.aplastadosQuitados,
+          duplicadosQuitados: resultado.duplicadosQuitados,
+          agujerosTapados: resultado.agujerosTapados,
+        });
+      } catch (problema) {
+        setError(problema instanceof Error ? problema.message : "No se pudo reparar el modelo.");
+      } finally {
+        setReparando(false);
+      }
+    }, 30);
+  }
+
+  /* "Ver dónde": muestra los problemas y lleva la cámara a esa zona (vista Libre). */
+  function verProblema(tipo: TipoProblema, zona: ZonaProblema) {
+    const modelo = modeloRef.current;
+    const camara = camaraRef.current;
+    const controles = controlesRef.current;
+    if (!modelo || !camara || !controles) return;
+
+    if (!mostrarProblemas) alternarProblemas();
+
+    // Que se vea solo esta clase de problema.
+    const nombres: Record<TipoProblema, string> = {
+      agujeros: "bordes-abiertos",
+      pegadas: "no-manifold",
+      aplastados: "triangulos-defectuosos",
+    };
+    const problemas = problemasRef.current;
+    if (problemas) {
+      Object.entries(nombres).forEach(([clave, nombre]) => {
+        const objeto = problemas.getObjectByName(nombre);
+        if (objeto) objeto.visible = clave === tipo;
+      });
+      setFiltrosProblemas((actuales) => ({
+        ...actuales,
+        bordesAbiertos: tipo === "agujeros",
+        noManifold: tipo === "pegadas",
+        triangulos: tipo === "aplastados",
+      }));
+    }
+
+    // Después del reencuadre de alternarProblemas (que va en el próximo cuadro).
+    window.setTimeout(() => {
+      const punto = modelo.localToWorld(new THREE.Vector3(...zona.centro));
+      const tamanoModelo = new THREE.Box3().setFromObject(modelo).getSize(new THREE.Vector3()).length();
+      const radio = Math.max(zona.radio * modelo.scale.x, tamanoModelo * 0.03);
+      const direccion = camara.position.clone().sub(controles.target);
+      if (direccion.lengthSq() < 1e-12) direccion.set(1, 0.8, 1);
+      direccion.normalize();
+
+      setVistaActiva("libre");
+      cambiarVista("libre");
+      controles.target.copy(punto);
+      camara.position.copy(punto.clone().add(direccion.multiplyScalar(radio * 5)));
+      camara.near = Math.max(radio / 1000, 0.001);
+      camara.updateProjectionMatrix();
+      controles.update();
+    }, 60);
   }
 
   function cambiarFiltroProblema(
@@ -2828,18 +2851,13 @@ requestAnimationFrame(() => {
         className={`rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] ${
           kintCheck.aristasAbiertas > 0
             ? "bg-red-500/10 text-red-600"
-            : kintCheck.aristasNoManifold > 0 ||
-                kintCheck.triangulosDegenerados > 0
-              ? "bg-yellow-500/10 text-yellow-700"
-              : "bg-green-500/10 text-green-600"
+            : "bg-green-500/10 text-green-600"
         }`}
       >
+        {/* Piezas pegadas y triángulos aplastados no frenan la impresión. */}
         {kintCheck.aristasAbiertas > 0
-          ? "Error de malla"
-          : kintCheck.aristasNoManifold > 0 ||
-              kintCheck.triangulosDegenerados > 0
-            ? "Revisión recomendada"
-            : "Sin problemas detectados"}
+          ? "Tiene agujeros"
+          : "Lista para imprimir"}
       </span>
     </div>
 
@@ -2889,6 +2907,17 @@ requestAnimationFrame(() => {
       </p>
     </div>
     )}
+
+  {analisisMalla && (
+    <DiagnosticoMalla
+      analisis={analisisMalla}
+      piezasFlotantes={piezasFlotantes}
+      reparacion={reparacion}
+      reparando={reparando}
+      onVer={verProblema}
+      onReparar={repararModelo}
+    />
+  )}
 
   <details className="group mt-3">
     <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)]/50 px-4 py-3 transition hover:border-red-600 [&::-webkit-details-marker]:hidden">
