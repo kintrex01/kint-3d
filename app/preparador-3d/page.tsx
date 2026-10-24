@@ -13,6 +13,8 @@ import { milimetrosPorUnidad } from "@/lib/precio-estimado";
 import { analizarMalla, repararMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
 import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMalla";
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
+import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
+import ConsejosImpresion from "@/components/ConsejosImpresion";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -1309,6 +1311,10 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   } | null>(null);
   const [reparando, setReparando] = useState(false);
 
+  // Consejos (en unidades del archivo: se pasan a mm con la escala del visor).
+  const [consejos, setConsejos] = useState<Consejos | null>(null);
+  const [cortesVisibles, setCortesVisibles] = useState(false);
+
   const [filtrosProblemas, setFiltrosProblemas] =
   useState<FiltrosProblemas>({
     bordesAbiertos: true,
@@ -2024,6 +2030,8 @@ const resultadoCheck: ResultadoKintCheck = {
 };
 setAnalisisMalla(analisis);
 setReparacion(null);
+setConsejos(analizarConsejos(geometria, 1));
+setCortesVisibles(false);
 
 setCantidadPiezas(
   piezasDetectadas
@@ -2179,6 +2187,9 @@ requestAnimationFrame(() => {
         modelo.add(crearBordes(resultado.geometria));
         quitarHijo(modelo, "parches-reparacion");
         quitarHijo(modelo, "marca-zona");
+        quitarHijo(modelo, "planos-corte");
+        setCortesVisibles(false);
+        setConsejos(analizarConsejos(resultado.geometria, 1));
         if (resultado.parches.length) modelo.add(crearParches(resultado.parches));
 
         const cajasFlotantes = detectarPiezasFlotantes(resultado.geometria);
@@ -2210,6 +2221,70 @@ requestAnimationFrame(() => {
         setReparando(false);
       }
     }, 30);
+  }
+
+  /* Lleva la cámara a una zona (coordenadas del archivo) y la marca con una esfera. */
+  function enfocarZona(centro: [number, number, number], radioZona: number) {
+    const modelo = modeloRef.current;
+    const camara = camaraRef.current;
+    const controles = controlesRef.current;
+    if (!modelo || !camara || !controles) return;
+    quitarHijo(modelo, "marca-zona");
+    modelo.add(crearMarcaZona(centro, radioZona));
+
+    const punto = modelo.localToWorld(new THREE.Vector3(...centro));
+    const tamanoModelo = new THREE.Box3().setFromObject(modelo).getSize(new THREE.Vector3()).length();
+    const radio = Math.max(radioZona * modelo.scale.x, tamanoModelo * 0.03);
+    const direccion = camara.position.clone().sub(controles.target);
+    if (direccion.lengthSq() < 1e-12) direccion.set(1, 0.8, 1);
+    direccion.normalize();
+
+    setVistaActiva("libre");
+    cambiarVista("libre");
+    controles.target.copy(punto);
+    camara.position.copy(punto.clone().add(direccion.multiplyScalar(radio * 3)));
+    camara.near = Math.max(radio / 1000, 0.001);
+    camara.updateProjectionMatrix();
+    controles.update();
+  }
+
+  function verPiezaParada(indice: number) {
+    const pieza = consejos?.paradas[indice];
+    if (pieza) enfocarZona(pieza.centro, pieza.radio);
+  }
+
+  /* Planos rojos a las alturas sugeridas de corte (hijos del modelo, en unidades del archivo). */
+  function alternarCortes() {
+    const modelo = modeloRef.current;
+    if (!modelo || !consejos) return;
+    quitarHijo(modelo, "planos-corte");
+    if (cortesVisibles) {
+      setCortesVisibles(false);
+      return;
+    }
+    modelo.geometry.computeBoundingBox();
+    const caja = modelo.geometry.boundingBox!;
+    const ancho = (caja.max.x - caja.min.x) * 1.15;
+    const fondo = (caja.max.y - caja.min.y) * 1.15;
+    const grupo = new THREE.Group();
+    grupo.name = "planos-corte";
+    for (const altura of consejos.cortes) {
+      const plano = new THREE.Mesh(
+        new THREE.PlaneGeometry(ancho, fondo),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
+      );
+      plano.position.set((caja.min.x + caja.max.x) / 2, (caja.min.y + caja.max.y) / 2, caja.min.z + altura);
+      const borde = new THREE.LineSegments(
+        new THREE.EdgesGeometry(plano.geometry),
+        new THREE.LineBasicMaterial({ color: 0xdc2626 })
+      );
+      plano.add(borde);
+      grupo.add(plano);
+    }
+    modelo.add(grupo);
+    setCortesVisibles(true);
+    setVistaActiva("modelo");
+    requestAnimationFrame(() => cambiarVista("modelo"));
   }
 
   /* "Ver dónde": muestra los problemas y lleva la cámara a esa zona (vista Libre). */
@@ -3027,6 +3102,16 @@ requestAnimationFrame(() => {
       onVer={verProblema}
       onReparar={repararModelo}
       onDescargar={descargarSTLPreparado}
+    />
+  )}
+
+  {consejos && (
+    <ConsejosImpresion
+      consejos={consejos}
+      factor={escalaPorcentaje / 100}
+      cortesVisibles={cortesVisibles}
+      onVerParada={verPiezaParada}
+      onAlternarCortes={alternarCortes}
     />
   )}
 
