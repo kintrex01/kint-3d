@@ -56,13 +56,9 @@ export function medirSTL(buffer: ArrayBuffer) {
   return { mm3: Math.abs(volumen), mm2: superficie, medidas };
 }
 
-/* Lado más largo que entra en la impresora (mm): Bambu Lab H2D, 325 × 320. */
-const CAMA_MM = 320;
-
 export type Estimacion =
   | { tipo: "precio"; desde: number; hasta: number; gramos: number; horas: number; medidas: number[] }
   | { tipo: "elegiEscala" }
-  | { tipo: "muyGrande"; medidas: number[] }
   | { tipo: "sinDatos" };
 
 /*
@@ -123,7 +119,7 @@ export function estimarPrecio(
     const finales = pieza.medidas.map((medida) => medida * factor);
     if (Math.max(...finales) > Math.max(...medidas)) medidas = finales;
   }
-  if (Math.max(...medidas) > CAMA_MM) return { tipo: "muyGrande", medidas };
+  // Aunque no entre en la impresora se calcula igual: lo que importa es el costo y el tiempo.
 
   // Paredes (~0,8 mm) y relleno de ~15%; nunca más que macizo. PLA 1,24 g/cm³. Calibrado con
   // Bambu Studio: edificio a 1:250 (27 × 16 × 15 cm) = 130 g; KNT-0018 = 20 g.

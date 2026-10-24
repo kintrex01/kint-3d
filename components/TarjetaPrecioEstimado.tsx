@@ -69,11 +69,10 @@ export default function TarjetaPrecioEstimado({
   const yaAEscala = unidad === "escala" && Boolean(medidas);
   const sinEscala = !(escala >= 1) && !yaAEscala;
   const estimacion = medidas && !sinEscala ? estimarPrecio(medidas, escala, unidad) : null;
-  const muyGrande = estimacion?.tipo === "muyGrande";
 
   const numero = (texto: string) => Math.max(0, Number(texto.replace(",", ".")) || 0);
   const rango =
-    sinEscala || muyGrande
+    sinEscala
       ? null
       : rangoPorDatos({
           horas: numero(valores.horas),
@@ -129,22 +128,6 @@ export default function TarjetaPrecioEstimado({
         <p className="text-sm leading-6 text-[var(--text-main)]">
         <strong>📏 Elegí la escala acá arriba.</strong> Tu modelo está en tamaño real: lo llevamos a esa escala y te
         mostramos el precio aproximado.
-        </p>
-      </div>
-    );
-  }
-
-  if (estimacion?.tipo === "muyGrande") {
-    const [ancho, largo, alto] = estimacion.medidas;
-    return (
-      <div className={claseCaja}>
-        {selectorUnidad}
-        <p className="text-sm leading-6 text-[var(--text-main)]">
-        <strong>
-          {yaAEscala ? "Tu maqueta mide" : `A 1:${escala} tu maqueta mediría`} {centimetros(ancho)} × {centimetros(largo)} × {centimetros(alto)} cm
-        </strong>
-        , más grande que la impresora. La imprimimos en partes: te mandamos el precio en el presupuesto. Si esperabas
-        otro tamaño, revisá la escala o en qué está tu archivo.
         </p>
       </div>
     );
