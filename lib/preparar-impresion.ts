@@ -64,6 +64,30 @@ function separarPiezas(tris: Tri[], paso: number) {
   return [...grupos.values()];
 }
 
+/*
+ * Lo que se toca va junto: en SketchUp cada muro, losa o escalera es un grupo
+ * aparte que no comparte vértices con los demás, pero se apoya en ellos. Se
+ * juntan las piezas cuyas cajas se tocan o se meten una en otra (barrido por X).
+ */
+function juntarLoQueSeToca(piezas: Tri[][], tolerancia: number) {
+  const cajas = piezas.map((pieza) => cajaDe(pieza).expandByScalar(tolerancia));
+  const padre = piezas.map((_, i) => i);
+  const raiz = (v: number): number => (padre[v] === v ? v : (padre[v] = raiz(padre[v])));
+  const orden = piezas.map((_, i) => i).sort((a, b) => cajas[a].min.x - cajas[b].min.x);
+  for (let i = 0; i < orden.length; i++) {
+    const a = cajas[orden[i]];
+    for (let j = i + 1; j < orden.length && cajas[orden[j]].min.x <= a.max.x; j++) {
+      if (a.intersectsBox(cajas[orden[j]])) padre[raiz(orden[j])] = raiz(orden[i]);
+    }
+  }
+  const grupos = new Map<number, Tri[][]>();
+  piezas.forEach((pieza, i) => {
+    const r = raiz(i);
+    (grupos.get(r) || grupos.set(r, []).get(r)!).push(pieza);
+  });
+  return [...grupos.values()];
+}
+
 /* Sólidos cerrados: triángulos unidos por bordes que comparten exactamente dos caras. */
 function separarCascaras(tris: Tri[]) {
   const paso = 1e-4;
@@ -255,8 +279,11 @@ export function prepararParaImprimir(
   let acostadas = 0;
   let cortes = 0;
   const partes: Tri[][] = [];
-  for (const pieza of separarPiezas(tris, paso)) {
-    if (opciones.acostar && estaParada(pieza, tamano)) {
+  // 0,05 mm impresos: lo que se apoya o se mete en otra pieza va con ella.
+  for (const grupo of juntarLoQueSeToca(separarPiezas(tris, paso), Math.max(paso * 10, 0.05))) {
+    const pieza = grupo.length === 1 ? grupo[0] : grupo.flat();
+    // Solo se acuesta lo que está suelto (un muro apoyado en la losa queda donde está).
+    if (opciones.acostar && grupo.length === 1 && estaParada(pieza, tamano)) {
       partes.push(acostar(pieza));
       acostadas++;
       continue;
