@@ -2027,24 +2027,6 @@ return (
   </div>
 )}
 
-{/* Precio estimado (se apaga en Configuración › Precio estimado). */}
-{precioEstimadoActivo && (
-  <details className="group mt-3">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-sky-400/40 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-500/10 dark:text-sky-300">
-      Ver precio aproximado
-      <span className="text-xl font-light transition group-open:rotate-45">+</span>
-    </summary>
-    <TarjetaPrecioEstimado
-      medidas={medidasArchivos}
-      midiendo={midiendoArchivos}
-      // "No es necesario" = pieza que no es maqueta: se toma tal cual (1:1).
-      escala={escala === "No es necesario" ? 1 : escalaCalculadora || 0}
-      recargoUrgente={pedidoUrgenteDisponible ? pedidoUrgenteValor : 0}
-      onRango={setRangoEstimado}
-    />
-  </details>
-)}
-
           <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm text-[var(--text-main)]">
   <input
     type="checkbox"
@@ -2066,24 +2048,6 @@ return (
 
         </div>
 
-
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Fecha de entrega <span className="text-sm font-normal text-[var(--text-muted)]">(opcional)</span>
-          </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Para cuándo la necesitás. Si no tenés fecha, dejalo vacío.
-          </p>
-          {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
-          <div className="rounded-2xl bg-[var(--kint-panel)]">
-            <CalendarioEntrega
-              valor={fechaEntrega}
-              onCambiar={setFechaEntrega}
-              dias={diasEntrega}
-              onCambiarDias={setDiasEntrega}
-            />
-          </div>
-        </div>
 
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -2131,6 +2095,42 @@ return (
     />
   </div>
 )}
+
+{/* Precio estimado (se apaga en Configuración › Precio estimado). */}
+{precioEstimadoActivo && (
+  <details className="group mt-3">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border border-sky-400/40 px-4 py-3 text-sm font-bold text-sky-700 transition hover:bg-sky-500/10 dark:text-sky-300">
+      Ver precio aproximado
+      <span className="text-xl font-light transition group-open:rotate-45">+</span>
+    </summary>
+    <TarjetaPrecioEstimado
+      medidas={medidasArchivos}
+      midiendo={midiendoArchivos}
+      // "No es necesario" = pieza que no es maqueta: se toma tal cual (1:1).
+      escala={escala === "No es necesario" ? 1 : escalaCalculadora || 0}
+      recargoUrgente={pedidoUrgenteDisponible ? pedidoUrgenteValor : 0}
+      onRango={setRangoEstimado}
+    />
+  </details>
+)}
+        </div>
+
+        <div className="mb-6">
+          <label className="mb-2 block font-semibold text-[var(--text-main)]">
+            Fecha de entrega <span className="text-sm font-normal text-[var(--text-muted)]">(opcional)</span>
+          </label>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">
+            Para cuándo la necesitás. Si no tenés fecha, dejalo vacío.
+          </p>
+          {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
+          <div className="rounded-2xl bg-[var(--kint-panel)]">
+            <CalendarioEntrega
+              valor={fechaEntrega}
+              onCambiar={setFechaEntrega}
+              dias={diasEntrega}
+              onCambiarDias={setDiasEntrega}
+            />
+          </div>
         </div>
 
 {/* Un solo color disponible: va elegido solo y no se muestra. */}

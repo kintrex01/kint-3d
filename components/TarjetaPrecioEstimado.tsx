@@ -88,8 +88,8 @@ export default function TarjetaPrecioEstimado({
   if (sinEscala) {
     return (
       <p className={`${claseCaja} text-sm leading-6 text-[var(--text-main)]`}>
-        <strong>📏 Elegí la escala de la maqueta</strong> (más abajo). Tu modelo está en tamaño real: lo llevamos a
-        esa escala y ahí te mostramos el precio aproximado.
+        <strong>📏 Elegí la escala acá arriba.</strong> Tu modelo está en tamaño real: lo llevamos a esa escala y te
+        mostramos el precio aproximado.
       </p>
     );
   }

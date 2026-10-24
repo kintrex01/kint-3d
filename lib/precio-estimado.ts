@@ -66,17 +66,18 @@ export type Estimacion =
   | { tipo: "sinDatos" };
 
 /*
- * El STL no dice en qué unidades se exportó desde SketchUp. Como el modelo
- * está en tamaño real (1:1), se elige la unidad (mm, cm o m) con la que el
- * lado más largo da un tamaño real razonable: de 50 cm a 300 m.
- * Ej.: un edificio de 20 m llega como 20 (m) o 20000 (mm).
+ * El STL no dice en qué unidades se exportó desde SketchUp. El modelo está
+ * en tamaño real (1:1) y en metros (requisitos de Cotizar), así que se prueba
+ * primero metros, después milímetros y centímetros: la primera con la que el
+ * lado más largo da un tamaño real razonable (de 2 m a 300 m).
+ * Ej.: un edificio de 60 m llega como 60 (m) o 60000 (mm).
  */
 export function milimetrosPorUnidad(lado: number) {
-  for (const unidad of [1, 10, 1000]) {
+  for (const unidad of [1000, 1, 10]) {
     const metros = (lado * unidad) / 1000;
-    if (metros >= 0.5 && metros <= 300) return unidad;
+    if (metros >= 2 && metros <= 300) return unidad;
   }
-  return lado < 0.5 ? 1000 : 1;
+  return lado < 2 ? 1000 : 1;
 }
 
 /*
