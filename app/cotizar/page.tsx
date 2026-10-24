@@ -9,6 +9,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import { marcarPaso } from "@/lib/embudo";
+import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-recordado";
 import { medirSTL } from "@/lib/precio-estimado";
 import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
@@ -110,6 +111,17 @@ function ImagenFilamento({
 export default function Cotizar() {
   const [nombre, setNombre] = useState("");
 const [email, setEmail] = useState("");
+// El correo vino solo (sesión de la cuenta o último pedido en este dispositivo).
+const [correoAutomatico, setCorreoAutomatico] = useState(false);
+
+/* Cliente conocido: el correo se completa solo y aparece "¡Hola, …!". */
+useEffect(() => {
+  const recordado = correoRecordado();
+  if (recordado) {
+    setEmail(recordado);
+    setCorreoAutomatico(true);
+  }
+}, []);
 
 const [alias, setAlias] = useState("");
 const [clienteExiste, setClienteExiste] =
@@ -1435,6 +1447,9 @@ precioEstimado: precioEstimadoActivo ? rangoEstimado : "",
       throw new Error(data.error || "Error al enviar el pedido");
     }
 
+    // La próxima vez el correo aparece solo en este dispositivo.
+    recordarCorreo(email);
+
     setNombre("");
 setEmail("");
 setAlias("");
@@ -1750,13 +1765,30 @@ return (
 
   <input
     type="email"
+    name="email"
+    autoComplete="email"
     value={email}
-    onChange={(e) =>
-      setEmail(e.target.value)
-    }
+    onChange={(e) => {
+      setEmail(e.target.value);
+      setCorreoAutomatico(false);
+    }}
     className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
     placeholder="ejemplo@gmail.com"
   />
+
+  {correoAutomatico && email && (
+    <button
+      type="button"
+      onClick={() => {
+        olvidarCorreo();
+        setEmail("");
+        setCorreoAutomatico(false);
+      }}
+      className="mt-2 text-xs font-semibold text-[var(--text-muted)] underline underline-offset-4 hover:text-[var(--text-main)]"
+    >
+      ¿No sos vos? Usar otro correo
+    </button>
+  )}
 
   {consultandoCliente && (
     <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">

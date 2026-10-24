@@ -44,6 +44,7 @@ import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
 import ThemeToggle from "@/components/ThemeToggle";
+import { correoRecordado, recordarCorreo } from "@/lib/correo-recordado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import {
   ComboFicha,
@@ -2899,6 +2900,12 @@ export default function TiendaPage() {
 
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
+
+  /* Cliente conocido: el correo se completa solo (sesión o última compra en este dispositivo). */
+  useEffect(() => {
+    const recordado = correoRecordado();
+    if (recordado) setEmail((actual) => actual || recordado);
+  }, []);
   // Celular: solo se pide a cuentas nuevas o que todavía no lo tienen.
   const [telefono, setTelefono] = useState("");
   const [alias, setAlias] = useState("");
@@ -3650,6 +3657,7 @@ export default function TiendaPage() {
         throw new Error(mensaje);
       }
 
+      recordarCorreo(emailLimpio);
       setConfirmada({
         pedido: String(data.pedido),
         nombre: String(data.nombre || nombreFinal),

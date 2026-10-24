@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 /*
  * Ajustes de la cuenta del cliente (Apps Script: Cuenta_Kint3D.js).
  * 1. Correo → le llega un código de 5 caracteres.
- * 2. Código → sesión de 1 día (token en localStorage: sigue abierta aunque cierres la pestaña).
+ * 2. Código → sesión de 1 día, 1 mes o «Siempre» (lo normal; token en localStorage).
  * 3. Ve sus pedidos y puntos, y cambia nombre, alias y celular.
  *    El correo no se cambia.
  */
@@ -325,7 +325,7 @@ function PanelCuenta({
   const [alias, setAlias] = useState(cuenta.alias);
   const [telefono, setTelefono] = useState(cuenta.telefono);
   const [topKint, setTopKint] = useState(cuenta.topKint);
-  const [sesionDias, setSesionDias] = useState(cuenta.sesionDias || 1);
+  const [sesionDias, setSesionDias] = useState(cuenta.sesionDias || 365);
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState("");
   const [error, setError] = useState("");
@@ -335,7 +335,7 @@ function PanelCuenta({
     alias.trim() !== cuenta.alias ||
     telefono.trim() !== cuenta.telefono ||
     topKint !== cuenta.topKint ||
-    sesionDias !== (cuenta.sesionDias || 1);
+    sesionDias !== (cuenta.sesionDias || 365);
 
   async function guardar() {
     setGuardando(true);
@@ -553,7 +553,11 @@ function PanelCuenta({
               Mantener la sesión abierta
             </span>
             <div className="grid grid-cols-3 gap-1.5 rounded-xl border border-[var(--kint-panel-border)] p-1">
-              {[1, 2, 3].map((dias) => (
+              {([
+                [1, "1 día"],
+                [30, "1 mes"],
+                [365, "Siempre"],
+              ] as const).map(([dias, texto]) => (
                 <button
                   key={dias}
                   type="button"
@@ -565,12 +569,12 @@ function PanelCuenta({
                       : "text-[var(--text-muted)] hover:text-[var(--text-main)]"
                   }`}
                 >
-                  {dias} {dias === 1 ? "día" : "días"}
+                  {texto}
                 </button>
               ))}
             </div>
             <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
-              Después te pedimos el código de nuevo. En una compu compartida, mejor 1 día.
+              Con «Siempre» no te pedimos el código de nuevo en este dispositivo. En una compu compartida, elegí 1 día.
             </span>
           </div>
 
