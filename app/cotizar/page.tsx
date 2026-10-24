@@ -183,6 +183,8 @@ const [telefono, setTelefono] = useState("");
   const [midiendoArchivos, setMidiendoArchivos] = useState(false);
   // Revisión rápida del STL (lib/revision-rapida): null = sin STL; "revisando" mientras analiza.
   const [revision, setRevision] = useState<import("@/lib/revision-rapida").RevisionRapida | "revisando" | null>(null);
+  // Por defecto se manda la copia arreglada; el cliente puede elegir mandar la suya tal cual.
+  const [enviarOriginal, setEnviarOriginal] = useState(false);
   // Rango que vio el cliente en «¿Cuánto saldría?» (va en el correo al dueño).
   const [rangoEstimado, setRangoEstimado] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -1387,12 +1389,19 @@ if (
 
     const archivosOriginales = [];
 
-if (archivos.length > 0) {
+// Los STL que la revisión arregló se mandan arreglados (salvo que el cliente no quiera).
+const aEnviar = archivos.map((archivo) =>
+  (!enviarOriginal && revision && revision !== "revisando"
+    ? revision.reparados.find((par) => par.original === archivo)?.reparado
+    : undefined) || archivo
+);
+
+if (aEnviar.length > 0) {
   const firmaResponse = await fetch("/api/archivos-firma", {
     method: "POST",
     body: JSON.stringify({
       pedido: "cotizacion-temp",
-      archivos: archivos.map((archivo) => ({
+      archivos: aEnviar.map((archivo) => ({
         nombre: archivo.name,
         size: archivo.size,
       })),
@@ -1405,8 +1414,8 @@ if (archivos.length > 0) {
     throw new Error(firmaData.error || "No se pudo preparar el archivo.");
   }
 
-  for (let i = 0; i < archivos.length; i++) {
-    const archivo = archivos[i];
+  for (let i = 0; i < aEnviar.length; i++) {
+    const archivo = aEnviar[i];
     const firmado = firmaData.archivos[i];
 
     // Reintenta si el servidor de archivos tiene un corte corto.
@@ -2108,27 +2117,63 @@ return (
       <p className="mb-3 animate-pulse text-sm font-semibold text-[var(--text-muted)]">Revisando tu archivo…</p>
     ) : revision ? (
       (() => {
+        const { arreglos } = revision;
+        const arreglado = [
+          arreglos.agujeros > 0 && `tapamos ${arreglos.agujeros} ${arreglos.agujeros === 1 ? "agujero" : "agujeros"}`,
+          arreglos.laminas > 0 &&
+            `le dimos espesor a ${arreglos.laminas} ${arreglos.laminas === 1 ? "cara suelta" : "caras sueltas"} (paredes o techos de una sola cara)`,
+          arreglos.costuras > 0 && "cosimos uniones entre caras",
+          arreglos.carasDadasVuelta > 0 && "dimos vuelta las caras al revés",
+        ].filter(Boolean) as string[];
         const avisos = [
-          revision.agujeros > 0 && `${revision.agujeros} ${revision.agujeros === 1 ? "agujero" : "agujeros"} (caras que faltan)`,
-          revision.carasAlReves && "caras dadas vuelta",
+          !revision.reparados.length && revision.agujeros > 0 &&
+            `${revision.agujeros} ${revision.agujeros === 1 ? "agujero" : "agujeros"} (caras que faltan)`,
+          !revision.reparados.length && revision.carasAlReves && "caras dadas vuelta",
           revision.paradas > 0 &&
             `${revision.paradas} ${revision.paradas === 1 ? "pieza parada" : "piezas paradas"}: conviene acostarlas`,
           revision.partes > 0 && `conviene cortarlo en ${revision.partes} partes para no usar soportes`,
         ].filter(Boolean) as string[];
-        return avisos.length ? (
-          <div className="mb-3 text-sm">
-            <p className="font-bold text-amber-700 dark:text-amber-400">⚠ Revisión rápida: encontramos cosas para mejorar</p>
-            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-[var(--text-main)]">
-              {avisos.map((aviso) => (
-                <li key={aviso}>{aviso}</li>
-              ))}
-            </ul>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Tocá el botón para verlo en 3D y repararlo. Igual podés enviarlo así.</p>
-          </div>
-        ) : (
-          <p className="mb-3 text-sm font-bold text-emerald-700 dark:text-emerald-400">
-            ✓ Revisión rápida: no encontramos problemas en tu archivo.
-          </p>
+        return (
+          <>
+            {revision.reparados.length > 0 && (
+              <div className="mb-3 rounded-lg bg-emerald-500/10 p-3 text-sm">
+                <p className="font-bold text-emerald-700 dark:text-emerald-400">✓ Tu archivo tenía errores y lo arreglamos solo</p>
+                {arreglado.length > 0 && (
+                  <p className="mt-1 text-[13px] text-[var(--text-main)]">
+                    {arreglado.join(", ").replace(/^./, (letra) => letra.toUpperCase())}.
+                  </p>
+                )}
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {enviarOriginal
+                    ? "Vas a enviar tu archivo original, sin arreglar."
+                    : "Vamos a enviar la copia arreglada. No tenés que hacer nada."}
+                </p>
+                <label className="mt-2 flex cursor-pointer items-center gap-2 text-xs text-[var(--text-muted)]">
+                  <input type="checkbox" checked={enviarOriginal} onChange={(e) => setEnviarOriginal(e.target.checked)} />
+                  Prefiero enviar mi archivo original sin arreglar
+                </label>
+              </div>
+            )}
+            {avisos.length ? (
+              <div className="mb-3 text-sm">
+                <p className="font-bold text-amber-700 dark:text-amber-400">
+                  {revision.reparados.length ? "Consejos para imprimirlo mejor" : "⚠ Revisión rápida: encontramos cosas para mejorar"}
+                </p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[13px] text-[var(--text-main)]">
+                  {avisos.map((aviso) => (
+                    <li key={aviso}>{aviso}</li>
+                  ))}
+                </ul>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Tocá el botón para verlo en 3D. Igual podés enviarlo así.</p>
+              </div>
+            ) : (
+              !revision.reparados.length && (
+                <p className="mb-3 text-sm font-bold text-emerald-700 dark:text-emerald-400">
+                  ✓ Revisión rápida: no encontramos problemas en tu archivo.
+                </p>
+              )
+            )}
+          </>
         );
       })()
     ) : null}

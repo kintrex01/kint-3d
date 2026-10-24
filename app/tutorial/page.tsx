@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
+import { CaminoRapidoSTL, ErroresComunesSTL } from "../../components/GuiaRapidaSTL";
 
 const revisionFinal = [
   "Eliminá caras y líneas duplicadas.",
@@ -114,6 +115,8 @@ export default function TutorialPage() {
   </Link>
 </div>
       </section>
+
+      <CaminoRapidoSTL />
 
       <section className="relative z-10 mx-auto grid max-w-6xl gap-7 lg:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
@@ -640,6 +643,8 @@ export default function TutorialPage() {
           </div>
         </div>
       </section>
+
+      <ErroresComunesSTL />
 
       <section className="relative z-10 mx-auto mt-24 max-w-5xl rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-10">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600">

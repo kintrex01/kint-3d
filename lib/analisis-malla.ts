@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 
 /*
  * Análisis y reparación de mallas STL para el visor 3D (/preparador-3d).
@@ -30,30 +29,54 @@ export type AnalisisMalla = {
   alReves: GrupoProblema;
 };
 
-export type ResultadoReparacion = {
-  geometria: THREE.BufferGeometry;
-  // Triángulos nuevos (tapas de agujeros), para pintarlos en el visor.
-  parches: Float32Array;
-  aplastadosQuitados: number;
-  duplicadosQuitados: number;
-  carasDoblesQuitadas: number;
-  carasDadasVuelta: number;
-  agujerosTapados: number;
-};
-
-function diagonal(geometria: THREE.BufferGeometry) {
+export function diagonal(geometria: THREE.BufferGeometry) {
   geometria.computeBoundingBox();
   const caja = geometria.boundingBox;
   return caja ? Math.max(caja.getSize(new THREE.Vector3()).length(), 1e-9) : 1;
 }
 
 /* Une vértices repetidos con una tolerancia relativa al tamaño del modelo. */
-function soldar(geometria: THREE.BufferGeometry, tolerancia: number) {
-  const copia = new THREE.BufferGeometry();
-  copia.setAttribute("position", geometria.getAttribute("position").clone());
-  if (geometria.getIndex()) copia.setIndex(geometria.getIndex()!.clone());
-  const indexada = BufferGeometryUtils.mergeVertices(copia, tolerancia);
-  if (indexada !== copia) copia.dispose();
+export function soldar(geometria: THREE.BufferGeometry, tolerancia: number) {
+  // Tabla hash propia (grilla de la tolerancia): rápida con millones de vértices.
+  const posicion = geometria.getAttribute("position");
+  const original = geometria.getIndex();
+  const n = posicion.count;
+  geometria.computeBoundingBox();
+  const min = geometria.boundingBox!.min;
+  const paso = Math.max(tolerancia, 1e-12);
+  let capacidad = 1;
+  while (capacidad < n * 2) capacidad <<= 1;
+  const mascara = capacidad - 1;
+  const tabla = new Int32Array(capacidad).fill(-1);
+  const claves = new Int32Array(n * 3);
+  const salida = new Float32Array(n * 3);
+  const nuevoDe = new Uint32Array(n);
+  let unicos = 0;
+  for (let i = 0; i < n; i++) {
+    const x = posicion.getX(i), y = posicion.getY(i), z = posicion.getZ(i);
+    const ix = Math.round((x - min.x) / paso), iy = Math.round((y - min.y) / paso), iz = Math.round((z - min.z) / paso);
+    let h = (Math.imul(ix, 73856093) ^ Math.imul(iy, 19349663) ^ Math.imul(iz, 83492791)) & mascara;
+    for (;;) {
+      const v = tabla[h];
+      if (v < 0) {
+        tabla[h] = unicos;
+        claves[unicos * 3] = ix; claves[unicos * 3 + 1] = iy; claves[unicos * 3 + 2] = iz;
+        salida[unicos * 3] = x; salida[unicos * 3 + 1] = y; salida[unicos * 3 + 2] = z;
+        nuevoDe[i] = unicos++;
+        break;
+      }
+      if (claves[v * 3] === ix && claves[v * 3 + 1] === iy && claves[v * 3 + 2] === iz) {
+        nuevoDe[i] = v;
+        break;
+      }
+      h = (h + 1) & mascara;
+    }
+  }
+  const indice = new Uint32Array(original ? original.count : n);
+  for (let i = 0; i < indice.length; i++) indice[i] = nuevoDe[original ? original.getX(i) : i];
+  const indexada = new THREE.BufferGeometry();
+  indexada.setAttribute("position", new THREE.BufferAttribute(salida.slice(0, unicos * 3), 3));
+  indexada.setIndex(new THREE.BufferAttribute(indice, 1));
   return indexada;
 }
 
@@ -96,14 +119,14 @@ export function analizarMalla(geometria: THREE.BufferGeometry): AnalisisMalla {
   }
 
   // desde = de qué vértice sale el primer triángulo que usa el borde; iguales = otro va para el mismo lado.
-  const aristas = new Map<string, { a: number; b: number; n: number; desde: number; iguales: number }>();
+  const aristas = new Map<number, { a: number; b: number; n: number; desde: number; iguales: number }>();
   const puntosAplastados: number[] = [];
   const areaMinima = tamano * tamano * 1e-12;
   const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
   const ab = new THREE.Vector3(), ac = new THREE.Vector3();
 
   const sumar = (a: number, b: number) => {
-    const clave = a < b ? `${a}-${b}` : `${b}-${a}`;
+    const clave = a < b ? a * 4294967296 + b : b * 4294967296 + a;
     const arista = aristas.get(clave);
     if (arista) {
       arista.n++;
@@ -192,201 +215,5 @@ export function analizarMalla(geometria: THREE.BufferGeometry): AnalisisMalla {
     pegadas: { cantidad: pegadas, zonas: agruparEnZonas(puntosPegadas, tamano) },
     aplastados: { cantidad: puntosAplastados.length / 3, zonas: agruparEnZonas(puntosAplastados, tamano) },
     alReves: { cantidad: puntosAlReves.length / 3, zonas: agruparEnZonas(puntosAlReves, tamano) },
-  };
-}
-
-/*
- * Reparación automática (de verdad):
- *   1. une vértices sueltos y saca triángulos aplastados y repetidos;
- *   2. saca las caras dobles (dos caras iguales enfrentadas: típico de
- *      grupos pegados en SketchUp);
- *   3. da vuelta las caras que quedaron al revés, para que todas miren
- *      para afuera (las "caras azules" de SketchUp);
- *   4. tapa todos los agujeros, también los de forma irregular.
- * Devuelve los triángulos nuevos (parches) para pintarlos en el visor.
- * Las piezas que se tocan por un borde no se tocan: el laminador las une.
- */
-export function repararMalla(geometria: THREE.BufferGeometry): ResultadoReparacion {
-  const tamano = diagonal(geometria);
-  const indexada = soldar(geometria, tamano * 1e-6);
-  const posiciones = indexada.getAttribute("position");
-  const idx = indexada.getIndex()!.array;
-  const areaMinima = tamano * tamano * 1e-12;
-  const A = new THREE.Vector3(), B = new THREE.Vector3(), C = new THREE.Vector3();
-  const ab = new THREE.Vector3(), ac = new THREE.Vector3();
-
-  // --- 1 y 2: aplastados, repetidos y caras dobles ---
-  const lista: [number, number, number][] = [];
-  const quitar = new Set<number>();
-  const porClave = new Map<string, number>();
-  let aplastadosQuitados = 0;
-  let duplicadosQuitados = 0;
-  let carasDoblesQuitadas = 0;
-  // Misma terna empezando por el menor índice: así se comparan orientaciones.
-  const canonica = (t: [number, number, number]) => {
-    const m = t.indexOf(Math.min(...t));
-    return [t[m], t[(m + 1) % 3], t[(m + 2) % 3]];
-  };
-
-  for (let i = 0; i + 2 < idx.length; i += 3) {
-    const t: [number, number, number] = [Number(idx[i]), Number(idx[i + 1]), Number(idx[i + 2])];
-    A.fromBufferAttribute(posiciones, t[0]);
-    B.fromBufferAttribute(posiciones, t[1]);
-    C.fromBufferAttribute(posiciones, t[2]);
-    if (t[0] === t[1] || t[1] === t[2] || t[2] === t[0] || ab.subVectors(B, A).cross(ac.subVectors(C, A)).length() / 2 <= areaMinima) {
-      aplastadosQuitados++;
-      continue;
-    }
-    const clave = [...t].sort((x, y) => x - y).join("-");
-    const otra = porClave.get(clave);
-    if (otra !== undefined) {
-      if (quitar.has(otra)) {
-        duplicadosQuitados++;
-        continue;
-      }
-      const c1 = canonica(lista[otra]), c2 = canonica(t);
-      if (c1[1] === c2[1]) {
-        duplicadosQuitados++;
-      } else {
-        // Enfrentadas: las dos sobran (cara de espesor cero entre dos piezas).
-        quitar.add(otra);
-        carasDoblesQuitadas += 2;
-      }
-      continue;
-    }
-    porClave.set(clave, lista.length);
-    lista.push(t);
-  }
-  const tris = lista.filter((_, i) => !quitar.has(i));
-
-  // --- 3: orientación pareja dentro de cada pieza ---
-  const claveArista = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
-  const porArista = new Map<string, number[]>();
-  tris.forEach((t, i) => {
-    for (let k = 0; k < 3; k++) {
-      const c = claveArista(t[k], t[(k + 1) % 3]);
-      (porArista.get(c) || porArista.set(c, []).get(c)!).push(i);
-    }
-  });
-  const tieneArista = (t: [number, number, number], a: number, b: number) =>
-    (t[0] === a && t[1] === b) || (t[1] === a && t[2] === b) || (t[2] === a && t[0] === b);
-  let carasDadasVuelta = 0;
-  const visitado = new Uint8Array(tris.length);
-  for (let inicio = 0; inicio < tris.length; inicio++) {
-    if (visitado[inicio]) continue;
-    visitado[inicio] = 1;
-    const pila = [inicio];
-    while (pila.length) {
-      const i = pila.pop()!;
-      const t = tris[i];
-      for (let k = 0; k < 3; k++) {
-        const a = t[k], b = t[(k + 1) % 3];
-        const vecinos = porArista.get(claveArista(a, b))!;
-        if (vecinos.length !== 2) continue; // solo por bordes "sanos"
-        const j = vecinos[0] === i ? vecinos[1] : vecinos[0];
-        if (visitado[j]) continue;
-        visitado[j] = 1;
-        // El vecino tiene que recorrer el borde al revés (b → a).
-        if (tieneArista(tris[j], a, b)) {
-          tris[j] = [tris[j][0], tris[j][2], tris[j][1]];
-          carasDadasVuelta++;
-        }
-        pila.push(j);
-      }
-    }
-  }
-
-  // --- 4: tapar agujeros (bordes que usa un solo triángulo) ---
-  const usos = new Map<string, number>();
-  for (const t of tris) for (let k = 0; k < 3; k++) {
-    const c = claveArista(t[k], t[(k + 1) % 3]);
-    usos.set(c, (usos.get(c) || 0) + 1);
-  }
-  const salientes = new Map<number, number[]>(); // b → [a…]: el parche recorre el borde al revés
-  for (const t of tris) for (let k = 0; k < 3; k++) {
-    const a = t[k], b = t[(k + 1) % 3];
-    if (usos.get(claveArista(a, b)) === 1) (salientes.get(b) || salientes.set(b, []).get(b)!).push(a);
-  }
-
-  const nuevas: number[] = Array.from(posiciones.array as ArrayLike<number>);
-  const parches: [number, number, number][] = [];
-  let agujerosTapados = 0;
-  const tomar = (v: number) => {
-    const lista = salientes.get(v);
-    if (!lista || !lista.length) return undefined;
-    return lista.pop();
-  };
-  salientes.forEach((_, inicio) => {
-    while ((salientes.get(inicio) || []).length) {
-      const lazo = [inicio];
-      let actual = tomar(inicio);
-      while (actual !== undefined && actual !== inicio && lazo.length < 20000) {
-        lazo.push(actual);
-        actual = tomar(actual);
-      }
-      if (actual !== inicio || lazo.length < 3) continue; // borde suelto: no se puede cerrar
-      let x = 0, y = 0, z = 0;
-      for (const v of lazo) {
-        x += nuevas[v * 3]; y += nuevas[v * 3 + 1]; z += nuevas[v * 3 + 2];
-      }
-      const centro = nuevas.length / 3;
-      nuevas.push(x / lazo.length, y / lazo.length, z / lazo.length);
-      for (let i = 0; i < lazo.length; i++) parches.push([lazo[i], lazo[(i + 1) % lazo.length], centro]);
-      agujerosTapados++;
-    }
-  });
-
-  // --- Cada pieza cerrada, mirando para afuera (volumen positivo) ---
-  const todos = [...tris, ...parches];
-  const padre = new Int32Array(nuevas.length / 3);
-  for (let i = 0; i < padre.length; i++) padre[i] = i;
-  const raiz = (v: number): number => {
-    while (padre[v] !== v) { padre[v] = padre[padre[v]]; v = padre[v]; }
-    return v;
-  };
-  for (const t of todos) {
-    const r0 = raiz(t[0]), r1 = raiz(t[1]), r2 = raiz(t[2]);
-    padre[r1] = r0;
-    padre[raiz(r2)] = raiz(r0);
-  }
-  const volumen = new Map<number, number>();
-  const punto = (v: number) => new THREE.Vector3(nuevas[v * 3], nuevas[v * 3 + 1], nuevas[v * 3 + 2]);
-  for (const t of todos) {
-    const r = raiz(t[0]);
-    volumen.set(r, (volumen.get(r) || 0) + punto(t[0]).dot(punto(t[1]).cross(punto(t[2]))) / 6);
-  }
-  const darVuelta = (t: [number, number, number]): [number, number, number] => [t[0], t[2], t[1]];
-  for (let i = 0; i < todos.length; i++) {
-    if ((volumen.get(raiz(todos[i][0])) || 0) < 0) {
-      todos[i] = darVuelta(todos[i]);
-      if (i < tris.length) carasDadasVuelta++;
-    }
-  }
-
-  // --- Geometría final (y los parches aparte, para pintarlos) ---
-  const aPosiciones = (lista: [number, number, number][]) => {
-    const salida = new Float32Array(lista.length * 9);
-    lista.forEach((t, i) => {
-      for (let k = 0; k < 3; k++) {
-        salida[i * 9 + k * 3] = nuevas[t[k] * 3];
-        salida[i * 9 + k * 3 + 1] = nuevas[t[k] * 3 + 1];
-        salida[i * 9 + k * 3 + 2] = nuevas[t[k] * 3 + 2];
-      }
-    });
-    return salida;
-  };
-  const final = new THREE.BufferGeometry();
-  final.setAttribute("position", new THREE.BufferAttribute(aPosiciones(todos), 3));
-  final.computeVertexNormals();
-  indexada.dispose();
-
-  return {
-    geometria: final,
-    parches: aPosiciones(todos.slice(tris.length)),
-    aplastadosQuitados,
-    duplicadosQuitados,
-    carasDoblesQuitadas,
-    carasDadasVuelta,
-    agujerosTapados,
   };
 }

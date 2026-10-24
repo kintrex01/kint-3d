@@ -10,7 +10,8 @@ import {
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { milimetrosPorUnidad } from "@/lib/precio-estimado";
-import { analizarMalla, repararMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
+import { analizarMalla, type AnalisisMalla, type ZonaProblema } from "@/lib/analisis-malla";
+import { repararMalla, type ResultadoReparacion } from "@/lib/reparar-malla";
 import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMalla";
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
@@ -1305,14 +1306,10 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   // Análisis con zonas (para "Ver dónde") y resultado de "Reparar".
   const [analisisMalla, setAnalisisMalla] =
     useState<AnalisisMalla | null>(null);
-  const [reparacion, setReparacion] = useState<{
-    aplastadosQuitados: number;
-    duplicadosQuitados: number;
-    carasDoblesQuitadas: number;
-    carasDadasVuelta: number;
-    agujerosTapados: number;
-  } | null>(null);
+  const [reparacion, setReparacion] = useState<(Omit<ResultadoReparacion, "geometria" | "parches"> & { automatica: boolean; quedanAgujeros: number }) | null>(null);
   const [reparando, setReparando] = useState(false);
+  // El archivo tal como vino (para "Ver mi archivo original" después de reparar).
+  const originalRef = useRef<THREE.BufferGeometry | null>(null);
 
   // Consejos (en unidades del archivo: se pasan a mm con la escala del visor).
   const [consejos, setConsejos] = useState<Consejos | null>(null);
@@ -2054,6 +2051,8 @@ const resultadoCheck: ResultadoKintCheck = {
   triangulosDegenerados: analisis.aplastados.cantidad,
 };
 volverAlOriginal();
+originalRef.current?.dispose();
+originalRef.current = geometria.clone();
 setAnalisisMalla(analisis);
 setReparacion(null);
 setConsejos(analizarConsejos(geometria, 1));
@@ -2171,6 +2170,11 @@ requestAnimationFrame(() => {
   cambiarVista("modelo");
 });
 
+// Si tiene algo que se arregla solo, se arregla ya (el cliente no tiene que tocar nada).
+if (analisis.agujeros.cantidad + analisis.alReves.cantidad + analisis.aplastados.cantidad > 0) {
+  window.setTimeout(() => repararModelo(true), 60);
+}
+
     } catch (problema) {
       const mensaje =
         problema instanceof Error
@@ -2236,8 +2240,59 @@ requestAnimationFrame(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* "Reparar automáticamente": cambia la geometría por la arreglada y vuelve a analizar. */
-  function repararModelo() {
+  /* Cambia la geometría del modelo (reparada u original) y vuelve a analizar todo. */
+  function aplicarGeometria(nueva: THREE.BufferGeometry, parches: Float32Array | null) {
+    const modelo = modeloRef.current;
+    if (!modelo) return null;
+    const anterior = modelo.geometry;
+    if (problemasRef.current) {
+      modelo.remove(problemasRef.current);
+      liberarObjeto(problemasRef.current);
+    }
+    modelo.geometry = nueva;
+    anterior.dispose();
+
+    colorearPorPiezas(nueva);
+    const materialModelo = modelo.material;
+    if (materialModelo instanceof THREE.MeshStandardMaterial) {
+      materialModelo.vertexColors = colorModelo === "Por piezas" && !mostrarProblemas;
+      materialModelo.needsUpdate = true;
+    }
+    quitarHijo(modelo, "bordes-modelo");
+    modelo.add(crearBordes(nueva));
+    quitarHijo(modelo, "parches-reparacion");
+    quitarHijo(modelo, "marca-zona");
+    quitarHijo(modelo, "planos-corte");
+    setCortesVisibles(false);
+    volverAlOriginal();
+    setConsejos(analizarConsejos(nueva, 1));
+    if (parches && parches.length) modelo.add(crearParches(parches));
+
+    const cajasFlotantes = detectarPiezasFlotantes(nueva);
+    const analisis = analizarMalla(nueva);
+    const marcadores = crearMarcadoresProblemas(nueva, cajasFlotantes, analisis.tolerancia);
+    marcadores.visible = mostrarProblemas;
+    modelo.add(marcadores);
+    problemasRef.current = marcadores;
+
+    setFiltrosProblemas({ bordesAbiertos: true, noManifold: true, triangulos: true, flotantes: true });
+    setAnalisisMalla(analisis);
+    setKintCheck({
+      aristasAbiertas: analisis.agujeros.cantidad,
+      aristasNoManifold: analisis.pegadas.cantidad,
+      triangulosDegenerados: analisis.aplastados.cantidad,
+    });
+    setPiezasFlotantes(cajasFlotantes.length);
+    setCantidadPiezas(contarPiezasSeparadas(nueva));
+    return analisis;
+  }
+
+  /*
+   * Reparación (lib/reparar-malla): tapa, cose, da vuelta y le da espesor a
+   * las caras sueltas (1 mm impreso si ya eligió escala). Al abrir un archivo
+   * con problemas corre sola (automatica = true).
+   */
+  function repararModelo(automatica = false) {
     const modelo = modeloRef.current;
     if (!modelo) return;
     setReparando(true);
@@ -2245,62 +2300,27 @@ requestAnimationFrame(() => {
     // Un cuadro de espera antes del cálculo pesado, para que se vea "Reparando…".
     window.setTimeout(() => {
       try {
-        const resultado = repararMalla(modelo.geometry);
-        const anterior = modelo.geometry;
-
-        if (problemasRef.current) {
-          modelo.remove(problemasRef.current);
-          liberarObjeto(problemasRef.current);
-        }
-
-        modelo.geometry = resultado.geometria;
-        anterior.dispose();
-
-        colorearPorPiezas(resultado.geometria);
-        const materialModelo = modelo.material;
-        if (materialModelo instanceof THREE.MeshStandardMaterial) {
-          materialModelo.vertexColors = colorModelo === "Por piezas" && !mostrarProblemas;
-          materialModelo.needsUpdate = true;
-        }
-        quitarHijo(modelo, "bordes-modelo");
-        modelo.add(crearBordes(resultado.geometria));
-        quitarHijo(modelo, "parches-reparacion");
-        quitarHijo(modelo, "marca-zona");
-        quitarHijo(modelo, "planos-corte");
-        setCortesVisibles(false);
-        volverAlOriginal();
-        setConsejos(analizarConsejos(resultado.geometria, 1));
-        if (resultado.parches.length) modelo.add(crearParches(resultado.parches));
-
-        const cajasFlotantes = detectarPiezasFlotantes(resultado.geometria);
-        const analisis = analizarMalla(resultado.geometria);
-        const marcadores = crearMarcadoresProblemas(resultado.geometria, cajasFlotantes, analisis.tolerancia);
-        marcadores.visible = mostrarProblemas;
-        modelo.add(marcadores);
-        problemasRef.current = marcadores;
-
-        setFiltrosProblemas({ bordesAbiertos: true, noManifold: true, triangulos: true, flotantes: true });
-        setAnalisisMalla(analisis);
-        setKintCheck({
-          aristasAbiertas: analisis.agujeros.cantidad,
-          aristasNoManifold: analisis.pegadas.cantidad,
-          triangulosDegenerados: analisis.aplastados.cantidad,
+        const base = originalRef.current ? originalRef.current.clone() : modelo.geometry;
+        const resultado = repararMalla(base, {
+          espesorLamina: escalaSeleccionada ? 1 / (escalaPorcentaje / 100) : undefined,
         });
-        setPiezasFlotantes(cajasFlotantes.length);
-        setCantidadPiezas(contarPiezasSeparadas(resultado.geometria));
-        setReparacion({
-          aplastadosQuitados: resultado.aplastadosQuitados,
-          duplicadosQuitados: resultado.duplicadosQuitados,
-          carasDoblesQuitadas: resultado.carasDoblesQuitadas,
-          carasDadasVuelta: resultado.carasDadasVuelta,
-          agujerosTapados: resultado.agujerosTapados,
-        });
+        if (base !== modelo.geometry) base.dispose();
+        const { geometria, parches, ...cuentas } = resultado;
+        const analisis = aplicarGeometria(geometria, parches);
+        setReparacion({ ...cuentas, automatica, quedanAgujeros: analisis?.agujeros.lazos || 0 });
       } catch (problema) {
         setError(problema instanceof Error ? problema.message : "No se pudo reparar el modelo.");
       } finally {
         setReparando(false);
       }
     }, 30);
+  }
+
+  /* "Ver mi archivo original": vuelve al STL tal como vino. */
+  function deshacerReparacion() {
+    if (!originalRef.current) return;
+    aplicarGeometria(originalRef.current.clone(), null);
+    setReparacion(null);
   }
 
   /* Saca la versión preparada y vuelve a mostrar el modelo. */
@@ -3297,7 +3317,8 @@ requestAnimationFrame(() => {
       reparacion={reparacion}
       reparando={reparando}
       onVer={verProblema}
-      onReparar={repararModelo}
+      onReparar={() => repararModelo(false)}
+      onDeshacer={deshacerReparacion}
       onDescargar={descargarSTLPreparado}
     />
   )}

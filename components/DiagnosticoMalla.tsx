@@ -17,6 +17,12 @@ type Reparacion = {
   carasDoblesQuitadas: number;
   carasDadasVuelta: number;
   agujerosTapados: number;
+  rajasCerradas: number;
+  aristasCosidas: number;
+  laminasEngrosadas: number;
+  carasInternasQuitadas: number;
+  automatica: boolean;
+  quedanAgujeros: number;
 };
 
 const INFO: Record<
@@ -70,6 +76,7 @@ export default function DiagnosticoMalla({
   reparando,
   onVer,
   onReparar,
+  onDeshacer,
   onDescargar,
 }: {
   analisis: AnalisisMalla;
@@ -78,6 +85,7 @@ export default function DiagnosticoMalla({
   reparando: boolean;
   onVer: (tipo: TipoProblema, zona: ZonaProblema) => void;
   onReparar: () => void;
+  onDeshacer: () => void;
   onDescargar: () => void;
 }) {
   const [posicion, setPosicion] = useState<Record<TipoProblema, number>>({ agujeros: 0, pegadas: 0, aplastados: 0, alReves: 0 });
@@ -98,7 +106,9 @@ export default function DiagnosticoMalla({
 
       {reparacion && (
         <div className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-[11px] leading-5 text-emerald-800 dark:text-emerald-300">
-          <p className="font-bold">✓ Modelo reparado</p>
+          <p className="font-bold">
+            {reparacion.automatica ? "✓ Lo arreglamos solo, no tenés que hacer nada" : "✓ Modelo reparado"}
+          </p>
           <ul className="mt-1 space-y-0.5">
             {reparacion.agujerosTapados > 0 && (
               <li>
@@ -106,18 +116,45 @@ export default function DiagnosticoMalla({
                 visor)
               </li>
             )}
+            {reparacion.laminasEngrosadas > 0 && (
+              <li>
+                • {reparacion.laminasEngrosadas}{" "}
+                {reparacion.laminasEngrosadas === 1
+                  ? "cara sin espesor (pared, techo o cartel) a la que le dimos espesor"
+                  : "caras sin espesor (paredes, techos o carteles) a las que les dimos espesor"}{" "}
+                para que se pueda imprimir
+              </li>
+            )}
+            {reparacion.aristasCosidas + reparacion.rajasCerradas > 0 && (
+              <li>• {reparacion.aristasCosidas + reparacion.rajasCerradas} uniones entre caras cosidas (rajas y bordes partidos)</li>
+            )}
             {reparacion.carasDadasVuelta > 0 && <li>• {reparacion.carasDadasVuelta} caras dadas vuelta para que miren afuera</li>}
-            {reparacion.carasDoblesQuitadas > 0 && <li>• {reparacion.carasDoblesQuitadas} caras dobles sacadas entre piezas</li>}
+            {reparacion.carasDoblesQuitadas + reparacion.carasInternasQuitadas > 0 && (
+              <li>
+                • {reparacion.carasDoblesQuitadas + reparacion.carasInternasQuitadas} caras de más sacadas (dobles o metidas adentro de un
+                sólido)
+              </li>
+            )}
             {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados > 0 && (
               <li>• {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados} triángulos aplastados o repetidos sacados</li>
             )}
             {reparacion.agujerosTapados +
+              reparacion.laminasEngrosadas +
+              reparacion.aristasCosidas +
+              reparacion.rajasCerradas +
               reparacion.carasDadasVuelta +
               reparacion.carasDoblesQuitadas +
+              reparacion.carasInternasQuitadas +
               reparacion.aplastadosQuitados +
               reparacion.duplicadosQuitados ===
               0 && <li>• No había nada que se pudiera arreglar solo.</li>}
           </ul>
+          {reparacion.quedanAgujeros > 0 && (
+            <p className="mt-1.5 font-semibold text-amber-700 dark:text-amber-400">
+              Quedan {reparacion.quedanAgujeros} {reparacion.quedanAgujeros === 1 ? "borde" : "bordes"} sin cerrar: mandalo igual, lo
+              revisamos nosotros.
+            </p>
+          )}
           <button
             type="button"
             onClick={onDescargar}
@@ -125,12 +162,19 @@ export default function DiagnosticoMalla({
           >
             Descargar STL reparado
           </button>
+          <button
+            type="button"
+            onClick={onDeshacer}
+            className="mt-1.5 w-full rounded-lg px-3 py-1.5 text-[10px] font-semibold underline-offset-2 transition hover:underline"
+          >
+            Ver mi archivo original (sin arreglar)
+          </button>
         </div>
       )}
 
       {tipos.length === 0 && piezasFlotantes === 0 ? (
         <p className="mt-3 text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
-          ✓ No encontramos problemas: el modelo está listo para imprimir.
+          {reparacion ? "✓ Ya quedó listo para imprimir." : "✓ No encontramos problemas: el modelo está listo para imprimir."}
         </p>
       ) : (
         <ul className="mt-3 space-y-3">
@@ -218,8 +262,8 @@ export default function DiagnosticoMalla({
       )}
       {reparable && !reparacion && (
         <p className="mt-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
-          Tapa agujeros, da vuelta las caras al revés y saca caras dobles y triángulos aplastados. Lo que se tapa queda en
-          verde. Tu archivo original no se modifica: descargás una copia arreglada.
+          Tapa agujeros, cose rajas, da vuelta las caras al revés, le da espesor a las caras sueltas y saca caras de más. Lo
+          que se agrega queda en verde. Tu archivo original no se modifica: descargás una copia arreglada.
         </p>
       )}
     </div>
