@@ -37,7 +37,7 @@ export default function PintarPiezas({
   onDescargar: () => void;
 }) {
   return (
-    <div>
+    <div data-pintar>
       <p className="text-[11px] leading-5 text-[var(--text-muted)]">
         Elegí un color y tocá las piezas en el visor. Lo mandamos pintado y la impresora usa esos colores.
       </p>

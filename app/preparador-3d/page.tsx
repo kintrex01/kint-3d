@@ -2572,6 +2572,24 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     pintarRef.current = pintarEn;
   });
 
+  /*
+   * Pintando, tocar cualquier otro botón u opción apaga el balde (así no se sigue
+   * pintando sin querer). El visor no lo apaga: ahí es donde se pinta.
+   */
+  useEffect(() => {
+    if (!modoPintar) return;
+    const alTocar = (evento: PointerEvent) => {
+      const elemento = evento.target as HTMLElement | null;
+      if (!elemento || elemento.closest("[data-pintar]")) return;
+      if (elemento.closest("button, select, input, summary, a, label")) {
+        modoPintarRef.current = false;
+        setModoPintar(false);
+      }
+    };
+    document.addEventListener("pointerdown", alTocar, true);
+    return () => document.removeEventListener("pointerdown", alTocar, true);
+  }, [modoPintar]);
+
   function activarPintura(activo: boolean) {
     modoPintarRef.current = activo;
     setModoPintar(activo);
