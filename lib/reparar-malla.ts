@@ -177,25 +177,83 @@ function aristasAbiertas(tris: Tri[], indice = indiceAristas(tris)) {
  * Cáscaras: triángulos unidos por aristas "sanas" (de 2 caras). Un techo de
  * caras sueltas apoyado en una caja es otra cáscara aunque comparta aristas.
  */
-function cascaras(tris: Tri[], indice = indiceAristas(tris)) {
+function cascaras(tris: Tri[], indice = indiceAristas(tris), P?: number[]) {
   const padre = new Int32Array(tris.length);
   for (let i = 0; i < padre.length; i++) padre[i] = i;
   const raiz = (v: number): number => {
     while (padre[v] !== v) { padre[v] = padre[padre[v]]; v = padre[v]; }
     return v;
   };
+  const vistas = new Set<string>();
   for (let i = 0; i < tris.length; i++) {
     const t = tris[i];
     for (let k = 0; k < 3; k++) {
       const a = t[k], b = t[(k + 1) % 3];
-      if (indice.usos(a, b) !== 2) continue;
-      const [x, y] = indice.de(a, b);
-      if (x === i) padre[raiz(y)] = raiz(x);
+      const usos = indice.usos(a, b);
+      if (usos === 2) {
+        const [x, y] = indice.de(a, b);
+        if (x === i) padre[raiz(y)] = raiz(x);
+      } else if (usos > 2 && P) {
+        // Arista de varias piezas (dos muros que se tocan): cada cara va con la que
+        // cierra su propio sólido; solo se juntan si se eligen las dos (mutuo).
+        const clave = a < b ? `${a}_${b}` : `${b}_${a}`;
+        if (vistas.has(clave)) continue;
+        vistas.add(clave);
+        for (const [x, y] of paresAlrededor(indice.de(a, b), Math.min(a, b), Math.max(a, b), tris, P)) padre[raiz(y)] = raiz(x);
+      }
     }
   }
   const id = new Int32Array(tris.length);
   for (let i = 0; i < tris.length; i++) id[i] = raiz(i);
   return { id, indice };
+}
+
+/*
+ * Alrededor de una arista que comparten varias caras: cada cara busca, girando
+ * hacia su adentro, la primera cara que encuentra (la que cierra su sólido).
+ * Devuelve los pares que se eligieron mutuamente.
+ */
+export function paresAlrededor(caras: number[], ia: number, ib: number, tris: Tri[], P: number[]) {
+  const punto = (v: number) => new THREE.Vector3(P[v * 3], P[v * 3 + 1], P[v * 3 + 2]);
+  const a = punto(ia), e = punto(ib).sub(a).normalize();
+  const u = Math.abs(e.x) < 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  u.sub(e.clone().multiplyScalar(u.dot(e))).normalize();
+  const w = e.clone().cross(u);
+  const datos = caras.map((t) => {
+    const [v0, v1, v2] = tris[t];
+    const tercero = [v0, v1, v2].find((v) => v !== ia && v !== ib)!;
+    const d = punto(tercero).sub(a);
+    d.sub(e.clone().multiplyScalar(d.dot(e)));
+    const p0 = punto(v0);
+    const normal = punto(v1).sub(p0).cross(punto(v2).sub(p0));
+    return { t, angulo: Math.atan2(d.dot(w), d.dot(u)), sentido: normal.negate().dot(e.clone().cross(d)) > 0 ? 1 : -1 };
+  });
+  // Menos de 0,06° es "el mismo plano" (el ruido de exportación separa caras que van juntas).
+  const EMPATE = 1e-3;
+  const elegida = new Map<number, number>();
+  for (const cara of datos) {
+    const giros = datos
+      .filter((otra) => otra !== cara)
+      .map((otra) => {
+        let giro = ((otra.angulo - cara.angulo) * cara.sentido) % (Math.PI * 2);
+        if (giro < 0) giro += Math.PI * 2;
+        return { otra, giro };
+      })
+      // Una cara pegada a esta misma (casi 0° o casi 360°) es de otra pieza apoyada: no cierra.
+      .filter(({ giro }) => giro > EMPATE && giro < Math.PI * 2 - EMPATE);
+    if (!giros.length) continue;
+    const menor = Math.min(...giros.map(({ giro }) => giro));
+    // Empate (dos caras una sobre otra, como el techo apoyado en el muro): gana la que
+    // cierra desde el otro lado, que es la de su mismo sólido.
+    const empatadas = giros.filter(({ giro }) => giro <= menor + EMPATE);
+    const elegidaAhora = empatadas.find(({ otra }) => otra.sentido !== cara.sentido) || empatadas[0];
+    elegida.set(cara.t, elegidaAhora.otra.t);
+  }
+  const pares: [number, number][] = [];
+  elegida.forEach((otra, t) => {
+    if (t < otra && elegida.get(otra) === t) pares.push([t, otra]);
+  });
+  return pares;
 }
 
 /*
@@ -312,7 +370,7 @@ function coser(tris: Tri[], P: number[], tamano: number, cuenta: ResultadoRepara
 }
 
 /* Todas las caras de cada pieza para el mismo lado (las vecinas recorren el borde al revés). */
-function orientar(tris: Tri[]) {
+function orientar(tris: Tri[], P?: number[]) {
   const indice = indiceAristas(tris);
   const tieneArista = (t: Tri, a: number, b: number) =>
     (t[0] === a && t[1] === b) || (t[1] === a && t[2] === b) || (t[2] === a && t[0] === b);
@@ -345,7 +403,26 @@ function orientar(tris: Tri[]) {
     }
     // Si quedó dada vuelta la mayoría, era la primera cara la que estaba al revés:
     // se invierte toda la pieza (así se toca lo menos posible).
-    if (vueltas.size * 2 > pieza.length) {
+    // Si la pieza quedó cerrada, manda el volumen: negativo = toda dada vuelta (aunque
+    // estuviera mitad y mitad). Si no está cerrada, se respeta a la mayoría.
+    let invertir = vueltas.size * 2 > pieza.length;
+    if (P) {
+      // Cerrada = cada arista la usan exactamente dos caras de esta misma pieza.
+      const propias = indiceAristas(pieza.map((i) => tris[i]));
+      const cerrada = pieza.every((i) => {
+        const t = tris[i];
+        return [0, 1, 2].every((k) => propias.usos(t[k], t[(k + 1) % 3]) === 2);
+      });
+      if (cerrada) {
+        let volumen = 0;
+        for (const i of pieza) {
+          const [a, b, c] = tris[i].map((v) => v * 3);
+          volumen += (P[a] * (P[b + 1] * P[c + 2] - P[b + 2] * P[c + 1]) - P[a + 1] * (P[b] * P[c + 2] - P[b + 2] * P[c]) + P[a + 2] * (P[b] * P[c + 1] - P[b + 1] * P[c])) / 6;
+        }
+        invertir = volumen < 0;
+      }
+    }
+    if (invertir) {
       for (const i of pieza) tris[i] = [tris[i][0], tris[i][2], tris[i][1]];
       dadasVuelta += pieza.length - vueltas.size;
     } else dadasVuelta += vueltas.size;
@@ -525,6 +602,74 @@ function partirEnPlanos(lazo: number[], P: number[], vecinas: Vecinas, profundid
   return uno && otro ? [...uno, ...otro] : null;
 }
 
+/*
+ * Esquina borrada (se perdió un vértice): las caras vecinas están en tres
+ * planos; el vértice que falta es donde se cruzan. Se recupera ese punto y se
+ * tapa en abanico desde ahí: vuelve la esquina exacta, no una ochava.
+ */
+function esquina(lazo: number[], P: number[], vecinas: Vecinas, tamano: number): Tri[] | null {
+  type Plano = { n: THREE.Vector3; d: number };
+  const mismo = (lista: Plano[], n: THREE.Vector3, d: number) =>
+    lista.some((otro) => Math.abs(otro.n.dot(n)) > 0.9995 && Math.abs(otro.d - d * Math.sign(otro.n.dot(n))) < tamano * 1e-5);
+  const pos = (v: number) => new THREE.Vector3().fromArray(P, v * 3);
+  // Planos de las caras que quedan alrededor del hueco.
+  const vecinos: Plano[] = [];
+  for (let i = 0; i < lazo.length; i++) {
+    const n = vecinas.normal(lazo[i], lazo[(i + 1) % lazo.length]);
+    if (!n) return null;
+    const d = n.dot(pos(lazo[i]));
+    if (!mismo(vecinos, n, d)) vecinos.push({ n, d });
+  }
+  // Planos de las caras que faltan: los que forman dos bordes seguidos del hueco
+  // (sacando los de las caras que quedan). Si se borró la esquina de una caja, son tres.
+  let planos: Plano[] = [];
+  for (let i = 0; i < lazo.length; i++) {
+    const a = pos(lazo[(i - 1 + lazo.length) % lazo.length]), b = pos(lazo[i]), c = pos(lazo[(i + 1) % lazo.length]);
+    const n = b.clone().sub(a).cross(c.clone().sub(b));
+    if (n.length() < tamano * tamano * 1e-10) continue;
+    n.normalize();
+    const d = n.dot(b);
+    if (!mismo(vecinos, n, d) && !mismo(planos, n, d)) planos.push({ n, d });
+  }
+  // Si no, los de las caras vecinas (se perdió solo un pedacito alrededor de la esquina).
+  if (planos.length !== 3) planos = vecinos;
+  if (planos.length !== 3) return null;
+  const [p1, p2, p3] = planos;
+  const det = p1.n.dot(p2.n.clone().cross(p3.n));
+  if (Math.abs(det) < 1e-6) return null;
+  const punto = p2.n.clone().cross(p3.n).multiplyScalar(p1.d)
+    .add(p3.n.clone().cross(p1.n).multiplyScalar(p2.d))
+    .add(p1.n.clone().cross(p2.n).multiplyScalar(p3.d))
+    .divideScalar(det);
+  // Tiene que estar cerca del hueco (si no, los planos se cruzan lejos: no es una esquina).
+  const info = infoLazo(lazo, 0, P);
+  let radio = 0;
+  for (const v of lazo) radio = Math.max(radio, new THREE.Vector3().fromArray(P, v * 3).distanceTo(info.centro));
+  if (punto.distanceTo(info.centro) > radio * 1.5) return null;
+  const nuevo = P.length / 3;
+  P.push(punto.x, punto.y, punto.z);
+  const tapa: Tri[] = [];
+  for (let i = 0; i < lazo.length; i++) {
+    const t: Tri = [lazo[i], lazo[(i + 1) % lazo.length], nuevo];
+    const a = new THREE.Vector3().fromArray(P, t[0] * 3);
+    const normal = new THREE.Vector3().fromArray(P, t[1] * 3).sub(a).cross(punto.clone().sub(a));
+    if (normal.length() < tamano * tamano * 1e-12) continue; // sobre una arista: no hace falta
+    normal.normalize();
+    // Cada triángulo nuevo tiene que caer en uno de los tres planos.
+    if (!planos.some((plano) => Math.abs(plano.n.dot(normal)) > 0.999)) {
+      P.length -= 3;
+      return null;
+    }
+    tapa.push(t);
+  }
+  return tapa.length ? tapa : null;
+}
+
+/* Suave: esquina, pedazos planos, o nada (no se inventa). */
+function taparNoPlanoSuave(lazo: number[], P: number[], vecinas: Vecinas, tamano: number): Tri[] {
+  return esquina(lazo, P, vecinas, tamano) || partirEnPlanos(lazo, P, vecinas) || [];
+}
+
 function taparNoPlano(lazo: number[], P: number[], vecinas: Vecinas, tamano: number): Tri[] {
   const enPlanos = partirEnPlanos(lazo, P, vecinas);
   if (enPlanos) return enPlanos;
@@ -543,7 +688,7 @@ function taparNoPlano(lazo: number[], P: number[], vecinas: Vecinas, tamano: num
 
 /* Tapa todos los agujeros; los planos del mismo plano se tapan juntos (islas). */
 function taparAgujeros(tris: Tri[], P: number[], tamano: number, respetarAberturas = false) {
-  const { id, indice } = cascaras(tris);
+  const { id, indice } = cascaras(tris, undefined, P);
   const infos = lazosDeBorde(tris, id, indice).map(({ lazo, cascara }) => infoLazo(lazo, cascara, P));
   const parches: { t: Tri; cascara: number }[] = [];
   const agregar = (lista: Tri[], cascara: number) => lista.forEach((t) => parches.push({ t, cascara }));
@@ -600,10 +745,8 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number, respetarAbertur
     }
     const ancho = (2 * info.area) / Math.max(perimetro, 1e-30);
     const pieza = cajas.get(info.cascara)?.getSize(new THREE.Vector3()).length() || tamano;
-    if (respetarAberturas && (ancho > tamano * 1e-4 || ancho > pieza * 1e-3)) {
-      aberturas++;
-      continue;
-    }
+    void ancho;
+    void pieza;
     if (respetarAberturas && info.plano && esAbertura(info)) {
       aberturas++;
       continue;
@@ -611,7 +754,7 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number, respetarAbertur
     if (!info.plano) {
       // Diagonal prohibida: una arista que ya tiene esta misma cáscara (taparía encima de sus caras).
       const deLaCascara = (x: number, y: number) => indice.de(x, y).filter((j) => id[j] === info.cascara);
-      agregar(taparNoPlano(info.lazo, P, {
+      agregar((respetarAberturas ? taparNoPlanoSuave : taparNoPlano)(info.lazo, P, {
         existe: (x, y) => deLaCascara(x, y).length > 0,
         normal: (x, y) => {
           const j = deLaCascara(x, y)[0];
@@ -641,7 +784,7 @@ function taparAgujeros(tris: Tri[], P: number[], tamano: number, respetarAbertur
       islas.forEach((i) => hecho.add(i));
       agregar(tapa, info.cascara);
     } else {
-      agregar(triangularEnPlano(info.lazo, [], info.normal, P) || abanico(info.lazo, P), info.cascara);
+      agregar(triangularEnPlano(info.lazo, [], info.normal, P) || (respetarAberturas ? [] : abanico(info.lazo, P)), info.cascara);
     }
   }
   return { parches, cascara: id, agujeros: infos.length - aberturas };
@@ -717,7 +860,7 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
   tris = limpiar(tris, P, tamano, cuenta, !suave);
   tris = coser(tris, P, tamano, cuenta, !suave);
   // 3: orientación pareja.
-  cuenta.carasDadasVuelta += orientar(tris);
+  cuenta.carasDadasVuelta += orientar(tris, P);
   // 4: tapas (cada una sabe de qué cáscara es).
   const { parches: tapas, cascara, agujeros } = taparAgujeros(tris, P, tamano, suave);
   cuenta.agujerosTapados = agujeros;
@@ -751,11 +894,28 @@ export function repararMalla(geometria: THREE.BufferGeometry, opciones: Opciones
   });
 
   if (suave) {
-    // Solo se tapa si el parche es chico al lado de su pieza (falta una cara, no media pieza).
+    /*
+     * Solo se tapa una pieza que estaba casi entera: con las tapas queda cerrada del
+     * todo, tiene volumen de verdad (no es una cara suelta) y lo que se agrega es menos
+     * que la mitad de lo que ya tenía. Así se arregla un muro al que le falta una cara,
+     * pero no se cierra un lucernario, una pérgola ni un patio.
+     */
     const areaPropia = new Map<number, number>(), areaTapas = new Map<number, number>();
     tris.forEach((t, i) => areaPropia.set(cascara[i], (areaPropia.get(cascara[i]) || 0) + area(t)));
     for (const { t, cascara: c } of tapas) areaTapas.set(c, (areaTapas.get(c) || 0) + area(t));
-    const aceptadas = tapas.filter((x) => !laminas.has(x.cascara) && (areaTapas.get(x.cascara) || 0) <= (areaPropia.get(x.cascara) || 0) * 0.3);
+    const porCascara = new Map<number, Tri[]>();
+    tris.forEach((t, i) => (porCascara.get(cascara[i]) || porCascara.set(cascara[i], []).get(cascara[i])!).push(t));
+    for (const { t, cascara: c } of tapas) porCascara.get(c)?.push(t);
+    const cierra = new Set<number>();
+    areaTapas.forEach((areaTapa, c) => {
+      if (laminas.has(c) || areaTapa > (areaPropia.get(c) || 0)) return;
+      const lista = porCascara.get(c) || [];
+      const usos = indiceAristas(lista);
+      let cerrada = true;
+      for (const t of lista) for (let k = 0; k < 3; k++) if (usos.usos(t[k], t[(k + 1) % 3]) % 2 !== 0) cerrada = false;
+      if (cerrada) cierra.add(c);
+    });
+    const aceptadas = tapas.filter((x) => cierra.has(x.cascara));
     cuenta.agujerosTapados = new Set(aceptadas.map((x) => x.cascara)).size ? Math.min(agujeros, aceptadas.length) : 0;
     const resultado = [
       ...tris.map((t, i) => ({ t, tapa: false, grupo: cascara[i] })),
