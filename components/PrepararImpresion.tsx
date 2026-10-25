@@ -29,6 +29,8 @@ export default function PrepararImpresion({
   tamanoCama,
   altoModelo,
   cortes,
+  cortar,
+  onCortar,
   resultado,
   preparando,
   onAlternarCorte,
@@ -42,6 +44,8 @@ export default function PrepararImpresion({
   tamanoCama: number;
   altoModelo: number; // mm impresos
   cortes: CorteVisor[];
+  cortar: boolean;
+  onCortar: (activo: boolean) => void;
   resultado: Resultado | null;
   preparando: boolean;
   onAlternarCorte: (indice: number) => void;
@@ -110,8 +114,26 @@ export default function PrepararImpresion({
         falta.
       </p>
 
-      {/* Cortes: los sugeridos y los del cliente (en el visor se ven en rojo) */}
-      <p className="mt-3 text-[10px] font-black uppercase tracking-[0.14em]">Cortes ({activos})</p>
+      {/* Cortar: apagado de entrada. Prendido, se ven los cortes en el visor (en rojo). */}
+      <button
+        type="button"
+        aria-pressed={cortar}
+        onClick={() => onCortar(!cortar)}
+        className={`mt-3 flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-[11px] font-black transition ${
+          cortar ? "border-red-600 bg-red-600/10 text-red-600" : "border-[var(--border-color)] hover:border-red-600"
+        }`}
+      >
+        <span>✂ Cortar en partes {cortar ? `(${activos})` : ""}</span>
+        <span className={`flex h-5 w-9 items-center rounded-full p-0.5 transition ${cortar ? "bg-red-600" : "bg-[var(--border-color)]"}`}>
+          <span className={`h-4 w-4 rounded-full bg-white shadow transition ${cortar ? "translate-x-4" : ""}`} />
+        </span>
+      </button>
+      {cortar && (
+      <>
+      <p className="mt-2 text-[10px] leading-4 text-[var(--text-muted)]">
+        Mirá los cortes en rojo en el visor. Tocá uno para sacarlo o agregá otro. Cada corte va justo debajo de la losa
+        más cercana: cada parte queda plana sobre la cama.
+      </p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {cortes.map((corte, indice) => (
           <button
@@ -152,6 +174,8 @@ export default function PrepararImpresion({
           ✂ Agregar
         </button>
       </div>
+      </>
+      )}
 
       {hayParadas && (
         <label className="mt-3 flex cursor-pointer items-center gap-2 text-[11px] font-semibold">
@@ -163,7 +187,7 @@ export default function PrepararImpresion({
       <button
         type="button"
         disabled={preparando}
-        onClick={() => onPreparar({ acostar: hayParadas && acostar, cortar: activos > 0 })}
+        onClick={() => onPreparar({ acostar: hayParadas && acostar, cortar: cortar && activos > 0 })}
         className="mt-3 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-700 px-4 py-3.5 text-[12px] font-black uppercase tracking-[0.1em] text-white shadow-[0_10px_24px_-10px_rgba(5,150,105,0.8)] transition hover:scale-[1.02] disabled:opacity-60"
       >
         {preparando ? "Ordenando…" : "⚡ Ordenar en la cama"}

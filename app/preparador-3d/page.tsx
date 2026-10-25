@@ -23,7 +23,7 @@ import ConsejosImpresion from "@/components/ConsejosImpresion";
 import PrepararImpresion, { type CorteVisor } from "@/components/PrepararImpresion";
 import PintarPiezas from "@/components/PintarPiezas";
 import { exportarObjConColores, piezasPorVertice } from "@/lib/exportar-obj";
-import { prepararParaImprimir } from "@/lib/preparar-impresion";
+import { prepararParaImprimir, SEPARACION_CAMAS } from "@/lib/preparar-impresion";
 import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
 import SeccionVisor from "@/components/SeccionVisor";
 import LlevarACotizar from "@/components/LlevarACotizar";
@@ -1343,6 +1343,8 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [cortesElegidos, setCortesElegidos] = useState<{ altura: number; activo: boolean; propio: boolean }[] | null>(null);
   // "Otra escala": la que quiera el cliente (1:125, 1:300…).
   const [escalaOtra, setEscalaOtra] = useState(false);
+  // Cortar arranca apagado: el cliente lo prende y ve los cortes en el visor.
+  const [cortarActivo, setCortarActivo] = useState(false);
   // Balde de pintura: cada pieza tocada se pinta (se descarga en OBJ con colores para Bambu).
   const [modoPintar, setModoPintar] = useState(false);
   const [colorPincel, setColorPincel] = useState("#16a34a");
@@ -2509,6 +2511,17 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setCortesVisibles(true);
   }
 
+  function alternarCortar(activo: boolean) {
+    volverAlOriginal();
+    setCortarActivo(activo);
+    if (activo) dibujarCortes(cortesVisor);
+    else {
+      const modelo = modeloRef.current;
+      if (modelo) quitarHijo(modelo, "planos-corte");
+      setCortesVisibles(false);
+    }
+  }
+
   function alternarCorte(indice: number) {
     volverAlOriginal();
     const lista = cortesVisor.map((corte, i) => (i === indice ? { ...corte, activo: !corte.activo } : corte));
@@ -2606,6 +2619,10 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setSimulacion(null);
     const preparado = preparadoRef.current;
     if (preparado) {
+      for (const otra of (preparado.userData.camasExtra || []) as THREE.Object3D[]) {
+        otra.parent?.remove(otra);
+        liberarObjeto(otra);
+      }
       preparado.parent?.remove(preparado);
       preparado.geometry.dispose();
       (preparado.material as THREE.Material).dispose();
@@ -2621,14 +2638,15 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     const escena = escenaRef.current;
     if (!modelo || !escena || !consejos) return;
     setPreparando(true);
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       try {
         volverAlOriginal();
-        const resultado = prepararParaImprimir(modelo.geometry, {
+        const resultado = await prepararParaImprimir(modelo.geometry, {
           mmPorUnidad: escalaPorcentaje / 100,
           cortes: cortesVisor.filter((corte) => corte.activo).map((corte) => corte.altura),
           acostar: opciones.acostar,
-          cortar: opciones.cortar,
+          cortar: cortarActivo && opciones.cortar,
+          respetarColores: Boolean(modelo.geometry.userData.pintado),
           cama: tamanoCama,
         });
         const datosPreparacion = {
@@ -2645,7 +2663,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
           setPreparacion(datosPreparacion);
           return;
         }
-        colorearPorPiezas(resultado.geometria);
+        // Cada parte ya trae el color de su pieza (el pintado o el de la vista).
+        if (!resultado.geometria.getAttribute("color")) colorearPorPiezas(resultado.geometria);
         const preparado = new THREE.Mesh(
           resultado.geometria,
           new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide })
@@ -2654,6 +2673,14 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         // Z del archivo → arriba; las partes van de 0 a la cama en X e Y: se centra en la cama.
         preparado.rotation.x = -Math.PI / 2;
         preparado.position.set(-tamanoCama / 2, 0, tamanoCama / 2);
+        // Las camas de más (si no entra en una), una al lado de la otra.
+        for (let i = 1; i < resultado.camas; i++) {
+          const otra = crearCama(tamanoCama);
+          otra.position.x = i * (tamanoCama + SEPARACION_CAMAS);
+          otra.name = "cama-extra";
+          preparado.userData.camasExtra = [...(preparado.userData.camasExtra || []), otra];
+          escena.add(otra);
+        }
         escena.add(preparado);
         preparadoRef.current = preparado;
         modelo.visible = false;
@@ -2951,8 +2978,10 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
    * Así una pieza pequeña no queda perdida dentro
    * del volumen completo de la impresora.
    */
-  if (tipo === "modelo" && modelo) {
-    caja.setFromObject(modelo);
+  // Ya ordenado se encuadra lo ordenado (y todas sus camas), no el modelo escondido.
+  const preparado = preparadoRef.current;
+  if (tipo === "modelo" && (preparado || modelo)) {
+    caja.setFromObject((preparado || modelo)!);
   } else {
     /*
      * VISTA CAMA / SUPERIOR
@@ -2962,7 +2991,10 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
      */
     caja.expandByObject(cama);
 
-    if (modelo) {
+    if (preparado) {
+      caja.expandByObject(preparado);
+      for (const otra of (preparado.userData.camasExtra || []) as THREE.Object3D[]) caja.expandByObject(otra);
+    } else if (modelo) {
       caja.expandByObject(modelo);
     }
   }
@@ -3346,38 +3378,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 </SeccionVisor>
 
-{consejos && (
-  <SeccionVisor
-    numero="2"
-    titulo="⚡ Ordenar automáticamente"
-    resumen={
-      preparacion
-        ? preparacion.noEntran > 0
-          ? "No entra en la cama a esta escala"
-          : `Listo: ${preparacion.partes} ${preparacion.partes === 1 ? "parte" : "partes"} en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}`
-        : "Corta, acuesta y acomoda todo en la cama, en un clic"
-    }
-    tono={preparacion ? (preparacion.noEntran > 0 ? "aviso" : "bien") : "neutro"}
-  >
-    <PrepararImpresion
-      hayParadas={consejos.paradas.length > 0}
-      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
-      tamanoCama={tamanoCama}
-      altoModelo={consejos.altura * mmPorUnidad}
-      cortes={cortesVisor.map((corte): CorteVisor => ({ ...corte, altura: corte.altura * mmPorUnidad }))}
-      resultado={preparacion}
-      preparando={preparando}
-      onAlternarCorte={alternarCorte}
-      onAgregarCorte={agregarCorte}
-      onPreparar={prepararModelo}
-      onDescargar={descargarPreparado}
-      onVolver={volverAlOriginal}
-    />
-  </SeccionVisor>
-)}
-
 <SeccionVisor
-  numero="3"
+  numero="2"
   titulo="🛠 Reparar archivo"
   resumen={reparacion ? "Reparado: un solo sólido, sin fugas" : kintCheck && kintCheck.aristasAbiertas > 0 ? "Tiene cosas para arreglar" : "Está sano"}
   tono={reparacion || !(kintCheck && kintCheck.aristasAbiertas > 0) ? "bien" : "aviso"}
@@ -3397,7 +3399,51 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   )}
 </SeccionVisor>
 
-<SeccionVisor numero="4" titulo="Defectos y ayuda" resumen="Qué tiene tu modelo y cómo arreglarlo en SketchUp">
+<SeccionVisor numero="3" titulo="🎨 Pintar piezas" resumen={pintado ? "Pintado: se manda con colores" : "Elegí el color de cada pieza"}>
+  <PintarPiezas
+    activo={modoPintar}
+    color={colorPincel}
+    pintado={pintado}
+    onActivar={activarPintura}
+    onColor={setColorPincel}
+    onBorrar={borrarPintura}
+    onDescargar={descargarPintado}
+  />
+</SeccionVisor>
+
+{consejos && (
+  <SeccionVisor
+    numero="4"
+    titulo="⚡ Ordenar automáticamente"
+    resumen={
+      preparacion
+        ? preparacion.noEntran > 0
+          ? "No entra en la cama a esta escala"
+          : `Listo: ${preparacion.partes} ${preparacion.partes === 1 ? "parte" : "partes"} en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}`
+        : "Corta, acuesta y acomoda todo en la cama, en un clic"
+    }
+    tono={preparacion ? (preparacion.noEntran > 0 ? "aviso" : "bien") : "neutro"}
+  >
+    <PrepararImpresion
+      hayParadas={consejos.paradas.length > 0}
+      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
+      tamanoCama={tamanoCama}
+      altoModelo={consejos.altura * mmPorUnidad}
+      cortes={cortesVisor.map((corte): CorteVisor => ({ ...corte, altura: corte.altura * mmPorUnidad }))}
+      cortar={cortarActivo}
+      onCortar={alternarCortar}
+      resultado={preparacion}
+      preparando={preparando}
+      onAlternarCorte={alternarCorte}
+      onAgregarCorte={agregarCorte}
+      onPreparar={prepararModelo}
+      onDescargar={descargarPreparado}
+      onVolver={volverAlOriginal}
+    />
+  </SeccionVisor>
+)}
+
+<SeccionVisor numero="5" titulo="Defectos y ayuda" resumen="Qué tiene tu modelo y cómo arreglarlo en SketchUp">
   {analisisMalla && (
     <DiagnosticoMalla
       parte="defectos"
@@ -3422,17 +3468,9 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   )}
 </SeccionVisor>
 
-<SeccionVisor titulo="🎨 Pintar piezas" resumen={pintado ? "Pintado: se manda con colores" : "Elegí el color de cada pieza"}>
-  <PintarPiezas
-    activo={modoPintar}
-    color={colorPincel}
-    pintado={pintado}
-    onActivar={activarPintura}
-    onColor={setColorPincel}
-    onBorrar={borrarPintura}
-    onDescargar={descargarPintado}
-  />
-</SeccionVisor>
+
+
+
 
 <SeccionVisor titulo="Más opciones" resumen="Medidas, color de vista, descargar y análisis completo">
 
@@ -4014,16 +4052,19 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         </p>
 
         {medidas && (
+          // Ya ordenado, dice en cuántas camas quedó; si no, si el modelo entero entra en una.
           <span
             className={`rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] ${
-              entraEnCama
+              entraEnCama || (preparacion && preparacion.noEntran === 0)
                 ? "bg-green-500/10 text-green-600"
-                : "bg-red-500/10 text-red-600"
+                : "bg-amber-500/10 text-amber-600"
             }`}
           >
-            {entraEnCama
-              ? "Entra en la cama"
-              : "No entra"}
+            {preparacion && preparacion.noEntran === 0
+              ? `Ordenado en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}`
+              : entraEnCama
+                ? "Entra en la cama"
+                : "No entra entero: ordenalo"}
           </span>
         )}
 
@@ -4088,21 +4129,6 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         Superior
       </button>
 
-      <button
-        type="button"
-        onClick={() => {
-          setVistaActiva("libre");
-          cambiarVista("libre");
-        }}
-        title="Girá, mové la cámara y acercate a donde quieras"
-        className={`rounded-lg border px-3 py-2 text-[9px] font-bold uppercase tracking-[0.07em] transition ${
-          vistaActiva === "libre"
-            ? "border-red-600 bg-red-600 text-white"
-            : "border-[var(--border-color)] hover:border-red-600 hover:text-red-600"
-        }`}
-      >
-        Libre
-      </button>
 
 {kintCheck && !(preparacion && preparacion.noEntran === 0) &&
   (kintCheck.aristasAbiertas > 0 ||
@@ -4127,11 +4153,6 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     </div>
   </div>
 
-  {vistaActiva === "libre" && (
-    <p className="px-4 pb-2 text-[10px] text-[var(--text-muted)] sm:px-5">
-      Arrastrá para girar · clic derecho o dos dedos para mover · rueda o pellizco para acercarte a donde apuntás
-    </p>
-  )}
 
   {/* Visor */}
   <div

@@ -42,7 +42,51 @@ export type OpcionesUnion = {
   juntarHasta?: number;
 };
 
+/*
+ * La unión como sólido de Manifold (para cortarla con planos en "Ordenar") y
+ * los triángulos de las piezas que no se pudieron unir (abiertas), aparte.
+ * Quien la pide la tiene que liberar con union.delete().
+ */
+export async function solidoUnido(geometria: THREE.BufferGeometry, opciones: OpcionesUnion = {}) {
+  const { Manifold, Mesh } = await cargarManifold();
+  const { solidos, sueltosPos, piezasSinCerrar } = await armarSolidos(geometria, opciones);
+  const union = solidos.length ? Manifold.union(solidos) : null;
+  solidos.forEach((solido) => solido.delete());
+  return { union, sueltos: sueltosPos, piezasSinCerrar, Mesh };
+}
+
 export async function unirSolidos(geometria: THREE.BufferGeometry, opciones: OpcionesUnion = {}): Promise<ResultadoUnion> {
+  const { Manifold } = await cargarManifold();
+  const { solidos, sueltosPos, piezasSinCerrar } = await armarSolidos(geometria, opciones);
+  const salida: number[] = [];
+  let piezasFinales = 0;
+  if (solidos.length) {
+    const union = Manifold.union(solidos);
+    salida.push(...trianglesDe(union));
+    piezasFinales = union.decompose().length;
+    union.delete();
+    solidos.forEach((s) => s.delete());
+  }
+  salida.push(...sueltosPos);
+  const resultado = new THREE.BufferGeometry();
+  resultado.setAttribute("position", new THREE.Float32BufferAttribute(salida, 3));
+  resultado.computeVertexNormals();
+  return { geometria: resultado, piezasUnidas: solidos.length, piezasSinCerrar, piezasFinales: piezasFinales + piezasSinCerrar };
+}
+
+/* Triángulos (x, y, z sueltos) de un sólido de Manifold. */
+export function trianglesDe(solido: { getMesh: () => { numProp: number; triVerts: Uint32Array; vertProperties: Float32Array } }) {
+  const malla = solido.getMesh();
+  const n = malla.numProp;
+  const salida: number[] = [];
+  for (let i = 0; i < malla.triVerts.length; i++) {
+    const v = malla.triVerts[i];
+    salida.push(malla.vertProperties[v * n], malla.vertProperties[v * n + 1], malla.vertProperties[v * n + 2]);
+  }
+  return salida;
+}
+
+async function armarSolidos(geometria: THREE.BufferGeometry, opciones: OpcionesUnion) {
   const { Manifold, Mesh } = await cargarManifold();
   geometria.computeBoundingBox();
   const tamano = geometria.boundingBox!.getSize(new THREE.Vector3()).length() || 1;
@@ -253,27 +297,10 @@ export async function unirSolidos(geometria: THREE.BufferGeometry, opciones: Opc
     sueltos.push(...pieza.tris);
   }
 
-  const salida: number[] = [];
-  let piezasFinales = 0;
-  if (solidos.length) {
-    const union = Manifold.union(solidos);
-    const malla = union.getMesh();
-    const n = malla.numProp;
-    for (let i = 0; i < malla.triVerts.length; i++) {
-      const v = malla.triVerts[i];
-      salida.push(malla.vertProperties[v * n], malla.vertProperties[v * n + 1], malla.vertProperties[v * n + 2]);
-    }
-    piezasFinales = union.decompose().length;
-    union.delete();
-    solidos.forEach((s) => s.delete());
-  }
+  const sueltosPos: number[] = [];
   for (const t of sueltos) for (let k = 0; k < 3; k++) {
     const v = indice[t * 3 + k];
-    salida.push(posiciones[v * 3], posiciones[v * 3 + 1], posiciones[v * 3 + 2]);
+    sueltosPos.push(posiciones[v * 3], posiciones[v * 3 + 1], posiciones[v * 3 + 2]);
   }
-
-  const resultado = new THREE.BufferGeometry();
-  resultado.setAttribute("position", new THREE.Float32BufferAttribute(salida, 3));
-  resultado.computeVertexNormals();
-  return { geometria: resultado, piezasUnidas: solidos.length, piezasSinCerrar, piezasFinales: piezasFinales + piezasSinCerrar };
+  return { solidos, sueltosPos, piezasSinCerrar };
 }
