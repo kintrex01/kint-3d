@@ -20,6 +20,9 @@ export type ResultadoPreparacion = {
   acostadas: number;
   cortes: number;
   camas: number;
+  // Partes que no entran en ninguna cama a esta escala (con la medida de la más grande, en mm).
+  noEntran: number;
+  masGrande: [number, number, number];
 };
 
 const SEPARACION = 4; // mm entre partes
@@ -326,7 +329,19 @@ export function prepararParaImprimir(
   const salida: number[] = [];
   const cama = opciones.cama;
   let x = 0, y = 0, altoFila = 0, camaActual = 0;
-  const ordenadas = partes
+  // Una parte más larga que la cama pero que entra girada se gira 90° (en planta).
+  const giro = new THREE.Matrix4().makeRotationZ(Math.PI / 2);
+  let noEntran = 0;
+  let masGrande: [number, number, number] = [0, 0, 0];
+  const listas = partes.map((tri) => {
+    const t = cajaDe(tri).getSize(new THREE.Vector3());
+    const girada = t.x > cama && t.y <= cama ? tri.map((triangulo) => triangulo.map((v) => v.clone().applyMatrix4(giro)) as Tri) : tri;
+    const medida = cajaDe(girada).getSize(new THREE.Vector3());
+    if (medida.x > cama || medida.y > cama || medida.z > cama) noEntran++;
+    if (Math.max(medida.x, medida.y, medida.z) > Math.max(...masGrande)) masGrande = [medida.x, medida.y, medida.z];
+    return girada;
+  });
+  const ordenadas = listas
     .map((tri) => ({ tri, caja: cajaDe(tri) }))
     .sort((a, b) => b.caja.getSize(new THREE.Vector3()).y - a.caja.getSize(new THREE.Vector3()).y);
   for (const { tri, caja } of ordenadas) {
@@ -351,5 +366,5 @@ export function prepararParaImprimir(
   const resultado = new THREE.BufferGeometry();
   resultado.setAttribute("position", new THREE.Float32BufferAttribute(salida, 3));
   resultado.computeVertexNormals();
-  return { geometria: resultado, partes: partes.length, acostadas, cortes, camas: camaActual + 1 };
+  return { geometria: resultado, partes: partes.length, acostadas, cortes, camas: camaActual + 1, noEntran, masGrande };
 }

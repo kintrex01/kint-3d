@@ -73,9 +73,11 @@ export async function POST(request: Request) {
         .pop()
         ?.toLowerCase();
 
+      // OBJ: el que sale pintado del visor 3D (con los colores de cada pieza).
       if (
         extension !== "stl" &&
-        extension !== "skp"
+        extension !== "skp" &&
+        extension !== "obj"
       ) {
         throw new Error(
           "Solo se permiten archivos STL o SKP."

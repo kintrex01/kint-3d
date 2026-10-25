@@ -80,6 +80,7 @@ export default function DiagnosticoMalla({
   onReparar,
   onDeshacer,
   onDescargar,
+  parte = "todo",
 }: {
   analisis: AnalisisMalla;
   piezasFlotantes: number;
@@ -89,6 +90,8 @@ export default function DiagnosticoMalla({
   onReparar: () => void;
   onDeshacer: () => void;
   onDescargar: () => void;
+  // "reparar": el botón y lo que se arregló; "defectos": qué tiene y cómo arreglarlo.
+  parte?: "reparar" | "defectos" | "todo";
 }) {
   const [posicion, setPosicion] = useState<Record<TipoProblema, number>>({ agujeros: 0, pegadas: 0, aplastados: 0, alReves: 0 });
   // Después de unir, los bordes "pegados" son las uniones mismas: ya no se muestran.
@@ -106,10 +109,18 @@ export default function DiagnosticoMalla({
   }
 
   return (
-    <div className="mt-3 rounded-2xl border border-[var(--border-color)] p-4">
-      <p className="text-[10px] font-bold uppercase tracking-[0.22em]">Qué le pasa a tu modelo</p>
+    <div className={parte === "todo" ? "mt-3 rounded-2xl border border-[var(--border-color)] p-4" : ""}>
+      {parte === "todo" && <p className="text-[10px] font-bold uppercase tracking-[0.22em]">Qué le pasa a tu modelo</p>}
 
-      {reparacion && (
+      {parte === "reparar" && !reparacion && (
+        <p className="text-[11px] leading-5 text-[var(--text-muted)]">
+          {reparable
+            ? "Une las piezas que se tocan en un solo sólido, saca las caras de más y cierra lo que falta sin cambiar ninguna medida."
+            : "No encontramos nada para reparar: tu archivo está sano."}
+        </p>
+      )}
+
+      {parte !== "defectos" && reparacion && (
         <div className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2.5 text-[11px] leading-5 text-emerald-800 dark:text-emerald-300">
           <p className="font-bold">
             {reparacion.automatica ? "✓ Lo arreglamos solo, no tenés que hacer nada" : "✓ Modelo reparado"}
@@ -182,7 +193,7 @@ export default function DiagnosticoMalla({
         </div>
       )}
 
-      {tipos.length === 0 && piezasFlotantes === 0 ? (
+      {parte === "reparar" ? null : tipos.length === 0 && piezasFlotantes === 0 ? (
         <p className="mt-3 text-[12px] font-semibold text-emerald-700 dark:text-emerald-400">
           {reparacion ? "✓ Ya quedó listo para imprimir." : "✓ No encontramos problemas: el modelo está listo para imprimir."}
         </p>
@@ -260,7 +271,7 @@ export default function DiagnosticoMalla({
         </ul>
       )}
 
-      {reparable && !reparacion && (
+      {parte !== "defectos" && reparable && !reparacion && (
         <button
           type="button"
           onClick={onReparar}
@@ -270,7 +281,7 @@ export default function DiagnosticoMalla({
           {reparando ? "Reparando…" : "Reparar automáticamente"}
         </button>
       )}
-      {reparable && !reparacion && (
+      {parte === "todo" && reparable && !reparacion && (
         <p className="mt-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
           Une las piezas que se tocan en un solo sólido (saca las caras superpuestas), da vuelta las caras al revés y cose
           rajas finitas. Las medidas no cambian y no inventa caras: los huecos y aberturas quedan como están.

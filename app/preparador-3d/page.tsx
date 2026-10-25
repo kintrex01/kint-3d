@@ -20,7 +20,9 @@ import DiagnosticoMalla, { type TipoProblema } from "@/components/DiagnosticoMal
 import { colorearPorPiezas, crearBordes, crearMarcaZona, crearParches, quitarHijo } from "@/lib/visor-ayudas";
 import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/consejos-impresion";
 import ConsejosImpresion from "@/components/ConsejosImpresion";
-import PrepararImpresion from "@/components/PrepararImpresion";
+import PrepararImpresion, { type CorteVisor } from "@/components/PrepararImpresion";
+import PintarPiezas from "@/components/PintarPiezas";
+import { exportarObjConColores, piezasPorVertice } from "@/lib/exportar-obj";
 import { prepararParaImprimir } from "@/lib/preparar-impresion";
 import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
 import SeccionVisor from "@/components/SeccionVisor";
@@ -1329,7 +1331,24 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
 
   // "Preparar para imprimir": la versión lista (en la cama) y su resumen.
   const preparadoRef = useRef<THREE.Mesh | null>(null);
-  const [preparacion, setPreparacion] = useState<{ partes: number; acostadas: number; cortes: number; camas: number } | null>(null);
+  const [preparacion, setPreparacion] = useState<{
+    partes: number;
+    acostadas: number;
+    cortes: number;
+    camas: number;
+    noEntran: number;
+    masGrande: [number, number, number];
+  } | null>(null);
+  // Cortes (alturas desde la base, en unidades del archivo): null = los sugeridos.
+  const [cortesElegidos, setCortesElegidos] = useState<{ altura: number; activo: boolean; propio: boolean }[] | null>(null);
+  // "Otra escala": la que quiera el cliente (1:125, 1:300…).
+  const [escalaOtra, setEscalaOtra] = useState(false);
+  // Balde de pintura: cada pieza tocada se pinta (se descarga en OBJ con colores para Bambu).
+  const [modoPintar, setModoPintar] = useState(false);
+  const [colorPincel, setColorPincel] = useState("#16a34a");
+  const [pintado, setPintado] = useState(false);
+  const modoPintarRef = useRef(false);
+  const pintarRef = useRef<((choque: THREE.Intersection) => void) | null>(null);
   const [preparando, setPreparando] = useState(false);
 
   // Archivos que llegaron de Cotizar o de un pedido (link del correo).
@@ -1613,6 +1632,7 @@ const nivelKintScore =
       // Gira alrededor de lo que tocó: el modelo, la versión preparada o la cama.
       const choque = tocar();
       if (!choque) return;
+      if (modoPintarRef.current) pintarRef.current?.(choque);
       pivote = choque.point.clone();
       giroAnterior.copy(camara.quaternion);
       puntoPivote.position.copy(pivote);
@@ -2120,6 +2140,8 @@ originalRef.current = geometria.clone();
 setAnalisisMalla(analisis);
 setReparacion(null);
 setConsejos(analizarConsejos(geometria, 1));
+setCortesElegidos(null);
+setPintado(false);
 setCortesVisibles(false);
 
 setCantidadPiezas(
@@ -2332,6 +2354,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setCortesVisibles(false);
     volverAlOriginal();
     setConsejos(analizarConsejos(nueva, 1));
+    setCortesElegidos(null);
+    setPintado(false);
     if (parches && parches.length) modelo.add(crearParches(parches));
 
     const cajasFlotantes = detectarPiezasFlotantes(nueva);
@@ -2427,7 +2451,9 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setLlevandoACotizar(true);
     try {
       let actual = original;
-      if (reparacion) {
+      const conColores = pintado ? archivoPintado() : null;
+      if (conColores) actual = conColores;
+      else if (reparacion) {
         const datos = new STLExporter().parse(new THREE.Mesh(modelo.geometry), { binary: true });
         const copia = new Uint8Array(datos.byteLength);
         copia.set(new Uint8Array(datos.buffer, datos.byteOffset, datos.byteLength));
@@ -2450,6 +2476,121 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     } finally {
       setLlevandoACotizar(false);
     }
+  }
+
+  /* Cortes que se van a usar (los sugeridos o los que eligió el cliente). */
+  const cortesVisor = cortesElegidos ?? (consejos?.cortes.map((altura) => ({ altura, activo: true, propio: false })) ?? []);
+  const mmPorUnidad = escalaPorcentaje / 100;
+
+  /* Dibuja en rojo los cortes activos sobre el modelo. */
+  function dibujarCortes(lista: { altura: number; activo: boolean }[]) {
+    const modelo = modeloRef.current;
+    if (!modelo) return;
+    quitarHijo(modelo, "planos-corte");
+    const activos = lista.filter((corte) => corte.activo);
+    if (!activos.length) {
+      setCortesVisibles(false);
+      return;
+    }
+    modelo.geometry.computeBoundingBox();
+    const caja = modelo.geometry.boundingBox!;
+    const grupo = new THREE.Group();
+    grupo.name = "planos-corte";
+    for (const { altura } of activos) {
+      const plano = new THREE.Mesh(
+        new THREE.PlaneGeometry((caja.max.x - caja.min.x) * 1.15, (caja.max.y - caja.min.y) * 1.15),
+        new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
+      );
+      plano.position.set((caja.min.x + caja.max.x) / 2, (caja.min.y + caja.max.y) / 2, caja.min.z + altura);
+      plano.add(new THREE.LineSegments(new THREE.EdgesGeometry(plano.geometry), new THREE.LineBasicMaterial({ color: 0xdc2626 })));
+      grupo.add(plano);
+    }
+    modelo.add(grupo);
+    setCortesVisibles(true);
+  }
+
+  function alternarCorte(indice: number) {
+    volverAlOriginal();
+    const lista = cortesVisor.map((corte, i) => (i === indice ? { ...corte, activo: !corte.activo } : corte));
+    setCortesElegidos(lista);
+    dibujarCortes(lista);
+  }
+
+  function agregarCorte(alturaMm: number) {
+    volverAlOriginal();
+    const lista = [...cortesVisor, { altura: alturaMm / mmPorUnidad, activo: true, propio: true }].sort((a, b) => a.altura - b.altura);
+    setCortesElegidos(lista);
+    dibujarCortes(lista);
+  }
+
+  /* Balde: pinta toda la pieza tocada (en el modelo o en la versión ordenada). */
+  function pintarEn(choque: THREE.Intersection) {
+    const malla = choque.object as THREE.Mesh;
+    if (malla !== (preparadoRef.current ?? modeloRef.current) || !choque.face) return;
+    const geometria = malla.geometry;
+    let color = geometria.getAttribute("color") as THREE.BufferAttribute | undefined;
+    if (!color) {
+      color = new THREE.BufferAttribute(new Float32Array(geometria.getAttribute("position").count * 3), 3);
+      geometria.setAttribute("color", color);
+    }
+    // La primera vez, todo blanco (el color del filamento de base).
+    if (!geometria.userData.pintado) {
+      const blanco = new THREE.Color("#f5f5f4");
+      for (let i = 0; i < color.count; i++) color.setXYZ(i, blanco.r, blanco.g, blanco.b);
+      geometria.userData.pintado = true;
+      geometria.userData.piezas = piezasPorVertice(geometria);
+    }
+    const piezas = geometria.userData.piezas as Int32Array;
+    const elegida = piezas[choque.face.a];
+    const tinta = new THREE.Color(colorPincel);
+    for (let i = 0; i < color.count; i++) if (piezas[i] === elegida) color.setXYZ(i, tinta.r, tinta.g, tinta.b);
+    color.needsUpdate = true;
+    const material = malla.material as THREE.MeshStandardMaterial;
+    material.vertexColors = true;
+    material.color.set("#ffffff");
+    material.transparent = false;
+    material.opacity = 1;
+    material.needsUpdate = true;
+    setPintado(true);
+  }
+
+  // El clic del visor (en el efecto de la escena) pinta con la versión de ahora.
+  useEffect(() => {
+    pintarRef.current = pintarEn;
+  });
+
+  function activarPintura(activo: boolean) {
+    modoPintarRef.current = activo;
+    setModoPintar(activo);
+  }
+
+  function borrarPintura() {
+    const malla = preparadoRef.current ?? modeloRef.current;
+    if (!malla) return;
+    malla.geometry.userData.pintado = false;
+    colorearPorPiezas(malla.geometry);
+    setPintado(false);
+  }
+
+  /* OBJ con colores: Bambu Studio lo abre pintado. */
+  function archivoPintado() {
+    const malla = preparadoRef.current ?? modeloRef.current;
+    if (!malla || !nombreArchivo) return null;
+    const texto = exportarObjConColores(malla.geometry, preparadoRef.current ? 1 : mmPorUnidad);
+    return new File([texto], `${nombreArchivo.replace(/\.stl$/i, "")}-pintado.obj`, { type: "model/obj" });
+  }
+
+  function descargarPintado() {
+    const archivo = archivoPintado();
+    if (!archivo) return;
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement("a");
+    enlace.href = url;
+    enlace.download = archivo.name;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    URL.revokeObjectURL(url);
   }
 
   /* "Ver mi archivo original": vuelve al STL tal como vino. */
@@ -2485,11 +2626,25 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         volverAlOriginal();
         const resultado = prepararParaImprimir(modelo.geometry, {
           mmPorUnidad: escalaPorcentaje / 100,
-          cortes: consejos.cortes,
+          cortes: cortesVisor.filter((corte) => corte.activo).map((corte) => corte.altura),
           acostar: opciones.acostar,
           cortar: opciones.cortar,
           cama: tamanoCama,
         });
+        const datosPreparacion = {
+          partes: resultado.partes,
+          acostadas: resultado.acostadas,
+          cortes: resultado.cortes,
+          camas: resultado.camas,
+          noEntran: resultado.noEntran,
+          masGrande: resultado.masGrande,
+        };
+        // Si una pieza no entra en ninguna cama a esta escala, no se ordena: se avisa.
+        if (resultado.noEntran > 0) {
+          resultado.geometria.dispose();
+          setPreparacion(datosPreparacion);
+          return;
+        }
         colorearPorPiezas(resultado.geometria);
         const preparado = new THREE.Mesh(
           resultado.geometria,
@@ -2502,12 +2657,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         escena.add(preparado);
         preparadoRef.current = preparado;
         modelo.visible = false;
-        setPreparacion({
-          partes: resultado.partes,
-          acostadas: resultado.acostadas,
-          cortes: resultado.cortes,
-          camas: resultado.camas,
-        });
+        setPintado(false);
+        setPreparacion(datosPreparacion);
         setVistaActiva("cama");
         requestAnimationFrame(() => cambiarVista("cama"));
       } catch (problema) {
@@ -2579,7 +2730,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     const fondo = (caja.max.y - caja.min.y) * 1.15;
     const grupo = new THREE.Group();
     grupo.name = "planos-corte";
-    for (const altura of consejos.cortes) {
+    for (const altura of cortesVisor.filter((corte) => corte.activo).map((corte) => corte.altura)) {
       const plano = new THREE.Mesh(
         new THREE.PlaneGeometry(ancho, fondo),
         new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.25, side: THREE.DoubleSide, depthWrite: false })
@@ -2757,13 +2908,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     material.needsUpdate = true;
   }
 
-  if (nuevoEstado) {
-    setVistaActiva("modelo");
-
-    requestAnimationFrame(() => {
-      cambiarVista("modelo");
-    });
-  }
+  // La cámara queda donde estaba: se puede mirar de cerca justo donde está el problema.
 }
 
   function cambiarVista(tipo: Vista3D) {
@@ -2931,16 +3076,16 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
         <div className="mb-8 pt-28 sm:pt-32">
   <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-red-600">
-    VISTA PREVIA INTELIGENTE
+    GRATIS · EN TU NAVEGADOR
   </p>
 
           <h1 className="text-2xl font-black uppercase tracking-[0.12em] sm:text-4xl">
-            Ver mi modelo en 3D
+            Prepará tu modelo para imprimir
           </h1>
 
           <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--text-muted)]">
-  Cargá un archivo STL, revisá sus medidas y
-  comprobá si entra dentro del volumen de impresión.
+  Subí tu STL: lo escalás, lo ordena solo en la cama de la impresora, lo repara en un clic y
+  lo mandás a imprimir. Lo que antes eran horas, en un minuto.
 </p>
 
 <Link
@@ -2954,16 +3099,17 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         <div className="grid items-start gap-6 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]">
   <aside className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-5 shadow-sm sm:p-6">
             {medidas && (
-  <LlevarACotizar
-    vieneDeCotizar={vieneDeCotizar}
-    reparado={Boolean(reparacion)}
-    escala={escalaSeleccionada}
-    llevando={llevandoACotizar}
+  <button
+    type="button"
     onClick={() => void cotizarEsteArchivo()}
-  />
+    disabled={llevandoACotizar}
+    className="mb-1 ml-auto block text-[11px] font-bold text-red-600 underline-offset-2 transition hover:underline disabled:opacity-60"
+  >
+    {vieneDeCotizar ? "Volver a cotizar con este archivo →" : "Cotizar este archivo →"}
+  </button>
 )}
 
-<SeccionVisor numero="1" titulo="Tu archivo" resumen={nombreArchivo || "Elegí un STL para empezar"} abierta>
+<div>
 
 {(archivosRecibidos.length > 0 || origenArchivos) && (
   <div className="mt-3 rounded-xl border border-sky-400/40 bg-sky-500/10 px-4 py-3">
@@ -3048,21 +3194,14 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
         <p className="text-[10px] leading-5 text-[var(--text-muted)]">
           {cantidadPiezas === 1
-            ? "1 pieza detectada"
-            : `${cantidadPiezas} piezas separadas detectadas`}
+            ? "1 pieza"
+            : `${cantidadPiezas} piezas sueltas: en el visor cada una tiene su color`}
         </p>
 
       </div>
     )}
 
-    {cantidadPiezas !== null &&
-      cantidadPiezas > 1 && (
-        <p className="mt-2 border-t border-[var(--border-color)] pt-2 text-[9px] leading-4 text-[var(--text-muted)]">
-          El STL contiene varios cuerpos independientes.
-          Esto puede ser correcto si preparaste varias
-          piezas para imprimir juntas.
-        </p>
-      )}
+
 
   </div>
 )}
@@ -3070,16 +3209,15 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 
             
-</SeccionVisor>
+</div>
 
 {medidas && (
   <>
 <SeccionVisor
-  numero="2"
-  titulo="Escala e impresora"
+  numero="1"
+  titulo="Escalar"
   resumen={`${escalaSeleccionada ? `Escala 1:${escalaSeleccionada}` : "Sin escala todavía"} · ${camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama ${tamanoCama} mm`}`}
   tono={escalaSeleccionada ? "bien" : "aviso"}
-  abierta
 >
 
 
@@ -3120,8 +3258,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   <>
     
 
-    <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em]">
-      Escalar modelo
+    <p className="mb-3 mt-5 text-[10px] font-bold uppercase tracking-[0.22em]">
+      Escala
     </p>
 
     <p className="mb-1.5 text-[10px] font-semibold text-[var(--text-muted)]">
@@ -3151,12 +3289,15 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     </div>
 
     <select
-      value={escalaSeleccionada}
-      onChange={(evento) =>
-        cambiarEscalaArquitectonica(
-          evento.target.value
-        )
-      }
+      value={escalaOtra || (escalaSeleccionada && !["20", "25", "50", "75", "100", "150", "200", "250", "500", "1000"].includes(escalaSeleccionada)) ? "otra" : escalaSeleccionada}
+      onChange={(evento) => {
+        if (evento.target.value === "otra") {
+          setEscalaOtra(true);
+          return;
+        }
+        setEscalaOtra(false);
+        cambiarEscalaArquitectonica(evento.target.value);
+      }}
       className="w-full cursor-pointer rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-4 py-3 text-sm font-bold outline-none transition focus:border-red-600"
     >
       <option value="">
@@ -3173,24 +3314,32 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       <option value="250">Escala 1:250</option>
       <option value="500">Escala 1:500</option>
       <option value="1000">Escala 1:1000</option>
+      <option value="otra">Otra escala…</option>
     </select>
+
+    {(escalaOtra || (escalaSeleccionada && !["20", "25", "50", "75", "100", "150", "200", "250", "500", "1000"].includes(escalaSeleccionada))) && (
+      <label className="mt-2 flex items-center gap-2 rounded-xl border border-[var(--border-color)] px-4 py-2.5">
+        <span className="text-sm font-black">1 :</span>
+        <input
+          autoFocus
+          inputMode="numeric"
+          defaultValue={escalaSeleccionada}
+          placeholder="125"
+          aria-label="Otra escala"
+          onChange={(evento) => {
+            const numero = evento.target.value.replace(/[^\d]/g, "");
+            if (Number(numero) > 0) cambiarEscalaArquitectonica(numero);
+          }}
+          className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
+        />
+      </label>
+    )}
 
     <p className="mt-3 text-[10px] leading-5 text-[var(--text-muted)]">
   SketchUp exporta en metros. Si tu STL ya está a
   escala, dejá «Tamaño actual del archivo».
 </p>
 
-    {escalaSeleccionada && (
-  <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-blue-500/30 bg-blue-500/5 px-4 py-3">
-    <span className="text-[10px] font-semibold text-[var(--text-muted)]">
-      Escala aplicada
-    </span>
-
-    <strong className="text-xs text-blue-600">
-      1:{escalaSeleccionada}
-    </strong>
-  </div>
-)}
   </>
 )}
 
@@ -3199,40 +3348,43 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 {consejos && (
   <SeccionVisor
-    numero="3"
-    titulo="⚡ Preparar para imprimir"
-    resumen={preparacion ? `Listo: ${preparacion.partes} ${preparacion.partes === 1 ? "parte" : "partes"} en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}` : "Lo acomoda solo en la cama, en un clic"}
-    tono={preparacion ? "bien" : "neutro"}
-    abierta
+    numero="2"
+    titulo="⚡ Ordenar automáticamente"
+    resumen={
+      preparacion
+        ? preparacion.noEntran > 0
+          ? "No entra en la cama a esta escala"
+          : `Listo: ${preparacion.partes} ${preparacion.partes === 1 ? "parte" : "partes"} en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}`
+        : "Corta, acuesta y acomoda todo en la cama, en un clic"
+    }
+    tono={preparacion ? (preparacion.noEntran > 0 ? "aviso" : "bien") : "neutro"}
   >
     <PrepararImpresion
       hayParadas={consejos.paradas.length > 0}
-      hayCortes={consejos.cortes.length > 0}
       nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
+      tamanoCama={tamanoCama}
+      altoModelo={consejos.altura * mmPorUnidad}
+      cortes={cortesVisor.map((corte): CorteVisor => ({ ...corte, altura: corte.altura * mmPorUnidad }))}
       resultado={preparacion}
       preparando={preparando}
+      onAlternarCorte={alternarCorte}
+      onAgregarCorte={agregarCorte}
       onPreparar={prepararModelo}
       onDescargar={descargarPreparado}
       onVolver={volverAlOriginal}
-    />
-    <ConsejosImpresion
-      consejos={consejos}
-      factor={escalaPorcentaje / 100}
-      cortesVisibles={cortesVisibles}
-      onVerParada={verPiezaParada}
-      onAlternarCortes={alternarCortes}
     />
   </SeccionVisor>
 )}
 
 <SeccionVisor
-  numero="4"
-  titulo="Revisión del modelo"
-  resumen={reparacion ? "Reparado" : kintCheck && kintCheck.aristasAbiertas > 0 ? "Tiene cosas para revisar" : "Todo bien"}
+  numero="3"
+  titulo="🛠 Reparar archivo"
+  resumen={reparacion ? "Reparado: un solo sólido, sin fugas" : kintCheck && kintCheck.aristasAbiertas > 0 ? "Tiene cosas para arreglar" : "Está sano"}
   tono={reparacion || !(kintCheck && kintCheck.aristasAbiertas > 0) ? "bien" : "aviso"}
 >
   {analisisMalla && (
     <DiagnosticoMalla
+      parte="reparar"
       analisis={analisisMalla}
       piezasFlotantes={piezasFlotantes}
       reparacion={reparacion}
@@ -3243,8 +3395,43 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       onDescargar={descargarSTLPreparado}
     />
   )}
+</SeccionVisor>
 
+<SeccionVisor numero="4" titulo="Defectos y ayuda" resumen="Qué tiene tu modelo y cómo arreglarlo en SketchUp">
+  {analisisMalla && (
+    <DiagnosticoMalla
+      parte="defectos"
+      analisis={analisisMalla}
+      piezasFlotantes={piezasFlotantes}
+      reparacion={reparacion}
+      reparando={reparando}
+      onVer={verProblema}
+      onReparar={() => repararModelo(false)}
+      onDeshacer={deshacerReparacion}
+      onDescargar={descargarSTLPreparado}
+    />
+  )}
+  {consejos && (
+    <ConsejosImpresion
+      consejos={consejos}
+      factor={mmPorUnidad}
+      cortesVisibles={cortesVisibles}
+      onVerParada={verPiezaParada}
+      onAlternarCortes={alternarCortes}
+    />
+  )}
+</SeccionVisor>
 
+<SeccionVisor titulo="🎨 Pintar piezas" resumen={pintado ? "Pintado: se manda con colores" : "Elegí el color de cada pieza"}>
+  <PintarPiezas
+    activo={modoPintar}
+    color={colorPincel}
+    pintado={pintado}
+    onActivar={activarPintura}
+    onColor={setColorPincel}
+    onBorrar={borrarPintura}
+    onDescargar={descargarPintado}
+  />
 </SeccionVisor>
 
 <SeccionVisor titulo="Más opciones" resumen="Medidas, color de vista, descargar y análisis completo">
@@ -3797,6 +3984,16 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   </>
 )}
 
+            {medidas && (
+              <LlevarACotizar
+                vieneDeCotizar={vieneDeCotizar}
+                reparado={Boolean(reparacion)}
+                escala={escalaSeleccionada}
+                llevando={llevandoACotizar}
+                onClick={() => void cotizarEsteArchivo()}
+              />
+            )}
+
             {error && (
               <p className="mt-5 rounded-xl border border-red-600 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-700">
                 {error}
@@ -3907,7 +4104,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         Libre
       </button>
 
-{kintCheck &&
+{kintCheck && !(preparacion && preparacion.noEntran === 0) &&
   (kintCheck.aristasAbiertas > 0 ||
     kintCheck.aristasNoManifold > 0 ||
     kintCheck.triangulosDegenerados > 0 ||
@@ -3939,7 +4136,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   {/* Visor */}
   <div
     ref={contenedorRef}
-    className="h-[500px] w-full sm:h-[620px] lg:min-h-0 lg:flex-1"
+    className={`h-[500px] w-full sm:h-[620px] lg:min-h-0 lg:flex-1 ${modoPintar ? "cursor-crosshair" : ""}`}
   />
 
 {mostrarProblemas && (
