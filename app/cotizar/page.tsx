@@ -11,7 +11,7 @@ import CalendarioEntrega from "@/components/CalendarioEntrega";
 import { marcarPaso } from "@/lib/embudo";
 import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-recordado";
 import { medirSTL } from "@/lib/precio-estimado";
-import { guardarParaVisor } from "@/lib/archivos-para-visor";
+import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
 import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
@@ -185,6 +185,8 @@ const [telefono, setTelefono] = useState("");
   const [revision, setRevision] = useState<import("@/lib/revision-rapida").RevisionRapida | "revisando" | null>(null);
   // Por defecto se manda la copia arreglada; el cliente puede elegir mandar la suya tal cual.
   const [enviarOriginal, setEnviarOriginal] = useState(false);
+  // Llegó desde el visor 3D con «Cotizar este archivo».
+  const [traidoDelVisor, setTraidoDelVisor] = useState(false);
   // Rango que vio el cliente en «¿Cuánto saldría?» (va en el correo al dueño).
   const [rangoEstimado, setRangoEstimado] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -1085,6 +1087,51 @@ useEffect(() => {
     cancelado = true;
   };
 }, [archivos]);
+
+/*
+ * Archivos del visor 3D («Cotizar este archivo»): llegan por la dirección
+ * (?desdeVisor=<id>&escala=100) o, si el visor se abrió desde esta pestaña,
+ * por un mensaje. Reemplazan a los STL que había (los SKP quedan) y, si en el
+ * visor eligió escala, se pone la misma.
+ */
+useEffect(() => {
+  async function recibir(id: string, escalaVisor: string) {
+    try {
+      const nuevos = await leerParaVisor(id);
+      if (!nuevos.length) return;
+      setArchivos((actuales) => [...actuales.filter((archivo) => !/\.stl$/i.test(archivo.name)), ...nuevos]);
+      if (/^\d+(?:[.,]\d+)?$/.test(escalaVisor)) {
+        const elegida = `1:${escalaVisor}`;
+        if (["1:50", "1:75", "1:100", "1:200", "1:250", "1:500", "1:1000"].includes(elegida)) {
+          setEscala(elegida);
+          setEscalaPersonalizada("");
+        } else {
+          setEscala("Otra escala");
+          setEscalaPersonalizada(escalaVisor);
+        }
+      }
+      setTraidoDelVisor(true);
+      document.getElementById("archivo-3d-input")?.closest("div")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } catch {
+      // Si no se pudo leer, el cliente sube el archivo a mano como siempre.
+    }
+  }
+  const parametros = new URLSearchParams(window.location.search);
+  const id = parametros.get("desdeVisor");
+  if (id) {
+    void recibir(id, parametros.get("escala") || "");
+    parametros.delete("desdeVisor");
+    parametros.delete("escala");
+    const resto = parametros.toString();
+    window.history.replaceState(null, "", window.location.pathname + (resto ? `?${resto}` : ""));
+  }
+  const alRecibir = (evento: MessageEvent) => {
+    if (evento.origin !== window.location.origin || evento.data?.tipo !== "kint-visor-a-cotizar") return;
+    void recibir(String(evento.data.id || ""), String(evento.data.escala || ""));
+  };
+  window.addEventListener("message", alRecibir);
+  return () => window.removeEventListener("message", alRecibir);
+}, []);
 
 /* Revisión rápida: se carga el análisis solo si hay STL (no pesa en la página). */
 useEffect(() => {
@@ -2045,7 +2092,7 @@ return (
             <ul className="mt-1.5 list-disc space-y-1 pl-5">
               <li>Archivo de SketchUp a tamaño real (1:1), en metros.</li>
               <li>Cada planta o pieza como un grupo aparte, sin piezas flotando ni pegadas.</li>
-              <li>Cada grupo tiene que ser sólido (en Información de la entidad tiene que aparecer &quot;Volumen&quot;).</li>
+              <li>Cada grupo tiene que ser sólido: cerrado por todos lados, sin caras que falten.</li>
               <li>Borrá lo que no se imprime: la persona 2D, cotas, textos, líneas sueltas, imágenes y árboles 2D.</li>
               <li>Espesor mínimo de muros y elementos finos: 1:50 → 4 cm, 1:100 → 8 cm, 1:200 → 16 cm, 1:500 → 40 cm.</li>
             </ul>
@@ -2087,6 +2134,7 @@ return (
   onChange={(e) => {
     if (e.target.files) {
       setArchivos(Array.from(e.target.files));
+      setTraidoDelVisor(false);
     }
   }}
   className="hidden"
@@ -2097,6 +2145,11 @@ return (
     <p className="mb-2 font-semibold">
       Archivos seleccionados:
     </p>
+    {traidoDelVisor && (
+      <p className="mb-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+        ✓ Lo trajimos del visor 3D, listo para enviar.
+      </p>
+    )}
 
     {archivos.map((archivo, index) => (
       <p key={index} className="text-sm text-[var(--text-muted)]">

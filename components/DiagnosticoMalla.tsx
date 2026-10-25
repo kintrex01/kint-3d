@@ -23,6 +23,8 @@ type Reparacion = {
   carasInternasQuitadas: number;
   automatica: boolean;
   quedanAgujeros: number;
+  piezasUnidas?: number;
+  piezasFinales?: number;
 };
 
 const INFO: Record<
@@ -36,7 +38,7 @@ const INFO: Record<
     claseGravedad: "bg-red-600 text-white",
     que: "La pieza no está cerrada: falta alguna cara. La impresora puede dejar huecos o relleno raro en esa zona.",
     sketchup:
-      "Entrá al grupo y fijate en Información de la entidad: si no dice «Volumen», no es sólido. Dibujá con Línea sobre el borde que falta para que se cree la cara. Si es una abertura a propósito (un lucernario, una pérgola), dejala: la revisamos nosotros.",
+      "Tocá «Ver dónde» para encontrarlo. En SketchUp, entrá al grupo y dibujá con Línea sobre el borde que falta para que se cree la cara. Si es una abertura a propósito (un lucernario, una pérgola), dejala: la revisamos nosotros.",
     seArregla: true,
   },
   pegadas: {
@@ -89,7 +91,10 @@ export default function DiagnosticoMalla({
   onDescargar: () => void;
 }) {
   const [posicion, setPosicion] = useState<Record<TipoProblema, number>>({ agujeros: 0, pegadas: 0, aplastados: 0, alReves: 0 });
-  const tipos = (["agujeros", "alReves", "pegadas", "aplastados"] as const).filter((tipo) => analisis[tipo].cantidad > 0);
+  // Después de unir, los bordes "pegados" son las uniones mismas: ya no se muestran.
+  const tipos = (["agujeros", "alReves", "pegadas", "aplastados"] as const).filter(
+    (tipo) => analisis[tipo].cantidad > 0 && !(tipo === "pegadas" && (reparacion?.piezasUnidas || 0) > 0)
+  );
   const reparable = tipos.length > 0;
 
   function ver(tipo: TipoProblema, paso: number) {
@@ -124,6 +129,11 @@ export default function DiagnosticoMalla({
                 para que se pueda imprimir
               </li>
             )}
+            {(reparacion.piezasUnidas || 0) > 1 && (
+              <li>
+                • {reparacion.piezasUnidas} piezas unidas en un solo sólido: sin caras superpuestas ni fugas (las medidas no cambian)
+              </li>
+            )}
             {reparacion.aristasCosidas + reparacion.rajasCerradas > 0 && (
               <li>• {reparacion.aristasCosidas + reparacion.rajasCerradas} uniones entre caras cosidas (rajas y bordes partidos)</li>
             )}
@@ -137,7 +147,8 @@ export default function DiagnosticoMalla({
             {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados > 0 && (
               <li>• {reparacion.aplastadosQuitados + reparacion.duplicadosQuitados} triángulos aplastados o repetidos sacados</li>
             )}
-            {reparacion.agujerosTapados +
+            {(reparacion.piezasUnidas || 0) +
+              reparacion.agujerosTapados +
               reparacion.laminasEngrosadas +
               reparacion.aristasCosidas +
               reparacion.rajasCerradas +
@@ -261,8 +272,8 @@ export default function DiagnosticoMalla({
       )}
       {reparable && !reparacion && (
         <p className="mt-1.5 text-[10px] leading-4 text-[var(--text-muted)]">
-          Da vuelta las caras al revés, cose rajas finitas y saca triángulos repetidos o aplastados. No agrega ni saca nada
-          que se vea: los huecos y aberturas quedan como están (los revisamos nosotros). Tu archivo original no se modifica.
+          Une las piezas que se tocan en un solo sólido (saca las caras superpuestas), da vuelta las caras al revés y cose
+          rajas finitas. Las medidas no cambian y no inventa caras: los huecos y aberturas quedan como están.
         </p>
       )}
     </div>

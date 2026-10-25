@@ -22,7 +22,9 @@ import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/cons
 import ConsejosImpresion from "@/components/ConsejosImpresion";
 import PrepararImpresion from "@/components/PrepararImpresion";
 import { prepararParaImprimir } from "@/lib/preparar-impresion";
-import { leerParaVisor } from "@/lib/archivos-para-visor";
+import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
+import SeccionVisor from "@/components/SeccionVisor";
+import LlevarACotizar from "@/components/LlevarACotizar";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import * as BufferGeometryUtils from "three/addons/utils/BufferGeometryUtils.js";
 import { STLExporter } from "three/addons/exporters/STLExporter.js";
@@ -1310,7 +1312,7 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   // Análisis con zonas (para "Ver dónde") y resultado de "Reparar".
   const [analisisMalla, setAnalisisMalla] =
     useState<AnalisisMalla | null>(null);
-  const [reparacion, setReparacion] = useState<(Omit<ResultadoReparacion, "geometria" | "parches"> & { automatica: boolean; quedanAgujeros: number }) | null>(null);
+  const [reparacion, setReparacion] = useState<(Omit<ResultadoReparacion, "geometria" | "parches"> & { automatica: boolean; quedanAgujeros: number; piezasUnidas: number; piezasFinales: number }) | null>(null);
   const [reparando, setReparando] = useState(false);
   // El archivo tal como vino (para "Ver mi archivo original" después de reparar).
   const originalRef = useRef<THREE.BufferGeometry | null>(null);
@@ -1332,6 +1334,10 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
 
   // Archivos que llegaron de Cotizar o de un pedido (link del correo).
   const [archivosRecibidos, setArchivosRecibidos] = useState<File[]>([]);
+  // "Cotizar este archivo": el archivo abierto (tal como vino) y si se abrió desde Cotizar.
+  const archivoActualRef = useRef<File | null>(null);
+  const [vieneDeCotizar, setVieneDeCotizar] = useState(false);
+  const [llevandoACotizar, setLlevandoACotizar] = useState(false);
   const [origenArchivos, setOrigenArchivos] = useState<{ pedido: string; codigo: string } | null>(null);
 
   const [filtrosProblemas, setFiltrosProblemas] =
@@ -2022,6 +2028,7 @@ function cambiarColorModelo(nombre: string) {
 
   /* Abre un STL: del botón, de Cotizar o de un pedido. */
   async function abrirArchivoSTL(archivo: File) {
+    archivoActualRef.current = archivo;
 
     setError("");
 setCantidadPiezas(null);
@@ -2120,6 +2127,8 @@ colorearPorPiezas(geometria);
           vertexColors: true,
           roughness: 0.55,
           metalness: 0.05,
+          // Las dos caras: una pieza exportada al revés no se ve como vidrio o como si faltara.
+          side: THREE.DoubleSide,
         });
 
       const modelo = new THREE.Mesh(
@@ -2243,6 +2252,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       try {
         let archivos: File[] = [];
         if (id) {
+          if (!cancelado) setVieneDeCotizar(true);
           archivos = await leerParaVisor(id);
         } else {
           const respuesta = await fetch(
@@ -2338,7 +2348,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setReparando(true);
 
     // Un cuadro de espera antes del cálculo pesado, para que se vea "Reparando…".
-    window.setTimeout(() => {
+    window.setTimeout(async () => {
       try {
         const base = originalRef.current ? originalRef.current.clone() : modelo.geometry;
         const resultado = repararMalla(base, {
@@ -2346,8 +2356,20 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         });
         if (base !== modelo.geometry) base.dispose();
         const { geometria, parches, ...cuentas } = resultado;
-        const analisis = aplicarGeometria(geometria, parches);
-        setReparacion({ ...cuentas, automatica, quedanAgujeros: analisis?.agujeros.lazos || 0 });
+        // Unión de sólidos: saca las caras superpuestas y junta lo que se toca (sin cambiar medidas).
+        let final = geometria;
+        let union = { piezasUnidas: 0, piezasFinales: 0 };
+        try {
+          const { unirSolidos } = await import("@/lib/unir-solidos");
+          const unido = await unirSolidos(geometria);
+          final = unido.geometria;
+          geometria.dispose();
+          union = { piezasUnidas: unido.piezasUnidas, piezasFinales: unido.piezasFinales };
+        } catch {
+          // Si la unión no se puede (navegador viejo), queda la reparación suave.
+        }
+        const analisis = aplicarGeometria(final, parches);
+        setReparacion({ ...cuentas, ...union, automatica, quedanAgujeros: analisis?.agujeros.lazos || 0 });
         const latir = () => {
           pulsoParchesRef.current = performance.now() + 3500;
         };
@@ -2375,6 +2397,43 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       setSimulacion((estado) => estado && { ...estado, fraccion: 1, pausa: true })
     );
     setSimulacion({ fraccion: 0, pausa: false, capas, horas, gramos, altoMm });
+  }
+
+  /*
+   * "Cotizar este archivo": guarda el archivo (reparado si se reparó; sin escalar,
+   * la escala va aparte) y lo abre en Cotizar ya cargado. Si vino desde Cotizar,
+   * se lo devuelve a esa pestaña (no pierde lo que ya completó) y cierra esta.
+   */
+  async function cotizarEsteArchivo() {
+    const modelo = modeloRef.current;
+    const original = archivoActualRef.current;
+    if (!modelo || !original) return;
+    setLlevandoACotizar(true);
+    try {
+      let actual = original;
+      if (reparacion) {
+        const datos = new STLExporter().parse(new THREE.Mesh(modelo.geometry), { binary: true });
+        const copia = new Uint8Array(datos.byteLength);
+        copia.set(new Uint8Array(datos.buffer, datos.byteOffset, datos.byteLength));
+        actual = new File([copia], original.name.replace(/\.stl$/i, "") + "-reparado.stl", { type: "model/stl" });
+      }
+      // Si trajo varios archivos de Cotizar, vuelven todos (el abierto, reparado si se reparó).
+      const lista = archivosRecibidos.length ? archivosRecibidos.map((archivo) => (archivo.name === original.name ? actual : archivo)) : [actual];
+      const id = await guardarParaVisor(lista);
+      const escala = escalaSeleccionada || "";
+      const anterior = window.opener as Window | null;
+      if (vieneDeCotizar && anterior && !anterior.closed) {
+        anterior.postMessage({ tipo: "kint-visor-a-cotizar", id, escala }, window.location.origin);
+        anterior.focus();
+        window.close();
+        return;
+      }
+      window.location.assign(`/cotizar?desdeVisor=${encodeURIComponent(id)}${escala ? `&escala=${encodeURIComponent(escala)}` : ""}`);
+    } catch {
+      setError("No pudimos llevar el archivo a Cotizar. Probá de nuevo.");
+    } finally {
+      setLlevandoACotizar(false);
+    }
   }
 
   /* "Ver mi archivo original": vuelve al STL tal como vino. */
@@ -2878,17 +2937,17 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
         <div className="grid items-start gap-6 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[400px_minmax(0,1fr)]">
   <aside className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-5 shadow-sm sm:p-6">
-            <div className="flex items-center justify-between gap-3">
-  <p className="text-[10px] font-bold uppercase tracking-[0.22em]">
-    Archivo STL
-  </p>
+            {medidas && (
+  <LlevarACotizar
+    vieneDeCotizar={vieneDeCotizar}
+    reparado={Boolean(reparacion)}
+    escala={escalaSeleccionada}
+    llevando={llevandoACotizar}
+    onClick={() => void cotizarEsteArchivo()}
+  />
+)}
 
-  {nombreArchivo && (
-    <span className="rounded-full bg-green-500/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.08em] text-green-600">
-      Cargado
-    </span>
-  )}
-</div>
+<SeccionVisor numero="1" titulo="Tu archivo" resumen={nombreArchivo || "Elegí un STL para empezar"} abierta>
 
 {(archivosRecibidos.length > 0 || origenArchivos) && (
   <div className="mt-3 rounded-xl border border-sky-400/40 bg-sky-500/10 px-4 py-3">
@@ -2994,7 +3053,19 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 
 
-            <div className="my-6 h-px bg-[var(--border-color)]" />
+            
+</SeccionVisor>
+
+{medidas && (
+  <>
+<SeccionVisor
+  numero="2"
+  titulo="Escala e impresora"
+  resumen={`${escalaSeleccionada ? `Escala 1:${escalaSeleccionada}` : "Sin escala todavía"} · ${camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama ${tamanoCama} mm`}`}
+  tono={escalaSeleccionada ? "bien" : "aviso"}
+  abierta
+>
+
 
             <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em]">
               Cama de impresión
@@ -3028,9 +3099,10 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
               {tamanoCama} mm
             </p>
 
+
 {medidas && (
   <>
-    <div className="my-6 h-px bg-[var(--border-color)]" />
+    
 
     <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em]">
       Escalar modelo
@@ -3106,56 +3178,67 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   </>
 )}
 
-{medidas && (
-  <>
-    <div className="my-6 h-px bg-[var(--border-color)]" />
 
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <p className="text-[10px] font-bold uppercase tracking-[0.22em]">
-        Previsualizar color
-      </p>
+</SeccionVisor>
 
-      <span className="text-[9px] font-semibold text-[var(--text-muted)]">
-        {colorModelo}
-      </span>
-    </div>
+<SeccionVisor
+  numero="3"
+  titulo="Revisión del modelo"
+  resumen={reparacion ? "Reparado" : kintCheck && kintCheck.aristasAbiertas > 0 ? "Tiene cosas para revisar" : "Todo bien"}
+  tono={reparacion || !(kintCheck && kintCheck.aristasAbiertas > 0) ? "bien" : "aviso"}
+>
+  {analisisMalla && (
+    <DiagnosticoMalla
+      analisis={analisisMalla}
+      piezasFlotantes={piezasFlotantes}
+      reparacion={reparacion}
+      reparando={reparando}
+      onVer={verProblema}
+      onReparar={() => repararModelo(false)}
+      onDeshacer={deshacerReparacion}
+      onDescargar={descargarSTLPreparado}
+    />
+  )}
 
-    <div className="grid grid-cols-4 gap-2">
-      {coloresModelo.map((color) => (
-        <button
-          key={color.nombre}
-          type="button"
-          onClick={() =>
-            cambiarColorModelo(color.nombre)
-          }
-          title={color.nombre}
-          className={`flex flex-col items-center gap-2 rounded-xl border px-2 py-3 transition ${
-            colorModelo === color.nombre
-              ? "border-red-600"
-              : "border-[var(--border-color)] hover:border-red-600"
-          }`}
-        >
-          <span
-            className="h-5 w-5 rounded-full border border-black/10 shadow-sm"
-            style={{
-              background: color.valor,
-            }}
-          />
 
-          <span className="text-[8px] font-bold">
-            {color.nombre}
-          </span>
-        </button>
-      ))}
-    </div>
+</SeccionVisor>
 
-    <p className="mt-3 text-[9px] leading-4 text-[var(--text-muted)]">
-      Vista aproximada. El color no modifica el archivo STL.
-    </p>
-  </>
+{consejos && (
+  <SeccionVisor
+    numero="4"
+    titulo="Imprimirlo mejor"
+    resumen={consejos.paradas.length + consejos.cortes.length > 0 ? "Hay consejos para ahorrar tiempo" : "Así como está se imprime bien"}
+    tono={consejos.paradas.length + consejos.cortes.length > 0 ? "aviso" : "bien"}
+  >
+  {consejos && (
+    <ConsejosImpresion
+      consejos={consejos}
+      factor={escalaPorcentaje / 100}
+      cortesVisibles={cortesVisibles}
+      onVerParada={verPiezaParada}
+      onAlternarCortes={alternarCortes}
+    />
+  )}
+
+  {consejos && (
+    <PrepararImpresion
+      hayParadas={consejos.paradas.length > 0}
+      hayCortes={consejos.cortes.length > 0}
+      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
+      resultado={preparacion}
+      preparando={preparando}
+      onPreparar={prepararModelo}
+      onDescargar={descargarPreparado}
+      onVolver={volverAlOriginal}
+    />
+  )}
+
+
+  </SeccionVisor>
 )}
 
-<div className="my-6 h-px bg-[var(--border-color)]" />
+<SeccionVisor titulo="Más opciones" resumen="Medidas, color de vista, descargar y análisis completo">
+
 
 <div className="mb-3 flex items-center justify-between gap-3">
   <p className="text-[10px] font-bold uppercase tracking-[0.22em]">
@@ -3281,9 +3364,60 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   </div>
 )}
 
+
 {medidas && (
   <>
-    <div className="my-6 h-px bg-[var(--border-color)]" />
+    
+
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.22em]">
+        Previsualizar color
+      </p>
+
+      <span className="text-[9px] font-semibold text-[var(--text-muted)]">
+        {colorModelo}
+      </span>
+    </div>
+
+    <div className="grid grid-cols-4 gap-2">
+      {coloresModelo.map((color) => (
+        <button
+          key={color.nombre}
+          type="button"
+          onClick={() =>
+            cambiarColorModelo(color.nombre)
+          }
+          title={color.nombre}
+          className={`flex flex-col items-center gap-2 rounded-xl border px-2 py-3 transition ${
+            colorModelo === color.nombre
+              ? "border-red-600"
+              : "border-[var(--border-color)] hover:border-red-600"
+          }`}
+        >
+          <span
+            className="h-5 w-5 rounded-full border border-black/10 shadow-sm"
+            style={{
+              background: color.valor,
+            }}
+          />
+
+          <span className="text-[8px] font-bold">
+            {color.nombre}
+          </span>
+        </button>
+      ))}
+    </div>
+
+    <p className="mt-3 text-[9px] leading-4 text-[var(--text-muted)]">
+      Vista aproximada. El color no modifica el archivo STL.
+    </p>
+  </>
+)}
+
+
+<div className="mt-4">
+{medidas && (
+  <>
 
     <button
       type="button"
@@ -3303,9 +3437,10 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
   </>
 )}
 
+
+</div>
 {kintCheck && (
-  <>
-    <div className="my-6 h-px bg-[var(--border-color)]" />
+  <div className="mt-4">
 
     <div className="flex items-center justify-between gap-3">
       <p className="text-[10px] font-bold uppercase tracking-[0.22em]">
@@ -3372,42 +3507,6 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       </p>
     </div>
     )}
-
-  {analisisMalla && (
-    <DiagnosticoMalla
-      analisis={analisisMalla}
-      piezasFlotantes={piezasFlotantes}
-      reparacion={reparacion}
-      reparando={reparando}
-      onVer={verProblema}
-      onReparar={() => repararModelo(false)}
-      onDeshacer={deshacerReparacion}
-      onDescargar={descargarSTLPreparado}
-    />
-  )}
-
-  {consejos && (
-    <ConsejosImpresion
-      consejos={consejos}
-      factor={escalaPorcentaje / 100}
-      cortesVisibles={cortesVisibles}
-      onVerParada={verPiezaParada}
-      onAlternarCortes={alternarCortes}
-    />
-  )}
-
-  {consejos && (
-    <PrepararImpresion
-      hayParadas={consejos.paradas.length > 0}
-      hayCortes={consejos.cortes.length > 0}
-      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
-      resultado={preparacion}
-      preparando={preparando}
-      onPreparar={prepararModelo}
-      onDescargar={descargarPreparado}
-      onVolver={volverAlOriginal}
-    />
-  )}
 
   <details className="group mt-3">
     <summary className="flex cursor-pointer list-none items-center justify-between rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)]/50 px-4 py-3 transition hover:border-red-600 [&::-webkit-details-marker]:hidden">
@@ -3682,8 +3781,12 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
     </div>
   </details>
+  </div>
+)}
+</SeccionVisor>
   </>
 )}
+
             {error && (
               <p className="mt-5 rounded-xl border border-red-600 bg-red-50 px-4 py-3 text-xs font-semibold leading-5 text-red-700">
                 {error}

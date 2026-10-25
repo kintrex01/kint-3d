@@ -28,7 +28,7 @@ const errores = [
     nombre: "Agujeros (caras que faltan)",
     como: "Un grupo que no es sólido: falta una cara o un pedazo.",
     kint: "Los tapamos siguiendo la forma del hueco, también en L o con patios.",
-    sketchup: "En Información de la entidad tiene que decir «Volumen». Si no, repasá con Línea el borde que falta.",
+    sketchup: "Repasá con Línea el borde que falta: SketchUp crea la cara sola.",
   },
   {
     nombre: "Caras azules (al revés)",
