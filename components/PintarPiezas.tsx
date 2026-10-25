@@ -39,7 +39,7 @@ export default function PintarPiezas({
   return (
     <div data-pintar>
       <p className="text-[11px] leading-5 text-[var(--text-muted)]">
-        Elegí un color y tocá las piezas en el visor. Lo mandamos pintado y la impresora usa esos colores.
+        Elegí un color y tocá las piezas en el visor. Se descarga en 3MF: Bambu Studio lo abre con cada color en su filamento.
       </p>
       <div className="mt-3 grid grid-cols-5 gap-1.5">
         {COLORES_PINTURA.map((opcion) => (

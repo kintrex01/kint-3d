@@ -77,7 +77,8 @@ export async function POST(request: Request) {
       if (
         extension !== "stl" &&
         extension !== "skp" &&
-        extension !== "obj"
+        extension !== "obj" &&
+        extension !== "3mf"
       ) {
         throw new Error(
           "Solo se permiten archivos STL o SKP."

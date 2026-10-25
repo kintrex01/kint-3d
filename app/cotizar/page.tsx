@@ -2129,7 +2129,7 @@ return (
   id="archivo-3d-input"
   type="file"
   multiple
-  accept=".stl,.skp,.obj"
+  accept=".stl,.skp,.obj,.3mf"
   disabled={archivoPesadoWhatsapp}
   onChange={(e) => {
     if (e.target.files) {

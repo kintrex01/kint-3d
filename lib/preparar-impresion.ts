@@ -123,8 +123,10 @@ function acostar(tris: Tri[]) {
 }
 
 /*
- * Alturas de las caras horizontales (de abajo y de arriba) de una pieza: un
- * corte pedido cerca de una se corre justo ahí (la cara de abajo de una losa).
+ * Alturas de las caras que miran para abajo (la cara de abajo de cada losa o
+ * voladizo): un corte pedido cerca se corre justo ahí. Así la parte de abajo
+ * termina donde empieza la losa (las patas solas) y la de arriba arranca plana
+ * con la losa; nunca queda una losa finita apoyada arriba de las patas.
  */
 function alturasDeCaras(tris: Tri[]) {
   const alturas: number[] = [];
@@ -132,7 +134,7 @@ function alturasDeCaras(tris: Tri[]) {
   for (const [a, b, c] of tris) {
     normal.subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
     const largo = normal.length();
-    if (largo === 0 || Math.abs(normal.z / largo) < 0.999) continue;
+    if (largo === 0 || normal.z / largo > -0.999) continue; // solo las que miran para abajo
     alturas.push((a.z + b.z + c.z) / 3);
   }
   return alturas;
@@ -275,7 +277,7 @@ export async function prepararParaImprimir(
     const caja = cajaDe(pieza);
     // Los cortes que pasan por esta pieza, corridos a la cara horizontal más cercana (hasta 1 mm).
     const caras = alturasDeCaras(pieza);
-    const alturas = [...new Set(pedidas.map((h) => ajustarCorte(h, caras, 1)))]
+    const alturas = [...new Set(pedidas.map((h) => ajustarCorte(h, caras, 2)))]
       .filter((h) => h > caja.min.z + 0.2 && h < caja.max.z - 0.2)
       .sort((a, b) => a - b);
     if (!alturas.length) {

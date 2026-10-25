@@ -22,7 +22,8 @@ import { analizarConsejos, type ConsejosImpresion as Consejos } from "@/lib/cons
 import ConsejosImpresion from "@/components/ConsejosImpresion";
 import PrepararImpresion, { type CorteVisor } from "@/components/PrepararImpresion";
 import PintarPiezas from "@/components/PintarPiezas";
-import { exportarObjConColores, piezasPorVertice } from "@/lib/exportar-obj";
+import { piezasPorVertice } from "@/lib/exportar-obj";
+import { exportar3mfConColores } from "@/lib/exportar-3mf";
 import { prepararParaImprimir, SEPARACION_CAMAS } from "@/lib/preparar-impresion";
 import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
 import SeccionVisor from "@/components/SeccionVisor";
@@ -1345,7 +1346,7 @@ const [escalaPorcentaje, setEscalaPorcentaje] =
   const [escalaOtra, setEscalaOtra] = useState(false);
   // Cortar arranca apagado: el cliente lo prende y ve los cortes en el visor.
   const [cortarActivo, setCortarActivo] = useState(false);
-  // Balde de pintura: cada pieza tocada se pinta (se descarga en OBJ con colores para Bambu).
+  // Balde de pintura: cada pieza tocada se pinta (se descarga en 3MF con colores para Bambu).
   const [modoPintar, setModoPintar] = useState(false);
   const [colorPincel, setColorPincel] = useState("#16a34a");
   const [pintado, setPintado] = useState(false);
@@ -1566,7 +1567,9 @@ const nivelKintScore =
     function tocar() {
       const visible = preparadoRef.current ?? modeloRef.current;
       const base = camaRef.current?.children[0];
-      const objetos = [visible, base].filter((objeto): objeto is THREE.Object3D => Boolean(objeto));
+      // Las camas de más (si se ordenó en varias) también se pueden tocar para girar.
+      const extras = ((preparadoRef.current?.userData.camasExtra || []) as THREE.Object3D[]).map((cama) => cama.children[0]);
+      const objetos = [visible, base, ...extras].filter((objeto): objeto is THREE.Object3D => Boolean(objeto));
       return rayo.intersectObjects(objetos, false)[0];
     }
     function alRuedar(evento: WheelEvent) {
@@ -2603,12 +2606,13 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
     setPintado(false);
   }
 
-  /* OBJ con colores: Bambu Studio lo abre pintado. */
+  /* 3MF con colores: Bambu Studio lo abre con cada color en su filamento. */
   function archivoPintado() {
     const malla = preparadoRef.current ?? modeloRef.current;
     if (!malla || !nombreArchivo) return null;
-    const texto = exportarObjConColores(malla.geometry, preparadoRef.current ? 1 : mmPorUnidad);
-    return new File([texto], `${nombreArchivo.replace(/\.stl$/i, "")}-pintado.obj`, { type: "model/obj" });
+    const base = nombreArchivo.replace(/\.stl$/i, "");
+    const datos = exportar3mfConColores(malla.geometry, preparadoRef.current ? 1 : mmPorUnidad, base);
+    return new File([datos], `${base}-pintado.3mf`, { type: "model/3mf" });
   }
 
   function descargarPintado() {
@@ -2880,6 +2884,8 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 }
 
   function alternarProblemas() {
+  // Los problemas se marcan sobre el modelo: si está a la vista lo ordenado, se vuelve al modelo.
+  if (preparadoRef.current) volverAlOriginal();
   const problemas =
     problemasRef.current;
 
@@ -4148,7 +4154,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
       </button>
 
 
-{kintCheck && !(preparacion && preparacion.noEntran === 0) &&
+{kintCheck &&
   (kintCheck.aristasAbiertas > 0 ||
     kintCheck.aristasNoManifold > 0 ||
     kintCheck.triangulosDegenerados > 0 ||
