@@ -17,9 +17,7 @@ import {
   LogOut,
   Menu,
   Moon,
-  Package,
   Settings,
-  ShoppingBag,
   Star,
   Sun,
   Users,
@@ -42,10 +40,9 @@ type Enlace = {
 
 export const ENLACES_ADMIN: Enlace[] = [
   { href: "/admin", texto: "Inicio", icono: Home, grupo: "Pedidos", color: "#60a5fa", enBarra: true },
-  { href: "/admin/pedidos", texto: "Maquetas", icono: Package, grupo: "Pedidos", color: "#38bdf8", enBarra: true },
-  { href: "/admin/tienda", texto: "Tienda", icono: ShoppingBag, grupo: "Pedidos", color: "#f87171", enBarra: true },
+  // Maquetas y tienda están juntas en "Todos los pedidos" (se filtran ahí).
+  { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered, grupo: "Pedidos", color: "#38bdf8", enBarra: true },
   { href: "/admin/calendario", texto: "Calendario", icono: CalendarDays, grupo: "Pedidos", color: "#fbbf24", enBarra: true },
-  { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered, grupo: "Pedidos", color: "#94a3b8" },
   { href: "/admin/caja", texto: "Caja", icono: Wallet, grupo: "Negocio", color: "#34d399" },
   { href: "/admin/calculadora", texto: "Calculadora", icono: Calculator, grupo: "Negocio", color: "#a78bfa" },
   { href: "/admin/escalador", texto: "Escalador", icono: Ruler, grupo: "Negocio", color: "#38bdf8" },
@@ -59,6 +56,8 @@ export const ENLACES_ADMIN: Enlace[] = [
 const GRUPOS = ["Pedidos", "Negocio", "Catálogo", "Ajustes"] as const;
 
 function activo(pathname: string, href: string) {
+  // El detalle de una maqueta o de una compra de la tienda es parte de "Todos los pedidos".
+  if (href === "/admin/todos" && /^\/admin\/(pedidos|tienda)(\/|$)/.test(pathname)) return true;
   return href === "/admin"
     ? pathname === "/admin"
     : pathname === href || pathname.startsWith(`${href}/`);

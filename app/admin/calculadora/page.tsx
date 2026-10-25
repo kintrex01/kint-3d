@@ -21,8 +21,10 @@ import { coincide, estaCancelado } from "@/components/admin/pedidos/utilidades";
 
 /*
  * Calculadora: se calcula el precio y, con un toque, se agrega como
- * opción al presupuesto de un pedido (admin_presupuesto_guardar).
- * Después se manda desde el pedido, como siempre ("Enviar presupuesto").
+ * opción al presupuesto de un pedido (admin_presupuesto_guardar). Si el
+ * pedido está en «Recibido», «Agregar y enviar» además lo pasa a
+ * «Presupuestado» (admin_pedido_estado), que le manda el correo al cliente,
+ * sin entrar al pedido. Corre en segundo plano.
  */
 
 const OPCIONES = ["Recomendada", "Premium", "Barata"];
@@ -53,6 +55,8 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
   const [guardando, setGuardando] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
   const [agregados, setAgregados] = useState<Agregado[]>([]);
+  // Pedidos a los que ya se les mandó el presupuesto desde acá.
+  const [enviados, setEnviados] = useState<string[]>([]);
 
   // Primero los que esperan presupuesto; después el resto, los más nuevos arriba.
   const pedidos = useMemo(() => {
@@ -72,7 +76,19 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
   const precio = precioTexto.trim() ? Number(precioTexto.replace(",", ".")) : calculo.resultado.redondeado;
   const avanzado = Boolean(pedido && !ESTADOS_LIBRES.includes(pedido.estado));
 
-  async function agregar() {
+  /* Pasa el pedido a «Presupuestado»: el cliente recibe el correo con las opciones. */
+  function enviarPresupuesto(numero: string) {
+    setEnviados((lista) => [...lista, numero]);
+    avisar(`Enviando el presupuesto de ${numero}… podés seguir.`);
+    accionAdmin("admin_pedido_estado", { pedido: numero, estado: "Presupuestado" })
+      .then((respuesta) => avisar(`${numero}: ${respuesta.aviso || "presupuesto enviado al cliente"}`))
+      .catch((error) => {
+        setEnviados((lista) => lista.filter((item) => item !== numero));
+        avisar(`${numero}: ${error instanceof Error ? error.message : "no se pudo enviar."}`, "error");
+      });
+  }
+
+  async function agregar(yEnviar = false) {
     if (!pedido) return;
     if (!(precio > 0)) {
       avisar("Poné un precio mayor a 0.", "error");
@@ -101,6 +117,7 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
         ...agregados,
       ]);
       avisar(respuesta.aviso || `Agregado al presupuesto de ${pedido.pedido}`);
+      if (yEnviar) enviarPresupuesto(pedido.pedido);
       setDescripcion("");
       setPrecioTexto("");
       setConfirmar(false);
@@ -118,8 +135,7 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
     <Tarjeta className="p-4">
       <p className="text-sm font-black">Agregar al presupuesto de un pedido</p>
       <p className="mt-0.5 text-[11px] leading-4 text-[var(--text-muted)]">
-        Se suma como una opción más. Podés agregar varias (Recomendada, Premium, Barata…) y después
-        lo mandás desde el pedido.
+        Elegí el pedido y tocá «Agregar y enviar»: se suma la opción y el cliente recibe el presupuesto. Si querés varias opciones (Recomendada, Premium, Barata…), agregalas y mandá al final.
       </p>
 
       {/* Pedido */}
@@ -257,16 +273,35 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
             </p>
           )}
 
-          <Boton
-            variante="principal"
-            className="w-full"
-            icono={<Check size={16} />}
-            cargando={guardando}
-            disabled={!(precio > 0)}
-            onClick={() => void agregar()}
-          >
-            {confirmar ? "Agregar igual" : `Agregar ${opcion.trim() || "opción"} · ${pesos(Math.round(precio || 0))}`}
-          </Boton>
+          {pedido.estado === "Recibido" && !enviados.includes(pedido.pedido) ? (
+            <>
+              {/* Lo más común: una opción y listo, se la manda ya. */}
+              <Boton
+                variante="principal"
+                className="w-full"
+                icono={<Send size={16} />}
+                cargando={guardando}
+                disabled={!(precio > 0)}
+                onClick={() => void agregar(true)}
+              >
+                {`Agregar y enviar al cliente · ${pesos(Math.round(precio || 0))}`}
+              </Boton>
+              <Boton className="w-full" icono={<Check size={16} />} disabled={guardando || !(precio > 0)} onClick={() => void agregar()}>
+                Solo agregar (cargo más opciones y mando después)
+              </Boton>
+            </>
+          ) : (
+            <Boton
+              variante="principal"
+              className="w-full"
+              icono={<Check size={16} />}
+              cargando={guardando}
+              disabled={!(precio > 0)}
+              onClick={() => void agregar()}
+            >
+              {confirmar ? "Agregar igual" : `Agregar ${opcion.trim() || "opción"} · ${pesos(Math.round(precio || 0))}`}
+            </Boton>
+          )}
         </div>
       )}
 
@@ -279,21 +314,36 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
                 <span className="min-w-0 truncate">
                   <span className="font-bold">{item.pedido}</span> · {item.opcion} · {pesos(item.precio)}
                 </span>
-                {indice === agregados.findIndex((otro) => otro.pedido === item.pedido) && (
-                  <Link
-                    href={`/admin/pedidos/${encodeURIComponent(item.pedido)}`}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-[var(--acento)] px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110"
-                  >
-                    <Send size={12} />
-                    Enviar
-                    <ExternalLink size={11} />
-                  </Link>
-                )}
+                {indice === agregados.findIndex((otro) => otro.pedido === item.pedido) &&
+                  (enviados.includes(item.pedido) ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      <Check size={12} />
+                      Enviado
+                    </span>
+                  ) : (
+                    <span className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => enviarPresupuesto(item.pedido)}
+                        className="inline-flex items-center gap-1 rounded-lg bg-[var(--acento)] px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110"
+                      >
+                        <Send size={12} />
+                        Enviar
+                      </button>
+                      <Link
+                        href={`/admin/pedidos/${encodeURIComponent(item.pedido)}`}
+                        title="Abrir el pedido"
+                        className="inline-flex items-center rounded-lg border border-[var(--kint-panel-border)] px-2 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                      >
+                        <ExternalLink size={12} />
+                      </Link>
+                    </span>
+                  ))}
               </li>
             ))}
           </ul>
           <p className="mt-2 text-[11px] leading-4 text-[var(--text-muted)]">
-            «Enviar» abre el pedido: ahí revisás las opciones y tocás «Enviar presupuesto al cliente».
+            «Enviar» le manda el presupuesto al cliente (pasa a «Presupuestado») sin salir de acá.
           </p>
         </div>
       )}

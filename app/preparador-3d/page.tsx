@@ -1538,6 +1538,16 @@ const nivelKintScore =
      * El pellizco en el celular sigue siendo el de OrbitControls.
      */
     const rayo = new THREE.Raycaster();
+    /*
+     * Lo que el rayo puede tocar: lo que está a la vista (el modelo o la versión
+     * "Preparar para imprimir", que oculta al modelo) y la base de la cama.
+     */
+    function tocar() {
+      const visible = preparadoRef.current ?? modeloRef.current;
+      const base = camaRef.current?.children[0];
+      const objetos = [visible, base].filter((objeto): objeto is THREE.Object3D => Boolean(objeto));
+      return rayo.intersectObjects(objetos, false)[0];
+    }
     function alRuedar(evento: WheelEvent) {
       evento.preventDefault();
       evento.stopPropagation();
@@ -1559,12 +1569,8 @@ const nivelKintScore =
       let paso = Math.max(tamanoModelo * 0.05, distanciaCentro * 0.12) * fuerza;
 
       if (acercar && modelo) {
-        // Doble cara: también frena contra el interior (modelos con agujeros).
-      const material = modelo instanceof THREE.Mesh ? modelo.material : null;
-      const lado = material instanceof THREE.Material ? material.side : THREE.FrontSide;
-      if (material instanceof THREE.Material) material.side = THREE.DoubleSide;
-      const choque = rayo.intersectObject(modelo, false)[0];
-      if (material instanceof THREE.Material) material.side = lado;
+        // Frena contra lo que tiene adelante (el modelo, la versión preparada o la cama).
+        const choque = tocar();
         if (choque && choque.distance < paso * 1.5) paso = choque.distance * 0.5;
       }
 
@@ -1604,11 +1610,8 @@ const nivelKintScore =
         ),
         camara
       );
-      const material = modelo instanceof THREE.Mesh ? modelo.material : null;
-      const lado = material instanceof THREE.Material ? material.side : THREE.FrontSide;
-      if (material instanceof THREE.Material) material.side = THREE.DoubleSide;
-      const choque = rayo.intersectObject(modelo, false)[0];
-      if (material instanceof THREE.Material) material.side = lado;
+      // Gira alrededor de lo que tocó: el modelo, la versión preparada o la cama.
+      const choque = tocar();
       if (!choque) return;
       pivote = choque.point.clone();
       giroAnterior.copy(camara.quaternion);
@@ -1651,6 +1654,19 @@ const nivelKintScore =
             ? { ...estado, fraccion: simulador.fraccion, pausa: simulador.enPausa }
             : estado
         );
+      }
+      // Mirando desde abajo, la cama se vuelve transparente y se ve el modelo.
+      const baseCama = camaRef.current?.children[0] as THREE.Mesh | undefined;
+      if (baseCama) {
+        const materialCama = baseCama.material as THREE.MeshStandardMaterial;
+        const desdeAbajo = camara.position.y < controles.target.y - 1 && camara.position.y < 0;
+        const opacidad = desdeAbajo ? 0.15 : 1;
+        if (materialCama.opacity !== opacidad) {
+          materialCama.transparent = desdeAbajo;
+          materialCama.opacity = opacidad;
+          materialCama.depthWrite = !desdeAbajo;
+          materialCama.needsUpdate = true;
+        }
       }
       // Lo recién reparado late en verde unos segundos.
       const parches = modeloRef.current?.getObjectByName("parches-reparacion") as THREE.Mesh | undefined;
@@ -2477,7 +2493,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
         colorearPorPiezas(resultado.geometria);
         const preparado = new THREE.Mesh(
           resultado.geometria,
-          new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.55, metalness: 0.05 })
+          new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide })
         );
         preparado.add(crearBordes(resultado.geometria));
         // Z del archivo → arriba; las partes van de 0 a la cama en X e Y: se centra en la cama.
@@ -3181,8 +3197,36 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 </SeccionVisor>
 
+{consejos && (
+  <SeccionVisor
+    numero="3"
+    titulo="⚡ Preparar para imprimir"
+    resumen={preparacion ? `Listo: ${preparacion.partes} ${preparacion.partes === 1 ? "parte" : "partes"} en ${preparacion.camas} ${preparacion.camas === 1 ? "cama" : "camas"}` : "Lo acomoda solo en la cama, en un clic"}
+    tono={preparacion ? "bien" : "neutro"}
+    abierta
+  >
+    <PrepararImpresion
+      hayParadas={consejos.paradas.length > 0}
+      hayCortes={consejos.cortes.length > 0}
+      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
+      resultado={preparacion}
+      preparando={preparando}
+      onPreparar={prepararModelo}
+      onDescargar={descargarPreparado}
+      onVolver={volverAlOriginal}
+    />
+    <ConsejosImpresion
+      consejos={consejos}
+      factor={escalaPorcentaje / 100}
+      cortesVisibles={cortesVisibles}
+      onVerParada={verPiezaParada}
+      onAlternarCortes={alternarCortes}
+    />
+  </SeccionVisor>
+)}
+
 <SeccionVisor
-  numero="3"
+  numero="4"
   titulo="Revisión del modelo"
   resumen={reparacion ? "Reparado" : kintCheck && kintCheck.aristasAbiertas > 0 ? "Tiene cosas para revisar" : "Todo bien"}
   tono={reparacion || !(kintCheck && kintCheck.aristasAbiertas > 0) ? "bien" : "aviso"}
@@ -3202,40 +3246,6 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
 
 
 </SeccionVisor>
-
-{consejos && (
-  <SeccionVisor
-    numero="4"
-    titulo="Imprimirlo mejor"
-    resumen={consejos.paradas.length + consejos.cortes.length > 0 ? "Hay consejos para ahorrar tiempo" : "Así como está se imprime bien"}
-    tono={consejos.paradas.length + consejos.cortes.length > 0 ? "aviso" : "bien"}
-  >
-  {consejos && (
-    <ConsejosImpresion
-      consejos={consejos}
-      factor={escalaPorcentaje / 100}
-      cortesVisibles={cortesVisibles}
-      onVerParada={verPiezaParada}
-      onAlternarCortes={alternarCortes}
-    />
-  )}
-
-  {consejos && (
-    <PrepararImpresion
-      hayParadas={consejos.paradas.length > 0}
-      hayCortes={consejos.cortes.length > 0}
-      nombreCama={camasImpresora.find((cama) => cama.mm === tamanoCama)?.nombre || `cama de ${tamanoCama} mm`}
-      resultado={preparacion}
-      preparando={preparando}
-      onPreparar={prepararModelo}
-      onDescargar={descargarPreparado}
-      onVolver={volverAlOriginal}
-    />
-  )}
-
-
-  </SeccionVisor>
-)}
 
 <SeccionVisor titulo="Más opciones" resumen="Medidas, color de vista, descargar y análisis completo">
 

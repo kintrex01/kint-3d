@@ -5,8 +5,9 @@
  * datos de la pieza y resultado en vivo. La usa la página Calculadora y
  * el formulario de presupuesto de un pedido ("Calcular precio").
  *
- * Lo que se cargó de la pieza y el multiplicador quedan guardados en el
- * navegador: al volver, está como se dejó.
+ * Lo que se cargó de la pieza queda guardado en el navegador: al volver, está
+ * como se dejó. El multiplicador es parte de cada perfil (ej. «Temporada
+ * baja» ×2, «Explotación» ×4): al elegir el perfil se pone el suyo.
  */
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -171,7 +172,7 @@ export default function Calculadora({
     setPerfiles(guardados);
     setActivoId(activo.id);
     setBorrador(borradorDe(activo));
-    if (!recuerdo.multiplicador) setMultiplicador(activo.multiplicador || 3);
+    usarMultiplicadorDe(activo);
     setCambiado(!datos.perfiles.length);
   }
 
@@ -188,6 +189,7 @@ export default function Calculadora({
   }, [piezaTextos, multiplicador, multiplicadorTexto, precioVenta]);
 
   const base = perfiles.find((perfil) => perfil.id === activoId) ?? perfiles[0];
+  const multiplicadorCambiado = Boolean(base) && multiplicador !== (base.multiplicador || 3);
   const perfil = base && borrador ? perfilDe(base, borrador, multiplicador) : null;
   const pieza: PiezaCalculadora = {
     horas: aNumero(piezaTextos.horas),
@@ -202,11 +204,19 @@ export default function Calculadora({
   const venta =
     perfil && !sinDatos && aNumero(precioVenta) > 0 ? analizarVenta(perfil, pieza, aNumero(precioVenta)) : null;
 
+  /* El multiplicador guardado en el perfil (uno de la lista o uno a mano). */
+  function usarMultiplicadorDe(elegido: PerfilCalculadora) {
+    const valor = elegido.multiplicador || 3;
+    setMultiplicador(valor);
+    setMultiplicadorTexto(MULTIPLICADORES.some((opcion) => opcion.valor === valor) ? "" : String(valor));
+  }
+
   function elegirPerfil(id: string) {
     const elegido = perfiles.find((item) => item.id === id);
     if (!elegido) return;
     setActivoId(id);
     setBorrador(borradorDe(elegido));
+    usarMultiplicadorDe(elegido);
     setCambiado(false);
   }
 
@@ -263,7 +273,8 @@ export default function Calculadora({
   }
 
   function perfilEnBlanco() {
-    const nuevo = perfilNuevo(`Perfil ${perfiles.length + 1}`);
+    if (!perfil) return;
+    const nuevo = { ...perfil, id: perfilNuevo().id, nombre: "" };
     setPerfiles([...perfiles, nuevo]);
     setActivoId(nuevo.id);
     setBorrador(borradorDe(nuevo));
@@ -328,7 +339,7 @@ export default function Calculadora({
               <span className="block truncate text-xs font-bold text-[var(--text-muted)]">{borrador.impresora}</span>
             </label>
             <div className="flex shrink-0">
-              <BotonIcono titulo="Perfil nuevo" onClick={perfilEnBlanco}>
+              <BotonIcono titulo="Guardar como perfil nuevo (con nombre)" onClick={perfilEnBlanco}>
                 <Plus size={16} />
               </BotonIcono>
               <BotonIcono titulo="Duplicar perfil" onClick={duplicarPerfil}>
@@ -341,7 +352,8 @@ export default function Calculadora({
           </div>
 
           {/* Datos clave del perfil, a la vista */}
-          <div className="grid grid-cols-3 border-t border-[var(--kint-panel-border)]">
+          <div className="grid grid-cols-4 border-t border-[var(--kint-panel-border)]">
+            <Dato icono={<Sparkles size={13} />} texto="Multiplic." valor={`×${base?.multiplicador || 3}`} />
             <Dato icono={<Layers size={13} />} texto="Filamento" valor={`${pesos(aNumero(borrador.textos.precioFilamento))}/kg`} />
             <Dato icono={<Zap size={13} />} texto="Luz" valor={`${pesos(aNumero(borrador.textos.precioKwh))}/kWh`} />
             <Dato icono={<Printer size={13} />} texto="Consumo" valor={`${aNumero(borrador.textos.consumoW)} W`} />
@@ -368,6 +380,8 @@ export default function Calculadora({
                   className={claseInput}
                   value={borrador.nombre}
                   maxLength={40}
+                  autoFocus={!borrador.nombre}
+                  placeholder="Ej.: Temporada baja, Explotación…"
                   onChange={(evento) => {
                     setBorrador({ ...borrador, nombre: evento.target.value });
                     setCambiado(true);
@@ -405,9 +419,11 @@ export default function Calculadora({
             </div>
           )}
 
-          {cambiado && (
+          {(cambiado || multiplicadorCambiado) && (
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
-              <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Cambios sin guardar en el perfil</span>
+              <span className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                {cambiado ? "Cambios sin guardar en el perfil" : `Guardar ×${multiplicador} en «${borrador.nombre || "este perfil"}»`}
+              </span>
               <Boton tamano="chico" variante="principal" icono={<Save size={14} />} cargando={guardando} onClick={guardarPerfil}>
                 Guardar perfil
               </Boton>

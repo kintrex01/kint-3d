@@ -90,6 +90,8 @@ type Confirmacion = {
   textoConfirmar: string;
   exito: string;
   ejecutar: () => Promise<{ pedido: PedidoDetalle; aviso?: string }>;
+  // Cambios de estado: corren en segundo plano (no hay que quedarse mirando).
+  enSegundoPlano?: { estado: string };
 };
 
 type ProximoPaso =
@@ -250,7 +252,7 @@ export default function DetallePedidoAdmin({
         pedido: pedido.pedido,
       });
       avisar(respuesta.aviso);
-      router.push("/admin/pedidos");
+      router.push("/admin/todos");
     } catch (errorAccion) {
       avisar(
         errorAccion instanceof Error ? errorAccion.message : "No se pudo cancelar.",
@@ -262,6 +264,28 @@ export default function DetallePedidoAdmin({
 
   async function confirmar() {
     if (!confirmacion) return;
+    // Segundo plano: se cierra ya, se muestra el estado nuevo y se avisa cuando termina.
+    if (confirmacion.enSegundoPlano && pedido) {
+      const { ejecutar, exito, enSegundoPlano } = confirmacion;
+      const numeroPedido = pedido.pedido;
+      setConfirmacion(null);
+      setDatos({ pedido: { ...pedido, estado: enSegundoPlano.estado } });
+      avisar(`Cambiando ${numeroPedido} a «${enSegundoPlano.estado}»… podés seguir con otra cosa.`);
+      ejecutar()
+        .then((respuesta) => {
+          setDatos({ pedido: respuesta.pedido });
+          const texto = respuesta.aviso || exito;
+          avisar(`${numeroPedido}: ${texto}`, /^Cambiado, pero/.test(respuesta.aviso || "") ? "error" : undefined);
+        })
+        .catch((errorAccion) => {
+          avisar(
+            `${numeroPedido}: ${errorAccion instanceof Error ? errorAccion.message : "no se pudo cambiar el estado."}`,
+            "error"
+          );
+          recargar();
+        });
+      return;
+    }
     setGuardando(true);
     try {
       const respuesta = await confirmacion.ejecutar();
@@ -289,6 +313,7 @@ export default function DetallePedidoAdmin({
       exito: `Pedido en «${estado}»`,
       ejecutar: () =>
         accionAdmin("admin_pedido_estado", { pedido: pedido.pedido, estado }),
+      enSegundoPlano: { estado },
     });
   }
 
@@ -378,7 +403,7 @@ export default function DetallePedidoAdmin({
 
   const volver = (
     <Link
-      href="/admin/pedidos"
+      href="/admin/todos"
       className="-ml-2 mb-2 inline-flex h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-main)]"
     >
       <ArrowLeft size={17} />

@@ -560,13 +560,30 @@ export function SeccionPresupuesto({
 
             <div className="grid grid-cols-2 gap-3">
               <Campo etiqueta="Tiempo de impresión">
-                <input
-                  className={claseInput}
-                  value={formulario.tiempo}
-                  onChange={(evento) => cambiar({ tiempo: evento.target.value })}
-                  maxLength={60}
-                  placeholder="7 hs 45 minutos"
-                />
+                {/* Horas y minutos aparte: se escriben solo los números. */}
+                <div className="grid grid-cols-2 gap-2">
+                  {(["horas", "minutos"] as const).map((parte) => {
+                    const tiempo = leerTiempo(formulario.tiempo);
+                    return (
+                      <div key={parte} className="relative">
+                        <input
+                          className={`${claseInput} pr-11`}
+                          value={tiempo[parte] || ""}
+                          onChange={(evento) => {
+                            const valor = Number(evento.target.value.replace(/D/g, "")) || 0;
+                            cambiar({ tiempo: armarTiempo({ ...tiempo, [parte]: valor }) });
+                          }}
+                          inputMode="numeric"
+                          placeholder={parte === "horas" ? "7" : "45"}
+                          aria-label={parte === "horas" ? "Horas" : "Minutos"}
+                        />
+                        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-[var(--text-muted)]">
+                          {parte === "horas" ? "h" : "min"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </Campo>
               <Campo
                 etiqueta="Filamento estimado"
@@ -685,6 +702,18 @@ export function SeccionPresupuesto({
       </Hoja>
     </>
   );
+}
+
+/* "7 h 45 min", "7 hs 45 minutos" o "87" (solo horas) → { horas, minutos }. */
+function leerTiempo(texto: string) {
+  const horas = /(d+)s*h/i.exec(texto)?.[1];
+  const minutos = /(d+)s*m/i.exec(texto)?.[1];
+  if (!horas && !minutos && /^s*d+s*$/.test(texto)) return { horas: Number(texto), minutos: 0 };
+  return { horas: Number(horas || 0), minutos: Number(minutos || 0) };
+}
+
+function armarTiempo({ horas, minutos }: { horas: number; minutos: number }) {
+  return [horas > 0 && `${horas} h`, minutos > 0 && `${minutos} min`].filter(Boolean).join(" ");
 }
 
 function TarjetaOpcion({

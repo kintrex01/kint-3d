@@ -541,7 +541,7 @@ export default function CalendarioAdmin() {
                   {entregasAbierto!.tienda.map((compra) => (
                     <li key={compra.pedido}>
                       <Link
-                        href="/admin/tienda"
+                        href="/admin/todos"
                         className="flex min-h-12 items-center gap-3 px-3 py-2 transition hover:bg-[var(--kint-panel-soft)]"
                       >
                         <ShoppingBag
