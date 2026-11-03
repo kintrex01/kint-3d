@@ -34,6 +34,8 @@ import {
   ReceiptText,
   RefreshCw,
   Trash2,
+  ImagePlus,
+  Send,
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import {
@@ -214,6 +216,17 @@ function mensajeEstado(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
   );
 }
 
+/* Foto final: lado mayor 1600 px, JPEG (se ve bien en el correo) → base64. */
+async function fotoEnBase64(archivo: File) {
+  const imagen = await createImageBitmap(archivo);
+  const escala = Math.min(1, 1600 / Math.max(imagen.width, imagen.height));
+  const lienzo = document.createElement("canvas");
+  lienzo.width = Math.round(imagen.width * escala);
+  lienzo.height = Math.round(imagen.height * escala);
+  lienzo.getContext("2d")?.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+  return lienzo.toDataURL("image/jpeg", 0.85).split(",")[1];
+}
+
 function decodificar(segmento: string) {
   try {
     return decodeURIComponent(segmento);
@@ -239,6 +252,9 @@ export default function DetallePedidoAdmin({
   const [fechaNueva, setFechaNueva] = useState("");
   const [pidiendoCancelar, setPidiendoCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
+  const [fotoNueva, setFotoNueva] = useState<File | null>(null);
+  const [vistaFoto, setVistaFoto] = useState("");
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
   const router = useRouter();
 
   const pedido = datos?.pedido;
@@ -259,6 +275,34 @@ export default function DetallePedidoAdmin({
         "error"
       );
       setCancelando(false);
+    }
+  }
+
+  /* Sube la foto final (queda como «21.jpg») y el pedido pasa a Terminado. */
+  async function enviarFotoFinal() {
+    if (!pedido || !fotoNueva) return;
+    setSubiendoFoto(true);
+    try {
+      const foto = await fotoEnBase64(fotoNueva);
+      const respuesta = await accionAdmin("admin_pedido_foto_final", {
+        pedido: pedido.pedido,
+        foto,
+        mime: "image/jpeg",
+      });
+      setDatos({ pedido: respuesta.pedido });
+      avisar(
+        respuesta.aviso || "Foto enviada. Pedido terminado.",
+        /^Cambiado, pero/.test(respuesta.aviso || "") ? "error" : undefined
+      );
+      setFotoNueva(null);
+      setVistaFoto("");
+    } catch (errorAccion) {
+      avisar(
+        errorAccion instanceof Error ? errorAccion.message : "No se pudo subir la foto.",
+        "error"
+      );
+    } finally {
+      setSubiendoFoto(false);
     }
   }
 
@@ -581,7 +625,50 @@ export default function DetallePedidoAdmin({
             className="space-y-3 px-4 py-4"
             color="border-[color-mix(in_srgb,var(--fase)_45%,transparent)] bg-[linear-gradient(135deg,color-mix(in_srgb,var(--fase)_14%,var(--kint-panel)),var(--kint-panel))]"
           >
-            {paso.tipo === "estado" && (
+            {pedido.estado === "En impresión" && (
+              <div className="space-y-3">
+                <label className="block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--fase)_55%,transparent)] bg-[var(--kint-panel-soft)] text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-main)]">
+                  {vistaFoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={vistaFoto} alt="Foto final elegida" className="aspect-[4/3] w-full object-cover" />
+                  ) : (
+                    <span className="flex min-h-36 flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
+                      <ImagePlus size={26} />
+                      Subir foto final
+                      <span className="text-xs font-semibold">
+                        Se guarda como «{pedido.pedido.match(/(\d+)$/)?.[1].replace(/^0+(?=\d)/, "") ?? pedido.pedido}.jpg»
+                      </span>
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={subiendoFoto}
+                    onChange={(evento) => {
+                      const archivo = evento.target.files?.[0];
+                      evento.target.value = "";
+                      if (!archivo) return;
+                      if (vistaFoto) URL.revokeObjectURL(vistaFoto);
+                      setFotoNueva(archivo);
+                      setVistaFoto(URL.createObjectURL(archivo));
+                    }}
+                  />
+                </label>
+                <Boton
+                  variante="principal"
+                  tamano="grande"
+                  className="w-full"
+                  icono={<Send size={17} />}
+                  disabled={!fotoNueva}
+                  cargando={subiendoFoto}
+                  onClick={enviarFotoFinal}
+                >
+                  Enviar foto y marcar como terminado
+                </Boton>
+              </div>
+            )}
+            {paso.tipo === "estado" && pedido.estado !== "En impresión" && (
               <Boton
                 variante="principal"
                 tamano="grande"

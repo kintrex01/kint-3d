@@ -34,7 +34,7 @@ import type {
   FilaConfig,
   PremioRuletaConfig,
 } from "@/lib/admin-tipos";
-import { colorFilamento, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import { colorFilamento, conNombreVisible, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   Boton,
   CajaError,
@@ -700,7 +700,12 @@ function SeccionConfig({
                   className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-black/15 dark:ring-white/20"
                   style={mini ? { backgroundImage: `url("${mini}")` } : { background: extras.color || colorFilamento(nombre) }}
                 />
-                <span className="min-w-0 flex-1 truncate text-sm font-bold">{nombre}</span>
+                <NombreFilamento
+                  key={fila.comentario}
+                  nombre={nombre}
+                  visible={extras.nombre}
+                  onGuardar={(texto) => guardar(fila.clave, { comentario: conNombreVisible(fila.comentario, texto) })}
+                />
                 <BorrarConfig fila={fila} onFilas={onFilas} texto={`el filamento ${nombre}`} />
                 <Interruptor
                   activo={activo}
@@ -714,6 +719,69 @@ function SeccionConfig({
         </div>
       )}
     </section>
+  );
+}
+
+/* Nombre del filamento: tocarlo para renombrar (vacío = vuelve al original). */
+function NombreFilamento({
+  nombre,
+  visible,
+  onGuardar,
+}: {
+  nombre: string;
+  visible: string;
+  onGuardar: (texto: string) => Promise<boolean>;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState(visible);
+  const [guardando, setGuardando] = useState(false);
+
+  async function terminar() {
+    const limpio = texto.trim();
+    if (limpio === visible || limpio === nombre) {
+      setTexto(visible);
+      setEditando(false);
+      return;
+    }
+    setGuardando(true);
+    const listo = await onGuardar(limpio);
+    setGuardando(false);
+    if (listo) setEditando(false);
+  }
+
+  if (editando) {
+    return (
+      <input
+        autoFocus
+        value={texto}
+        disabled={guardando}
+        maxLength={40}
+        placeholder={nombre}
+        onChange={(evento) => setTexto(evento.target.value)}
+        onBlur={terminar}
+        onKeyDown={(evento) => {
+          if (evento.key === "Enter") evento.currentTarget.blur();
+          if (evento.key === "Escape") {
+            setTexto(visible);
+            setEditando(false);
+          }
+        }}
+        aria-label={`Nombre visible de ${nombre}`}
+        className={`${claseInput} h-9 min-w-0 flex-1 px-2.5 text-sm`}
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditando(true)}
+      title="Cambiar el nombre que ve el cliente"
+      className="min-w-0 flex-1 truncate text-left text-sm font-bold hover:underline"
+    >
+      {visible || nombre}
+      {visible && <span className="block truncate text-[10px] font-semibold text-[var(--text-muted)]">{nombre}</span>}
+    </button>
   );
 }
 

@@ -834,6 +834,11 @@ const boquilla04Habilitada =
       return {
         nombre: nombreFilamentoDesdeClave(clave),
 
+        // Lo que ve el cliente; al pedido se manda `nombre` (la clave).
+        etiqueta:
+          extrasFilamento(String(opcion?.comentario || "")).nombre ||
+          nombreFilamentoDesdeClave(clave),
+
         clave,
 
         habilitado: [
@@ -2389,12 +2394,12 @@ return (
 />
 
       <p className="mt-1.5 text-center text-xs font-semibold sm:mt-2 sm:text-sm">
-        {item.nombre}
+        {item.etiqueta}
       </p>
 
       {!item.habilitado && (
         <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
-          {item.comentario ||
+          {extrasFilamento(item.comentario).nota ||
             "Color no disponible"}
         </p>
       )}

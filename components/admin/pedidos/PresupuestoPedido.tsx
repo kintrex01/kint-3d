@@ -570,7 +570,7 @@ export function SeccionPresupuesto({
                           className={`${claseInput} pr-11`}
                           value={tiempo[parte] || ""}
                           onChange={(evento) => {
-                            const valor = Number(evento.target.value.replace(/D/g, "")) || 0;
+                            const valor = Number(evento.target.value.replace(/\D/g, "")) || 0;
                             cambiar({ tiempo: armarTiempo({ ...tiempo, [parte]: valor }) });
                           }}
                           inputMode="numeric"
@@ -706,9 +706,9 @@ export function SeccionPresupuesto({
 
 /* "7 h 45 min", "7 hs 45 minutos" o "87" (solo horas) → { horas, minutos }. */
 function leerTiempo(texto: string) {
-  const horas = /(d+)s*h/i.exec(texto)?.[1];
-  const minutos = /(d+)s*m/i.exec(texto)?.[1];
-  if (!horas && !minutos && /^s*d+s*$/.test(texto)) return { horas: Number(texto), minutos: 0 };
+  const horas = /(\d+)\s*h/i.exec(texto)?.[1];
+  const minutos = /(\d+)\s*m/i.exec(texto)?.[1];
+  if (!horas && !minutos && /^\s*\d+\s*$/.test(texto)) return { horas: Number(texto), minutos: 0 };
   return { horas: Number(horas || 0), minutos: Number(minutos || 0) };
 }
 

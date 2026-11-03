@@ -381,6 +381,11 @@ export type AccionesAdmin = {
     pedido: { pedido: string; fecha: string };
     respuesta: { pedido: PedidoDetalle };
   };
+  /* Foto final desde el panel (En impresión): se guarda como «21.jpg», va a Pedidos › S y pasa a Terminado. */
+  admin_pedido_foto_final: {
+    pedido: { pedido: string; foto: string; mime: string };
+    respuesta: { pedido: PedidoDetalle; aviso: string };
+  };
 
   /* Valores del desplegable "Opción" de Presupuestos (soloLista = la hoja rechaza otros). */
   admin_presupuesto_opciones: {
@@ -705,6 +710,7 @@ export const ACCIONES_ADMIN = [
   "admin_pago_confirmar",
   "admin_saldo_confirmar",
   "admin_pedido_entrega",
+  "admin_pedido_foto_final",
   "admin_presupuesto_opciones",
   "admin_presupuesto_guardar",
   "admin_presupuesto_borrar",

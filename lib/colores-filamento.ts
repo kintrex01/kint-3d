@@ -70,5 +70,25 @@ export function extrasFilamento(comentario: string) {
   const texto = String(comentario || "");
   const color = texto.match(/color:\s*(#[0-9a-f]{6})/i)?.[1] || "";
   const foto = texto.match(/foto:\s*(https:\/\/\S+)/i)?.[1] || "";
-  return { color, foto };
+  // Nombre visible: se puede renombrar sin tocar la clave (foto y pedidos viejos siguen igual).
+  const nombre = texto.match(/nombre:\s*([^·]+)/i)?.[1].trim() || "";
+  // Lo que queda es la nota para el cliente (ej. "Vuelve en diciembre").
+  const nota = texto
+    .replace(/(color|foto|nombre):\s*[^·]*/gi, "")
+    .split("·")
+    .map((parte) => parte.trim())
+    .filter(Boolean)
+    .join(" · ");
+  return { color, foto, nombre, nota };
+}
+
+/* Pone (o quita, si viene vacío) el nombre visible en el comentario. */
+export function conNombreVisible(comentario: string, nombre: string) {
+  const partes = String(comentario || "")
+    .split("·")
+    .map((parte) => parte.trim())
+    .filter((parte) => parte && !/^nombre:/i.test(parte));
+  const limpio = nombre.replace(/·/g, "").trim().slice(0, 40);
+  if (limpio) partes.push(`nombre: ${limpio}`);
+  return partes.join(" · ");
 }
