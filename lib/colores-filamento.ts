@@ -82,13 +82,16 @@ export function extrasFilamento(comentario: string) {
   return { color, foto, nombre, nota };
 }
 
-/* Pone (o quita, si viene vacío) el nombre visible en el comentario. */
-export function conNombreVisible(comentario: string, nombre: string) {
-  const partes = String(comentario || "")
-    .split("·")
-    .map((parte) => parte.trim())
-    .filter((parte) => parte && !/^nombre:/i.test(parte));
-  const limpio = nombre.replace(/·/g, "").trim().slice(0, 40);
-  if (limpio) partes.push(`nombre: ${limpio}`);
-  return partes.join(" · ");
+/* Arma el comentario de la fila con lo editado (lo vacío no se guarda). */
+export function comentarioFilamento(extras: { color: string; foto: string; nombre: string; nota: string }) {
+  const limpiar = (texto: string) => texto.replace(/·/g, "").trim();
+  return [
+    limpiar(extras.nota).slice(0, 200),
+    extras.color ? `color: ${extras.color}` : "",
+    extras.foto ? `foto: ${extras.foto}` : "",
+    limpiar(extras.nombre) ? `nombre: ${limpiar(extras.nombre).slice(0, 40)}` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
+
