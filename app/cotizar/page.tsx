@@ -187,7 +187,6 @@ const [telefono, setTelefono] = useState("");
   const [codigoEspecial, setCodigoEspecial] = useState<CodigoEspecialInfo | null>(null);
   // "Mi modelo cumple los requisitos" (obligatoria).
   const [cumpleRequisitos, setCumpleRequisitos] = useState(false);
-  const [masOpciones, setMasOpciones] = useState(false);
   // Productos de la tienda que suma a su pedido.
   const [extras, setExtras] = useState<ExtraElegido[]>([]);
   const [extrasEnviados, setExtrasEnviados] = useState<string[]>([]);
@@ -1080,10 +1079,6 @@ const especialActivo = codigoEspecial?.disponible ? codigoEspecial : null;
 const colorPermitido = (nombre: string) =>
   !especialActivo?.colores?.length || especialActivo.colores.some((c) => c.toLowerCase() === nombre.toLowerCase());
 
-/* Con beneficios (VALE, descuentos) o algo ya elegido, "Más opciones" se abre solo. */
-useEffect(() => {
-  if (beneficiosDisponibles.length > 0 || pedidoPrioritario) setMasOpciones(true);
-}, [beneficiosDisponibles.length, pedidoPrioritario]);
 
 /* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
 // Solo se saltea si ya sabemos que la cuenta tiene uno guardado.
@@ -1904,273 +1899,15 @@ return (
   </div>
 )}
 
-        {/* Sugerencia discreta: las guías se abren en otra pestaña para no perder el formulario. */}
-        <aside className="mb-8 flex items-start gap-3 rounded-xl border border-dashed border-[var(--border-color)] px-4 py-3">
-          <span className="mt-0.5 text-base" aria-hidden>💡</span>
-          <p className="text-sm leading-6 text-[var(--text-muted)]">
-            <span className="font-semibold text-[var(--text-main)]">
-              ¿Primera vez imprimiendo en 3D?
-            </span>{" "}
-            Si querés, mirá cómo preparar tu archivo antes de enviarlo:{" "}
-            <Link
-              href="/tutorial"
-              target="_blank"
-              className="whitespace-nowrap font-semibold text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
-            >
-              Guía para principiantes ↗
-            </Link>
-            {" · "}
-            <Link
-              href="/tutorial-avanzado"
-              target="_blank"
-              className="whitespace-nowrap font-semibold text-blue-600 underline underline-offset-4 hover:text-blue-700 dark:text-blue-400"
-            >
-              Guía avanzada STL ↗
-            </Link>
-            <span className="mt-1 block text-xs">
-              Se abren en otra pestaña, no perdés lo que completaste. Si ya tenés tu archivo, seguí abajo.
-            </span>
-          </p>
-        </aside>
 
+<h2 className="mb-5 flex items-center gap-3 text-xl font-black text-[var(--text-main)]">
+  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm text-white">1</span>
+  Tu archivo
+</h2>
         <div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Correo electrónico *
-  </label>
-
-  <p className="mb-3 text-sm text-[var(--text-muted)]">
-    📩 Por este correo te llegan el presupuesto y todas las novedades de tu pedido.
-  </p>
-
-  <input
-    type="email"
-    name="email"
-    autoComplete="email"
-    value={email}
-    onChange={(e) => {
-      setEmail(e.target.value);
-      setCorreoAutomatico(false);
-    }}
-    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-    placeholder="ejemplo@gmail.com"
-  />
-
-  {correoAutomatico && email && (
-    <button
-      type="button"
-      onClick={() => {
-        olvidarCorreo();
-        setEmail("");
-        setCorreoAutomatico(false);
-      }}
-      className="mt-2 text-xs font-semibold text-[var(--text-muted)] underline underline-offset-4 hover:text-[var(--text-main)]"
-    >
-      ¿No sos vos? Usar otro correo
-    </button>
-  )}
-
-  {consultandoCliente && (
-    <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
-      Comprobando cliente...
-    </p>
-  )}
-</div>
-
-{clienteExiste === true && (
-  <div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-4">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="text-lg font-bold text-[var(--text-main)]">
-          ¡Hola, {nombre}!
-        </p>
-
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          {alias}
-        </p>
-      </div>
-
-      {[
-        "habilitada",
-        "habilitado",
-        "sí",
-        "si",
-      ].includes(
-        String(
-          configuracion.puntos?.valor || ""
-        )
-          .trim()
-          .toLowerCase()
-      ) && (
-        <div className="text-right">
-          <p className="text-lg font-black text-red-600">
-            {puntosDisponibles.toLocaleString(
-              "es-UY"
-            )}
+          <p className="mb-2 text-sm text-[var(--text-muted)]">
+            STL o SKP, hasta 50 MB. ¿Son varios? Subilos todos acá: van en este mismo pedido.
           </p>
-
-          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
-            puntos Kint
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-{clienteExiste === false && (
-  <div className="mb-6 overflow-hidden rounded-2xl border-2 border-red-600/50 bg-[linear-gradient(135deg,rgba(220,38,38,0.10),rgba(31,63,133,0.10))] p-5 shadow-[0_10px_40px_rgba(220,38,38,0.10)]">
-    <div className="mb-5 flex items-start gap-3">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-xl text-white shadow-lg">
-        ✨
-      </span>
-      <div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
-          Primera vez en Kint 3D
-        </p>
-        <p className="text-lg font-black text-[var(--text-main)]">Creá tu cuenta</p>
-        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
-          Estos datos se piden una sola vez y quedan en tu cuenta. La próxima vez solo ponés tu correo.
-        </p>
-      </div>
-    </div>
-
-    <div className="mb-6">
-      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
-        Nombre público *
-        <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
-          👁 Lo ve todo el mundo
-        </span>
-      </label>
-
-      <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
-        Aparece en tus reseñas y en el ranking Top Kint. Podés usar un apodo.
-      </p>
-
-      <input
-        value={alias}
-        maxLength={20}
-        onChange={(e) =>
-          setAlias(e.target.value)
-        }
-        className={`w-full rounded-xl border bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
-          aliasDisponible === false
-            ? "border-red-600"
-            : aliasDisponible === true
-            ? "border-green-600"
-            : "border-[var(--border-color)]"
-        }`}
-        placeholder="Ej.: Vale Arquitecta"
-      />
-
-      {verificandoAlias && (
-        <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
-          Verificando disponibilidad...
-        </p>
-      )}
-
-      {!verificandoAlias &&
-        mensajeAlias && (
-          <p
-            className={`mt-2 text-xs font-bold ${
-              aliasDisponible
-                ? "text-green-600"
-                : "text-red-600"
-            }`}
-          >
-            {aliasDisponible
-              ? "✓ Nombre público disponible."
-              : `✕ ${mensajeAlias}`}
-          </p>
-        )}
-
-      {alias.trim() && (
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          Así te van a ver:{" "}
-          <span className="font-bold text-[var(--text-main)]">★★★★★ {alias.trim()}</span>
-        </p>
-      )}
-    </div>
-
-    <div className="mb-6">
-      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
-        Tu nombre *
-        <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
-          🔒 Privado, solo para Kint 3D
-        </span>
-      </label>
-
-      <input
-        value={nombre}
-        onChange={(e) =>
-          setNombre(e.target.value)
-        }
-        className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-        placeholder="Tu nombre"
-      />
-    </div>
-
-  <div className="">
-    <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
-      <span>Celular (WhatsApp) <span className="text-red-600">*</span></span>
-      <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
-        🔒 Privado
-      </span>
-    </label>
-    <p className="mb-3 text-sm text-[var(--text-muted)]">
-      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
-    </p>
-    <input
-      type="tel"
-      inputMode="tel"
-      autoComplete="tel"
-      value={telefono}
-      onChange={(e) => setTelefono(e.target.value)}
-      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-      placeholder="+598 99 123 456"
-    />
-  </div>
-  </div>
-)}
-
-{clienteExiste === true && necesitaTelefono && (
-  <div className="mb-6 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-5">
-    <p className="mb-4 text-sm font-bold text-[var(--text-main)]">
-      A tu cuenta le falta el celular. Lo pedimos una sola vez.
-    </p>
-  <div className="">
-    <label className="mb-2 block font-semibold text-[var(--text-main)]">
-      Celular (WhatsApp) <span className="text-red-600">*</span>
-    </label>
-    <p className="mb-3 text-sm text-[var(--text-muted)]">
-      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
-    </p>
-    <input
-      type="tel"
-      inputMode="tel"
-      autoComplete="tel"
-      value={telefono}
-      onChange={(e) => setTelefono(e.target.value)}
-      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-      placeholder="+598 99 123 456"
-    />
-  </div>
-  </div>
-)}
-
-        <div className="mb-6">
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Archivo 3D
-          </label>
-          <div className="mb-3 flex items-start gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm leading-6 text-[var(--text-main)]">
-            <span aria-hidden className="text-2xl leading-none">📦</span>
-            <p>
-              <strong>Mandá todo el proyecto en un solo archivo</strong> STL (o SKP): todas las piezas adentro, separadas entre
-              sí. No hace falta un archivo por piso. Hasta 50 MB.{" "}
-              <Link href="/tutorial" className="font-semibold underline underline-offset-4">
-                ¿Cómo lo armo?
-              </Link>
-            </p>
-          </div>
           <p className="-mt-2 mb-3 text-xs text-[var(--text-muted)]">
             ¿Ya hiciste el pedido y querés mandar otro archivo o reemplazarlo?{" "}
             <Link href="/seguimiento" className="font-semibold text-[var(--text-main)] underline underline-offset-4">
@@ -2178,24 +1915,6 @@ return (
             </Link>
             .
           </p>
-
-          <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-6 text-[var(--text-main)]">
-            <p className="font-bold">Para que tu maqueta salga bien:</p>
-            <ul className="mt-1.5 list-disc space-y-1 pl-5">
-              <li>Archivo de SketchUp a tamaño real (1:1), en metros.</li>
-              <li>Cada planta o pieza como un grupo aparte, sin piezas flotando ni pegadas.</li>
-              <li>Cada grupo tiene que ser sólido: cerrado por todos lados, sin caras que falten.</li>
-              <li>Borrá lo que no se imprime: la persona 2D, cotas, textos, líneas sueltas, imágenes y árboles 2D.</li>
-              <li>Espesor mínimo de muros y elementos finos: 1:50 → 4 cm, 1:100 → 8 cm, 1:200 → 16 cm, 1:500 → 40 cm.</li>
-            </ul>
-            <p className="mt-2 text-xs">
-              ¿No entendés alguna palabra?{" "}
-              <Link href="/tutorial" className="font-semibold underline underline-offset-4">
-                Está todo explicado en el tutorial
-              </Link>
-              .
-            </p>
-          </div>
 
           <label className="mb-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm font-semibold text-[var(--text-main)]">
             <input
@@ -2205,7 +1924,11 @@ return (
               className="mt-1 h-4 w-4 shrink-0 accent-red-600"
             />
             <span>
-              Mi modelo cumple los requisitos <span className="text-red-600">*</span>
+              Mi modelo cumple los requisitos de la{" "}
+              <Link href="/tutorial" target="_blank" className="underline underline-offset-4">
+                guía
+              </Link>{" "}
+              <span className="text-red-600">*</span>
             </span>
           </label>
 
@@ -2385,7 +2108,10 @@ return (
 
         </div>
 
-
+<h2 className="mb-5 flex items-center gap-3 text-xl font-black text-[var(--text-main)] mt-10 border-t border-[var(--border-color)] pt-8">
+  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm text-white">2</span>
+  Cómo lo querés
+</h2>
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Escala de la maqueta <span className="text-red-600">*</span>
@@ -2653,271 +2379,6 @@ return (
         </div>
 )}
 
-{escalaCalculadora &&
- boquillaCalculadora && (
-  <details className="group mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-5 p-5">
-      <div>
-        <p className="font-bold text-[var(--text-main)]">
-          Calculadora de imprimibilidad
-        </p>
-
-        <p className="mt-1 text-xs text-[var(--text-muted)]">
-          Escala 1:{escalaCalculadora} ·
-          Boquilla{" "}
-          {boquillaCalculadora
-            .toFixed(1)
-            .replace(".", ",")}{" "}
-          mm
-        </p>
-      </div>
-
-      <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
-        +
-      </span>
-    </summary>
-
-    <div className="border-t border-[var(--border-color)] p-5">
-      <p className="mb-4 text-sm leading-6 text-[var(--text-muted)]">
-        Ingresá la medida real de cualquier
-        muro, pilar, baranda o elemento que
-        quieras comprobar.
-      </p>
-
-      <div className="flex gap-3">
-        <input
-          type="number"
-          min="0"
-          step="any"
-          value={medidaCalculadora}
-          onChange={(e) =>
-            setMedidaCalculadora(
-              e.target.value
-            )
-          }
-          placeholder="Ej: 12"
-          className="min-w-0 flex-1 rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-        />
-
-        <select
-          value={unidadCalculadora}
-          onChange={(e) =>
-            setUnidadCalculadora(
-              e.target.value as
-                | "mm"
-                | "cm"
-                | "m"
-            )
-          }
-          className="w-24 rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-        >
-          <option value="mm">mm</option>
-          <option value="cm">cm</option>
-          <option value="m">m</option>
-        </select>
-      </div>
-
-      <div className="mt-5 flex items-center justify-between gap-4 px-1">
-  <div>
-    <p className="text-xs uppercase tracking-[0.15em] text-[var(--text-muted)]">
-      Mínimo en tu modelo
-    </p>
-
-    <p className="mt-1 text-xs text-[var(--text-muted)]">
-      Equivale a{" "}
-      {boquillaCalculadora
-        .toFixed(1)
-        .replace(".", ",")}{" "}
-      mm una vez impreso.
-    </p>
-  </div>
-
-  <strong className="text-xl text-[var(--text-main)]">
-    {minimoRealCm?.toLocaleString(
-      "es-UY",
-      {
-        maximumFractionDigits: 2,
-      }
-    )}{" "}
-    cm
-  </strong>
-</div>
-
-      {estadoCalculadora && (
-        <div
-          className={`mt-4 rounded-xl border p-5 ${
-            estadoCalculadora === "si"
-              ? "border-green-600 bg-green-50 dark:bg-green-950/20"
-              : estadoCalculadora ===
-                "justo"
-              ? "border-amber-500 bg-amber-50 dark:bg-amber-950/20"
-              : "border-red-600 bg-red-50 dark:bg-red-950/20"
-          }`}
-        >
-          <p
-            className={`font-black ${
-              estadoCalculadora === "si"
-                ? "text-green-700 dark:text-green-400"
-                : estadoCalculadora ===
-                  "justo"
-                ? "text-amber-700 dark:text-amber-400"
-                : "text-red-600"
-            }`}
-          >
-            {estadoCalculadora === "si"
-              ? "✓ SE PUEDE IMPRIMIR"
-              : estadoCalculadora ===
-                "justo"
-              ? "⚠ SE IMPRIME, PERO ES MUY FINO"
-              : "✕ NO SE RECOMIENDA IMPRIMIR"}
-          </p>
-
-          <div className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <span className="text-[var(--text-muted)]">
-                Medida original
-              </span>
-
-              <strong className="text-[var(--text-main)]">
-                {valorMedidaCalculadora.toLocaleString(
-                  "es-UY",
-                  {
-                    maximumFractionDigits: 3,
-                  }
-                )}{" "}
-                {unidadCalculadora}
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-[var(--text-muted)]">
-                Una vez impreso
-              </span>
-
-              <strong className="text-[var(--text-main)]">
-                {medidaImpresaMm?.toLocaleString(
-                  "es-UY",
-                  {
-                    maximumFractionDigits: 3,
-                  }
-                )}{" "}
-                mm
-              </strong>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-[var(--text-muted)]">
-                Mínimo imprimible
-              </span>
-
-              <strong className="text-[var(--text-main)]">
-                {boquillaCalculadora
-                  .toFixed(1)
-                  .replace(".", ",")}{" "}
-                mm
-              </strong>
-            </div>
-          </div>
-
-          {estadoCalculadora === "no" && (
-            <div className="mt-4 border-t border-red-600/30 pt-4">
-              <p className="text-sm font-semibold text-red-600">
-                Para esta configuración, el
-                elemento debería medir al menos{" "}
-                {minimoRealEnUnidad?.toLocaleString(
-                  "es-UY",
-                  {
-                    maximumFractionDigits: 3,
-                  }
-                )}{" "}
-                {unidadCalculadora}.
-              </p>
-
-              {margenImpresion !== null && (
-                <p className="mt-2 text-xs text-[var(--text-muted)]">
-                  Le faltan{" "}
-                  {Math.abs(
-                    margenImpresion
-                  ).toLocaleString(
-                    "es-UY",
-                    {
-                      maximumFractionDigits: 3,
-                    }
-                  )}{" "}
-                  mm en la impresión.
-                </p>
-              )}
-            </div>
-          )}
-
-          {estadoCalculadora !== "no" &&
-            margenImpresion !== null && (
-              <p className="mt-4 border-t border-[var(--border-color)] pt-4 text-xs text-[var(--text-muted)]">
-                Margen sobre el mínimo: +
-                {margenImpresion.toLocaleString(
-                  "es-UY",
-                  {
-                    maximumFractionDigits: 3,
-                  }
-                )}{" "}
-                mm
-              </p>
-            )}
-        </div>
-      )}
-
-      {!medidaRealMm && (
-        <p className="mt-4 text-center text-xs text-[var(--text-muted)]">
-          Ingresá una medida para comprobar
-          si puede imprimirse.
-        </p>
-      )}
-    </div>
-  </details>
-)}
-
-
-
-<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} />
-
-{/* Comentarios a la vista (no dentro de «Más opciones»): ahí cuentan qué pieza va de qué color, etc. */}
-<div className="mb-6">
-  <label className="mb-2 block font-semibold text-[var(--text-main)]">
-    Comentarios <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
-  </label>
-  <textarea
-    value={comentarios}
-    onChange={(e) => setComentarios(e.target.value)}
-    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-    rows={4}
-    placeholder="Ej.: el techo en violeta y el resto en cristal, el pasto en verde…"
-  />
-</div>
-
-{/* Lo opcional, plegado: menos para leer. Se abre solo si hay algo elegido o beneficios. */}
-<details
-  open={masOpciones}
-  onToggle={(evento) => setMasOpciones(evento.currentTarget.open)}
-  className="group mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)]"
->
-  <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5">
-    <div>
-      <p className="font-bold text-[var(--text-main)]">
-        Más opciones <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
-      </p>
-      <p className="mt-1 text-xs text-[var(--text-muted)]">
-        {[
-          pedidoUrgenteHabilitado && (pedidoPrioritario ? "✓ Urgente" : "Pedido urgente"),
-          codigoDescuento.trim() ? "✓ Código" : "Código de descuento o premio",
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-    </div>
-    <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">+</span>
-  </summary>
-
-  <div className="border-t border-[var(--border-color)] p-5">
 {pedidoUrgenteHabilitado && (
   <div
     className={`mb-6 rounded-2xl border p-5 transition ${
@@ -2982,6 +2443,246 @@ return (
   </div>
 )}
 
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Comentarios <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
+  </label>
+  <textarea
+    value={comentarios}
+    onChange={(e) => setComentarios(e.target.value)}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+    rows={4}
+    placeholder="Ej.: el techo en violeta y el resto en cristal, el pasto en verde…"
+  />
+</div>
+
+<h2 className="mb-5 flex items-center gap-3 text-xl font-black text-[var(--text-main)] mt-10 border-t border-[var(--border-color)] pt-8">
+  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm text-white">3</span>
+  Tus datos
+</h2>
+        <div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Correo electrónico *
+  </label>
+
+  <p className="mb-3 text-sm text-[var(--text-muted)]">
+    📩 Por este correo te llegan el presupuesto y todas las novedades de tu pedido.
+  </p>
+
+  <input
+    type="email"
+    name="email"
+    autoComplete="email"
+    value={email}
+    onChange={(e) => {
+      setEmail(e.target.value);
+      setCorreoAutomatico(false);
+    }}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+    placeholder="ejemplo@gmail.com"
+  />
+
+  {correoAutomatico && email && (
+    <button
+      type="button"
+      onClick={() => {
+        olvidarCorreo();
+        setEmail("");
+        setCorreoAutomatico(false);
+      }}
+      className="mt-2 text-xs font-semibold text-[var(--text-muted)] underline underline-offset-4 hover:text-[var(--text-main)]"
+    >
+      ¿No sos vos? Usar otro correo
+    </button>
+  )}
+
+  {consultandoCliente && (
+    <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+      Comprobando cliente...
+    </p>
+  )}
+</div>
+
+{clienteExiste === true && (
+  <div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-4">
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <p className="text-lg font-bold text-[var(--text-main)]">
+          ¡Hola, {nombre}!
+        </p>
+
+        <p className="mt-1 text-xs text-[var(--text-muted)]">
+          {alias}
+        </p>
+      </div>
+
+      {[
+        "habilitada",
+        "habilitado",
+        "sí",
+        "si",
+      ].includes(
+        String(
+          configuracion.puntos?.valor || ""
+        )
+          .trim()
+          .toLowerCase()
+      ) && (
+        <div className="text-right">
+          <p className="text-lg font-black text-red-600">
+            {puntosDisponibles.toLocaleString(
+              "es-UY"
+            )}
+          </p>
+
+          <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            puntos Kint
+          </p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+{clienteExiste === false && (
+  <div className="mb-6 overflow-hidden rounded-2xl border-2 border-red-600/50 bg-[linear-gradient(135deg,rgba(220,38,38,0.10),rgba(31,63,133,0.10))] p-5 shadow-[0_10px_40px_rgba(220,38,38,0.10)]">
+    <div className="mb-5 flex items-start gap-3">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-xl text-white shadow-lg">
+        ✨
+      </span>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-600">
+          Primera vez en Kint 3D
+        </p>
+        <p className="text-lg font-black text-[var(--text-main)]">Creá tu cuenta</p>
+        <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
+          Estos datos se piden una sola vez y quedan en tu cuenta. La próxima vez solo ponés tu correo.
+        </p>
+      </div>
+    </div>
+
+    <div className="mb-6">
+      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
+        Nombre público *
+        <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-bold text-sky-700 dark:text-sky-300">
+          👁 Lo ve todo el mundo
+        </span>
+      </label>
+
+      <p className="mb-3 text-sm leading-6 text-[var(--text-muted)]">
+        Aparece en tus reseñas y en el ranking Top Kint. Podés usar un apodo.
+      </p>
+
+      <input
+        value={alias}
+        maxLength={20}
+        onChange={(e) =>
+          setAlias(e.target.value)
+        }
+        className={`w-full rounded-xl border bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
+          aliasDisponible === false
+            ? "border-red-600"
+            : aliasDisponible === true
+            ? "border-green-600"
+            : "border-[var(--border-color)]"
+        }`}
+        placeholder="Ej.: Vale Arquitecta"
+      />
+
+      {verificandoAlias && (
+        <p className="mt-2 text-xs font-semibold text-[var(--text-muted)]">
+          Verificando disponibilidad...
+        </p>
+      )}
+
+      {!verificandoAlias &&
+        mensajeAlias && (
+          <p
+            className={`mt-2 text-xs font-bold ${
+              aliasDisponible
+                ? "text-green-600"
+                : "text-red-600"
+            }`}
+          >
+            {aliasDisponible
+              ? "✓ Nombre público disponible."
+              : `✕ ${mensajeAlias}`}
+          </p>
+        )}
+
+      {alias.trim() && (
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
+          Así te van a ver:{" "}
+          <span className="font-bold text-[var(--text-main)]">★★★★★ {alias.trim()}</span>
+        </p>
+      )}
+    </div>
+
+    <div className="mb-6">
+      <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
+        Tu nombre *
+        <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
+          🔒 Privado, solo para Kint 3D
+        </span>
+      </label>
+
+      <input
+        value={nombre}
+        onChange={(e) =>
+          setNombre(e.target.value)
+        }
+        className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+        placeholder="Tu nombre"
+      />
+    </div>
+
+  <div className="">
+    <label className="mb-2 flex flex-wrap items-center gap-2 font-semibold text-[var(--text-main)]">
+      <span>Celular (WhatsApp) <span className="text-red-600">*</span></span>
+      <span className="rounded-full bg-[var(--kint-panel-soft)] px-2.5 py-0.5 text-[11px] font-bold text-[var(--text-muted)]">
+        🔒 Privado
+      </span>
+    </label>
+    <p className="mb-3 text-sm text-[var(--text-muted)]">
+      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
+    </p>
+    <input
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      value={telefono}
+      onChange={(e) => setTelefono(e.target.value)}
+      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+      placeholder="+598 99 123 456"
+    />
+  </div>
+  </div>
+)}
+
+{clienteExiste === true && necesitaTelefono && (
+  <div className="mb-6 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 p-5">
+    <p className="mb-4 text-sm font-bold text-[var(--text-main)]">
+      A tu cuenta le falta el celular. Lo pedimos una sola vez.
+    </p>
+  <div className="">
+    <label className="mb-2 block font-semibold text-[var(--text-main)]">
+      Celular (WhatsApp) <span className="text-red-600">*</span>
+    </label>
+    <p className="mb-3 text-sm text-[var(--text-muted)]">
+      Lo usamos para coordinar tu pedido. Queda guardado en tu cuenta (nunca se muestra).
+    </p>
+    <input
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      value={telefono}
+      onChange={(e) => setTelefono(e.target.value)}
+      className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+      placeholder="+598 99 123 456"
+    />
+  </div>
+  </div>
+)}
 
 <div className="mb-6">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
@@ -3081,9 +2782,6 @@ return (
   )}
 </div>
 
-  </div>
-</details>
-
 <div className="mb-6 rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] p-4">
   <label className="flex cursor-pointer items-start gap-3">
     <input
@@ -3134,6 +2832,9 @@ return (
   </div>
 </details>
 </div>
+
+{/* Productos de la tienda: chico y al final, antes de enviar. */}
+<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} />
 
 <div
   className={`mb-5 rounded-2xl border p-5 ${
@@ -3207,7 +2908,7 @@ return (
   enviando ||
   !todoListo
 }
-          className="w-full rounded-2xl bg-[linear-gradient(135deg,#ef4444,#b91c1c)] px-8 py-5 text-sm font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_40px_rgba(220,38,38,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(220,38,38,0.45)] disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+          className="sticky bottom-4 z-30 w-full rounded-2xl bg-[linear-gradient(135deg,#ef4444,#b91c1c)] px-8 py-5 text-sm font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_40px_rgba(220,38,38,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_rgba(220,38,38,0.45)] disabled:translate-y-0 disabled:bg-none disabled:bg-zinc-500 disabled:shadow-none"
         >
           {enviando
   ? "Enviando..."
@@ -3215,107 +2916,6 @@ return (
   ? "Enviar Cotización"
   : "Completá los datos pendientes"}
         </button>
-
-        <details className="group mt-6 rounded-2xl border border-[var(--border-color)] bg-[var(--page-bg)] p-6">
-  <summary className="flex cursor-pointer list-none items-center justify-between gap-5">
-    <div>
-      <p className="font-bold text-[var(--text-main)]">
-        ¿Cómo se calcula el presupuesto?
-      </p>
-
-      <p className="mt-2 text-sm text-[var(--text-muted)]">
-        Consultá qué elementos se tienen en cuenta para calcular el precio.
-      </p>
-    </div>
-
-    <span className="text-2xl font-light text-red-600 transition group-open:rotate-45">
-      +
-    </span>
-  </summary>
-
-  <div className="mt-6 border-t border-[var(--border-color)] pt-6">
-    <p className="mb-6 text-sm leading-7 text-[var(--text-muted)]">
-      Para calcular el precio final de tu pieza tenemos en cuenta
-      todo lo necesario antes, durante y después de la impresión.
-    </p>
-
-    <div className="space-y-5 text-sm text-[var(--text-muted)]">
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Hora de uso de la impresora
-        </strong>
-
-        <p className="mt-1">
-          Las horas dedicadas exclusivamente a imprimir la pieza.
-        </p>
-      </div>
-
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Tipo de material
-        </strong>
-
-        <p className="mt-1">
-          Tipo de filamento utilizado, como PLA, PLA+ o PETG.
-        </p>
-      </div>
-
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Cantidad de material
-        </strong>
-
-        <p className="mt-1">
-          Peso en gramos del filamento utilizado.
-        </p>
-      </div>
-
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Preparación y correcciones menores
-        </strong>
-
-        <p className="mt-1">
-          Ajustes mínimos necesarios para preparar correctamente el modelo.
-        </p>
-      </div>
-
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Posibles fallas de impresión
-        </strong>
-
-        <p className="mt-1">
-          Margen destinado a cubrir posibles fallas durante el proceso.
-        </p>
-      </div>
-
-      <div>
-        <strong className="text-[var(--text-main)]">
-          • Armado de piezas
-        </strong>
-
-        <p className="mt-1">
-          Se incluye únicamente cuando seleccionás el servicio de armado.
-        </p>
-      </div>
-
-
-      {pedidoPrioritario && pedidoUrgenteValor > 0 && (
-        <div>
-          <strong className="text-red-600">
-            • Recargo por pedido urgente
-          </strong>
-
-          <p className="mt-1">
-            Se agrega un {pedidoUrgenteValor}% por prioridad
-            en la cola de producción.
-          </p>
-        </div>
-      )}
-    </div>
-  </div>
-</details>
       </div>
 
 <div className="mt-10 text-center">
