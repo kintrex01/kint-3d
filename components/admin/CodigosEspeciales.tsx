@@ -20,6 +20,7 @@ type Borrador = {
   descuento: string;
   usosMaximos: string; // "0" = sin límite
   colores: string[];
+  bloqueados: string[];
   unSoloColor: boolean;
   activo: boolean;
   vence: string;
@@ -32,6 +33,7 @@ const NUEVO: Borrador = {
   descuento: "20",
   usosMaximos: "0",
   colores: [],
+  bloqueados: [],
   unSoloColor: true,
   activo: true,
   vence: "",
@@ -46,9 +48,10 @@ function nombreDesdeClave(clave: string) {
     .join(" ");
 }
 
-function resumenColores(codigo: Pick<CodigoEspecial, "colores" | "unSoloColor">) {
+function resumenColores(codigo: Pick<CodigoEspecial, "colores" | "unSoloColor" | "bloqueados">) {
   const cuales = codigo.colores.length ? codigo.colores.join(", ") : "todos los colores";
-  return `${codigo.unSoloColor ? "Un solo color" : "Uno o varios colores"} · ${cuales}`;
+  const fijos = codigo.bloqueados?.length ? `🔒 ${codigo.bloqueados.join(", ")} fijo · ` : "";
+  return `${fijos}${codigo.unSoloColor ? "Un solo color" : "Uno o varios colores"} · ${cuales}`;
 }
 
 export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
@@ -70,6 +73,7 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
       descuento: String(codigo.descuento),
       usosMaximos: String(codigo.usosMaximos),
       colores: codigo.colores,
+      bloqueados: codigo.bloqueados ?? [],
       unSoloColor: codigo.unSoloColor,
       activo: codigo.activo,
       vence: codigo.vence,
@@ -87,6 +91,7 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
         descuento: Number(borrador.descuento),
         usosMaximos: Number(borrador.usosMaximos) || 0,
         colores: borrador.colores,
+        bloqueados: borrador.bloqueados,
         unSoloColor: borrador.unSoloColor,
         activo: borrador.activo,
         vence: borrador.vence,
@@ -282,7 +287,13 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
                   <button
                     key={opcion.texto}
                     type="button"
-                    onClick={() => cambiar({ unSoloColor: opcion.valor })}
+                    onClick={() =>
+                      cambiar({
+                        unSoloColor: opcion.valor,
+                        // Con un solo color, puede quedar un fijo como mucho.
+                        bloqueados: opcion.valor ? borrador.bloqueados.slice(0, 1) : borrador.bloqueados,
+                      })
+                    }
                     className={`h-9 rounded-xl border px-3 text-xs font-bold transition ${
                       borrador.unSoloColor === opcion.valor
                         ? "border-pink-500 bg-pink-500/10 text-pink-600 dark:text-pink-400"
@@ -296,8 +307,44 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
             </div>
 
             <div>
+              <span className="mb-1.5 block text-[11px] font-bold text-[var(--text-muted)]">
+                🔒 Colores fijos: ya vienen puestos y el cliente no los puede sacar (opcional)
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {filamentos.map((filamento) => {
+                  const fijo = borrador.bloqueados.includes(filamento.nombre);
+                  return (
+                    <button
+                      key={filamento.nombre}
+                      type="button"
+                      aria-pressed={fijo}
+                      onClick={() =>
+                        cambiar({
+                          bloqueados: fijo
+                            ? borrador.bloqueados.filter((c) => c !== filamento.nombre)
+                            : borrador.unSoloColor
+                            ? [filamento.nombre]
+                            : [...borrador.bloqueados, filamento.nombre],
+                        })
+                      }
+                      className={`h-8 rounded-full border px-3 text-xs font-bold transition ${
+                        fijo ? "border-violet-600 bg-violet-600 text-white" : "border-[var(--kint-panel-border)] hover:border-violet-600"
+                      }`}
+                    >
+                      {fijo && "🔒 "}
+                      {filamento.visible || filamento.nombre}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
               <span className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-[var(--text-muted)]">
-                <span>Colores que pueden elegir {borrador.colores.length === 0 && "(ninguno marcado = todos)"}</span>
+                <span>
+                  {borrador.bloqueados.length ? "Otros colores que pueden sumar" : "Colores que pueden elegir"}{" "}
+                  {borrador.colores.length === 0 && "(ninguno marcado = todos)"}
+                </span>
                 {borrador.colores.length > 0 && (
                   <button type="button" onClick={() => cambiar({ colores: [] })} className="underline">
                     Permitir todos
@@ -347,8 +394,8 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
             </div>
 
             <p className="rounded-xl bg-[var(--kint-panel-soft)] p-3 text-xs leading-5 text-[var(--text-muted)]">
-              El cliente lo escribe en Cotizar → «Más opciones». Ve el descuento y los colores permitidos, y si elige otro
-              color o más de uno (cuando va uno solo) no lo deja enviar hasta corregirlo.
+              El cliente lo escribe en Cotizar. Ve el descuento y sus colores: los fijos ya vienen puestos con un candado y
+              no los puede sacar; si elige un color que no va, no lo deja enviar hasta corregirlo.
             </p>
           </div>
         )}

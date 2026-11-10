@@ -39,6 +39,7 @@ type CodigoEspecialInfo = {
   nombre?: string;
   descuento?: number;
   colores?: string[];
+  bloqueados?: string[]; // vienen puestos y no se pueden sacar
   unSoloColor?: boolean;
   disponible?: boolean;
   motivo?: string;
@@ -1056,13 +1057,19 @@ useEffect(() => {
       if (cancelado) return;
       const especial = info.ok && info.existe ? info : null;
       setCodigoEspecial(especial);
-      // Se sacan los colores que no van con el código (y si va uno solo, queda el primero).
+      // Los fijos se ponen solos; se sacan los que no van (y si va uno solo, queda uno).
       if (especial?.disponible) {
+        const igual = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
+        const fijos = filamentosConfigurados
+          .filter((item) => item.habilitado && (especial.bloqueados || []).some((c) => igual(c, item.nombre)))
+          .map((item) => item.nombre);
         setColor((actual) => {
           const permitidos = especial.colores?.length
-            ? actual.filter((nombre) => especial.colores!.some((c) => c.toLowerCase() === nombre.toLowerCase()))
+            ? actual.filter((nombre) => [...especial.colores!, ...fijos].some((c) => igual(c, nombre)))
             : actual;
-          return especial.unSoloColor ? permitidos.slice(0, 1) : permitidos;
+          const otros = permitidos.filter((nombre) => !fijos.includes(nombre));
+          if (especial.unSoloColor) return fijos.length ? fijos.slice(0, 1) : otros.slice(0, 1);
+          return [...fijos, ...otros];
         });
       }
     } catch {
@@ -1073,11 +1080,124 @@ useEffect(() => {
     cancelado = true;
     window.clearTimeout(espera);
   };
+  // filamentosConfigurados solo se lee al llegar la respuesta: no hace falta volver a consultar si cambia.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [codigoParaConsultar]);
 
 const especialActivo = codigoEspecial?.disponible ? codigoEspecial : null;
-const colorPermitido = (nombre: string) =>
-  !especialActivo?.colores?.length || especialActivo.colores.some((c) => c.toLowerCase() === nombre.toLowerCase());
+/* Fijo del código especial: viene puesto y no se puede sacar. */
+const colorFijo = (nombre: string) =>
+  Boolean(especialActivo?.bloqueados?.some((c) => c.toLowerCase() === nombre.toLowerCase()));
+const colorPermitido = (nombre: string) => {
+  if (colorFijo(nombre)) return true;
+  // Un solo color y ya hay uno fijo: no se puede elegir otro.
+  if (especialActivo?.unSoloColor && especialActivo.bloqueados?.length) return false;
+  return !especialActivo?.colores?.length || especialActivo.colores.some((c) => c.toLowerCase() === nombre.toLowerCase());
+};
+
+function tocarColor(nombre: string, habilitado: boolean) {
+  if (!habilitado || !colorPermitido(nombre) || colorFijo(nombre)) return;
+  setColor((actual) =>
+    actual.includes(nombre)
+      ? actual.filter((c) => c !== nombre)
+      : especialActivo?.unSoloColor
+      ? [nombre]
+      : [...actual, nombre]
+  );
+}
+
+/* La grilla de colores (en «Color de impresión» y, con un código especial, al lado del código). */
+function grillaColores(compacta: boolean) {
+  return (
+    <div className={compacta ? "grid grid-cols-4 gap-1.5 sm:grid-cols-6" : "grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-4"}>
+      {filamentosConfigurados
+        .filter((item) => !compacta || (item.habilitado && colorPermitido(item.nombre)))
+        .map((item) => {
+          const fijo = colorFijo(item.nombre);
+          const bloqueado = !item.habilitado || !colorPermitido(item.nombre);
+          return (
+            <button
+              key={item.nombre}
+              type="button"
+              disabled={bloqueado}
+              aria-pressed={color.includes(item.nombre)}
+              title={fijo ? `Va fijo con el código ${especialActivo?.codigo}` : undefined}
+              onClick={() => tocarColor(item.nombre, item.habilitado)}
+              className={`relative rounded-2xl border transition ${compacta ? "p-1.5" : "p-2 sm:p-3"} ${
+                fijo
+                  ? "cursor-default border-violet-600 bg-violet-600/10 ring-4 ring-violet-600/40"
+                  : bloqueado
+                  ? "cursor-not-allowed border-[var(--border-color)] bg-[var(--page-bg)] opacity-[0.72]"
+                  : color.includes(item.nombre)
+                  ? "border-red-600 ring-2 ring-red-600"
+                  : "border-[var(--border-color)] hover:border-red-600"
+              }`}
+            >
+              {fijo && (
+                <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-violet-600 px-2 py-0.5 text-[10px] font-black text-white shadow">
+                  🔒 Fijo
+                </span>
+              )}
+              <div className={compacta ? "[&_img]:h-12 [&_img]:w-12 [&>div]:h-12 [&>div]:w-12" : ""}>
+                <ImagenFilamento nombre={item.nombre} habilitado={item.habilitado} comentario={item.comentario} />
+              </div>
+
+              <p className={`mt-1.5 text-center font-semibold ${compacta ? "text-[11px] leading-4" : "text-xs sm:mt-2 sm:text-sm"}`}>
+                {item.etiqueta}
+              </p>
+
+              {!compacta && fijo && (
+                <p className="mt-1 text-center text-[11px] font-bold leading-4 text-violet-700 dark:text-violet-300">
+                  No se puede cambiar
+                </p>
+              )}
+
+              {!compacta && item.habilitado && !colorPermitido(item.nombre) && (
+                <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
+                  No va con {especialActivo?.codigo}
+                </p>
+              )}
+
+              {!compacta && !item.habilitado && (
+                <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
+                  {extrasFilamento(item.comentario).nota || "Color no disponible"}
+                </p>
+              )}
+            </button>
+          );
+        })}
+    </div>
+  );
+}
+
+/* Texto de los colores del código especial (ej. «🔒 Púrpura va fijo; podés sumar Cristal o Blanco»). */
+function textoColoresEspecial(especial: CodigoEspecialInfo) {
+  // Con el nombre que ve el cliente (ej. «Purpura» en vez de «Violeta Beto»).
+  const visible = (nombre: string) =>
+    filamentosConfigurados.find((item) => item.nombre.toLowerCase() === nombre.toLowerCase())?.etiqueta ?? nombre;
+  const fijos = (especial.bloqueados || []).map(visible);
+  if (especial.unSoloColor && fijos.length) return `La maqueta va en ${fijos[0]}: ya está puesto y no se puede cambiar.`;
+  const partes: string[] = [];
+  if (fijos.length) partes.push(`🔒 ${fijos.join(", ")} va fijo (ya está puesto y no se puede sacar)`);
+  if (especial.unSoloColor) partes.push("la maqueta va en un solo color");
+  const otros =
+    especial.colores
+      ?.filter((c) => !(especial.bloqueados || []).some((f) => f.toLowerCase() === c.toLowerCase()))
+      .map(visible) ?? [];
+  if (!especial.unSoloColor) {
+    partes.push(
+      otros.length
+        ? `${fijos.length ? "podés sumar" : "podés elegir"}: ${otros.join(", ")}`
+        : fijos.length
+        ? "podés sumar los colores que quieras"
+        : "podés elegir cualquier color"
+    );
+  } else if (otros.length) {
+    partes.push(`a elegir entre: ${otros.join(", ")}`);
+  }
+  const texto = partes.join("; ");
+  return texto.charAt(0).toUpperCase() + texto.slice(1) + ".";
+}
 
 
 /* Celular: obligatorio si la cuenta es nueva o todavía no tiene uno. */
@@ -2208,67 +2328,12 @@ return (
   </p>
 
   {especialActivo && (
-    <p className="mb-3 rounded-xl border border-pink-500/40 bg-pink-500/10 px-4 py-3 text-sm text-[var(--text-main)]">
-      🎟️ Con el código <strong>{especialActivo.codigo}</strong>
-      {especialActivo.unSoloColor ? " la maqueta va en un solo color" : ""}
-      {especialActivo.colores?.length
-        ? `${especialActivo.unSoloColor ? ", a elegir entre" : " podés elegir"}: ${especialActivo.colores.join(", ")}.`
-        : "."}
+    <p className="mb-4 rounded-xl border border-violet-600/40 bg-violet-600/10 px-4 py-3 text-sm text-[var(--text-main)]">
+      🎟️ Con el código <strong>{especialActivo.codigo}</strong>: {textoColoresEspecial(especialActivo)}
     </p>
   )}
 
-<div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-4">
-  {filamentosConfigurados.map((item) => (
-    <button
-      key={item.nombre}
-      type="button"
-      disabled={!item.habilitado || !colorPermitido(item.nombre)}
-      onClick={() => {
-        if (!item.habilitado || !colorPermitido(item.nombre)) return;
-
-        setColor((actual) =>
-          actual.includes(item.nombre)
-            ? actual.filter(
-                (c) => c !== item.nombre
-              )
-            : especialActivo?.unSoloColor
-            ? [item.nombre]
-            : [...actual, item.nombre]
-        );
-      }}
-      className={`rounded-2xl border p-2 transition sm:p-3 ${
-        !item.habilitado || !colorPermitido(item.nombre)
-          ? "cursor-not-allowed border-[var(--border-color)] bg-[var(--page-bg)] opacity-[0.72]"
-          : color.includes(item.nombre)
-          ? "border-red-600 ring-2 ring-red-600"
-          : "border-[var(--border-color)] hover:border-red-600"
-      }`}
-    >
-      <ImagenFilamento
-  nombre={item.nombre}
-  habilitado={item.habilitado}
-  comentario={item.comentario}
-/>
-
-      <p className="mt-1.5 text-center text-xs font-semibold sm:mt-2 sm:text-sm">
-        {item.etiqueta}
-      </p>
-
-      {item.habilitado && !colorPermitido(item.nombre) && (
-        <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
-          No va con {especialActivo?.codigo}
-        </p>
-      )}
-
-      {!item.habilitado && (
-        <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
-          {extrasFilamento(item.comentario).nota ||
-            "Color no disponible"}
-        </p>
-      )}
-    </button>
-  ))}
-</div>
+{grillaColores(false)}
 
 </div>
 )}
@@ -2718,10 +2783,16 @@ return (
             {codigoEspecial.nombre ? ` · ${codigoEspecial.nombre}` : ""}: {codigoEspecial.descuento}% de descuento
           </p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">
-            {codigoEspecial.unSoloColor ? "Un solo color" : "Uno o varios colores"}
-            {codigoEspecial.colores?.length ? ` · ${codigoEspecial.colores.join(", ")}` : " · cualquier color"}. Lo
-            aplicamos en el presupuesto (si hay una promo mejor, va la mejor).
+            Lo aplicamos en el presupuesto (si hay una promo mejor, va la mejor).
           </p>
+          {!colorUnico && (
+            <div className="mt-3 rounded-xl bg-[var(--card-bg)] p-3">
+              <p className="mb-3 text-xs font-bold text-[var(--text-main)]">
+                Tus colores: {textoColoresEspecial(codigoEspecial)}
+              </p>
+              {grillaColores(true)}
+            </div>
+          )}
         </>
       ) : (
         <p className="font-bold text-red-600">{codigoEspecial.motivo || "Este código no está disponible."}</p>

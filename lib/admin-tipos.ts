@@ -631,6 +631,11 @@ export type AccionesAdmin = {
     pedido: { codigo: string };
     respuesta: { codigos: CodigoEspecial[] };
   };
+  /* Correo de muestra a kint3d.uy@gmail.com (ej. cual "terminado" con las fotos de un pedido). */
+  admin_correo_prueba: {
+    pedido: { cual?: string; pedido?: string };
+    respuesta: { enviado: boolean; fotos?: number };
+  };
 };
 
 /* Código con reglas propias (ej. P-BETO para un curso): colores y usos. */
@@ -642,6 +647,7 @@ export type CodigoEspecial = {
   usosMaximos: number; // 0 = sin límite
   usados: number;
   colores: string[]; // vacío = todos
+  bloqueados: string[]; // vienen puestos y el cliente no los puede sacar
   unSoloColor: boolean;
   activo: boolean;
   vence: string; // yyyy-mm-dd o vacío
@@ -786,4 +792,5 @@ export const ACCIONES_ADMIN = [
   "admin_codigos_especiales_listar",
   "admin_codigo_especial_guardar",
   "admin_codigo_especial_borrar",
+  "admin_correo_prueba",
 ] as const satisfies readonly TipoAccionAdmin[];
