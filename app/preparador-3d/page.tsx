@@ -4063,7 +4063,7 @@ window.setTimeout(() => simuladorRef.current?.empezar(modelo, "escaneo", 1500), 
             )}
           </aside>
 
-          <section className="relative flex overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:min-h-[620px] lg:max-h-[860px] lg:flex-col">
+          <section className="relative flex flex-col overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)] lg:min-h-[620px] lg:max-h-[860px]">
 
   {/* Barra superior */}
   <div className="relative z-20 flex flex-col gap-3 border-b border-[var(--border-color)] bg-[var(--page-bg)]/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between">

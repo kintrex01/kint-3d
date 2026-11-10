@@ -440,7 +440,7 @@ export default function MenuNavegacion() {
       />
     )}
 
-    <div className="fixed left-6 top-6 z-[180] flex flex-col items-start gap-3">
+    <div className="absolute left-6 top-6 z-[180] flex flex-col items-start gap-3 sm:fixed">
   <button
     type="button"
     onClick={abrirMenu}
