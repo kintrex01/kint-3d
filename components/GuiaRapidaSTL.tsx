@@ -1,4 +1,5 @@
 import Link from "next/link";
+import VideoTutorial from "@/components/VideoTutorial";
 
 /*
  * Tutorial para principiantes (estudiantes que recién empiezan a modelar):
@@ -313,6 +314,20 @@ export function ExportarYEnviar() {
             </ul>
           </article>
         ))}
+      </div>
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <VideoTutorial
+          id="cySYVL3GgVs"
+          titulo="Preparar un objeto en SketchUp para imprimirlo en 3D"
+          canal="Plastik Electrik"
+          descripcion="Cómo dejar el modelo listo en SketchUp antes de exportarlo."
+        />
+        <VideoTutorial
+          id="IugBfYy_XzQ"
+          titulo="Importar y exportar archivos STL en SketchUp"
+          canal="17 Super Profes"
+          descripcion="El paso de exportar el STL, explicado despacio."
+        />
       </div>
       <div className="mt-7 flex flex-wrap justify-center gap-3">
         <Link href="/preparador-3d" className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-700">

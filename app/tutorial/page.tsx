@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
+import VideoTutorial from "../../components/VideoTutorial";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
 import {
   EncabezadoTutorial,
@@ -104,7 +105,8 @@ export default function TutorialPage() {
         <p className="mx-auto mt-7 max-w-3xl text-base leading-8 text-[var(--text-muted)]">
           ¿Primera vez que imprimís una maqueta? Seguí estos 7 pasos
           en orden. Te explicamos qué mandar, qué significa cada
-          palabra, qué suele estar mal y cómo arreglarlo en SketchUp.
+          palabra, qué suele estar mal y cómo arreglarlo en SketchUp,
+          con videos cortos para verlo en acción.
         </p>
 
         <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-[var(--text-muted)]">
@@ -285,6 +287,15 @@ export default function TutorialPage() {
         superficie puede necesitar limpieza o terminación adicional.
       </p>
     </article>
+  </div>
+
+  <div className="mx-auto mt-8 max-w-3xl">
+    <VideoTutorial
+      id="wpbQhTiD5qk"
+      titulo="Hoy sí que vas a entender cómo funciona una impresora 3D"
+      canal="Diego D'Onofrio"
+      descripcion="Si nunca viste una impresora 3D por dentro, empezá por acá: vas a entender por qué importan las capas y los soportes."
+    />
   </div>
 
   <div className="mt-8 overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-4 shadow-[var(--shadow-soft)] sm:p-6">
