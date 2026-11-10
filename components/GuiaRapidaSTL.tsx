@@ -39,11 +39,11 @@ export function IndiceTutorial() {
   );
 }
 
-function Encabezado({ id, paso, titulo, children }: { id: string; paso: number; titulo: string; children?: React.ReactNode }) {
+// paso: queda por compatibilidad; la numeración ahora está en la receta (RecetaSKP).
+function Encabezado({ id, titulo, children }: { id: string; paso?: number; titulo: string; children?: React.ReactNode }) {
   return (
     <div id={id} className="mb-10 scroll-mt-24 text-center">
-      <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">Paso {paso}</p>
-      <h2 className="mt-4 text-3xl font-black">{titulo}</h2>
+      <h2 className="text-2xl font-black sm:text-3xl">{titulo}</h2>
       {children && <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">{children}</p>}
     </div>
   );
@@ -209,7 +209,7 @@ const errores = [
     nombre: "Caras al revés",
     queEs: "Caras que muestran el lado de adentro hacia afuera.",
     comoVerlo: "Desde afuera se ven grises o azules en vez de blancas.",
-    arreglo: "Seleccioná la cara → clic derecho → Invertir caras. Está explicado en el paso 5, con fotos.",
+    arreglo: "Seleccioná la cara → clic derecho → Invertir caras. Abrí «Caras al revés», con fotos.",
   },
   {
     nombre: "Muros o techos de una sola cara",

@@ -239,6 +239,14 @@ export default function TutorialAvanzadoPage() {
             medidas antes de imprimir.
           </p>
 
+<p className="mt-4 max-w-3xl rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4 text-sm leading-7 text-[var(--text-main)]">
+  <strong>¿Primera vez?</strong> No hace falta escalar nada: mandá tu SKP a tamaño real siguiendo la{" "}
+  <Link href="/tutorial" className="font-bold text-emerald-600 underline underline-offset-4">
+    guía para principiantes
+  </Link>{" "}
+  y elegí la escala en Cotizar. Esta guía es para quien quiere mandar el STL ya escalado.
+</p>
+
 <div className="mt-6 max-w-3xl rounded-2xl border border-blue-500/30 bg-blue-500/5 px-5 py-4">
   <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-500">
     Prepararlo bien puede acelerar mucho tu pedido

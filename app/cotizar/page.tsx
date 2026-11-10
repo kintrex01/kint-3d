@@ -2157,7 +2157,7 @@ return (
             <p>
               <strong>Mandá todo el proyecto en un solo archivo</strong> STL (o SKP): todas las piezas adentro, separadas entre
               sí. No hace falta un archivo por piso. Hasta 50 MB.{" "}
-              <Link href="/tutorial#que-mandar" className="font-semibold underline underline-offset-4">
+              <Link href="/tutorial" className="font-semibold underline underline-offset-4">
                 ¿Cómo lo armo?
               </Link>
             </p>

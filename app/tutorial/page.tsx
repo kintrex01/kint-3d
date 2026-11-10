@@ -6,28 +6,16 @@ import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
 import VideoTutorial from "../../components/VideoTutorial";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
+import RecetaSKP from "../../components/RecetaSKP";
+import Tema from "../../components/TemaTutorial";
 import {
   EncabezadoTutorial,
   ErroresComunesSTL,
   Espesores,
   ExportarYEnviar,
   Glosario,
-  IndiceTutorial,
   QueMandar,
 } from "../../components/GuiaRapidaSTL";
-
-const revisionFinal = [
-  "Todo el proyecto en un solo archivo.",
-  "Modelo a tamaño real, en metros.",
-  "Cada pieza es un sólido cerrado (sin caras que falten).",
-  "Eliminá caras y líneas duplicadas.",
-  "Eliminá piezas flotantes o alejadas del modelo.",
-  "Quitá muebles, vegetación y elementos que no deban imprimirse.",
-  "Revisá puertas, ventanas y demás aberturas.",
-  "Muros con el espesor mínimo de tu escala.",
-  "Separá los pisos cuando el proyecto tenga interiores.",
-  "Verificá que las caras exteriores se vean blancas.",
-];
 
 const organizacionPiezas = [
   "Separadas, sin tocarse ni superponerse.",
@@ -93,46 +81,40 @@ export default function TutorialPage() {
   <ThemeToggle />
 </div>
 
-      <section className="relative z-10 mx-auto max-w-4xl pb-16 pt-20 text-center sm:pt-24">
+      <section className="relative z-10 mx-auto max-w-4xl pb-10 pt-20 text-center sm:pt-24">
         <p className="mb-5 text-xs font-black uppercase tracking-[0.4em] text-red-600">
           Guía para principiantes
         </p>
 
         <h1 className="text-4xl font-black leading-tight sm:text-5xl">
-          Cómo preparar tu modelo para imprimir
+          Tu SketchUp listo para imprimir
         </h1>
 
-        <p className="mx-auto mt-7 max-w-3xl text-base leading-8 text-[var(--text-muted)]">
-          ¿Primera vez que imprimís una maqueta? Seguí estos 7 pasos
-          en orden. Te explicamos qué mandar, qué significa cada
-          palabra, qué suele estar mal y cómo arreglarlo en SketchUp,
-          con videos cortos para verlo en acción.
+        <p className="mx-auto mt-7 max-w-2xl text-base leading-8 text-[var(--text-muted)]">
+          Seguí estos <strong className="text-[var(--text-main)]">7 pasos en orden</strong>, sobre tu archivo de SketchUp.
+          Tildá cada uno cuando quede bien. Lo de más abajo es para saber más: no hace falta leerlo.
         </p>
-
-        <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-[var(--text-muted)]">
-  <span className="rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-600">
-    Recomendado
-  </span>
-
-  <span>
-    ¿Ya sabés modelar para imprimir?
-  </span>
-
-  <Link
-    href="/tutorial-avanzado"
-    className="font-bold text-emerald-600 transition hover:text-emerald-500 hover:underline"
-  >
-    Aprendé a exportarlo correctamente como STL →
-  </Link>
-</div>
       </section>
 
-      <IndiceTutorial />
+      <RecetaSKP />
 
+      <section className="relative z-10 mx-auto mt-24 max-w-4xl">
+        <p className="text-center text-xs font-black uppercase tracking-[0.35em] text-red-600">Para saber más</p>
+        <h2 className="mt-3 text-center text-3xl font-black">¿Querés entender el porqué?</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-7 text-[var(--text-muted)]">
+          Tocá un tema para abrirlo. Si te trabaste en algún paso, la respuesta está acá.
+        </p>
+        <div className="mt-8 space-y-3">
+
+      <Tema id="que-mandar" icono="📦" titulo="Qué mandar (y por qué un solo archivo)" resumen="STL o SKP, a tamaño real, todo junto">
       <QueMandar />
+      </Tema>
 
+      <Tema id="palabras" icono="📖" titulo="Palabras que vas a ver" resumen="Sólido, cara, grupo, escala, voladizo…">
       <Glosario />
+      </Tema>
 
+      <Tema id="como-armarlo" icono="🏢" titulo="Despiezado o unido: cuál te conviene" resumen="Con interiores o solo la cáscara">
       <div className="relative z-10 mx-auto max-w-6xl">
         <EncabezadoTutorial id="como-armarlo" paso={3} titulo="Cómo armar tu modelo">
           Hay dos formas. Si tu proyecto tiene cosas adentro (muros interiores, losas, escaleras), despiezalo por pisos.
@@ -226,7 +208,80 @@ export default function TutorialPage() {
           </div>
         </article>
       </section>
+      </Tema>
 
+      <Tema id="ordenar-piezas" icono="🧩" titulo="Cómo ordenar un modelo despiezado" resumen="Ejemplos de piezas bien separadas">
+      <section className="relative z-10 mx-auto mt-24 max-w-6xl">
+        <div className="mb-12 text-center">
+          <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
+            Modelos complejos
+          </p>
+
+          <h2 className="mt-4 text-3xl font-black">
+            Cómo organizar un modelo despiezado
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
+            No siempre alcanza con separar los pisos. También pueden
+            separarse muros, fachadas, escaleras, bases y piezas
+            especiales cuando conviene imprimirlas individualmente.
+          </p>
+        </div>
+
+        <div className="grid gap-7 lg:grid-cols-2">
+          <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/despiezado-piezas.png",
+                alt: "Piezas arquitectónicas organizadas por tipo",
+              }]}
+              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
+            />
+
+            <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
+              Piezas arquitectónicas separadas por tipo: fachadas,
+              bases, escaleras y elementos especiales.
+            </figcaption>
+          </figure>
+
+          <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
+            <TutorialGallery
+              images={[{
+                src: "/tutorial/despiezado-unido.png",
+                alt: "Niveles y componentes interiores separados junto al modelo completo",
+              }]}
+              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
+            />
+
+            <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
+              Niveles, muros y componentes interiores organizados como
+              piezas independientes, junto al modelo completo de
+              referencia.
+            </figcaption>
+          </figure>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-9">
+          <h3 className="text-xl font-black">
+            Las piezas deben quedar:
+          </h3>
+
+          <div className="mt-6 grid gap-4 text-sm leading-7 text-[var(--text-muted)] md:grid-cols-2">
+            {organizacionPiezas.map((item) => (
+              <p key={item}>✓ {item}</p>
+            ))}
+          </div>
+
+          <p className="mt-7 border-l-2 border-red-600 pl-5 text-sm leading-7 text-[var(--text-muted)]">
+            No es necesario acomodar las piezas exactamente sobre la
+            cama de impresión. Lo importante es que estén limpias,
+            separadas y sean fáciles de identificar.
+          </p>
+        </div>
+      </section>
+      </Tema>
+
+      <Tema id="impresora" icono="🖨️" titulo="Cómo funciona la impresora (con video)" resumen="Capas, voladizos y soportes">
 <section className="relative z-10 mx-auto mt-24 max-w-6xl">
   <div className="mb-12 text-center">
     <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
@@ -377,78 +432,13 @@ export default function TutorialPage() {
     </p>
   </div>
 </section>
+      </Tema>
 
-      <section className="relative z-10 mx-auto mt-24 max-w-6xl">
-        <div className="mb-12 text-center">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
-            Modelos complejos
-          </p>
-
-          <h2 className="mt-4 text-3xl font-black">
-            Cómo organizar un modelo despiezado
-          </h2>
-
-          <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
-            No siempre alcanza con separar los pisos. También pueden
-            separarse muros, fachadas, escaleras, bases y piezas
-            especiales cuando conviene imprimirlas individualmente.
-          </p>
-        </div>
-
-        <div className="grid gap-7 lg:grid-cols-2">
-          <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
-            <TutorialGallery
-              images={[{
-                src: "/tutorial/despiezado-piezas.png",
-                alt: "Piezas arquitectónicas organizadas por tipo",
-              }]}
-              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
-            />
-
-            <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
-              Piezas arquitectónicas separadas por tipo: fachadas,
-              bases, escaleras y elementos especiales.
-            </figcaption>
-          </figure>
-
-          <figure className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-3 shadow-[var(--shadow-soft)]">
-            <TutorialGallery
-              images={[{
-                src: "/tutorial/despiezado-unido.png",
-                alt: "Niveles y componentes interiores separados junto al modelo completo",
-              }]}
-              imageClassName="min-h-[280px] w-full rounded-2xl object-contain"
-            />
-
-            <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
-              Niveles, muros y componentes interiores organizados como
-              piezas independientes, junto al modelo completo de
-              referencia.
-            </figcaption>
-          </figure>
-        </div>
-
-        <div className="mt-8 rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-9">
-          <h3 className="text-xl font-black">
-            Las piezas deben quedar:
-          </h3>
-
-          <div className="mt-6 grid gap-4 text-sm leading-7 text-[var(--text-muted)] md:grid-cols-2">
-            {organizacionPiezas.map((item) => (
-              <p key={item}>✓ {item}</p>
-            ))}
-          </div>
-
-          <p className="mt-7 border-l-2 border-red-600 pl-5 text-sm leading-7 text-[var(--text-muted)]">
-            No es necesario acomodar las piezas exactamente sobre la
-            cama de impresión. Lo importante es que estén limpias,
-            separadas y sean fáciles de identificar.
-          </p>
-        </div>
-      </section>
-
+      <Tema id="espesores" icono="📏" titulo="Espesores mínimos por escala" resumen="La tabla completa, con un ejemplo">
       <Espesores />
+      </Tema>
 
+      <Tema id="caras" icono="🔄" titulo="Caras al revés, con fotos" resumen="Cómo reconocerlas y corregirlas">
       <section className="relative z-10 mx-auto mt-24 max-w-6xl">
         <EncabezadoTutorial id="caras" paso={5} titulo="Revisá que las caras no estén al revés">
           Cada cara tiene un lado de afuera (blanco en SketchUp) y uno de adentro (gris o azul). Desde afuera del modelo
@@ -664,43 +654,17 @@ export default function TutorialPage() {
           </div>
         </div>
       </section>
+      </Tema>
 
+      <Tema id="errores" icono="🛠️" titulo="Errores comunes y cómo arreglarlos" resumen="Sólido abierto, caras sueltas, cosas que no se imprimen">
       <ErroresComunesSTL />
+      </Tema>
 
+      <Tema id="exportar" icono="📤" titulo="Exportar a STL y revisarlo en el visor (con videos)" resumen="Opcional: también podés mandar el SKP">
       <ExportarYEnviar />
+      </Tema>
 
-      <section className="relative z-10 mx-auto mt-24 max-w-5xl rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-10">
-        <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600">
-          Revisión final
-        </p>
-
-        <h2 className="mt-4 text-3xl font-black">
-          Antes de subir el archivo
-        </h2>
-
-        <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-          Repasá esta lista. Si todo tiene ✓, tu modelo está listo.
-        </p>
-
-        <div className="mt-8 grid gap-4 text-sm leading-7 text-[var(--text-muted)] md:grid-cols-2">
-          {revisionFinal.map((item) => (
-            <p key={item}>✓ {item}</p>
-          ))}
-        </div>
-
-        <div className="mt-8 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-6">
-          <p className="font-black text-[var(--text-main)]">
-            Formatos aceptados: STL y SKP
-          </p>
-
-          <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
-            ¿No estás seguro de cómo prepararlo? Enviá el archivo
-            igualmente. Revisaremos el modelo antes de preparar el
-            presupuesto y te avisaremos si necesita algún ajuste.
-          </p>
-        </div>
-      </section>
-
+      <Tema id="tiempos" icono="⏱️" titulo="Tiempos y orden de trabajo" resumen="Cuándo entra tu pedido a la impresora">
       <section className="relative z-10 mx-auto mt-16 max-w-5xl rounded-3xl border border-red-600/30 bg-red-600/5 p-7 sm:p-10">
         <h2 className="text-2xl font-black">
           Orden de trabajo y tiempos
@@ -720,7 +684,9 @@ export default function TutorialPage() {
           días adicionales para revisión y posibles ajustes.
         </p>
       </section>
+      </Tema>
 
+      <Tema id="ejemplos" icono="🏛️" titulo="Ejemplos reales de modelos enviados" resumen="Proyectos que nos mandaron para cotizar">
 <section className="relative z-10 mx-auto mt-24 max-w-6xl">
   <div className="mb-12 text-center">
     <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
@@ -815,6 +781,10 @@ export default function TutorialPage() {
 </p>
   </div>
 </section>
+      </Tema>
+
+        </div>
+      </section>
 
       <section className="relative z-10 mx-auto max-w-5xl py-24">
   <div className="rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 text-center shadow-[var(--shadow-soft)] sm:p-10">
