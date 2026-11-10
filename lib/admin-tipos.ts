@@ -381,9 +381,10 @@ export type AccionesAdmin = {
     pedido: { pedido: string; fecha: string };
     respuesta: { pedido: PedidoDetalle };
   };
-  /* Foto final desde el panel (En impresión): se guarda como «21.jpg», va a Pedidos › S y pasa a Terminado. */
+  /* Foto final desde el panel (En impresión): se guarda como «21.jpg» (y la segunda, opcional, como «21-2.jpg»),
+     va a Pedidos › S y pasa a Terminado. El correo lleva las dos. */
   admin_pedido_foto_final: {
-    pedido: { pedido: string; foto: string; mime: string };
+    pedido: { pedido: string; foto: string; foto2?: string; mime: string };
     respuesta: { pedido: PedidoDetalle; aviso: string };
   };
 

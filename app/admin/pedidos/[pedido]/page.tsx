@@ -252,8 +252,9 @@ export default function DetallePedidoAdmin({
   const [fechaNueva, setFechaNueva] = useState("");
   const [pidiendoCancelar, setPidiendoCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
-  const [fotoNueva, setFotoNueva] = useState<File | null>(null);
-  const [vistaFoto, setVistaFoto] = useState("");
+  // Foto final: la primera es obligatoria, la segunda opcional (el correo lleva las dos).
+  const [fotosNuevas, setFotosNuevas] = useState<(File | null)[]>([null, null]);
+  const [vistasFoto, setVistasFoto] = useState<string[]>(["", ""]);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const router = useRouter();
 
@@ -278,15 +279,38 @@ export default function DetallePedidoAdmin({
     }
   }
 
-  /* Sube la foto final (queda como «21.jpg») y el pedido pasa a Terminado. */
+  /* Pone una foto en un lugar (0 o 1). Si eligen dos juntas en el primero, llena los dos. */
+  function elegirFotos(lugar: number, archivos: File[]) {
+    if (!archivos.length) return;
+    const nuevas = [...fotosNuevas];
+    const vistas = [...vistasFoto];
+    archivos.slice(0, 2 - lugar).forEach((archivo, i) => {
+      if (vistas[lugar + i]) URL.revokeObjectURL(vistas[lugar + i]);
+      nuevas[lugar + i] = archivo;
+      vistas[lugar + i] = URL.createObjectURL(archivo);
+    });
+    setFotosNuevas(nuevas);
+    setVistasFoto(vistas);
+  }
+
+  function quitarFoto(lugar: number) {
+    if (vistasFoto[lugar]) URL.revokeObjectURL(vistasFoto[lugar]);
+    setFotosNuevas((actuales) => actuales.map((foto, i) => (i === lugar ? null : foto)));
+    setVistasFoto((actuales) => actuales.map((vista, i) => (i === lugar ? "" : vista)));
+  }
+
+  /* Sube la foto final (queda como «21.jpg», la segunda como «21-2.jpg») y el pedido pasa a Terminado. */
   async function enviarFotoFinal() {
-    if (!pedido || !fotoNueva) return;
+    const [primera, segunda] = fotosNuevas.filter((foto): foto is File => Boolean(foto));
+    if (!pedido || !primera) return;
     setSubiendoFoto(true);
     try {
-      const foto = await fotoEnBase64(fotoNueva);
+      const foto = await fotoEnBase64(primera);
+      const foto2 = segunda ? await fotoEnBase64(segunda) : undefined;
       const respuesta = await accionAdmin("admin_pedido_foto_final", {
         pedido: pedido.pedido,
         foto,
+        foto2,
         mime: "image/jpeg",
       });
       setDatos({ pedido: respuesta.pedido });
@@ -294,8 +318,9 @@ export default function DetallePedidoAdmin({
         respuesta.aviso || "Foto enviada. Pedido terminado.",
         /^Cambiado, pero/.test(respuesta.aviso || "") ? "error" : undefined
       );
-      setFotoNueva(null);
-      setVistaFoto("");
+      vistasFoto.forEach((vista) => vista && URL.revokeObjectURL(vista));
+      setFotosNuevas([null, null]);
+      setVistasFoto(["", ""]);
     } catch (errorAccion) {
       avisar(
         errorAccion instanceof Error ? errorAccion.message : "No se pudo subir la foto.",
@@ -627,44 +652,62 @@ export default function DetallePedidoAdmin({
           >
             {pedido.estado === "En impresión" && (
               <div className="space-y-3">
-                <label className="block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--fase)_55%,transparent)] bg-[var(--kint-panel-soft)] text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-main)]">
-                  {vistaFoto ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={vistaFoto} alt="Foto final elegida" className="aspect-[4/3] w-full object-cover" />
-                  ) : (
-                    <span className="flex min-h-36 flex-col items-center justify-center gap-1.5 px-4 py-6 text-center">
-                      <ImagePlus size={26} />
-                      Subir foto final
-                      <span className="text-xs font-semibold">
-                        Se guarda como «{pedido.pedido.match(/(\d+)$/)?.[1].replace(/^0+(?=\d)/, "") ?? pedido.pedido}.jpg»
-                      </span>
-                    </span>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    disabled={subiendoFoto}
-                    onChange={(evento) => {
-                      const archivo = evento.target.files?.[0];
-                      evento.target.value = "";
-                      if (!archivo) return;
-                      if (vistaFoto) URL.revokeObjectURL(vistaFoto);
-                      setFotoNueva(archivo);
-                      setVistaFoto(URL.createObjectURL(archivo));
-                    }}
-                  />
-                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {[0, 1].map((lugar) => {
+                    const numeroFoto = pedido.pedido.match(/(\d+)$/)?.[1].replace(/^0+(?=\d)/, "") ?? pedido.pedido;
+                    return (
+                      <div key={lugar} className="relative">
+                        <label className="block cursor-pointer overflow-hidden rounded-xl border-2 border-dashed border-[color-mix(in_srgb,var(--fase)_55%,transparent)] bg-[var(--kint-panel-soft)] text-sm font-bold text-[var(--text-muted)] transition hover:text-[var(--text-main)]">
+                          {vistasFoto[lugar] ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={vistasFoto[lugar]} alt={`Foto final ${lugar + 1} elegida`} className="aspect-[4/3] w-full object-cover" />
+                          ) : (
+                            <span className="flex aspect-[4/3] flex-col items-center justify-center gap-1.5 px-3 py-4 text-center">
+                              <ImagePlus size={24} />
+                              {lugar === 0 ? "Foto final" : "Segunda foto (opcional)"}
+                              <span className="text-[11px] font-semibold">
+                                Se guarda como «{numeroFoto}{lugar === 0 ? "" : "-2"}.jpg»
+                              </span>
+                            </span>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple={lugar === 0}
+                            className="sr-only"
+                            disabled={subiendoFoto}
+                            onChange={(evento) => {
+                              const archivos = Array.from(evento.target.files ?? []);
+                              evento.target.value = "";
+                              elegirFotos(lugar, archivos);
+                            }}
+                          />
+                        </label>
+                        {vistasFoto[lugar] && !subiendoFoto && (
+                          <button
+                            type="button"
+                            onClick={() => quitarFoto(lugar)}
+                            aria-label={`Quitar la foto ${lugar + 1}`}
+                            className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-sm font-black text-white"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-[var(--text-muted)]">El correo de «Terminado» lleva las fotos que elijas (una o dos).</p>
                 <Boton
                   variante="principal"
                   tamano="grande"
                   className="w-full"
                   icono={<Send size={17} />}
-                  disabled={!fotoNueva}
+                  disabled={!fotosNuevas.some(Boolean)}
                   cargando={subiendoFoto}
                   onClick={enviarFotoFinal}
                 >
-                  Enviar foto y marcar como terminado
+                  {fotosNuevas.filter(Boolean).length === 2 ? "Enviar fotos" : "Enviar foto"} y marcar como terminado
                 </Boton>
               </div>
             )}
