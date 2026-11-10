@@ -49,6 +49,7 @@ import {
 } from "@/components/admin/ui";
 import { unidadConfig } from "@/components/admin/unidadesConfig";
 import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
+import CodigosEspeciales from "@/components/admin/CodigosEspeciales";
 import { AgregarFilamento, AgregarHito, BorrarConfig, EditarFilamento } from "@/components/admin/AgregarConfig";
 
 /* ------------------------------------------------------------------ */
@@ -507,15 +508,18 @@ export default function ConfiguracionAdmin() {
               <GirosRuleta />
             </>
           ) : (
-            <SeccionConfig
-              titulo={elegida}
-              filas={todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []}
-              todasLasFilas={filas}
-              optimistas={optimistas}
-              onToggle={alCambiarToggle}
-              guardar={guardar}
-              onFilas={(nuevas) => setDatos({ filas: nuevas })}
-            />
+            <>
+              <SeccionConfig
+                titulo={elegida}
+                filas={todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []}
+                todasLasFilas={filas}
+                optimistas={optimistas}
+                onToggle={alCambiarToggle}
+                guardar={guardar}
+                onFilas={(nuevas) => setDatos({ filas: nuevas })}
+              />
+              {elegida === "Promociones" && <CodigosEspeciales filas={filas} />}
+            </>
           )}
         </>
       )}

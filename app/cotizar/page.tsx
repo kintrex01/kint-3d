@@ -33,6 +33,18 @@ type BeneficioCodigo = {
   nombre: string;
 };
 
+/* Código especial (ej. P-BETO): descuento con colores permitidos. */
+type CodigoEspecialInfo = {
+  existe: boolean;
+  codigo?: string;
+  nombre?: string;
+  descuento?: number;
+  colores?: string[];
+  unSoloColor?: boolean;
+  disponible?: boolean;
+  motivo?: string;
+};
+
 type Configuracion = Record<
   string,
   OpcionConfiguracion
@@ -73,13 +85,18 @@ function ImagenFilamento({
     `/colores/${nombre}.jpeg`,
   ];
 
+  // Color nuevo sin foto todavía: el color con un «Foto próximamente».
   if (intento >= fuentes.length && extras.color) {
     return (
       <div
-        className="mx-auto h-16 w-16 sm:h-24 sm:w-24 rounded-full border-4 border-white/70 shadow-inner"
+        className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-4 border-white/70 shadow-inner sm:h-24 sm:w-24"
         style={{ background: extras.color }}
         aria-label={nombre}
-      />
+      >
+        <span className="rounded-full bg-black/45 px-1.5 py-0.5 text-center text-[8px] font-bold leading-3 text-white sm:text-[10px]">
+          Foto próximamente
+        </span>
+      </div>
     );
   }
 
@@ -168,6 +185,7 @@ const [telefono, setTelefono] = useState("");
   const [boquilla, setBoquilla] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
+  const [codigoEspecial, setCodigoEspecial] = useState<CodigoEspecialInfo | null>(null);
   // "Mi modelo cumple los requisitos" (obligatoria).
   const [cumpleRequisitos, setCumpleRequisitos] = useState(false);
   const [masOpciones, setMasOpciones] = useState(false);
@@ -1014,6 +1032,47 @@ useEffect(() => {
 useEffect(() => {
   if (colorUnico && (color.length !== 1 || color[0] !== colorUnico)) setColor([colorUnico]);
 }, [colorUnico, color]);
+
+/* Código especial: al escribirlo se consulta (con una pausa) y se aplican sus colores. */
+const codigoParaConsultar =
+  codigoDescuento
+    .split(/[\s,;]+/)
+    .find((parte) => parte.length >= 3 && !parte.startsWith("VALE-")) || "";
+useEffect(() => {
+  let cancelado = false;
+  const espera = window.setTimeout(async () => {
+    if (!codigoParaConsultar) {
+      setCodigoEspecial(null);
+      return;
+    }
+    try {
+      const respuesta = await fetch(`/api/pedidos?tipo=codigo_especial&codigo=${encodeURIComponent(codigoParaConsultar)}`);
+      const info = (await respuesta.json()) as CodigoEspecialInfo & { ok?: boolean };
+      if (cancelado) return;
+      const especial = info.ok && info.existe ? info : null;
+      setCodigoEspecial(especial);
+      // Se sacan los colores que no van con el código (y si va uno solo, queda el primero).
+      if (especial?.disponible) {
+        setColor((actual) => {
+          const permitidos = especial.colores?.length
+            ? actual.filter((nombre) => especial.colores!.some((c) => c.toLowerCase() === nombre.toLowerCase()))
+            : actual;
+          return especial.unSoloColor ? permitidos.slice(0, 1) : permitidos;
+        });
+      }
+    } catch {
+      if (!cancelado) setCodigoEspecial(null);
+    }
+  }, 500);
+  return () => {
+    cancelado = true;
+    window.clearTimeout(espera);
+  };
+}, [codigoParaConsultar]);
+
+const especialActivo = codigoEspecial?.disponible ? codigoEspecial : null;
+const colorPermitido = (nombre: string) =>
+  !especialActivo?.colores?.length || especialActivo.colores.some((c) => c.toLowerCase() === nombre.toLowerCase());
 
 /* Con beneficios (VALE, descuentos) o algo ya elegido, "Más opciones" se abre solo. */
 useEffect(() => {
@@ -2410,28 +2469,40 @@ return (
   </label>
 
   <p className="mb-3 text-sm text-[var(--text-muted)]">
-    Podés elegir uno o varios colores.
+    {especialActivo?.unSoloColor ? "Elegí un color." : "Podés elegir uno o varios colores."}
   </p>
+
+  {especialActivo && (
+    <p className="mb-3 rounded-xl border border-pink-500/40 bg-pink-500/10 px-4 py-3 text-sm text-[var(--text-main)]">
+      🎟️ Con el código <strong>{especialActivo.codigo}</strong>
+      {especialActivo.unSoloColor ? " la maqueta va en un solo color" : ""}
+      {especialActivo.colores?.length
+        ? `${especialActivo.unSoloColor ? ", a elegir entre" : " podés elegir"}: ${especialActivo.colores.join(", ")}.`
+        : "."}
+    </p>
+  )}
 
 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-4">
   {filamentosConfigurados.map((item) => (
     <button
       key={item.nombre}
       type="button"
-      disabled={!item.habilitado}
+      disabled={!item.habilitado || !colorPermitido(item.nombre)}
       onClick={() => {
-        if (!item.habilitado) return;
+        if (!item.habilitado || !colorPermitido(item.nombre)) return;
 
         setColor((actual) =>
           actual.includes(item.nombre)
             ? actual.filter(
                 (c) => c !== item.nombre
               )
+            : especialActivo?.unSoloColor
+            ? [item.nombre]
             : [...actual, item.nombre]
         );
       }}
       className={`rounded-2xl border p-2 transition sm:p-3 ${
-        !item.habilitado
+        !item.habilitado || !colorPermitido(item.nombre)
           ? "cursor-not-allowed border-[var(--border-color)] bg-[var(--page-bg)] opacity-[0.72]"
           : color.includes(item.nombre)
           ? "border-red-600 ring-2 ring-red-600"
@@ -2447,6 +2518,12 @@ return (
       <p className="mt-1.5 text-center text-xs font-semibold sm:mt-2 sm:text-sm">
         {item.etiqueta}
       </p>
+
+      {item.habilitado && !colorPermitido(item.nombre) && (
+        <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
+          No va con {especialActivo?.codigo}
+        </p>
+      )}
 
       {!item.habilitado && (
         <p className="mt-2 text-center text-[11px] leading-4 text-[var(--text-muted)] opacity-70">
@@ -2904,6 +2981,30 @@ return (
     className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
     placeholder="Ej: KINT10 VALE-AB12 VALE-CD34"
   />
+
+  {codigoEspecial && (
+    <div
+      className={`mt-3 rounded-xl border p-4 text-sm ${
+        codigoEspecial.disponible ? "border-pink-500/40 bg-pink-500/10" : "border-red-600/40 bg-red-600/10"
+      }`}
+    >
+      {codigoEspecial.disponible ? (
+        <>
+          <p className="font-black text-[var(--text-main)]">
+            ✓ {codigoEspecial.codigo}
+            {codigoEspecial.nombre ? ` · ${codigoEspecial.nombre}` : ""}: {codigoEspecial.descuento}% de descuento
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
+            {codigoEspecial.unSoloColor ? "Un solo color" : "Uno o varios colores"}
+            {codigoEspecial.colores?.length ? ` · ${codigoEspecial.colores.join(", ")}` : " · cualquier color"}. Lo
+            aplicamos en el presupuesto (si hay una promo mejor, va la mejor).
+          </p>
+        </>
+      ) : (
+        <p className="font-bold text-red-600">{codigoEspecial.motivo || "Este código no está disponible."}</p>
+      )}
+    </div>
+  )}
 
   {beneficiosDisponibles.length > 0 && (
     <div className="mt-3 rounded-xl border border-[#87A4B5]/45 bg-[#B9D3E2]/10 p-4">

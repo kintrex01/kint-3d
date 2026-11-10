@@ -128,6 +128,13 @@ export async function GET(
         ) || ""
       ).trim();
 
+    // Código especial (ej. P-BETO): Cotizar muestra su descuento y sus colores.
+    if (tipo === "codigo_especial") {
+      const codigo = String(url.searchParams.get("codigo") || "").trim().slice(0, 40);
+      const text = await llamarAppsScriptGet({ tipo: "codigo_especial", codigo }, "Código especial");
+      return Response.json(JSON.parse(text));
+    }
+
     if (
       tipo !==
       "repetir_pedido"

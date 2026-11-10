@@ -618,6 +618,33 @@ export type AccionesAdmin = {
     pedido: { config: ConfigRuleta };
     respuesta: VistaRuletaAdmin;
   };
+  admin_codigos_especiales_listar: {
+    pedido: SinDatos;
+    respuesta: { codigos: CodigoEspecial[] };
+  };
+  admin_codigo_especial_guardar: {
+    pedido: Omit<CodigoEspecial, "fila" | "usados" | "pedidos"> & { original?: string };
+    respuesta: { codigos: CodigoEspecial[] };
+  };
+  admin_codigo_especial_borrar: {
+    pedido: { codigo: string };
+    respuesta: { codigos: CodigoEspecial[] };
+  };
+};
+
+/* Código con reglas propias (ej. P-BETO para un curso): colores y usos. */
+export type CodigoEspecial = {
+  fila: number;
+  codigo: string;
+  nombre: string;
+  descuento: number;
+  usosMaximos: number; // 0 = sin límite
+  usados: number;
+  colores: string[]; // vacío = todos
+  unSoloColor: boolean;
+  activo: boolean;
+  vence: string; // yyyy-mm-dd o vacío
+  pedidos: string[];
 };
 
 export type PremioRuletaConfig = {
@@ -755,4 +782,7 @@ export const ACCIONES_ADMIN = [
   "admin_puntos_revertir",
   "admin_premios_listar",
   "admin_premio_estado",
+  "admin_codigos_especiales_listar",
+  "admin_codigo_especial_guardar",
+  "admin_codigo_especial_borrar",
 ] as const satisfies readonly TipoAccionAdmin[];
