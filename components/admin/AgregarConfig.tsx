@@ -179,6 +179,7 @@ export function EditarFilamento({
         foto,
         nombre: visible.trim() === nombre ? "" : visible,
         nota,
+        orden: extras.orden,
       });
       if (await guardar(fila.clave, { comentario })) {
         avisar(`${visible.trim() || nombre} guardado`);

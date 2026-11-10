@@ -72,24 +72,28 @@ export function extrasFilamento(comentario: string) {
   const foto = texto.match(/foto:\s*(https:\/\/\S+)/i)?.[1] || "";
   // Nombre visible: se puede renombrar sin tocar la clave (foto y pedidos viejos siguen igual).
   const nombre = texto.match(/nombre:\s*([^·]+)/i)?.[1].trim() || "";
+  // Lugar en la lista de /cotizar (lo acomoda el dueño en el panel).
+  const numeroOrden = Number(texto.match(/orden:\s*(\d+)/i)?.[1]);
+  const orden = Number.isFinite(numeroOrden) ? numeroOrden : null;
   // Lo que queda es la nota para el cliente (ej. "Vuelve en diciembre").
   const nota = texto
-    .replace(/(color|foto|nombre):\s*[^·]*/gi, "")
+    .replace(/(color|foto|nombre|orden):\s*[^·]*/gi, "")
     .split("·")
     .map((parte) => parte.trim())
     .filter(Boolean)
     .join(" · ");
-  return { color, foto, nombre, nota };
+  return { color, foto, nombre, nota, orden };
 }
 
 /* Arma el comentario de la fila con lo editado (lo vacío no se guarda). */
-export function comentarioFilamento(extras: { color: string; foto: string; nombre: string; nota: string }) {
+export function comentarioFilamento(extras: { color: string; foto: string; nombre: string; nota: string; orden?: number | null }) {
   const limpiar = (texto: string) => texto.replace(/·/g, "").trim();
   return [
     limpiar(extras.nota).slice(0, 200),
     extras.color ? `color: ${extras.color}` : "",
     extras.foto ? `foto: ${extras.foto}` : "",
     limpiar(extras.nombre) ? `nombre: ${limpiar(extras.nombre).slice(0, 40)}` : "",
+    extras.orden ? `orden: ${extras.orden}` : "",
   ]
     .filter(Boolean)
     .join(" · ");

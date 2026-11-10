@@ -884,6 +884,13 @@ const boquilla04Habilitada =
       };
     })
     .sort((a, b) => {
+      // Primero el orden que eligió el dueño en el panel; sin orden, los disponibles adelante.
+      const ordenA = extrasFilamento(a.comentario).orden ?? Infinity;
+      const ordenB = extrasFilamento(b.comentario).orden ?? Infinity;
+      if (ordenA !== ordenB) {
+        return ordenA - ordenB;
+      }
+
       if (a.habilitado === b.habilitado) {
         return 0;
       }
@@ -1167,7 +1174,7 @@ useEffect(() => {
 /*
  * Archivos del visor 3D («Cotizar este archivo»): llegan por la dirección
  * (?desdeVisor=<id>&escala=100) o, si el visor se abrió desde esta pestaña,
- * por un mensaje. Reemplazan a los STL que había (los SKP quedan) y, si en el
+ * por un mensaje. Se suman a los que había (solo reemplazan la versión anterior del mismo archivo) y, si en el
  * visor eligió escala, se pone la misma.
  */
 useEffect(() => {
@@ -1175,7 +1182,11 @@ useEffect(() => {
     try {
       const nuevos = await leerParaVisor(id);
       if (!nuevos.length) return;
-      setArchivos((actuales) => [...actuales.filter((archivo) => !/\.stl$/i.test(archivo.name)), ...nuevos]);
+      const base = (nombreArchivo: string) => nombreArchivo.replace(/(-preparado)?\.[^.]+$/i, "").toLowerCase();
+      setArchivos((actuales) => [
+        ...actuales.filter((archivo) => !nuevos.some((nuevo) => base(nuevo.name) === base(archivo.name))),
+        ...nuevos,
+      ]);
       if (/^\d+(?:[.,]\d+)?$/.test(escalaVisor)) {
         const elegida = `1:${escalaVisor}`;
         if (["1:50", "1:75", "1:100", "1:200", "1:250", "1:500", "1:1000"].includes(elegida)) {

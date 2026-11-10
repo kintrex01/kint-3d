@@ -7,6 +7,8 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  ArrowLeft,
+  ArrowRight,
   Gift,
   GripVertical,
   HeartHandshake,
@@ -34,7 +36,7 @@ import type {
   FilaConfig,
   PremioRuletaConfig,
 } from "@/lib/admin-tipos";
-import { colorFilamento, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import { colorFilamento, comentarioFilamento, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   Boton,
   CajaError,
@@ -617,7 +619,51 @@ function SeccionConfig({
   const esFidelidad = titulo === "Fidelidad";
   const esFilamentos = titulo === "Filamentos";
   // Filamentos: una grilla de colores. Fidelidad: los hitos en cuadritos.
-  const colores = filas.filter((fila) => fila.clave.startsWith("filamento_") && fila.tipo === "toggle");
+  const enHoja = filas.filter((fila) => fila.clave.startsWith("filamento_") && fila.tipo === "toggle");
+  // En el orden que eligió el dueño (el mismo que ve el cliente en /cotizar).
+  const ordenados = [...enHoja].sort((a, b) => {
+    const ordenA = extrasFilamento(a.comentario).orden ?? Infinity;
+    const ordenB = extrasFilamento(b.comentario).orden ?? Infinity;
+    return ordenA === ordenB ? 0 : ordenA - ordenB;
+  });
+  const avisar = useAvisos();
+  const [ordenando, setOrdenando] = useState<string[] | null>(null);
+  const [progresoOrden, setProgresoOrden] = useState("");
+  const colores = ordenando
+    ? ordenando.map((clave) => enHoja.find((fila) => fila.clave === clave)).filter((fila): fila is FilaConfig => Boolean(fila))
+    : ordenados;
+
+  function mover(indice: number, paso: number) {
+    setOrdenando((lista) => {
+      const destino = indice + paso;
+      if (!lista || destino < 0 || destino >= lista.length) return lista;
+      const nueva = [...lista];
+      [nueva[indice], nueva[destino]] = [nueva[destino], nueva[indice]];
+      return nueva;
+    });
+  }
+
+  /* Escribe "orden: N" en el comentario solo de los que cambiaron de lugar. */
+  async function guardarOrden() {
+    if (!ordenando) return;
+    const cambios = ordenando
+      .map((clave, indice) => ({ fila: enHoja.find((fila) => fila.clave === clave), orden: indice + 1 }))
+      .filter((cambio): cambio is { fila: FilaConfig; orden: number } =>
+        Boolean(cambio.fila) && extrasFilamento(cambio.fila!.comentario).orden !== cambio.orden
+      );
+    for (let i = 0; i < cambios.length; i++) {
+      const { fila, orden } = cambios[i];
+      setProgresoOrden(`Guardando ${i + 1} de ${cambios.length}…`);
+      const extras = extrasFilamento(fila.comentario);
+      if (!(await guardar(fila.clave, { comentario: comentarioFilamento({ ...extras, orden }) }))) {
+        setProgresoOrden("");
+        return;
+      }
+    }
+    setProgresoOrden("");
+    setOrdenando(null);
+    avisar("Orden guardado: así se ven en la web");
+  }
   const hitos = filas
     .filter((fila) => /^fidelidad_hito_\d+$/.test(fila.clave))
     .sort((a, b) => Number(a.clave.split("_").pop()) - Number(b.clave.split("_").pop()));
@@ -683,9 +729,31 @@ function SeccionConfig({
 
       {esFilamentos && <AgregarFilamento onFilas={onFilas} />}
 
+      {esFilamentos && colores.length > 1 && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
+          {ordenando ? (
+            <>
+              <p className="w-full text-xs text-[var(--text-muted)]">
+                Mové cada color con las flechas. Así aparecen en la web, de izquierda a derecha.
+              </p>
+              <Boton tamano="chico" onClick={() => setOrdenando(null)} disabled={Boolean(progresoOrden)}>
+                Cancelar
+              </Boton>
+              <Boton tamano="chico" variante="principal" onClick={guardarOrden} cargando={Boolean(progresoOrden)}>
+                {progresoOrden || "Guardar orden"}
+              </Boton>
+            </>
+          ) : (
+            <Boton tamano="chico" icono={<ArrowUpDown size={14} />} onClick={() => setOrdenando(ordenados.map((fila) => fila.clave))}>
+              Ordenar colores
+            </Boton>
+          )}
+        </div>
+      )}
+
       {colores.length > 0 && (
         <div className={`grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 ${resto.length ? "mt-2.5" : ""}`}>
-          {colores.map((fila) => {
+          {colores.map((fila, indice) => {
             const nombre = fila.etiqueta.replace(/^filamento\s+/i, "");
             const activo = estaHabilitada(optimistas[fila.clave] ?? fila.valor);
             const extras = extrasFilamento(fila.comentario);
@@ -708,13 +776,37 @@ function SeccionConfig({
                   {extras.nombre || nombre}
                   {extras.nombre && <span className="block truncate text-[10px] font-semibold text-[var(--text-muted)]">{nombre}</span>}
                 </p>
-                <EditarFilamento key={fila.comentario} fila={fila} nombre={nombre} guardar={guardar} onFilas={onFilas} />
-                <Interruptor
-                  activo={activo}
-                  onCambiar={(valor) => onToggle(fila, valor)}
-                  deshabilitado={optimistas[fila.clave] !== undefined}
-                  etiqueta={fila.etiqueta}
-                />
+                {ordenando ? (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <span className="w-5 text-center text-xs font-black text-[var(--text-muted)]">{indice + 1}</span>
+                    {[
+                      { paso: -1, Icono: ArrowLeft, texto: "Mover antes" },
+                      { paso: 1, Icono: ArrowRight, texto: "Mover después" },
+                    ].map(({ paso, Icono, texto }) => (
+                      <button
+                        key={paso}
+                        type="button"
+                        onClick={() => mover(indice, paso)}
+                        disabled={Boolean(progresoOrden) || indice + paso < 0 || indice + paso >= colores.length}
+                        aria-label={`${texto}: ${extras.nombre || nombre}`}
+                        title={texto}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--kint-panel-border)] transition hover:border-[var(--kint-selected-border)] disabled:opacity-30"
+                      >
+                        <Icono size={15} />
+                      </button>
+                    ))}
+                  </span>
+                ) : (
+                  <>
+                    <EditarFilamento key={fila.comentario} fila={fila} nombre={nombre} guardar={guardar} onFilas={onFilas} />
+                    <Interruptor
+                      activo={activo}
+                      onCambiar={(valor) => onToggle(fila, valor)}
+                      deshabilitado={optimistas[fila.clave] !== undefined}
+                      etiqueta={fila.etiqueta}
+                    />
+                  </>
+                )}
               </div>
             );
           })}
