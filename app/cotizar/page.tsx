@@ -2871,6 +2871,20 @@ return (
 
 <SumarProductosCotizar elegidos={extras} onCambiar={setExtras} />
 
+{/* Comentarios a la vista (no dentro de «Más opciones»): ahí cuentan qué pieza va de qué color, etc. */}
+<div className="mb-6">
+  <label className="mb-2 block font-semibold text-[var(--text-main)]">
+    Comentarios <span className="font-normal text-[var(--text-muted)]">(opcional)</span>
+  </label>
+  <textarea
+    value={comentarios}
+    onChange={(e) => setComentarios(e.target.value)}
+    className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
+    rows={4}
+    placeholder="Ej.: el techo en violeta y el resto en cristal, el pasto en verde…"
+  />
+</div>
+
 {/* Lo opcional, plegado: menos para leer. Se abre solo si hay algo elegido o beneficios. */}
 <details
   open={masOpciones}
@@ -2886,7 +2900,6 @@ return (
         {[
           pedidoUrgenteHabilitado && (pedidoPrioritario ? "✓ Urgente" : "Pedido urgente"),
           codigoDescuento.trim() ? "✓ Código" : "Código de descuento o premio",
-          comentarios.trim() ? "✓ Comentario" : "Comentarios",
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -3058,19 +3071,6 @@ return (
     </div>
   )}
 </div>
-
-        <div>
-          <label className="mb-2 block font-semibold text-[var(--text-main)]">
-            Comentarios
-          </label>
-          <textarea
-            value={comentarios}
-            onChange={(e) => setComentarios(e.target.value)}
-            className="w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 text-[var(--text-main)] shadow-inner outline-none transition placeholder:text-[var(--text-muted)] placeholder:opacity-60 focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark]"
-            rows={5}
-            placeholder="Escribe detalles importantes..."
-          />
-        </div>
 
   </div>
 </details>
