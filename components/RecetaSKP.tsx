@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
+import ImagenAmpliable from "@/components/ImagenAmpliable";
 
 /*
  * Tutorial: la receta corta para dejar el SKP listo para imprimir.
@@ -15,6 +16,8 @@ type Paso = {
   hacer: ReactNode[];
   bien: string;
   dibujo?: ReactNode;
+  // Botón que despliega fotos reales y el paso a paso para arreglarlo.
+  solucion?: { boton: string; fotos: { src: string; pie: string }[]; pasos: ReactNode[] };
 };
 
 /* Esquema: dónde cortar las plantas (justo debajo de cada losa: la losa va con su planta). */
@@ -91,6 +94,22 @@ const pasos: Paso[] = [
     ],
     bien: "Al hacer clic en una planta se selecciona entera, como una sola pieza.",
     dibujo: <DibujoCortes />,
+    solucion: {
+      boton: "Ver cómo cortarlo, con fotos",
+      fotos: [
+        { src: "/tutorial/modelo.png", pie: "1. El modelo entero, antes de cortar." },
+        { src: "/tutorial/modelo-corte.png", pie: "2. El modelo cortado: en rojo, por dónde pasa el corte." },
+        { src: "/tutorial/corte.png", pie: "3. Así queda el corte visto de frente." },
+        { src: "/tutorial/corte2.png", pie: "4. Una planta ya cortada: queda como pieza aparte y se ve por dentro." },
+      ],
+      pasos: [
+        <>Poné la vista de frente: <b>Cámara → Vistas estándar → Frontal</b>.</>,
+        <>Dibujá con <b>Rectángulo (R)</b> un plano más grande que el edificio, justo debajo de la losa del primer piso.</>,
+        <>Seleccioná todo (<b>Ctrl + A</b>) → clic derecho → <b>Intersecar caras → Con el modelo</b>. Borrá el rectángulo.</>,
+        <>Arrastrá un recuadro <b>de izquierda a derecha</b> sobre la planta baja → clic derecho → <b>Crear grupo</b>.</>,
+        <>Repetí con cada planta y con el techo.</>,
+      ],
+    },
   },
   {
     titulo: "Dale espesor a todo",
@@ -120,6 +139,22 @@ const pasos: Paso[] = [
       <>Si ves caras grises o azules: seleccionalas → clic derecho → <b>Invertir caras</b>.</>,
     ],
     bien: "Girando alrededor del modelo, todo se ve blanco.",
+    solucion: {
+      boton: "Ver cómo solucionarlo, con fotos",
+      fotos: [
+        { src: "/tutorial/material.png", pie: "Blanco es la cara de afuera; gris azulado, la de adentro." },
+        { src: "/tutorial/asi-no2.png", pie: "Así no: caras de afuera en gris azulado." },
+        { src: "/tutorial/invertir-caras.png", pie: "Clic derecho → Invertir caras." },
+        { src: "/tutorial/asi-si.png", pie: "Así sí: todo el exterior en blanco." },
+      ],
+      pasos: [
+        <>Activá <b>Ver → Estilo de cara → Monocromo</b> para ver los colores de las caras.</>,
+        <>Girá alrededor del modelo con la rueda del mouse apretada y buscá caras grises o azules.</>,
+        <>Si están dentro de un grupo, entrá con <b>doble clic</b>.</>,
+        <>Seleccioná la cara azul (con <b>Ctrl</b> sumás varias) → clic derecho → <b>Invertir caras</b>.</>,
+        <>¿Muchas? Clic derecho en una cara bien → <b>Orientar caras</b>: las de al lado se dan vuelta igual.</>,
+      ],
+    },
   },
   {
     titulo: "Separá las piezas y mandá un solo archivo",
@@ -131,8 +166,68 @@ const pasos: Paso[] = [
     ],
     bien: "Un archivo, con todas las piezas separadas en el piso.",
     dibujo: <DibujoSeparadas />,
+    solucion: {
+      boton: "Ver cómo desplegar las piezas, con fotos",
+      fotos: [
+        { src: "/tutorial/modelo-unido.jpeg", pie: "Antes: el modelo entero, en una sola pieza." },
+        { src: "/tutorial/modelo-despiezado-pisos.png", pie: "Después: cada piso separado, uno al lado del otro." },
+        { src: "/tutorial/despiezado-piezas.png", pie: "También se pueden separar fachadas, escaleras y bases." },
+        { src: "/tutorial/despiezado-unido.png", pie: "Las piezas separadas junto al modelo completo." },
+      ],
+      pasos: [
+        <>Hacé clic en el grupo de la planta alta (se selecciona entero).</>,
+        <>Tocá <b>M</b> (Mover), hacé clic en una esquina y llevalo al costado, sobre el piso.</>,
+        <>Mientras movés, tocá la flecha <b>→</b> del teclado para que vaya recto.</>,
+        <>Si quedó flotando, bajalo con <b>M</b> + flecha <b>↑</b> (eje azul) hasta el piso.</>,
+        <>Repetí con el techo y el resto, dejando 1 m entre cada pieza.</>,
+      ],
+    },
   },
 ];
+
+/* Botón que despliega abajo el paso a paso con fotos. */
+function Solucion({ boton, fotos, pasos }: NonNullable<Paso["solucion"]>) {
+  const [abierta, setAbierta] = useState(false);
+
+  return (
+    <div className="mt-4">
+      <button
+        type="button"
+        onClick={() => setAbierta((actual) => !actual)}
+        aria-expanded={abierta}
+        className="flex w-full items-center gap-3 rounded-2xl border border-sky-500/40 bg-sky-500/10 px-4 py-3 text-left text-sm font-black text-sky-800 transition hover:bg-sky-500/15 dark:text-sky-300"
+      >
+        <span aria-hidden className="text-lg">📸</span>
+        <span className="flex-1">{boton}</span>
+        <span aria-hidden className={`transition ${abierta ? "rotate-180" : ""}`}>▾</span>
+      </button>
+
+      {abierta && (
+        <div className="mt-3 space-y-4 rounded-2xl border border-[var(--border-color)] bg-black/[0.02] p-4 dark:bg-white/[0.03] sm:p-5">
+          <ol className="space-y-2.5 text-[15px] leading-7">
+            {pasos.map((linea, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-black text-white">
+                  {i + 1}
+                </span>
+                <span>{linea}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fotos.map((foto) => (
+              <figure key={foto.src} className="overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)]">
+                <ImagenAmpliable src={foto.src} alt={foto.pie} />
+                <figcaption className="px-3 py-2 text-xs font-semibold leading-5 text-[var(--text-muted)]">{foto.pie}</figcaption>
+              </figure>
+            ))}
+          </div>
+          <p className="text-xs text-[var(--text-muted)]">Tocá una foto para verla grande.</p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function RecetaSKP() {
   const [listos, setListos] = useState<number[]>([]);
@@ -193,6 +288,8 @@ export default function RecetaSKP() {
                   <div className="rounded-2xl bg-black/[0.03] p-4 text-[var(--text-main)] dark:bg-white/[0.04]">{paso.dibujo}</div>
                 )}
               </div>
+
+              {paso.solucion && <Solucion {...paso.solucion} />}
 
               <label className="mt-5 flex cursor-pointer items-center gap-3 rounded-2xl border border-dashed border-emerald-500/40 bg-emerald-500/5 px-4 py-3 text-sm">
                 <input
