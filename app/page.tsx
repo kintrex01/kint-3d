@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import GarantiaKint from "../components/GarantiaKint";
 import { useEffect, useState } from "react";
 import ResenasInicio from "../components/ResenasInicio";
 import ThemeToggle from "../components/ThemeToggle";
@@ -622,9 +621,6 @@ dark:shadow-[inset_0_1px_0_rgba(185,211,226,0.10),0_18px_55px_rgba(0,0,0,0.28)]
   <EstadisticasInicio />
 </div>
 
-  <div className="relative z-20 mb-10 flex w-full justify-center px-6">
-    <GarantiaKint />
-  </div>
 
 
 

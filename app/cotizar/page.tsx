@@ -1,6 +1,5 @@
 "use client";
 import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
-import GarantiaKint from "@/components/GarantiaKint";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -1830,7 +1829,6 @@ return (
               </span>
             ))}
           </div>
-          <GarantiaKint className="mt-4" />
         </div>
       </section>
 

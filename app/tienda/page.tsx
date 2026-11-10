@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import GarantiaKint from "@/components/GarantiaKint";
 import {
   ArrowLeft,
   ArrowRight,
@@ -3966,7 +3965,6 @@ export default function TiendaPage() {
             />
             {TEXTO_ENTREGA}
           </p>
-          <GarantiaKint className="mt-3 max-w-xl" />
         </header>
       </section>
 
