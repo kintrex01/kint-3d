@@ -29,9 +29,9 @@ const TEMAS: { titulo: string; emoji: string; preguntas: Pregunta[] }[] = [
           "Sí. Para escalarlo correctamente necesitamos conocer la escala deseada o al menos una medida real de referencia del proyecto.",
       },
       {
-        pregunta: "¿Puedo enviar varios archivos o piezas?",
+        pregunta: "¿Mando un archivo por pieza?",
         respuesta:
-          "Sí. Podés subir varios archivos dentro de una misma solicitud. También podés enviar un STL que contenga varias piezas separadas y ordenadas.",
+          "No hace falta. Lo ideal es un solo archivo con todo el proyecto: todas las piezas adentro, separadas entre sí. Si igual tenés varios archivos, podés subirlos todos en la misma solicitud.",
       },
       {
         pregunta: "¿Qué pasa si el archivo tiene errores?",

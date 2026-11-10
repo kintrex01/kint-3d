@@ -5,15 +5,25 @@ import { useEffect } from "react";
 import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
-import { CaminoRapidoSTL, ErroresComunesSTL } from "../../components/GuiaRapidaSTL";
+import {
+  EncabezadoTutorial,
+  ErroresComunesSTL,
+  Espesores,
+  ExportarYEnviar,
+  Glosario,
+  IndiceTutorial,
+  QueMandar,
+} from "../../components/GuiaRapidaSTL";
 
 const revisionFinal = [
+  "Todo el proyecto en un solo archivo.",
+  "Modelo a tamaño real, en metros.",
+  "Cada pieza es un sólido cerrado (sin caras que falten).",
   "Eliminá caras y líneas duplicadas.",
   "Eliminá piezas flotantes o alejadas del modelo.",
   "Quitá muebles, vegetación y elementos que no deban imprimirse.",
   "Revisá puertas, ventanas y demás aberturas.",
-  "Comprobá que los muros tengan un espesor real.",
-  "Indicá la escala correcta en la solicitud.",
+  "Muros con el espesor mínimo de tu escala.",
   "Separá los pisos cuando el proyecto tenga interiores.",
   "Verificá que las caras exteriores se vean blancas.",
 ];
@@ -84,7 +94,7 @@ export default function TutorialPage() {
 
       <section className="relative z-10 mx-auto max-w-4xl pb-16 pt-20 text-center sm:pt-24">
         <p className="mb-5 text-xs font-black uppercase tracking-[0.4em] text-red-600">
-          Tutorial para principiantes
+          Guía para principiantes
         </p>
 
         <h1 className="text-4xl font-black leading-tight sm:text-5xl">
@@ -92,10 +102,9 @@ export default function TutorialPage() {
         </h1>
 
         <p className="mx-auto mt-7 max-w-3xl text-base leading-8 text-[var(--text-muted)]">
-          Antes de solicitar una cotización, prepará el archivo de una
-          de estas dos maneras. La opción correcta depende de si el
-          proyecto tiene elementos interiores o si funciona como una
-          única envolvente exterior.
+          ¿Primera vez que imprimís una maqueta? Seguí estos 7 pasos
+          en orden. Te explicamos qué mandar, qué significa cada
+          palabra, qué suele estar mal y cómo arreglarlo en SketchUp.
         </p>
 
         <div className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-sm text-[var(--text-muted)]">
@@ -104,7 +113,7 @@ export default function TutorialPage() {
   </span>
 
   <span>
-    ¿Tu modelo ya está listo?
+    ¿Ya sabés modelar para imprimir?
   </span>
 
   <Link
@@ -116,7 +125,18 @@ export default function TutorialPage() {
 </div>
       </section>
 
-      <CaminoRapidoSTL />
+      <IndiceTutorial />
+
+      <QueMandar />
+
+      <Glosario />
+
+      <div className="relative z-10 mx-auto max-w-6xl">
+        <EncabezadoTutorial id="como-armarlo" paso={3} titulo="Cómo armar tu modelo">
+          Hay dos formas. Si tu proyecto tiene cosas adentro (muros interiores, losas, escaleras), despiezalo por pisos.
+          Si es solo la cáscara de afuera, puede ir unido en una pieza.
+        </EncabezadoTutorial>
+      </div>
 
       <section className="relative z-10 mx-auto grid max-w-6xl gap-7 lg:grid-cols-2">
         <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
@@ -416,23 +436,13 @@ export default function TutorialPage() {
         </div>
       </section>
 
+      <Espesores />
+
       <section className="relative z-10 mx-auto mt-24 max-w-6xl">
-        <div className="mb-12 text-center">
-          <p className="text-xs font-black uppercase tracking-[0.35em] text-red-600">
-            SketchUp
-          </p>
-
-          <h2 className="mt-4 text-3xl font-black">
-            Revisá la orientación de las caras
-          </h2>
-
-          <p className="mx-auto mt-5 max-w-3xl leading-8 text-[var(--text-muted)]">
-            Cada cara tiene un lado exterior y otro interior. Desde
-            afuera del modelo deberían verse las caras blancas. Las
-            caras grises o azuladas deben quedar orientadas hacia el
-            interior.
-          </p>
-        </div>
+        <EncabezadoTutorial id="caras" paso={5} titulo="Revisá que las caras no estén al revés">
+          Cada cara tiene un lado de afuera (blanco en SketchUp) y uno de adentro (gris o azul). Desde afuera del modelo
+          todo tiene que verse blanco.
+        </EncabezadoTutorial>
 
         <div className="grid gap-7 lg:grid-cols-2">
           <article className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
@@ -446,7 +456,7 @@ export default function TutorialPage() {
 
             <div className="p-7 sm:p-8">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-red-600">
-                Paso 1
+                5.1
               </span>
 
               <h3 className="mt-3 text-xl font-black">
@@ -482,7 +492,7 @@ export default function TutorialPage() {
 
             <div className="p-7 sm:p-8">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-red-600">
-                Paso 2
+                5.2
               </span>
 
               <h3 className="mt-3 text-xl font-black">
@@ -512,7 +522,7 @@ export default function TutorialPage() {
         <div className="mt-8 rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-soft)] sm:p-8">
           <div className="mb-7 text-center">
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-red-600">
-              Paso 3
+              5.3
             </span>
 
             <h3 className="mt-3 text-2xl font-black">
@@ -594,7 +604,7 @@ export default function TutorialPage() {
           <div className="grid items-center gap-8 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">
-                Paso 4
+                5.4
               </span>
 
               <h3 className="mt-3 text-xl font-black">
@@ -646,6 +656,8 @@ export default function TutorialPage() {
 
       <ErroresComunesSTL />
 
+      <ExportarYEnviar />
+
       <section className="relative z-10 mx-auto mt-24 max-w-5xl rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-7 shadow-[var(--shadow-soft)] sm:p-10">
         <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600">
           Revisión final
@@ -654,6 +666,10 @@ export default function TutorialPage() {
         <h2 className="mt-4 text-3xl font-black">
           Antes de subir el archivo
         </h2>
+
+        <p className="mt-3 text-sm leading-7 text-[var(--text-muted)]">
+          Repasá esta lista. Si todo tiene ✓, tu modelo está listo.
+        </p>
 
         <div className="mt-8 grid gap-4 text-sm leading-7 text-[var(--text-muted)] md:grid-cols-2">
           {revisionFinal.map((item) => (

@@ -187,6 +187,18 @@ const [telefono, setTelefono] = useState("");
   const [enviarOriginal, setEnviarOriginal] = useState(false);
   // Llegó desde el visor 3D con «Cotizar este archivo».
   const [traidoDelVisor, setTraidoDelVisor] = useState(false);
+  const [arrastrando, setArrastrando] = useState(false);
+
+  /* Suma archivos a los que ya estaban (elegir o arrastrar otra vez no borra los anteriores). */
+  function sumarArchivos(lista: FileList | File[]) {
+    const nuevos = Array.from(lista).filter((archivo) => /\.(stl|skp|obj|3mf)$/i.test(archivo.name));
+    if (!nuevos.length) return;
+    setArchivos((actuales) => [
+      ...actuales,
+      ...nuevos.filter((nuevo) => !actuales.some((actual) => actual.name === nuevo.name && actual.size === nuevo.size)),
+    ]);
+    setTraidoDelVisor(false);
+  }
   // Rango que vio el cliente en «¿Cuánto saldría?» (va en el correo al dueño).
   const [rangoEstimado, setRangoEstimado] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -2081,9 +2093,16 @@ return (
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Archivo 3D
           </label>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">
-            Subí tu modelo STL o SKP (hasta 50 MB por archivo).
-          </p>
+          <div className="mb-3 flex items-start gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm leading-6 text-[var(--text-main)]">
+            <span aria-hidden className="text-2xl leading-none">📦</span>
+            <p>
+              <strong>Mandá todo el proyecto en un solo archivo</strong> STL (o SKP): todas las piezas adentro, separadas entre
+              sí. No hace falta un archivo por piso. Hasta 50 MB.{" "}
+              <Link href="/tutorial#que-mandar" className="font-semibold underline underline-offset-4">
+                ¿Cómo lo armo?
+              </Link>
+            </p>
+          </div>
           <p className="-mt-2 mb-3 text-xs text-[var(--text-muted)]">
             ¿Ya hiciste el pedido y querés mandar otro archivo o reemplazarlo?{" "}
             <Link href="/seguimiento" className="font-semibold text-[var(--text-main)] underline underline-offset-4">
@@ -2101,6 +2120,13 @@ return (
               <li>Borrá lo que no se imprime: la persona 2D, cotas, textos, líneas sueltas, imágenes y árboles 2D.</li>
               <li>Espesor mínimo de muros y elementos finos: 1:50 → 4 cm, 1:100 → 8 cm, 1:200 → 16 cm, 1:500 → 40 cm.</li>
             </ul>
+            <p className="mt-2 text-xs">
+              ¿No entendés alguna palabra?{" "}
+              <Link href="/tutorial" className="font-semibold underline underline-offset-4">
+                Está todo explicado en el tutorial
+              </Link>
+              .
+            </p>
           </div>
 
           <label className="mb-3 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border-color)] p-4 text-sm font-semibold text-[var(--text-main)]">
@@ -2116,17 +2142,34 @@ return (
           </label>
 
           <div
-  onClick={() => document.getElementById("archivo-3d-input")?.click()}
-  className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--border-color)] p-8 text-center transition hover:border-red-600"
+  role="button"
+  tabIndex={0}
+  onClick={() => !archivoPesadoWhatsapp && document.getElementById("archivo-3d-input")?.click()}
+  onKeyDown={(e) => {
+    if ((e.key === "Enter" || e.key === " ") && !archivoPesadoWhatsapp) document.getElementById("archivo-3d-input")?.click();
+  }}
+  onDragOver={(e) => {
+    e.preventDefault();
+    if (!archivoPesadoWhatsapp) setArrastrando(true);
+  }}
+  onDragLeave={() => setArrastrando(false)}
+  onDrop={(e) => {
+    e.preventDefault();
+    setArrastrando(false);
+    if (!archivoPesadoWhatsapp) sumarArchivos(e.dataTransfer.files);
+  }}
+  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed text-center transition hover:border-red-600 ${
+    archivos.length ? "p-5" : "p-8"
+  } ${arrastrando ? "border-red-600 bg-red-600/5" : "border-[var(--border-color)]"}`}
 >
-  <span className="mb-2 text-3xl">📁</span>
+  <span className="mb-2 text-3xl">{archivos.length ? "➕" : "📁"}</span>
 
   <span className="font-semibold text-[var(--text-main)]">
-    Arrastrá tus archivos STL o SKP
+    {archivos.length ? "¿Te faltó algo? Agregá otro archivo" : "Arrastrá acá tu archivo STL o SKP"}
   </span>
 
   <span className="mt-2 text-sm text-[var(--text-muted)]">
-    o hacé clic aquí para seleccionarlos
+    {archivos.length ? "Se suma a los que ya elegiste" : "o hacé clic para elegirlo"}
   </span>
 </div>
 
@@ -2137,10 +2180,8 @@ return (
   accept=".stl,.skp,.obj,.3mf"
   disabled={archivoPesadoWhatsapp}
   onChange={(e) => {
-    if (e.target.files) {
-      setArchivos(Array.from(e.target.files));
-      setTraidoDelVisor(false);
-    }
+    if (e.target.files) sumarArchivos(e.target.files);
+    e.target.value = "";
   }}
   className="hidden"
 />
@@ -2148,7 +2189,7 @@ return (
 {archivos.length > 0 && (
   <div className="mt-3 rounded-xl border border-[var(--border-color)] p-4">
     <p className="mb-2 font-semibold">
-      Archivos seleccionados:
+      {archivos.length === 1 ? "Vas a mandar este archivo:" : `Vas a mandar ${archivos.length} archivos juntos en el mismo pedido:`}
     </p>
     {traidoDelVisor && (
       <p className="mb-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
@@ -2157,8 +2198,18 @@ return (
     )}
 
     {archivos.map((archivo, index) => (
-      <p key={index} className="text-sm text-[var(--text-muted)]">
-        • {archivo.name}
+      <p key={`${archivo.name}-${index}`} className="flex items-center gap-2 py-0.5 text-sm text-[var(--text-muted)]">
+        <span className="min-w-0 flex-1 truncate">• {archivo.name}</span>
+        <span className="shrink-0 text-xs">{(archivo.size / 1024 / 1024).toFixed(1)} MB</span>
+        <button
+          type="button"
+          onClick={() => setArchivos((actuales) => actuales.filter((_, i) => i !== index))}
+          aria-label={`Quitar ${archivo.name}`}
+          title="Quitar"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-base transition hover:bg-red-600/10 hover:text-red-600"
+        >
+          ×
+        </button>
       </p>
     ))}
   </div>
@@ -2428,8 +2479,8 @@ return (
       <strong>💲 Tiene un costo extra</strong> que se suma al presupuesto.
     </li>
     <li>
-      <strong>📁 Subí también el archivo completamente armado</strong> (el modelo entero, como tiene que quedar).
-      Si no lo subís, lo tomamos como que no querés el servicio.
+      <strong>📁 Poné también el modelo armado</strong> (entero, como tiene que quedar) en el mismo archivo, al costado
+      de las piezas, para saber cómo va cada una. Si no está, lo tomamos como que no querés el servicio.
     </li>
     <li>
       <strong>📅 No está disponible en días de entregas</strong> ni en los días cercanos. Tenelo en cuenta al elegir la fecha.
