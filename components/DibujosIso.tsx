@@ -7,9 +7,9 @@ import type { ReactNode } from "react";
  * abajo a la izquierda, z hacia arriba.
  */
 
-type P3 = [number, number, number];
+export type P3 = [number, number, number];
 
-type Caja = {
+export type Caja = {
   x: number;
   y: number;
   z: number;
@@ -21,6 +21,8 @@ type Caja = {
   translucida?: boolean;
   alFinal?: boolean; // se dibuja encima de todo (ej. el piso que tapa una pieza enterrada)
   contorno?: boolean; // solo el borde punteado de la cara de arriba (ej. el nivel 0, que no es una pieza)
+  colores?: { arriba: string; costado: string; frente: string }; // colores propios (ilustraciones)
+  borde?: string;
 };
 
 type Etiqueta = { en: P3; texto: string; color?: string; dx?: number; dy?: number; ancla?: "start" | "middle" | "end" };
@@ -28,8 +30,11 @@ type Etiqueta = { en: P3; texto: string; color?: string; dx?: number; dy?: numbe
 const C = Math.cos(Math.PI / 6);
 const S = 14; // píxeles por metro
 
+// Redondeado: el servidor y el navegador dan decimales apenas distintos y React avisa.
+export const redondear = (valor: number) => Math.round(valor * 100) / 100;
+
 export function proyectar([x, y, z]: P3): [number, number] {
-  return [(x - y) * C * S, (x + y) * 0.5 * S - z * S];
+  return [redondear((x - y) * C * S), redondear((x + y) * 0.5 * S - z * S)];
 }
 
 const PALETAS = {
@@ -72,8 +77,8 @@ function caras(caja: Caja, i: number) {
       <polygon key={i} points={poligono(borde)} fill="#ffffff" fillOpacity={0.35} stroke="#78716c" strokeWidth={1.2} strokeDasharray="6 5" vectorEffect="non-scaling-stroke" />
     );
   }
-  const paleta = PALETAS[caja.color === "rojo" || caja.color === "verde" || caja.color === "gris" || caja.color === "oscuro" ? caja.color : "normal"];
-  const borde = caja.color === "rojo" ? "#991b1b" : caja.color === "verde" ? "#065f46" : "#1c1917";
+  const paleta = caja.colores ?? PALETAS[caja.color === "rojo" || caja.color === "verde" || caja.color === "gris" || caja.color === "oscuro" ? caja.color : "normal"];
+  const borde = caja.borde ?? (caja.color === "rojo" ? "#991b1b" : caja.color === "verde" ? "#065f46" : "#1c1917");
   const arriba: P3[] = [[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]];
   const costado: P3[] = [[x + w, y, z], [x + w, y + d, z], [x + w, y + d, z + h], [x + w, y, z + h]];
   const frente: P3[] = [[x, y + d, z], [x + w, y + d, z], [x + w, y + d, z + h], [x, y + d, z + h]];
@@ -122,6 +127,7 @@ export function Escena({
   margen = 18,
   titulo,
   className = "",
+  incluir = [],
 }: {
   cajas: Caja[];
   etiquetas?: Etiqueta[];
@@ -129,10 +135,12 @@ export function Escena({
   margen?: number;
   titulo: string;
   className?: string;
+  incluir?: P3[]; // puntos que también tienen que entrar en el dibujo (árboles, pájaros)
 }) {
   const puntos = cajas.flatMap(({ x, y, z, w, d, h }) =>
     [x, x + w].flatMap((px) => [y, y + d].flatMap((py) => [z, z + h].map((pz) => proyectar([px, py, pz]))))
   );
+  incluir.forEach((punto) => puntos.push(proyectar(punto)));
   etiquetas.forEach((et) => {
     const [px, py] = proyectar(et.en);
     const ancho = et.texto.length * 6.2;

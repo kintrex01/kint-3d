@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import ImagenAmpliable from "@/components/ImagenAmpliable";
 import FotoMarcada, { Cartel } from "@/components/FotoMarcada";
 import { IsoAltura, IsoCerrado, IsoEspesor, ZoomMuro } from "@/components/DibujosIso";
+import IlustracionTerreno from "@/components/IlustracionTerreno";
 
 /*
  * Tutorial: la receta corta para dejar el SKP listo para imprimir.
@@ -341,6 +342,19 @@ const pasos: Paso[] = [
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
     bien: "Solo queda la arquitectura: muros, losas, techo, escaleras, terreno.",
+    extra: (
+      <div className="grid gap-3 md:grid-cols-2">
+        {[
+          { conTodo: true, titulo: "✗ Así viene", clase: "border-red-600/40" },
+          { conTodo: false, titulo: "✓ Así lo mandás", clase: "border-emerald-500/50" },
+        ].map((panel) => (
+          <figure key={panel.titulo} className={`overflow-hidden rounded-2xl border-2 bg-white p-2 text-stone-800 ${panel.clase}`}>
+            <figcaption className={`px-2 pt-1 text-sm font-black ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
+            <IlustracionTerreno conTodo={panel.conTodo} />
+          </figure>
+        ))}
+      </div>
+    ),
   },
   {
     titulo: "Cortá por plantas y hacé un grupo con cada una",
