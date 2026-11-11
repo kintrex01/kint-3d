@@ -341,16 +341,23 @@ const pasos: Paso[] = [
       <>Tip: en <b>Ventana → Etiquetas</b> ocultá todo menos la arquitectura, así ves qué sobra.</>,
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
-    bien: "Solo queda la arquitectura: muros, losas, techo, escaleras, terreno.",
+    bien: "Solo queda la arquitectura: muros, losas, techo y escaleras. Nada de terreno, árboles, personas ni textos.",
     extra: (
       <div className="grid gap-3 md:grid-cols-2">
         {[
-          { conTodo: true, titulo: "✗ Así viene", clase: "border-red-600/40" },
-          { conTodo: false, titulo: "✓ Así lo mandás", clase: "border-emerald-500/50" },
+          { conTodo: true, titulo: "✗ Así viene: con cosas que no se imprimen", clase: "border-red-600/40" },
+          { conTodo: false, titulo: "✓ Así tiene que quedar: solo lo que se imprime", clase: "border-emerald-500/50" },
         ].map((panel) => (
-          <figure key={panel.titulo} className={`overflow-hidden rounded-2xl border-2 bg-white p-2 text-stone-800 ${panel.clase}`}>
-            <figcaption className={`px-2 pt-1 text-sm font-black ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
-            <IlustracionTerreno conTodo={panel.conTodo} />
+          <figure
+            key={panel.titulo}
+            className={`flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-2 text-stone-800 ${panel.clase}`}
+            // Fondo de puntitos (trama), como en las láminas de arquitectura.
+            style={{ backgroundImage: "radial-gradient(#c3d0d8 1px, transparent 1.3px)", backgroundSize: "7px 7px" }}
+          >
+            <figcaption className={`self-start rounded-lg bg-white/90 px-2 py-1 text-sm font-black ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
+            <div className="flex flex-1 items-center">
+              <IlustracionTerreno conTodo={panel.conTodo} />
+            </div>
           </figure>
         ))}
       </div>
