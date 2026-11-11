@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import ImagenAmpliable from "@/components/ImagenAmpliable";
 import FotoMarcada, { Cartel } from "@/components/FotoMarcada";
+import { IsoAltura, IsoBorrar, IsoCerrado, IsoCortes, IsoEspesor } from "@/components/DibujosIso";
 
 /*
  * Tutorial: la receta corta para dejar el SKP listo para imprimir.
@@ -59,154 +60,6 @@ function DibujoCopia() {
           <path d="M0 0 L8 4 L0 8 z" fill={VERDE} />
         </marker>
       </defs>
-    </svg>
-  );
-}
-
-/* Paso 2: la arquitectura queda; personas, árboles 2D, textos y cotas, no. */
-function DibujoBorrar() {
-  const tachar = (x: number, y: number) => (
-    <g stroke={ROJO} strokeWidth="3.5" strokeLinecap="round">
-      <line x1={x - 14} y1={y - 14} x2={x + 14} y2={y + 14} />
-      <line x1={x + 14} y1={y - 14} x2={x - 14} y2={y + 14} />
-    </g>
-  );
-  return (
-    <svg viewBox="0 0 320 170" role="img" aria-label="Se borran personas, árboles 2D, textos y cotas; queda la arquitectura" className="w-full">
-      <line x1="10" y1="132" x2="310" y2="132" stroke="currentColor" opacity="0.3" />
-      {/* Edificio: queda */}
-      <rect x="20" y="62" width="90" height="70" fill="currentColor" opacity="0.6" />
-      <rect x="14" y="56" width="102" height="8" fill="currentColor" opacity="0.85" />
-      <text x="65" y="155" fontSize="11" fontWeight="800" textAnchor="middle" fill={VERDE}>✓ queda</text>
-      {/* Persona 2D */}
-      <g stroke="currentColor" strokeWidth="3" fill="none" opacity="0.7">
-        <circle cx="150" cy="92" r="7" />
-        <line x1="150" y1="99" x2="150" y2="118" />
-        <line x1="150" y1="118" x2="142" y2="132" />
-        <line x1="150" y1="118" x2="158" y2="132" />
-        <line x1="140" y1="106" x2="160" y2="106" />
-      </g>
-      {tachar(150, 108)}
-      {/* Árbol plano */}
-      <g opacity="0.7">
-        <circle cx="200" cy="92" r="18" fill="currentColor" opacity="0.5" />
-        <rect x="197" y="108" width="6" height="24" fill="currentColor" />
-      </g>
-      {tachar(200, 105)}
-      {/* Texto y cota */}
-      <text x="240" y="100" fontSize="22" fontWeight="800" fill="currentColor" opacity="0.7">Aa</text>
-      <g stroke="currentColor" strokeWidth="2" opacity="0.7">
-        <line x1="236" y1="120" x2="300" y2="120" />
-        <line x1="236" y1="114" x2="236" y2="126" />
-        <line x1="300" y1="114" x2="300" y2="126" />
-      </g>
-      {tachar(268, 105)}
-      <text x="225" y="155" fontSize="11" fontWeight="800" textAnchor="middle" fill={ROJO}>✗ se borra</text>
-    </svg>
-  );
-}
-
-/* Paso 3: dónde cortar las plantas (justo debajo de cada losa: la losa va con su planta). */
-function DibujoCortes() {
-  return (
-    <svg viewBox="0 0 320 170" role="img" aria-label="Edificio de dos plantas cortado justo debajo de cada losa" className="w-full">
-      <rect x="40" y="148" width="150" height="8" fill="currentColor" opacity="0.85" />
-      <rect x="44" y="96" width="8" height="52" fill="currentColor" opacity="0.55" />
-      <rect x="178" y="96" width="8" height="52" fill="currentColor" opacity="0.55" />
-      <rect x="40" y="88" width="150" height="8" fill="currentColor" opacity="0.85" />
-      <rect x="44" y="36" width="8" height="52" fill="currentColor" opacity="0.55" />
-      <rect x="178" y="36" width="8" height="52" fill="currentColor" opacity="0.55" />
-      <rect x="36" y="28" width="158" height="8" fill="currentColor" opacity="0.85" />
-      <line x1="20" y1="97" x2="210" y2="97" stroke={ROJO} strokeWidth="2.5" strokeDasharray="7 5" />
-      <line x1="20" y1="37" x2="210" y2="37" stroke={ROJO} strokeWidth="2.5" strokeDasharray="7 5" />
-      <text x="222" y="101" fontSize="12" fontWeight="700" fill={ROJO}>corte</text>
-      <text x="222" y="41" fontSize="12" fontWeight="700" fill={ROJO}>corte</text>
-      <text x="222" y="126" fontSize="11" fill="currentColor" opacity="0.8">planta baja</text>
-      <text x="222" y="72" fontSize="11" fill="currentColor" opacity="0.8">planta alta</text>
-      <text x="222" y="20" fontSize="11" fill="currentColor" opacity="0.8">techo</text>
-    </svg>
-  );
-}
-
-/* Paso 4: un muro visto de arriba, con su espesor. */
-function DibujoEspesor() {
-  return (
-    <svg viewBox="0 0 320 150" role="img" aria-label="Un muro de una sola cara no tiene espesor; uno con espesor sí se imprime" className="w-full">
-      {/* Una sola cara */}
-      <line x1="30" y1="40" x2="140" y2="40" stroke={ROJO} strokeWidth="2" />
-      <text x="85" y="28" fontSize="11" fontWeight="800" textAnchor="middle" fill={ROJO}>✗ una sola cara: 0 mm</text>
-      <text x="85" y="62" fontSize="10" textAnchor="middle" fill="currentColor" opacity="0.7">la impresora no la ve</text>
-      {/* Con espesor */}
-      <rect x="180" y="26" width="110" height="26" fill="currentColor" opacity="0.6" />
-      <text x="235" y="16" fontSize="11" fontWeight="800" textAnchor="middle" fill={VERDE}>✓ con espesor</text>
-      <g stroke={VERDE} strokeWidth="2">
-        <line x1="298" y1="26" x2="298" y2="52" />
-        <line x1="293" y1="26" x2="303" y2="26" />
-        <line x1="293" y1="52" x2="303" y2="52" />
-      </g>
-      {/* Empujar/Tirar */}
-      <rect x="110" y="96" width="100" height="10" fill="currentColor" opacity="0.6" />
-      <rect x="110" y="106" width="100" height="22" fill={VERDE} opacity="0.25" stroke={VERDE} strokeDasharray="5 4" />
-      <path d="M160 100 v18" stroke={VERDE} strokeWidth="3" markerEnd="url(#flechaEspesor)" />
-      <text x="160" y="146" fontSize="11" fontWeight="700" textAnchor="middle" fill="currentColor">Empujar/Tirar (P) le da espesor</text>
-      <defs>
-        <marker id="flechaEspesor" markerWidth="8" markerHeight="8" refX="4" refY="6" orient="auto-start-reverse">
-          <path d="M0 0 L8 4 L0 8 z" fill={VERDE} />
-        </marker>
-      </defs>
-    </svg>
-  );
-}
-
-/* Paso 5: una caja cerrada (sólido) contra una a la que le falta la tapa. */
-function DibujoCerrado() {
-  const caja = (dx: number, abierta: boolean) => {
-    const color = abierta ? ROJO : VERDE;
-    return (
-      <g transform={`translate(${dx} 0)`}>
-        {/* frente y costado */}
-        <path d="M20 60 L70 85 L70 140 L20 115 Z" fill="currentColor" opacity="0.45" stroke="currentColor" strokeWidth="1.5" />
-        <path d="M70 85 L120 60 L120 115 L70 140 Z" fill="currentColor" opacity="0.6" stroke="currentColor" strokeWidth="1.5" />
-        {/* tapa */}
-        {abierta ? (
-          <path d="M20 60 L70 35 L120 60 L70 85 Z" fill="none" stroke={ROJO} strokeWidth="2.5" strokeDasharray="6 5" />
-        ) : (
-          <path d="M20 60 L70 35 L120 60 L70 85 Z" fill="currentColor" opacity="0.25" stroke="currentColor" strokeWidth="1.5" />
-        )}
-        <text x="70" y="162" fontSize="11" fontWeight="800" textAnchor="middle" fill={color}>
-          {abierta ? "✗ le falta la tapa" : "✓ cerrada por todos lados"}
-        </text>
-      </g>
-    );
-  };
-  return (
-    <svg viewBox="0 0 300 170" role="img" aria-label="Una caja a la que le falta una cara y otra cerrada" className="w-full">
-      {caja(0, true)}
-      {caja(160, false)}
-    </svg>
-  );
-}
-
-/* Paso 7: todas las piezas a la misma altura, apoyadas en el piso. */
-function DibujoAltura() {
-  const piso = (y: number) => <line x1="12" y1={y} x2="308" y2={y} stroke="currentColor" strokeWidth="2" opacity="0.5" />;
-  return (
-    <svg viewBox="0 0 320 250" role="img" aria-label="Así no: piezas flotando o enterradas. Así sí: todas apoyadas en el piso" className="w-full">
-      <text x="14" y="18" fontSize="12" fontWeight="800" fill={ROJO}>✗ Así no</text>
-      {piso(98)}
-      <rect x="24" y="66" width="70" height="32" fill="currentColor" opacity="0.6" />
-      <rect x="120" y="30" width="70" height="28" fill={ROJO} opacity="0.55" />
-      <text x="155" y="76" fontSize="10" fontWeight="700" textAnchor="middle" fill={ROJO}>flota</text>
-      <path d="M155 60 v26" stroke={ROJO} strokeWidth="2" strokeDasharray="3 3" />
-      <rect x="216" y="80" width="70" height="34" fill={ROJO} opacity="0.55" />
-      <text x="251" y="128" fontSize="10" fontWeight="700" textAnchor="middle" fill={ROJO}>enterrada</text>
-
-      <text x="14" y="160" fontSize="12" fontWeight="800" fill={VERDE}>✓ Así sí</text>
-      {piso(222)}
-      {[24, 120, 216].map((x) => (
-        <rect key={x} x={x} y={190} width="70" height="32" fill={VERDE} opacity="0.55" />
-      ))}
-      <text x="160" y="242" fontSize="10" fontWeight="700" textAnchor="middle" fill={VERDE}>todas apoyadas en el piso, con espacio entre ellas</text>
     </svg>
   );
 }
@@ -437,7 +290,7 @@ const pasos: Paso[] = [
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
     bien: "Solo queda la arquitectura: muros, losas, techo, escaleras, terreno.",
-    dibujo: <DibujoBorrar />,
+    dibujo: <IsoBorrar />,
   },
   {
     titulo: "Cortá por plantas y hacé un grupo con cada una",
@@ -450,7 +303,7 @@ const pasos: Paso[] = [
       <>¿Tu modelo no tiene nada adentro (solo la cáscara)? Puede ir entero en un solo grupo.</>,
     ],
     bien: "Al hacer clic en una planta se selecciona entera, como una sola pieza.",
-    dibujo: <DibujoCortes />,
+    dibujo: <IsoCortes />,
     solucion: {
       boton: "Ver cómo cortarlo, paso a paso",
       pasos: [
@@ -470,7 +323,7 @@ const pasos: Paso[] = [
       <>Usá el medidor de abajo para saber el espesor mínimo de tu escala.</>,
     ],
     bien: "Mirando de costado, ningún muro ni losa es solo una línea, y el más fino está en verde en el medidor.",
-    dibujo: <DibujoEspesor />,
+    dibujo: <IsoEspesor />,
     extra: <MedidorEspesor />,
   },
   {
@@ -483,7 +336,7 @@ const pasos: Paso[] = [
       <>¿Sin extensión? Exportá un STL (Archivo → Exportar → Modelo 3D → STL) y abrilo en el <Link href="/preparador-3d" className="font-bold underline">visor 3D</Link>: «Ver problemas» te lo marca.</>,
     ],
     bien: "Solid Inspector no marca nada en ningún grupo (o el visor dice que no hay problemas).",
-    dibujo: <DibujoCerrado />,
+    dibujo: <IsoCerrado />,
   },
   {
     titulo: "Revisá que las caras miren para afuera",
@@ -519,7 +372,7 @@ const pasos: Paso[] = [
       <>Guardá y subí <b>ese único SKP</b> en Cotizar.</>,
     ],
     bien: "Un archivo, con todas las piezas separadas y apoyadas en el piso, a la misma altura.",
-    dibujo: <DibujoAltura />,
+    dibujo: <IsoAltura />,
     extra: <FotoSeparadas />,
     solucion: {
       boton: "Ver cómo desplegar las piezas, paso a paso",
@@ -608,10 +461,13 @@ function Solucion({ boton, fotos = [], pasos }: NonNullable<Paso["solucion"]>) {
 
 export default function RecetaSKP() {
   const [listos, setListos] = useState<number[]>([]);
+  // Pasos tildados que se volvieron a abrir para mirarlos.
+  const [reabiertos, setReabiertos] = useState<number[]>([]);
   const cantidad = listos.length;
 
   function alternar(indice: number) {
     setListos((actual) => (actual.includes(indice) ? actual.filter((i) => i !== indice) : [...actual, indice]));
+    setReabiertos((actual) => actual.filter((i) => i !== indice));
   }
 
   return (
@@ -631,6 +487,33 @@ export default function RecetaSKP() {
       <ol className="space-y-4">
         {pasos.map((paso, indice) => {
           const listo = listos.includes(indice);
+          if (listo && !reabiertos.includes(indice)) {
+            return (
+              <li
+                key={paso.titulo}
+                className="flex items-center gap-3 rounded-2xl border border-emerald-500/50 bg-emerald-500/5 px-4 py-3"
+              >
+                <button
+                  type="button"
+                  onClick={() => alternar(indice)}
+                  aria-label={`Destildar el paso ${indice + 1}`}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-sm font-black text-white"
+                >
+                  ✓
+                </button>
+                <p className="min-w-0 flex-1 truncate font-black text-[var(--text-muted)] line-through decoration-emerald-600/50">
+                  {indice + 1}. {paso.titulo}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setReabiertos((actual) => [...actual, indice])}
+                  className="shrink-0 text-xs font-black text-emerald-700 underline underline-offset-4 dark:text-emerald-400"
+                >
+                  Ver de nuevo
+                </button>
+              </li>
+            );
+          }
           return (
             <li
               key={paso.titulo}
@@ -661,9 +544,7 @@ export default function RecetaSKP() {
                     </li>
                   ))}
                 </ul>
-                {paso.dibujo && (
-                  <div className="rounded-2xl bg-black/[0.03] p-4 text-[var(--text-main)] dark:bg-white/[0.04]">{paso.dibujo}</div>
-                )}
+                {paso.dibujo && <div className="rounded-2xl bg-[#d4d4d8] p-3 text-stone-800">{paso.dibujo}</div>}
               </div>
 
               {paso.extra && <div className="mt-5">{paso.extra}</div>}

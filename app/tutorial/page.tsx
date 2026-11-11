@@ -7,6 +7,7 @@ import TutorialGallery from "../../components/TutorialGallery";
 import VideoTutorial from "../../components/VideoTutorial";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
 import RecetaSKP from "../../components/RecetaSKP";
+import EjemplosBienArmados from "../../components/EjemplosBienArmados";
 import Tema from "../../components/TemaTutorial";
 import {
   EncabezadoTutorial,
@@ -95,6 +96,8 @@ export default function TutorialPage() {
           Tildá cada uno cuando quede bien. Lo de más abajo es para saber más: no hace falta leerlo.
         </p>
       </section>
+
+      <EjemplosBienArmados enGuia />
 
       <RecetaSKP />
 
