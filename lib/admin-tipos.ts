@@ -648,6 +648,8 @@ export type CodigoEspecial = {
   usados: number;
   colores: string[]; // vacío = todos
   bloqueados: string[]; // vienen puestos y el cliente no los puede sacar
+  boquillaFija: "" | "0.2" | "0.4" | "kint";
+  armadoFijo: "" | "si" | "no";
   unSoloColor: boolean;
   activo: boolean;
   vence: string; // yyyy-mm-dd o vacío

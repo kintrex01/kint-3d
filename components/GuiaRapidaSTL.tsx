@@ -198,38 +198,109 @@ export function Espesores() {
 
 /* ------------------------------------------------------------------ */
 
+/* Dibujitos de cada error (viewBox 0 0 160 80): en rojo el problema. */
+const R = "#dc2626";
+const dibujosErrores: Record<string, React.ReactNode> = {
+  abierto: (
+    <>
+      <path d="M50 30 L80 45 L80 75 L50 60 Z" fill="currentColor" opacity="0.45" />
+      <path d="M80 45 L110 30 L110 60 L80 75 Z" fill="currentColor" opacity="0.6" />
+      <path d="M50 30 L80 15 L110 30 L80 45 Z" fill="none" stroke={R} strokeWidth="2.5" strokeDasharray="5 4" />
+      <text x="122" y="22" fontSize="10" fontWeight="800" fill={R}>falta</text>
+    </>
+  ),
+  reves: (
+    <>
+      <rect x="30" y="18" width="48" height="48" fill="currentColor" opacity="0.15" stroke="currentColor" />
+      <rect x="82" y="18" width="48" height="48" fill="#7f95a8" stroke={R} strokeWidth="2.5" />
+      <text x="54" y="77" fontSize="9" textAnchor="middle" fill="currentColor">blanca ✓</text>
+      <text x="106" y="77" fontSize="9" fontWeight="800" textAnchor="middle" fill={R}>azul ✗</text>
+    </>
+  ),
+  unaCara: (
+    <>
+      <line x1="20" y1="40" x2="70" y2="40" stroke={R} strokeWidth="2" />
+      <text x="45" y="30" fontSize="9" fontWeight="800" textAnchor="middle" fill={R}>0 mm ✗</text>
+      <rect x="90" y="32" width="50" height="16" fill="currentColor" opacity="0.6" />
+      <text x="115" y="30" fontSize="9" fontWeight="800" textAnchor="middle" fill="#059669">con espesor ✓</text>
+    </>
+  ),
+  adentro: (
+    <>
+      <rect x="40" y="14" width="80" height="54" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="2" />
+      <line x1="80" y1="14" x2="80" y2="68" stroke={R} strokeWidth="2.5" strokeDasharray="5 4" />
+      <text x="80" y="78" fontSize="9" fontWeight="800" textAnchor="middle" fill={R}>cara que sobra</text>
+    </>
+  ),
+  noSeImprime: (
+    <>
+      <g stroke="currentColor" strokeWidth="2.5" fill="none" opacity="0.7">
+        <circle cx="50" cy="26" r="6" />
+        <line x1="50" y1="32" x2="50" y2="50" />
+        <line x1="50" y1="50" x2="43" y2="64" />
+        <line x1="50" y1="50" x2="57" y2="64" />
+      </g>
+      <circle cx="105" cy="30" r="15" fill="currentColor" opacity="0.4" />
+      <rect x="102" y="44" width="6" height="20" fill="currentColor" opacity="0.6" />
+      <g stroke={R} strokeWidth="3" strokeLinecap="round">
+        <line x1="36" y1="20" x2="64" y2="62" />
+        <line x1="90" y1="20" x2="120" y2="62" />
+      </g>
+    </>
+  ),
+  paradas: (
+    <>
+      <line x1="10" y1="70" x2="150" y2="70" stroke="currentColor" opacity="0.4" />
+      <rect x="40" y="14" width="6" height="56" fill="currentColor" opacity="0.6" />
+      <path d="M46 20 L80 20 M46 32 L80 32" stroke="currentColor" strokeWidth="5" opacity="0.6" />
+      <g stroke={R} strokeWidth="1.5">
+        <line x1="60" y1="23" x2="60" y2="70" />
+        <line x1="72" y1="23" x2="72" y2="70" />
+        <line x1="66" y1="35" x2="66" y2="70" />
+      </g>
+      <text x="112" y="44" fontSize="9" fontWeight="800" textAnchor="middle" fill={R}>soportes</text>
+    </>
+  ),
+};
+
 const errores = [
   {
+    dibujo: "abierto",
     nombre: "Sólido abierto (falta una cara)",
     queEs: "Un grupo al que le falta una cara: es como una caja sin tapa, y la impresora no sabe qué es adentro y qué es afuera.",
     comoVerlo: "En el visor 3D, «Ver problemas» te marca dónde está el borde abierto.",
     arreglo: "Repasá con la herramienta Línea (L) el borde donde falta la cara: SketchUp la crea sola.",
   },
   {
+    dibujo: "reves",
     nombre: "Caras al revés",
     queEs: "Caras que muestran el lado de adentro hacia afuera.",
     comoVerlo: "Desde afuera se ven grises o azules en vez de blancas.",
     arreglo: "Seleccioná la cara → clic derecho → Invertir caras. Abrí «Caras al revés», con fotos.",
   },
   {
+    dibujo: "unaCara",
     nombre: "Muros o techos de una sola cara",
     queEs: "Una superficie sin espesor (0 mm). Se ve como un muro, pero no tiene nada de material.",
     comoVerlo: "Al mirarlo de costado es solo una línea.",
     arreglo: "Dale espesor con Empujar/Tirar (P), respetando el mínimo de la tabla de espesores.",
   },
   {
+    dibujo: "adentro",
     nombre: "Caras sueltas adentro",
     queEs: "Restos de dibujo que quedaron dentro de un volumen (una cara que divide el interior, líneas de construcción).",
     comoVerlo: "Con Vista → Estilo de cara → Rayos X se ven las caras que hay adentro.",
     arreglo: "Entrá al grupo (doble clic) y borrá las caras y líneas de adentro.",
   },
   {
+    dibujo: "noSeImprime",
     nombre: "Cosas que no se imprimen",
     queEs: "Personas 2D, árboles planos, textos, cotas, imágenes o líneas sueltas.",
     comoVerlo: "Suelen ser caras sin espesor o elementos de otra capa (etiqueta).",
     arreglo: "Borralos antes de exportar. Si querés árboles o personas, consultanos.",
   },
   {
+    dibujo: "paradas",
     nombre: "Piezas paradas finas o en el aire",
     queEs: "No es un error, pero obliga a usar soportes: tarda más y sale más caro.",
     comoVerlo: "El visor 3D te dice qué piezas conviene acostar o cortar.",
@@ -250,6 +321,9 @@ export function ErroresComunesSTL() {
             key={error.nombre}
             className="flex flex-col rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] p-6 shadow-[var(--shadow-soft)]"
           >
+            <svg viewBox="0 0 160 80" aria-hidden className="mb-3 h-20 w-full rounded-2xl bg-black/[0.03] text-[var(--text-main)] dark:bg-white/[0.04]">
+              {dibujosErrores[error.dibujo]}
+            </svg>
             <h3 className="text-lg font-black">{error.nombre}</h3>
             <p className="mt-2 text-sm leading-7 text-[var(--text-muted)]">{error.queEs}</p>
             <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">

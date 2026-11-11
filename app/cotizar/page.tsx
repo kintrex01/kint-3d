@@ -12,6 +12,7 @@ import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-rec
 import { medirSTL } from "@/lib/precio-estimado";
 import { guardarParaVisor, leerParaVisor } from "@/lib/archivos-para-visor";
 import TarjetaPrecioEstimado from "@/components/TarjetaPrecioEstimado";
+import EjemplosBienArmados from "@/components/EjemplosBienArmados";
 import SumarProductosCotizar, { type ExtraElegido } from "@/components/SumarProductosCotizar";
 
 const supabase = createClient(
@@ -40,6 +41,8 @@ type CodigoEspecialInfo = {
   descuento?: number;
   colores?: string[];
   bloqueados?: string[]; // vienen puestos y no se pueden sacar
+  boquillaFija?: string; // texto de la opción («0.2 mm — Máximo detalle»…), vacío = libre
+  armadoFijo?: string;
   unSoloColor?: boolean;
   disponible?: boolean;
   motivo?: string;
@@ -186,6 +189,7 @@ const [telefono, setTelefono] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [codigoDescuento, setCodigoDescuento] = useState("");
   const [codigoEspecial, setCodigoEspecial] = useState<CodigoEspecialInfo | null>(null);
+  const [consultandoCodigo, setConsultandoCodigo] = useState(false);
   // "Mi modelo cumple los requisitos" (obligatoria).
   const [cumpleRequisitos, setCumpleRequisitos] = useState(false);
   // Productos de la tienda que suma a su pedido.
@@ -1026,9 +1030,15 @@ const boquillaPorDefecto =
 
 useEffect(() => {
   if (cargandoConfiguracion) return;
+  // Con boquilla fija por un código especial, manda esa (no la de siempre).
+  const fijaDelCodigo = codigoEspecial?.disponible ? codigoEspecial.boquillaFija : "";
+  if (fijaDelCodigo) {
+    if (boquilla !== fijaDelCodigo) setBoquilla(fijaDelCodigo);
+    return;
+  }
   if (!mostrarBoquilla && boquilla !== boquillaPorDefecto) setBoquilla(boquillaPorDefecto);
   else if (mostrarBoquilla && !boquilla) setBoquilla("Que Kint 3D decida");
-}, [cargandoConfiguracion, mostrarBoquilla, boquilla, boquillaPorDefecto]);
+}, [cargandoConfiguracion, mostrarBoquilla, boquilla, boquillaPorDefecto, codigoEspecial]);
 
 useEffect(() => {
   if (cargandoConfiguracion) return;
@@ -1051,6 +1061,7 @@ useEffect(() => {
       setCodigoEspecial(null);
       return;
     }
+    setConsultandoCodigo(true);
     try {
       const respuesta = await fetch(`/api/pedidos?tipo=codigo_especial&codigo=${encodeURIComponent(codigoParaConsultar)}`);
       const info = (await respuesta.json()) as CodigoEspecialInfo & { ok?: boolean };
@@ -1071,11 +1082,17 @@ useEffect(() => {
           if (especial.unSoloColor) return fijos.length ? fijos.slice(0, 1) : otros.slice(0, 1);
           return [...fijos, ...otros];
         });
+        if (especial.boquillaFija) setBoquilla(especial.boquillaFija);
+        if (especial.armadoFijo) setArmado(especial.armadoFijo);
+        // Sube a los colores para que vea los cambios (lo fijo ya marcado).
+        document.getElementById("seccion-colores")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch {
       if (!cancelado) setCodigoEspecial(null);
+    } finally {
+      if (!cancelado) setConsultandoCodigo(false);
     }
-  }, 500);
+  }, 400);
   return () => {
     cancelado = true;
     window.clearTimeout(espera);
@@ -2020,6 +2037,9 @@ return (
 )}
 
 
+{/* Ejemplos reales arriba de todo: la gente copia lo que ve que funciona. */}
+<EjemplosBienArmados />
+
 <h2 className="mb-5 flex items-center gap-3 text-xl font-black text-[var(--text-main)]">
   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm text-white">1</span>
   Tu archivo
@@ -2318,7 +2338,7 @@ return (
 
 {/* Un solo color disponible: va elegido solo y no se muestra. */}
 {!colorUnico && (
-        <div className="mb-6">
+        <div id="seccion-colores" className="mb-6 scroll-mt-24">
   <label className="mb-2 block font-semibold text-[var(--text-main)]">
     Color de impresión <span className="text-red-600">*</span>
   </label>
@@ -2364,9 +2384,16 @@ return (
     </li>
   </ul>
 
+  {especialActivo?.armadoFijo && (
+    <p className="mb-2 rounded-xl border border-violet-600/40 bg-violet-600/10 px-3 py-2 text-sm font-bold text-violet-800 dark:text-violet-200">
+      🔒 Fijo con el código {especialActivo.codigo}: no se puede cambiar.
+    </p>
+  )}
+
   {armadoHabilitado ? (
     <select
       value={armado}
+      disabled={Boolean(especialActivo?.armadoFijo)}
       onChange={(e) => setArmado(e.target.value)}
       className={`w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
         armado === "" ? "text-red-600" : "text-[var(--text-main)]"
@@ -2388,8 +2415,8 @@ return (
 </div>
 )}
 
-{/* Una sola boquilla (o ninguna) habilitada: va puesta sola y no se muestra. */}
-{mostrarBoquilla && (
+{/* Una sola boquilla (o ninguna) habilitada: va puesta sola y no se muestra (salvo que un código la fije). */}
+{(mostrarBoquilla || Boolean(especialActivo?.boquillaFija)) && (
         <div className="mb-6">
           <label className="mb-2 block font-semibold text-[var(--text-main)]">
             Boquilla <span className="text-red-600">*</span>
@@ -2399,8 +2426,17 @@ return (
             nivel de detalle. Un diámetro menor produce impresiones más lentas
             pero con mucha más precisión.
           </p>
+          {especialActivo?.boquillaFija ? (
+            <p className="rounded-xl border-2 border-violet-600 bg-violet-600/10 p-4 font-bold text-[var(--text-main)]">
+              🔒 {especialActivo.boquillaFija}
+              <span className="mt-1 block text-xs font-semibold text-violet-800 dark:text-violet-200">
+                Fija con el código {especialActivo.codigo}: no se puede cambiar.
+              </span>
+            </p>
+          ) : (
           <select
   value={boquilla}
+  disabled={Boolean(especialActivo?.boquillaFija)}
   onChange={(e) => setBoquilla(e.target.value)}
   className={`w-full rounded-xl border border-[var(--border-color)] bg-[var(--kint-input-bg)] p-4 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-400/15 dark:[color-scheme:dark] ${
     boquilla === "" ? "text-red-600" : "text-[var(--text-main)]"
@@ -2441,6 +2477,7 @@ return (
 
 <option>Que Kint 3D decida</option>
           </select>
+          )}
         </div>
 )}
 
@@ -2770,6 +2807,10 @@ return (
     placeholder="Ej: KINT10 VALE-AB12 VALE-CD34"
   />
 
+  {consultandoCodigo && !codigoEspecial && (
+    <p className="mt-2 animate-pulse text-xs font-semibold text-[var(--text-muted)]">Revisando el código…</p>
+  )}
+
   {codigoEspecial && (
     <div
       className={`mt-3 rounded-xl border p-4 text-sm ${
@@ -2785,13 +2826,19 @@ return (
           <p className="mt-1 text-xs text-[var(--text-muted)]">
             Lo aplicamos en el presupuesto (si hay una promo mejor, va la mejor).
           </p>
+          <p className="mt-2 text-xs font-semibold text-[var(--text-main)]">
+            {!colorUnico && <>🎨 {textoColoresEspecial(codigoEspecial)} </>}
+            {codigoEspecial.boquillaFija && <>🔒 Boquilla: {codigoEspecial.boquillaFija}. </>}
+            {codigoEspecial.armadoFijo && <>🔒 Armado: {codigoEspecial.armadoFijo}. </>}
+          </p>
           {!colorUnico && (
-            <div className="mt-3 rounded-xl bg-[var(--card-bg)] p-3">
-              <p className="mb-3 text-xs font-bold text-[var(--text-main)]">
-                Tus colores: {textoColoresEspecial(codigoEspecial)}
-              </p>
-              {grillaColores(true)}
-            </div>
+            <button
+              type="button"
+              onClick={() => document.getElementById("seccion-colores")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="mt-2 text-xs font-black text-violet-700 underline underline-offset-4 dark:text-violet-300"
+            >
+              Ver tus colores ↑
+            </button>
           )}
         </>
       ) : (

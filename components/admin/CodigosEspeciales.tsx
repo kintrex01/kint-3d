@@ -21,10 +21,24 @@ type Borrador = {
   usosMaximos: string; // "0" = sin límite
   colores: string[];
   bloqueados: string[];
+  boquillaFija: CodigoEspecial["boquillaFija"];
+  armadoFijo: CodigoEspecial["armadoFijo"];
   unSoloColor: boolean;
   activo: boolean;
   vence: string;
 };
+
+const BOQUILLAS: { valor: CodigoEspecial["boquillaFija"]; texto: string }[] = [
+  { valor: "", texto: "La elige el cliente" },
+  { valor: "0.2", texto: "0.2 mm" },
+  { valor: "0.4", texto: "0.4 mm" },
+  { valor: "kint", texto: "Que decida Kint" },
+];
+const ARMADOS: { valor: CodigoEspecial["armadoFijo"]; texto: string }[] = [
+  { valor: "", texto: "Lo elige el cliente" },
+  { valor: "si", texto: "Con armado" },
+  { valor: "no", texto: "Sin armado" },
+];
 
 const NUEVO: Borrador = {
   original: "",
@@ -34,6 +48,8 @@ const NUEVO: Borrador = {
   usosMaximos: "0",
   colores: [],
   bloqueados: [],
+  boquillaFija: "",
+  armadoFijo: "",
   unSoloColor: true,
   activo: true,
   vence: "",
@@ -52,6 +68,15 @@ function resumenColores(codigo: Pick<CodigoEspecial, "colores" | "unSoloColor" |
   const cuales = codigo.colores.length ? codigo.colores.join(", ") : "todos los colores";
   const fijos = codigo.bloqueados?.length ? `🔒 ${codigo.bloqueados.join(", ")} fijo · ` : "";
   return `${fijos}${codigo.unSoloColor ? "Un solo color" : "Uno o varios colores"} · ${cuales}`;
+}
+
+function resumenOpciones(codigo: Pick<CodigoEspecial, "boquillaFija" | "armadoFijo">) {
+  return [
+    codigo.boquillaFija && `🔒 Boquilla ${BOQUILLAS.find((b) => b.valor === codigo.boquillaFija)?.texto}`,
+    codigo.armadoFijo && `🔒 ${ARMADOS.find((a) => a.valor === codigo.armadoFijo)?.texto}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
@@ -74,6 +99,8 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
       usosMaximos: String(codigo.usosMaximos),
       colores: codigo.colores,
       bloqueados: codigo.bloqueados ?? [],
+      boquillaFija: codigo.boquillaFija ?? "",
+      armadoFijo: codigo.armadoFijo ?? "",
       unSoloColor: codigo.unSoloColor,
       activo: codigo.activo,
       vence: codigo.vence,
@@ -92,6 +119,8 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
         usosMaximos: Number(borrador.usosMaximos) || 0,
         colores: borrador.colores,
         bloqueados: borrador.bloqueados,
+        boquillaFija: borrador.boquillaFija,
+        armadoFijo: borrador.armadoFijo,
         unSoloColor: borrador.unSoloColor,
         activo: borrador.activo,
         vence: borrador.vence,
@@ -154,6 +183,7 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
                 {codigo.nombre && <span className="font-semibold text-[var(--text-muted)]"> · {codigo.nombre}</span>}
               </p>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">{resumenColores(codigo)}</p>
+              {resumenOpciones(codigo) && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{resumenOpciones(codigo)}</p>}
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
                 Usado {codigo.usados} {codigo.usados === 1 ? "vez" : "veces"}
                 {codigo.usosMaximos ? ` de ${codigo.usosMaximos}` : " (sin límite)"}
@@ -377,6 +407,41 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
               </div>
             </div>
 
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { titulo: "🔒 Boquilla", opciones: BOQUILLAS, valor: borrador.boquillaFija, clave: "boquillaFija" as const },
+                { titulo: "🔒 Armado de piezas", opciones: ARMADOS, valor: borrador.armadoFijo, clave: "armadoFijo" as const },
+              ].map((grupo) => (
+                <div key={grupo.clave}>
+                  <span className="mb-1.5 block text-[11px] font-bold text-[var(--text-muted)]">
+                    {grupo.titulo}
+                    {grupo.clave === "boquillaFija" && grupo.valor && grupo.valor !== "kint" && (
+                      <span className="block font-semibold">Tiene que estar encendida en Configuración, si no el pedido no entra.</span>
+                    )}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {grupo.opciones.map((opcion) => (
+                      <button
+                        key={opcion.valor || "libre"}
+                        type="button"
+                        aria-pressed={grupo.valor === opcion.valor}
+                        onClick={() => cambiar({ [grupo.clave]: opcion.valor } as Partial<Borrador>)}
+                        className={`h-8 rounded-full border px-3 text-xs font-bold transition ${
+                          grupo.valor === opcion.valor
+                            ? opcion.valor
+                              ? "border-violet-600 bg-violet-600 text-white"
+                              : "border-pink-500 bg-pink-500/10 text-pink-600 dark:text-pink-400"
+                            : "border-[var(--kint-panel-border)] hover:border-violet-600"
+                        }`}
+                      >
+                        {opcion.texto}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="flex flex-wrap items-end gap-4">
               <label className="block">
                 <span className="mb-1 block text-[11px] font-bold text-[var(--text-muted)]">Vence (opcional)</span>
@@ -394,8 +459,8 @@ export default function CodigosEspeciales({ filas }: { filas: FilaConfig[] }) {
             </div>
 
             <p className="rounded-xl bg-[var(--kint-panel-soft)] p-3 text-xs leading-5 text-[var(--text-muted)]">
-              El cliente lo escribe en Cotizar. Ve el descuento y sus colores: los fijos ya vienen puestos con un candado y
-              no los puede sacar; si elige un color que no va, no lo deja enviar hasta corregirlo.
+              El cliente lo escribe en Cotizar. Ve el descuento, y lo fijo (colores, boquilla, armado) ya viene puesto con
+              un candado y no lo puede cambiar; si elige un color que no va, no lo deja enviar hasta corregirlo.
             </p>
           </div>
         )}
