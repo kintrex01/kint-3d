@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import EstadoPagina from "../components/EstadoPagina";
 import MenuNavegacion from "../components/MenuNavegacion";
 import ScrollASeccion from "../components/ScrollASeccion";
 import BotonWhatsapp from "../components/BotonWhatsapp";
 
-const montserrat = Montserrat({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+// Montserrat guardada en el proyecto (antes se bajaba de Google al publicar y a veces fallaba el build).
+// Mismos grosores de siempre: 300 a 700.
+const montserrat = localFont({
+  src: "./fuentes/montserrat-latin-wght-normal.woff2",
+  weight: "300 700",
   variable: "--font-montserrat",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
