@@ -351,8 +351,6 @@ const pasos: Paso[] = [
           <figure
             key={panel.titulo}
             className={`flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-2 text-stone-800 ${panel.clase}`}
-            // Fondo de puntitos (trama), como en las láminas de arquitectura.
-            style={{ backgroundImage: "radial-gradient(#c3d0d8 1px, transparent 1.3px)", backgroundSize: "7px 7px" }}
           >
             <figcaption className={`self-start rounded-lg bg-white/90 px-2 py-1 text-sm font-black ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
             <div className="flex flex-1 items-center">
