@@ -480,7 +480,7 @@ const estadoImprimibilidad =
     ? null
     : modeloEnMilimetros < boquillaMm
     ? "no"
-    : modeloEnMilimetros < boquillaMm * 1.25
+    : modeloEnMilimetros < boquillaMm * 2 // menos de dos pasadas de la boquilla: sale, pero frágil
     ? "justo"
     : "si";
 

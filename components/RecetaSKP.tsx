@@ -284,8 +284,9 @@ function FotoSeparadas() {
 /* ------------------------------------------------------------------ */
 
 const ESCALAS = [50, 75, 100, 125, 200, 250, 500];
-const MINIMO_MM = 0.8; // lo más fino que imprime bien
-const IDEAL_MM = 1.2; // con esto ya no se rompe
+// Misma regla que el Escalador: menos que la boquilla no sale; una pasada (hasta 2× la boquilla) sale frágil;
+// dos pasadas o más, firme.
+const BOQUILLAS = [0.4, 0.2];
 
 function cm(valor: number) {
   return valor.toLocaleString("es-UY", { maximumFractionDigits: 1 });
@@ -299,8 +300,9 @@ function MedidorEspesor() {
   const [escala, setEscala] = useState(100);
   const [otra, setOtra] = useState("");
   const [muro, setMuro] = useState("");
-  const minimo = (MINIMO_MM * escala) / 10; // cm en SketchUp (tamaño real)
-  const ideal = (IDEAL_MM * escala) / 10;
+  const [boquilla, setBoquilla] = useState(0.4);
+  const minimo = (boquilla * escala) / 10; // cm en SketchUp (tamaño real)
+  const ideal = (boquilla * 2 * escala) / 10;
   const medido = Number(muro.replace(",", "."));
   const estado = !muro || !(medido > 0) ? null : medido < minimo ? "no" : medido < ideal ? "justo" : "si";
 
@@ -341,7 +343,24 @@ function MedidorEspesor() {
         </label>
       </div>
 
-      {/* Escala de colores: rojo no se imprime, amarillo justo, verde bien. */}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm font-bold">
+        Boquilla:
+        {BOQUILLAS.map((valor) => (
+          <button
+            key={valor}
+            type="button"
+            onClick={() => setBoquilla(valor)}
+            aria-pressed={boquilla === valor}
+            className={`h-8 rounded-xl border px-3 text-xs font-black transition ${
+              boquilla === valor ? "border-red-600 bg-red-600 text-white" : "border-[var(--border-color)] hover:border-red-600"
+            }`}
+          >
+            {mm(valor)} mm{valor === 0.4 ? " (la común)" : " (más detalle)"}
+          </button>
+        ))}
+      </div>
+
+      {/* Escala de colores: rojo no se imprime, amarillo una sola pasada (frágil), verde dos pasadas o más. */}
       <div className="mt-4 overflow-hidden rounded-xl text-center text-xs font-black text-white">
         <div className="grid grid-cols-3">
           <div className="bg-red-600 px-2 py-3">
@@ -350,7 +369,7 @@ function MedidorEspesor() {
           </div>
           <div className="bg-amber-500 px-2 py-3">
             {cm(minimo)} a {cm(ideal)} cm
-            <span className="block text-[11px] font-semibold opacity-90">⚠ se imprime, pero frágil</span>
+            <span className="block text-[11px] font-semibold opacity-90">⚠ sale, pero frágil</span>
           </div>
           <div className="bg-emerald-600 px-2 py-3">
             {cm(ideal)} cm o más
@@ -359,7 +378,8 @@ function MedidorEspesor() {
         </div>
       </div>
       <p className="mt-2 text-xs text-[var(--text-muted)]">
-        Medidas en SketchUp, a tamaño real. En la maqueta 1:{escala}, {cm(minimo)} cm quedan en {MINIMO_MM.toLocaleString("es-UY")} mm.
+        Medidas en SketchUp, a tamaño real. En la maqueta 1:{escala}, {cm(minimo)} cm quedan en {mm(boquilla)} mm: una sola pasada de la
+        boquilla, sale pero se puede quebrar. Con {cm(ideal)} cm son dos pasadas ({mm(boquilla * 2)} mm): firme.
       </p>
 
       <label className="mt-4 flex flex-wrap items-center gap-2 text-sm font-bold">
@@ -382,10 +402,10 @@ function MedidorEspesor() {
           }`}
         >
           {estado === "no"
-            ? `✗ Muy fino: a 1:${escala} queda de ${mm((medido * 10) / escala)} mm. Engrosalo a ${cm(minimo)} cm o más.`
+            ? `✗ No sale: a 1:${escala} queda de ${mm((medido * 10) / escala)} mm, más fino que la boquilla. Engrosalo a ${cm(ideal)} cm.`
             : estado === "justo"
-            ? `⚠ Se imprime, pero queda frágil. Si podés, llevalo a ${cm(ideal)} cm.`
-            : "✓ Perfecto, se imprime bien."}
+            ? `⚠ Sale, pero muy fino: a 1:${escala} queda de ${mm((medido * 10) / escala)} mm (una sola pasada) y se puede quebrar. Si podés, llevalo a ${cm(ideal)} cm.`
+            : `✓ Bien: a 1:${escala} queda de ${mm((medido * 10) / escala)} mm, firme.`}
         </p>
       )}
     </div>

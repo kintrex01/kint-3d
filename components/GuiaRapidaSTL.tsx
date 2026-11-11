@@ -151,46 +151,47 @@ export function Glosario() {
 
 /* ------------------------------------------------------------------ */
 
+// Con la boquilla de 0,4 mm: 0,4 mm sale (una pasada, frágil); 0,8 mm es lo recomendado (dos pasadas).
 const escalas = [
-  { escala: "1:50", minimo: "4 cm" },
-  { escala: "1:75", minimo: "6 cm" },
-  { escala: "1:100", minimo: "8 cm" },
-  { escala: "1:200", minimo: "16 cm" },
-  { escala: "1:250", minimo: "20 cm" },
-  { escala: "1:500", minimo: "40 cm" },
+  { escala: "1:50", justo: "2 cm", minimo: "4 cm" },
+  { escala: "1:75", justo: "3 cm", minimo: "6 cm" },
+  { escala: "1:100", justo: "4 cm", minimo: "8 cm" },
+  { escala: "1:200", justo: "8 cm", minimo: "16 cm" },
+  { escala: "1:250", justo: "10 cm", minimo: "20 cm" },
+  { escala: "1:500", justo: "20 cm", minimo: "40 cm" },
 ];
 
 export function Espesores() {
   return (
     <section className="relative z-10 mx-auto mt-24 max-w-5xl">
       <Encabezado id="espesores" paso={4} titulo="¿Qué tan finos pueden ser los muros?">
-        La impresora no puede hacer nada más fino que <strong className="text-[var(--text-main)]">0,8 mm</strong>. Como la
-        maqueta se achica, un muro que en la realidad es grueso puede quedar demasiado fino. Mirá cuánto tiene que medir
-        como mínimo en SketchUp (a tamaño real):
+        Con la boquilla común (0,4 mm), lo más fino que sale es <strong className="text-[var(--text-main)]">0,4 mm</strong>: una
+        sola pasada, frágil. Lo recomendado es <strong className="text-[var(--text-main)]">0,8 mm</strong> (dos pasadas). Como la
+        maqueta se achica, mirá cuánto tiene que medir en SketchUp (a tamaño real):
       </Encabezado>
       <div className="overflow-hidden rounded-3xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
         <table className="w-full text-left text-sm">
           <thead className="bg-black/5 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] dark:bg-white/5">
             <tr>
               <th className="px-5 py-3">Escala de la maqueta</th>
-              <th className="px-5 py-3">Espesor mínimo en SketchUp</th>
-              <th className="hidden px-5 py-3 sm:table-cell">Impreso queda de</th>
+              <th className="px-5 py-3">Sale, pero frágil</th>
+              <th className="px-5 py-3">Recomendado</th>
             </tr>
           </thead>
           <tbody>
             {escalas.map((fila) => (
               <tr key={fila.escala} className="border-t border-[var(--border-color)]">
                 <td className="px-5 py-3 font-black">{fila.escala}</td>
-                <td className="px-5 py-3 font-bold text-red-600">{fila.minimo}</td>
-                <td className="hidden px-5 py-3 text-[var(--text-muted)] sm:table-cell">0,8 mm</td>
+                <td className="px-5 py-3 font-bold text-amber-600">{fila.justo}</td>
+                <td className="px-5 py-3 font-bold text-emerald-600">{fila.minimo}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="mt-5 border-l-2 border-red-600 pl-5 text-sm leading-7 text-[var(--text-muted)]">
-        Ejemplo: un muro de 15 cm en una maqueta 1:200 queda de 0,75 mm, y no llega. Engrosalo a 16 cm, o elegí una escala
-        más grande. Barandas, parteluces y marcos finos son los que más fallan.
+        Ejemplo: un muro de 10 cm en una maqueta 1:250 queda de 0,4 mm: sale, pero es una sola pasada y se puede quebrar.
+        Con 20 cm queda firme. Barandas, parteluces y marcos finos son los que más fallan.
       </p>
     </section>
   );
