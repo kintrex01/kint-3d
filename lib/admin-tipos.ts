@@ -631,6 +631,20 @@ export type AccionesAdmin = {
     pedido: { codigo: string };
     respuesta: { codigos: CodigoEspecial[] };
   };
+  /* Diagnóstico de los avisos por correo (solo lee): activadores, cuota y avisos pendientes. */
+  admin_correos_diagnostico: {
+    pedido: SinDatos;
+    respuesta: {
+      activadores: { funcion: string; tipo: string; origen: string }[];
+      cuota: number;
+      pendientes: { pedido: string; estado: string; avisado: string }[];
+    };
+  };
+  /* Enciende el recordatorio automático de reseñas (si ya estaba, no hace nada). */
+  admin_recordatorio_resenas_activar: {
+    pedido: SinDatos;
+    respuesta: { activo: boolean; yaEstaba: boolean };
+  };
   /* Correo de muestra a kint3d.uy@gmail.com (ej. cual "terminado" con las fotos de un pedido). */
   admin_correo_prueba: {
     pedido: { cual?: string; pedido?: string };
@@ -795,4 +809,6 @@ export const ACCIONES_ADMIN = [
   "admin_codigo_especial_guardar",
   "admin_codigo_especial_borrar",
   "admin_correo_prueba",
+  "admin_correos_diagnostico",
+  "admin_recordatorio_resenas_activar",
 ] as const satisfies readonly TipoAccionAdmin[];

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import ImagenAmpliable from "@/components/ImagenAmpliable";
 import FotoMarcada, { Cartel } from "@/components/FotoMarcada";
-import { Arbol, IsoAltura, IsoCerrado, IsoEspesor, Persona, ZoomMuro } from "@/components/DibujosIso";
+import { IsoAltura, IsoCerrado, IsoEspesor, ZoomMuro } from "@/components/DibujosIso";
 
 /*
  * Tutorial: la receta corta para dejar el SKP listo para imprimir.
@@ -60,48 +60,6 @@ function DibujoCopia() {
           <path d="M0 0 L8 4 L0 8 z" fill={VERDE} />
         </marker>
       </defs>
-    </svg>
-  );
-}
-
-/* Paso 2: fachada 2D. La arquitectura queda; persona, árbol, cota y texto se borran. */
-function DibujoBorrar() {
-  const tacha = (x: number, y: number, r: number) => (
-    <g stroke="#dc2626" strokeWidth="1.6" fill="#dc2626" fillOpacity="0.06">
-      <circle cx={x} cy={y} r={r} />
-      <line x1={x - r * 0.7} y1={y + r * 0.7} x2={x + r * 0.7} y2={y - r * 0.7} />
-    </g>
-  );
-  return (
-    <svg viewBox="0 0 360 200" role="img" aria-label="Fachada que queda; persona, árbol, cota y texto que se borran" className="w-full">
-      {/* Fachada */}
-      <g stroke="#1c1917" strokeWidth="1.2" strokeLinejoin="round">
-        <rect x="18" y="58" width="150" height="112" fill="#f5f5f4" />
-        <rect x="12" y="50" width="162" height="10" fill="#d6d3d1" />
-        <rect x="12" y="110" width="162" height="6" fill="#d6d3d1" />
-        <rect x="34" y="72" width="34" height="26" fill="#a8a29e" />
-        <rect x="118" y="72" width="34" height="26" fill="#a8a29e" />
-        <rect x="34" y="128" width="34" height="26" fill="#a8a29e" />
-        <rect x="104" y="128" width="26" height="42" fill="#78716c" />
-      </g>
-      <line x1="6" y1="170" x2="354" y2="170" stroke="#57534e" strokeWidth="1.2" />
-      <text x="93" y="40" fontSize="12" fontWeight="800" textAnchor="middle" fill="#059669">✓ queda</text>
-
-      {/* Lo que se borra */}
-      <Arbol x={228} y={170} alto={104} />
-      <Persona x={276} y={170} alto={62} />
-      <g stroke="#57534e" strokeWidth="1">
-        <line x1="18" y1="186" x2="168" y2="186" />
-        <line x1="18" y1="181" x2="18" y2="191" />
-        <line x1="168" y1="181" x2="168" y2="191" />
-      </g>
-      <text x="93" y="197" fontSize="9" textAnchor="middle" fill="#57534e">12,00</text>
-      <text x="306" y="92" fontSize="15" fontWeight="700" fill="#57534e" fontFamily="Arial, sans-serif">Planta</text>
-      {tacha(228, 120, 30)}
-      {tacha(276, 140, 22)}
-      {tacha(93, 188, 13)}
-      {tacha(330, 87, 20)}
-      <text x="282" y="40" fontSize="12" fontWeight="800" textAnchor="middle" fill="#dc2626">✗ se borra</text>
     </svg>
   );
 }
@@ -383,7 +341,6 @@ const pasos: Paso[] = [
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
     bien: "Solo queda la arquitectura: muros, losas, techo, escaleras, terreno.",
-    dibujo: <DibujoBorrar />,
   },
   {
     titulo: "Cortá por plantas y hacé un grupo con cada una",

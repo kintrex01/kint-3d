@@ -36,6 +36,7 @@ type PedidoCuenta = {
   pagado: boolean;
   detalle: string;
   link: string;
+  resena?: string; // Entregado y sin reseña: el link para dejarla
 };
 
 type ResenaCuenta = {
@@ -638,6 +639,14 @@ function PanelCuenta({
                     </Link>
                   ) : (
                     <div className={clase}>{contenido}</div>
+                  )}
+                  {pedido.resena && (
+                    <Link
+                      href={pedido.resena}
+                      className="mt-1.5 flex items-center justify-center gap-2 rounded-xl border border-amber-400/60 bg-amber-400/10 px-3 py-2 text-xs font-black text-amber-700 transition hover:bg-amber-400/20 dark:text-amber-300"
+                    >
+                      ★ Dejá tu reseña de {pedido.pedido}
+                    </Link>
                   )}
                 </li>
               );

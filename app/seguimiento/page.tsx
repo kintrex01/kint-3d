@@ -1402,6 +1402,21 @@ function datosTecnicosPresupuesto(
 {/* Los 7 pasos, cada uno con su color (como el panel y los correos). */}
 <PasosPedido estado={resultado.estado} />
 
+{/* Entregado y sin reseña: el botón para dejarla, bien a la vista. */}
+{resultado.estado === "Entregado" && resultado.tieneResena === false && (
+  <div className="mt-6 rounded-2xl border border-amber-400/60 bg-amber-400/10 p-5 text-center">
+    <p className="text-3xl tracking-[0.3em] text-amber-500" aria-hidden>★★★★★</p>
+    <p className="mt-2 text-lg font-black text-[var(--text-main)]">¿Qué te pareció tu maqueta?</p>
+    <p className="mt-1 text-sm text-[var(--text-muted)]">Te lleva un minuto y nos ayuda muchísimo. Podés sumar fotos.</p>
+    <Link
+      href={`/resena?pedido=${encodeURIComponent(resultado.pedido)}&codigo=${encodeURIComponent(codigo)}`}
+      className="mt-4 inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-amber-500 px-6 text-sm font-black text-white transition hover:bg-amber-600"
+    >
+      Dejar mi reseña
+    </Link>
+  </div>
+)}
+
     </div>
 
 
