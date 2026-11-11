@@ -283,9 +283,9 @@ export default function IlustracionTerreno({ conTodo }: { conTodo: boolean }) {
     <Escena
       titulo={conTodo ? "Casa en un terreno con árboles, personas, pájaros y pasto, marcados para borrar" : "Solo la casa: lo que se imprime"}
       cajas={conTodo ? [...TERRENO, ...CASA] : CASA}
-      incluir={conTodo ? [[1, 9.5, 11], [3.4, 13.2, 9.5], [2.4, 4, 9], [25.5, 19.5, -3]] : [[7, 0, 8], [24, 8, -0.5]]}
-      margen={conTodo ? 12 : 26}
-      className={conTodo ? "" : "mx-auto max-w-[78%]"}
+      incluir={conTodo ? [[1, 9.5, 11], [3.4, 13.2, 9.5], [2.4, 4, 9], [25.5, 19.5, -3]] : []}
+      margen={conTodo ? 12 : 10}
+      className={conTodo ? "" : "mx-auto max-w-[62%] py-2"}
       encima={
         <>
           {conTodo && (

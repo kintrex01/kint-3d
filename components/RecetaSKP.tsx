@@ -342,17 +342,18 @@ const pasos: Paso[] = [
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
     bien: "Solo queda la arquitectura: muros, losas, techo y escaleras. Nada de terreno, árboles, personas ni textos.",
-    extra: (
-      <div className="grid gap-3 md:grid-cols-2">
+    // Los dos dibujos a la derecha, uno arriba del otro (menos scroll).
+    dibujo: (
+      <div className="grid gap-2">
         {[
           { conTodo: true, titulo: "✗ Así viene: con cosas que no se imprimen", clase: "border-red-600/40" },
           { conTodo: false, titulo: "✓ Así tiene que quedar: solo lo que se imprime", clase: "border-emerald-500/50" },
         ].map((panel) => (
           <figure
             key={panel.titulo}
-            className={`flex flex-col overflow-hidden rounded-2xl border-2 bg-white p-2 text-stone-800 ${panel.clase}`}
+            className={`flex flex-col overflow-hidden rounded-xl border-2 bg-white p-1.5 text-stone-800 ${panel.clase}`}
           >
-            <figcaption className={`self-start rounded-lg bg-white/90 px-2 py-1 text-sm font-black ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
+            <figcaption className={`self-start px-1.5 py-0.5 text-[11px] font-black leading-4 ${panel.conTodo ? "text-red-700" : "text-emerald-700"}`}>{panel.titulo}</figcaption>
             <div className="flex flex-1 items-center">
               <IlustracionTerreno conTodo={panel.conTodo} />
             </div>
