@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import ImagenAmpliable from "@/components/ImagenAmpliable";
 import FotoMarcada, { Cartel } from "@/components/FotoMarcada";
-import { IsoAltura, IsoBorrar, IsoCerrado, IsoCortes, IsoEspesor } from "@/components/DibujosIso";
+import { Arbol, IsoAltura, IsoCerrado, IsoEspesor, Persona, ZoomMuro } from "@/components/DibujosIso";
 
 /*
  * Tutorial: la receta corta para dejar el SKP listo para imprimir.
@@ -60,6 +60,74 @@ function DibujoCopia() {
           <path d="M0 0 L8 4 L0 8 z" fill={VERDE} />
         </marker>
       </defs>
+    </svg>
+  );
+}
+
+/* Paso 2: fachada 2D. La arquitectura queda; persona, árbol, cota y texto se borran. */
+function DibujoBorrar() {
+  const tacha = (x: number, y: number, r: number) => (
+    <g stroke="#dc2626" strokeWidth="1.6" fill="#dc2626" fillOpacity="0.06">
+      <circle cx={x} cy={y} r={r} />
+      <line x1={x - r * 0.7} y1={y + r * 0.7} x2={x + r * 0.7} y2={y - r * 0.7} />
+    </g>
+  );
+  return (
+    <svg viewBox="0 0 360 200" role="img" aria-label="Fachada que queda; persona, árbol, cota y texto que se borran" className="w-full">
+      {/* Fachada */}
+      <g stroke="#1c1917" strokeWidth="1.2" strokeLinejoin="round">
+        <rect x="18" y="58" width="150" height="112" fill="#f5f5f4" />
+        <rect x="12" y="50" width="162" height="10" fill="#d6d3d1" />
+        <rect x="12" y="110" width="162" height="6" fill="#d6d3d1" />
+        <rect x="34" y="72" width="34" height="26" fill="#a8a29e" />
+        <rect x="118" y="72" width="34" height="26" fill="#a8a29e" />
+        <rect x="34" y="128" width="34" height="26" fill="#a8a29e" />
+        <rect x="104" y="128" width="26" height="42" fill="#78716c" />
+      </g>
+      <line x1="6" y1="170" x2="354" y2="170" stroke="#57534e" strokeWidth="1.2" />
+      <text x="93" y="40" fontSize="12" fontWeight="800" textAnchor="middle" fill="#059669">✓ queda</text>
+
+      {/* Lo que se borra */}
+      <Arbol x={228} y={170} alto={104} />
+      <Persona x={276} y={170} alto={62} />
+      <g stroke="#57534e" strokeWidth="1">
+        <line x1="18" y1="186" x2="168" y2="186" />
+        <line x1="18" y1="181" x2="18" y2="191" />
+        <line x1="168" y1="181" x2="168" y2="191" />
+      </g>
+      <text x="93" y="197" fontSize="9" textAnchor="middle" fill="#57534e">12,00</text>
+      <text x="306" y="92" fontSize="15" fontWeight="700" fill="#57534e" fontFamily="Arial, sans-serif">Planta</text>
+      {tacha(228, 120, 30)}
+      {tacha(276, 140, 22)}
+      {tacha(93, 188, 13)}
+      {tacha(330, 87, 20)}
+      <text x="282" y="40" fontSize="12" fontWeight="800" textAnchor="middle" fill="#dc2626">✗ se borra</text>
+    </svg>
+  );
+}
+
+/* Paso 3: dónde cortar las plantas (justo debajo de cada losa: la losa va con su planta). */
+function DibujoCortes() {
+  return (
+    <svg viewBox="0 0 320 170" role="img" aria-label="Edificio de dos plantas cortado justo debajo de cada losa" className="w-full">
+      <g stroke="#1c1917" strokeWidth="1">
+        <rect x="40" y="148" width="150" height="8" fill="#a8a29e" />
+        <rect x="44" y="96" width="8" height="52" fill="#d6d3d1" />
+        <rect x="178" y="96" width="8" height="52" fill="#d6d3d1" />
+        <rect x="112" y="96" width="5" height="52" fill="#d6d3d1" />
+        <rect x="40" y="88" width="150" height="8" fill="#a8a29e" />
+        <rect x="44" y="36" width="8" height="52" fill="#d6d3d1" />
+        <rect x="178" y="36" width="8" height="52" fill="#d6d3d1" />
+        <rect x="90" y="36" width="5" height="52" fill="#d6d3d1" />
+        <rect x="36" y="28" width="158" height="8" fill="#a8a29e" />
+      </g>
+      <line x1="20" y1="97" x2="210" y2="97" stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5" />
+      <line x1="20" y1="37" x2="210" y2="37" stroke="#dc2626" strokeWidth="2" strokeDasharray="7 5" />
+      <text x="222" y="101" fontSize="12" fontWeight="700" fill="#dc2626">corte</text>
+      <text x="222" y="41" fontSize="12" fontWeight="700" fill="#dc2626">corte</text>
+      <text x="222" y="126" fontSize="11" fill="#44403c">planta baja</text>
+      <text x="222" y="72" fontSize="11" fill="#44403c">planta alta</text>
+      <text x="222" y="20" fontSize="11" fill="#44403c">techo</text>
     </svg>
   );
 }
@@ -121,12 +189,12 @@ function FotoSeparadas() {
             <rect x="1265" y="225" width="580" height="400" rx="30" fill="none" stroke={VERDE} strokeWidth="7" strokeDasharray="26 16" />
             <Cartel x={1275} y={205} texto="Modelo completo (referencia)" color={VERDE} tamano={32} />
             <line x1="120" y1="650" x2="1180" y2="650" stroke={ROJO} strokeWidth="6" />
-            <Cartel x={250} y={720} texto="Todas apoyadas en el piso, a la misma altura" color={ROJO} tamano={36} />
+            <Cartel x={170} y={720} texto="Todas a la misma altura (sin dibujar un piso)" color={ROJO} tamano={36} />
           </>
         }
       />
       <figcaption className="px-3 py-2 text-xs font-semibold leading-5 text-[var(--text-muted)]">
-        Así se ve un archivo listo: las piezas una al lado de la otra, en el piso y sin tocarse.
+        Así se ve un archivo listo: las piezas una al lado de la otra, a la misma altura y sin tocarse.
       </figcaption>
     </figure>
   );
@@ -140,6 +208,7 @@ const ESCALAS = [50, 75, 100, 125, 200, 250, 500];
 // Misma regla que el Escalador: menos que la boquilla no sale; una pasada (hasta 2× la boquilla) sale frágil;
 // dos pasadas o más, firme.
 const BOQUILLAS = [0.4, 0.2];
+const ENCENDIDA = ["habilitada", "habilitado", "sí", "si"];
 
 function cm(valor: number) {
   return valor.toLocaleString("es-UY", { maximumFractionDigits: 1 });
@@ -154,6 +223,24 @@ function MedidorEspesor() {
   const [otra, setOtra] = useState("");
   const [muro, setMuro] = useState("");
   const [boquilla, setBoquilla] = useState(0.4);
+  // Las boquillas encendidas en Configuración: si hay una sola, se usa esa y no se pregunta.
+  const [disponibles, setDisponibles] = useState<number[]>([]);
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/configuracion")
+      .then((respuesta) => respuesta.json())
+      .then((datos) => {
+        if (!activo) return;
+        const encendida = (clave: string) => ENCENDIDA.includes(String(datos?.configuracion?.[clave]?.valor || "").trim().toLowerCase());
+        const lista = BOQUILLAS.filter((valor) => encendida(valor === 0.4 ? "boquilla_0_4" : "boquilla_0_2"));
+        setDisponibles(lista);
+        if (lista.length === 1) setBoquilla(lista[0]);
+      })
+      .catch(() => undefined);
+    return () => {
+      activo = false;
+    };
+  }, []);
   const minimo = (boquilla * escala) / 10; // cm en SketchUp (tamaño real)
   const ideal = (boquilla * 2 * escala) / 10;
   const medido = Number(muro.replace(",", "."));
@@ -196,9 +283,10 @@ function MedidorEspesor() {
         </label>
       </div>
 
+      {disponibles.length > 1 && (
       <div className="mt-3 flex flex-wrap items-center gap-1.5 text-sm font-bold">
         Boquilla:
-        {BOQUILLAS.map((valor) => (
+        {disponibles.map((valor) => (
           <button
             key={valor}
             type="button"
@@ -212,6 +300,7 @@ function MedidorEspesor() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Escala de colores: rojo no se imprime, amarillo una sola pasada (frágil), verde dos pasadas o más. */}
       <div className="mt-4 overflow-hidden rounded-xl text-center text-xs font-black text-white">
@@ -234,6 +323,10 @@ function MedidorEspesor() {
         Medidas en SketchUp, a tamaño real. En la maqueta 1:{escala}, {cm(minimo)} cm quedan en {mm(boquilla)} mm: una sola pasada de la
         boquilla, sale pero se puede quebrar. Con {cm(ideal)} cm son dos pasadas ({mm(boquilla * 2)} mm): firme.
       </p>
+
+      <div className="mt-4 rounded-2xl bg-[#d4d4d8] p-2 text-stone-800">
+        <ZoomMuro ideal={cm(ideal)} escala={escala} />
+      </div>
 
       <label className="mt-4 flex flex-wrap items-center gap-2 text-sm font-bold">
         ¿Cuánto mide tu muro más fino?
@@ -290,7 +383,7 @@ const pasos: Paso[] = [
       <>Al final: <b>Ventana → Información del modelo → Estadísticas → Purgar elementos no utilizados</b>.</>,
     ],
     bien: "Solo queda la arquitectura: muros, losas, techo, escaleras, terreno.",
-    dibujo: <IsoBorrar />,
+    dibujo: <DibujoBorrar />,
   },
   {
     titulo: "Cortá por plantas y hacé un grupo con cada una",
@@ -303,7 +396,7 @@ const pasos: Paso[] = [
       <>¿Tu modelo no tiene nada adentro (solo la cáscara)? Puede ir entero en un solo grupo.</>,
     ],
     bien: "Al hacer clic en una planta se selecciona entera, como una sola pieza.",
-    dibujo: <IsoCortes />,
+    dibujo: <DibujoCortes />,
     solucion: {
       boton: "Ver cómo cortarlo, paso a paso",
       pasos: [
@@ -363,15 +456,16 @@ const pasos: Paso[] = [
     },
   },
   {
-    titulo: "Separá las piezas, todas en el piso, y mandá un solo archivo",
+    titulo: "Separá las piezas, todas a la misma altura, y mandá un solo archivo",
     porque: "Así vemos cada pieza clara, no se mezclan y sabemos cómo apoyarla en la impresora.",
     hacer: [
       <>Con <b>Mover (M)</b> poné las plantas y el techo uno al lado del otro, sin tocarse (dejá 1 m entre piezas).</>,
-      <><b>Todas a la misma altura, apoyadas en el piso</b> (el plano de los ejes rojo y verde): ninguna flotando ni enterrada.</>,
+      <><b>Todas a la misma altura</b>: apoyadas en el nivel 0 de SketchUp (donde se cruzan los ejes rojo y verde), ninguna flotando ni enterrada.</>,
+      <><b>No dibujes un piso ni una base</b> para apoyarlas: no hace falta, lo único que importa es que estén a la misma altura.</>,
       <>Dejalo a tamaño real, en metros. <b>No lo escales:</b> la escala la elegís en Cotizar.</>,
       <>Guardá y subí <b>ese único SKP</b> en Cotizar.</>,
     ],
-    bien: "Un archivo, con todas las piezas separadas y apoyadas en el piso, a la misma altura.",
+    bien: "Un archivo, con todas las piezas separadas y a la misma altura (nivel 0), sin piso agregado.",
     dibujo: <IsoAltura />,
     extra: <FotoSeparadas />,
     solucion: {
@@ -384,17 +478,17 @@ const pasos: Paso[] = [
         },
         {
           src: "/tutorial/despiezado-unido.png",
-          pie: "Después: el mismo modelo en piezas, todas en el piso.",
+          pie: "Después: el mismo modelo en piezas, todas a la misma altura.",
           recorte: { ancho: 1872, alto: 833, x: 100, y: 130, w: 1130, h: 470 },
         },
         { src: "/tutorial/ejemplo0.png", pie: "Así no: piezas una arriba de la otra, cada una a otra altura." },
-        { src: "/tutorial/ejemplo5.png", pie: "Así sí: todo desplegado y apoyado en el piso." },
+        { src: "/tutorial/ejemplo5.png", pie: "Así sí: todo desplegado y a la misma altura." },
       ],
       pasos: [
         <>Hacé clic en el grupo de la planta alta (se selecciona entero).</>,
         <>Tocá <b>M</b> (Mover), hacé clic en una esquina y llevalo al costado.</>,
         <>Mientras movés, tocá la flecha <b>→</b> del teclado para que vaya recto.</>,
-        <>Bajalo hasta el piso: <b>M</b> + flecha <b>↑</b> (eje azul) y hacé clic sobre el piso. Tiene que quedar apoyado, ni arriba ni abajo.</>,
+        <>Bajalo al nivel 0: <b>M</b> + flecha <b>↑</b> (eje azul) y llevalo hasta donde se cruzan los ejes rojo y verde. Ni arriba ni abajo.</>,
         <>Repetí con el techo y el resto, dejando 1 m entre cada pieza.</>,
       ],
     },

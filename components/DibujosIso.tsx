@@ -20,6 +20,7 @@ type Caja = {
   sinCara?: "arriba" | "frente" | "costado"; // la cara que falta (se ve el hueco)
   translucida?: boolean;
   alFinal?: boolean; // se dibuja encima de todo (ej. el piso que tapa una pieza enterrada)
+  contorno?: boolean; // solo el borde punteado de la cara de arriba (ej. el nivel 0, que no es una pieza)
 };
 
 type Etiqueta = { en: P3; texto: string; color?: string; dx?: number; dy?: number; ancla?: "start" | "middle" | "end" };
@@ -65,6 +66,12 @@ function poligono(puntos: P3[]) {
 
 function caras(caja: Caja, i: number) {
   const { x, y, z, w, d, h } = caja;
+  if (caja.contorno) {
+    const borde: P3[] = [[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]];
+    return (
+      <polygon key={i} points={poligono(borde)} fill="#ffffff" fillOpacity={0.35} stroke="#78716c" strokeWidth={1.2} strokeDasharray="6 5" vectorEffect="non-scaling-stroke" />
+    );
+  }
   const paleta = PALETAS[caja.color === "rojo" || caja.color === "verde" || caja.color === "gris" || caja.color === "oscuro" ? caja.color : "normal"];
   const borde = caja.color === "rojo" ? "#991b1b" : caja.color === "verde" ? "#065f46" : "#1c1917";
   const arriba: P3[] = [[x, y, z + h], [x + w, y, z + h], [x + w, y + d, z + h], [x, y + d, z + h]];
@@ -99,8 +106,7 @@ function caras(caja: Caja, i: number) {
           points={poligono(caja.sinCara === "arriba" ? arriba : caja.sinCara === "frente" ? frente : costado)}
           fill="none"
           stroke="#dc2626"
-          strokeWidth={2.5}
-          strokeDasharray="5 4"
+          strokeWidth={1.4}
           vectorEffect="non-scaling-stroke"
         />
       )}
@@ -194,7 +200,7 @@ function vivienda(opciones: { x?: number; y?: number; z?: number; alto?: number;
 /* Siluetas «pro» (persona y árbol 2D, como las de SketchUp)            */
 /* ------------------------------------------------------------------ */
 
-function Persona({ x, y, alto = 52 }: { x: number; y: number; alto?: number }) {
+export function Persona({ x, y, alto = 52 }: { x: number; y: number; alto?: number }) {
   const k = alto / 100;
   return (
     <g transform={`translate(${x - 20 * k} ${y - 100 * k}) scale(${k})`}>
@@ -208,7 +214,7 @@ function Persona({ x, y, alto = 52 }: { x: number; y: number; alto?: number }) {
   );
 }
 
-function Arbol({ x, y, alto = 70 }: { x: number; y: number; alto?: number }) {
+export function Arbol({ x, y, alto = 70 }: { x: number; y: number; alto?: number }) {
   const k = alto / 100;
   return (
     <g transform={`translate(${x - 30 * k} ${y - 100 * k}) scale(${k})`}>
@@ -223,72 +229,15 @@ function Arbol({ x, y, alto = 70 }: { x: number; y: number; alto?: number }) {
   );
 }
 
-function Tachado({ x, y, r = 30 }: { x: number; y: number; r?: number }) {
-  return (
-    <g stroke="#dc2626" strokeWidth="4" strokeLinecap="round" fill="none">
-      <circle cx={x} cy={y} r={r} />
-      <line x1={x - r * 0.7} y1={y - r * 0.7} x2={x + r * 0.7} y2={y + r * 0.7} />
-    </g>
-  );
-}
-
 /* Lupa: círculo sobre un punto de la escena. */
 function Lupa({ en, r = 22, color = "#dc2626" }: { en: P3; r?: number; color?: string }) {
   const [x, y] = proyectar(en);
-  return <circle cx={x} cy={y} r={r} fill="none" stroke={color} strokeWidth="3" strokeDasharray="6 4" />;
+  return <circle cx={x} cy={y} r={r} fill={color} fillOpacity={0.06} stroke={color} strokeWidth="1.3" strokeOpacity={0.8} />;
 }
 
 /* ------------------------------------------------------------------ */
 /* Escenas de la guía                                                   */
 /* ------------------------------------------------------------------ */
-
-/* Paso 2: la vivienda queda; la persona y el árbol 2D se borran. */
-export function IsoBorrar() {
-  const [px, py] = proyectar([12.8, 9.4, 0]);
-  const [ax, ay] = proyectar([14.6, 3.2, 0]);
-  return (
-    <Escena
-      titulo="La vivienda queda; la persona y el árbol en 2D se borran"
-      cajas={[...vivienda(), { x: -1, y: -1, z: -0.12, w: 18, d: 12, h: 0.12, color: "gris" }]}
-      etiquetas={[
-        { en: [5, 3.5, 3.4], texto: "✓ queda", color: "#059669", ancla: "middle" },
-        { en: [14, 7, 0], texto: "✗ se borra", color: "#dc2626", ancla: "middle", dy: 30 },
-      ]}
-      encima={
-        <>
-          <Arbol x={ax} y={ay} alto={92} />
-          <Persona x={px} y={py} alto={56} />
-          <Tachado x={ax} y={ay - 44} r={42} />
-          <Tachado x={px} y={py - 28} r={30} />
-        </>
-      }
-    />
-  );
-}
-
-/* Paso 3: edificio de dos plantas con los planos de corte justo debajo de cada losa. */
-export function IsoCortes() {
-  const plano = (z: number): Caja => ({ x: -1.2, y: -1.2, z, w: 12.4, d: 9.4, h: 0.02, color: "rojo", translucida: true });
-  return (
-    <Escena
-      titulo="Edificio de dos plantas: se corta justo debajo de cada losa"
-      cajas={[
-        ...vivienda({ frenteBajo: false }),
-        plano(2.99),
-        ...vivienda({ z: 3, frenteBajo: false }),
-        plano(5.99),
-        { x: 0, y: 0, z: 6, w: 10, d: 7, h: 0.3, color: "gris" },
-      ]}
-      etiquetas={[
-        { en: [-1.2, 8.2, 3], texto: "corte", color: "#dc2626", ancla: "end", dx: -4 },
-        { en: [-1.2, 8.2, 6], texto: "corte", color: "#dc2626", ancla: "end", dx: -4 },
-        { en: [10, 0, 1.5], texto: "planta baja", dx: 8, color: "#44403c" },
-        { en: [10, 0, 4.5], texto: "planta alta", dx: 8, color: "#44403c" },
-        { en: [10, 0, 6.3], texto: "techo", dx: 8, dy: -4, color: "#44403c" },
-      ]}
-    />
-  );
-}
 
 /* Paso 4: vivienda con un muro interior de una sola cara (en rojo) y la lupa. */
 export function IsoEspesor() {
@@ -297,33 +246,41 @@ export function IsoEspesor() {
       <Escena
         titulo="Vivienda con un muro interior de una sola cara, marcado en rojo"
         cajas={vivienda({ interior: { w: 0.02, color: "rojo" } })}
-        encima={<Lupa en={[5.5, 2.3, 2]} r={30} />}
+        encima={<Lupa en={[5.5, 2.3, 2]} r={28} />}
         etiquetas={[{ en: [5.5, 0.3, 3.3], texto: "este muro es una sola cara", color: "#dc2626", ancla: "middle", dy: -6 }]}
       />
-      <div className="grid grid-cols-2 gap-2">
-        <figure className="rounded-xl border-2 border-red-600/50 bg-white/70 p-2">
-          <Escena
-            titulo="Así está: una sola cara, sin espesor"
-            cajas={[
-              { x: 0, y: 0, z: 0, w: 3, d: 2.4, h: 0.15, color: "gris" },
-              { x: 1.4, y: 0, z: 0.15, w: 0.02, d: 2.4, h: 2.4, color: "rojo" },
-            ]}
-            etiquetas={[{ en: [1.4, 1.2, 2.9], texto: "0 mm", color: "#dc2626", ancla: "middle" }]}
-          />
-          <figcaption className="text-center text-[11px] font-black text-red-700">✗ Así está: no se imprime</figcaption>
-        </figure>
-        <figure className="rounded-xl border-2 border-emerald-500/50 bg-white/70 p-2">
-          <Escena
-            titulo="Así tiene que estar: muro con espesor"
-            cajas={[
-              { x: 0, y: 0, z: 0, w: 3, d: 2.4, h: 0.15, color: "gris" },
-              { x: 1.25, y: 0, z: 0.15, w: 0.3, d: 2.4, h: 2.4, color: "verde" },
-            ]}
-            etiquetas={[{ en: [1.4, 1.2, 2.9], texto: "con espesor", color: "#047857", ancla: "middle" }]}
-          />
-          <figcaption className="text-center text-[11px] font-black text-emerald-700">✓ Así tiene que estar</figcaption>
-        </figure>
-      </div>
+    </div>
+  );
+}
+
+/* Paso 4: zoom de un muro, antes y después, con el espesor de la escala elegida. */
+export function ZoomMuro({ ideal, escala }: { ideal: string; escala: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <figure className="rounded-xl border-2 border-red-600/50 bg-white/70 p-2">
+        <Escena
+          className="mx-auto max-h-32"
+          titulo="Así está: una sola cara, sin espesor"
+          cajas={[
+            { x: 0, y: 0, z: 0, w: 3, d: 2.4, h: 0.15, color: "gris" },
+            { x: 1.4, y: 0, z: 0.15, w: 0.02, d: 2.4, h: 2.4, color: "rojo" },
+          ]}
+          etiquetas={[{ en: [1.4, 1.2, 2.9], texto: "0 mm", color: "#dc2626", ancla: "middle" }]}
+        />
+        <figcaption className="text-center text-[11px] font-black text-red-700">✗ Así está: una sola cara (0 mm), no se imprime</figcaption>
+      </figure>
+      <figure className="rounded-xl border-2 border-emerald-500/50 bg-white/70 p-2">
+        <Escena
+          className="mx-auto max-h-32"
+          titulo="Así tiene que estar: muro con espesor"
+          cajas={[
+            { x: 0, y: 0, z: 0, w: 3, d: 2.4, h: 0.15, color: "gris" },
+            { x: 1.25, y: 0, z: 0.15, w: 0.3, d: 2.4, h: 2.4, color: "verde" },
+          ]}
+          etiquetas={[{ en: [1.4, 1.2, 2.9], texto: `${ideal} cm`, color: "#047857", ancla: "middle" }]}
+        />
+        <figcaption className="text-center text-[11px] font-black text-emerald-700">✓ Así tiene que estar: {ideal} cm o más a 1:{escala}</figcaption>
+      </figure>
     </div>
   );
 }
@@ -335,8 +292,8 @@ export function IsoCerrado() {
       <Escena
         titulo="Vivienda donde a un muro le falta la cara de arriba"
         cajas={vivienda({ frenteBajo: false }).map((caja, i) => (i === 1 ? { ...caja, sinCara: "arriba" as const } : caja))}
-        encima={<Lupa en={[3, 0.15, 3]} r={28} />}
-        etiquetas={[{ en: [3, 0, 3.4], texto: "a este muro le falta la tapa", color: "#dc2626", ancla: "middle", dy: -18 }]}
+        encima={<Lupa en={[3, 0.15, 3]} r={24} />}
+        etiquetas={[{ en: [3, 0, 3.4], texto: "falta la cara de arriba", color: "#b91c1c", ancla: "middle", dy: -16 }]}
       />
       <div className="grid grid-cols-2 gap-2">
         <figure className="rounded-xl border-2 border-red-600/50 bg-white/70 p-2">
@@ -357,7 +314,7 @@ export function IsoCerrado() {
 
 /* Paso 7: piezas en el piso (bien) contra una flotando y otra enterrada (mal). */
 export function IsoAltura() {
-  const piso: Caja = { x: -1, y: -1, z: -0.1, w: 26, d: 9, h: 0.1, color: "gris" };
+  const piso: Caja = { x: -1, y: -1, z: -0.1, w: 26, d: 9, h: 0.1, contorno: true };
   const pieza = (x: number, z: number, color?: Caja["color"]): Caja[] => [
     { x, y: 0, z, w: 6, d: 5, h: 0.3, color },
     { x, y: 0, z: z + 0.3, w: 6, d: 0.3, h: 1.6, color },
@@ -370,7 +327,7 @@ export function IsoAltura() {
         <p className="px-1 text-[11px] font-black text-red-700">✗ Así no</p>
         <Escena
           titulo="Así no: una pieza flotando y otra enterrada"
-          cajas={[piso, ...pieza(0, 0), ...pieza(8, 2.2, "rojo"), ...pieza(16, -1.2, "rojo"), { ...piso, x: 15, w: 10, translucida: true, alFinal: true }]}
+          cajas={[piso, ...pieza(0, 0), ...pieza(8, 2.2, "rojo"), ...pieza(16, -1.2, "rojo").map((c) => ({ ...c, translucida: true })), { ...piso, x: 15, w: 10, alFinal: true }]}
           encima={<ellipse cx={sombra[0]} cy={sombra[1]} rx="40" ry="14" fill="#000" opacity="0.15" />}
           etiquetas={[
             { en: [11, 0, 4.4], texto: "flota", color: "#dc2626", ancla: "middle" },
@@ -379,8 +336,12 @@ export function IsoAltura() {
         />
       </div>
       <div className="rounded-xl border-2 border-emerald-500/50 bg-white/70 p-2">
-        <p className="px-1 text-[11px] font-black text-emerald-700">✓ Así sí: todas apoyadas en el piso</p>
-        <Escena titulo="Así sí: todas las piezas apoyadas en el piso" cajas={[piso, ...pieza(0, 0), ...pieza(8, 0), ...pieza(16, 0)]} />
+        <p className="px-1 text-[11px] font-black text-emerald-700">✓ Así sí: todas a la misma altura (nivel 0)</p>
+        <Escena
+          titulo="Así sí: todas las piezas a la misma altura, en el nivel 0"
+          cajas={[piso, ...pieza(0, 0), ...pieza(8, 0), ...pieza(16, 0)]}
+          etiquetas={[{ en: [24.5, 7.5, 0], texto: "nivel 0 (no se dibuja)", color: "#57534e", ancla: "end", dy: 16 }]}
+        />
       </div>
     </div>
   );
