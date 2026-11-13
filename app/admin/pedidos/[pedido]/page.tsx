@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import {
+  ESTADOS_PEDIDO,
   ESTADOS_PEDIDO_EDITABLES,
   type EstadoPedidoEditable,
   type PedidoDetalle,
@@ -94,7 +95,23 @@ type Confirmacion = {
   ejecutar: () => Promise<{ pedido: PedidoDetalle; aviso?: string }>;
   // Cambios de estado: corren en segundo plano (no hay que quedarse mirando).
   enSegundoPlano?: { estado: string };
+  peligro?: boolean;
 };
+
+/* Orden de los estados, para saber si un cambio va para adelante o para atrás. */
+function ordenEstado(estado: string) {
+  return (ESTADOS_PEDIDO as readonly string[]).indexOf(estado);
+}
+
+function vaHaciaAtras(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
+  const actual = ordenEstado(pedido.estado);
+  return actual !== -1 && ordenEstado(estado) < actual;
+}
+
+/* Saltearse el presupuesto: un pedido recién llegado que pasa directo a impresión (o más). */
+function salteaPresupuesto(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
+  return pedido.estado === "Recibido" && ordenEstado(estado) > ordenEstado("Presupuestado");
+}
 
 type ProximoPaso =
   | { tipo: "estado"; estado: EstadoPedidoEditable; texto: string }
@@ -156,9 +173,64 @@ function proximoPaso(pedido: PedidoDetalle): ProximoPaso {
   }
 }
 
-function mensajeEstado(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
+function mensajeEstado(
+  pedido: PedidoDetalle,
+  estado: EstadoPedidoEditable,
+  opciones: { avisar: boolean; onAvisarIgual?: () => void }
+) {
   const advertencias: string[] = [];
   let efecto = "";
+
+  // Para atrás: arregla un cambio hecho sin querer, sin mandarle nada al cliente.
+  if (vaHaciaAtras(pedido, estado)) {
+    if (pedido.pago?.confirmado) {
+      advertencias.push("El pago ya confirmado queda como está.");
+    }
+    return (
+      <div className="space-y-3">
+        <p>
+          <span className="font-bold text-[var(--text-main)]">{pedido.pedido}</span>{" "}
+          vuelve de «{textoEstado(pedido.estado)}» a «{estado}».
+        </p>
+        {opciones.avisar ? (
+          <p>El cliente recibe de nuevo el correo con las opciones de presupuesto.</p>
+        ) : (
+          <p className="rounded-xl bg-[var(--kint-selected-bg)] px-3 py-2.5 font-semibold text-[var(--text-main)]">
+            Al cliente no le llega ningún correo. En su seguimiento se borra lo
+            que había pasado después de «{estado}».
+          </p>
+        )}
+        {!opciones.avisar && opciones.onAvisarIgual && (
+          <button
+            type="button"
+            onClick={opciones.onAvisarIgual}
+            className="text-sm font-bold text-[var(--text-main)] underline underline-offset-4"
+          >
+            Es un presupuesto nuevo: mandárselo por correo
+          </button>
+        )}
+        {advertencias.map((texto) => (
+          <p
+            key={texto}
+            className="flex gap-2 rounded-xl bg-amber-500/12 px-3 py-2.5 font-semibold text-amber-800 dark:text-amber-300"
+          >
+            <AlertTriangle size={16} className="mt-1 shrink-0" />
+            {texto}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
+  const saltea = salteaPresupuesto(pedido, estado);
+  if (
+    !saltea &&
+    (estado === "En impresión" || estado === "Terminado") &&
+    pedido.pago &&
+    !pedido.pago.confirmado
+  ) {
+    advertencias.push("Todavía no confirmaste el pago de este pedido.");
+  }
 
   switch (estado) {
     case "Presupuestado": {
@@ -196,6 +268,15 @@ function mensajeEstado(pedido: PedidoDetalle, estado: EstadoPedidoEditable) {
 
   return (
     <div className="space-y-3">
+      {saltea && (
+        <div className="flex gap-2.5 rounded-xl border-2 border-red-600 bg-red-600/10 px-3 py-3 font-semibold text-red-700 dark:text-red-400">
+          <AlertTriangle size={20} className="mt-0.5 shrink-0" />
+          <span>
+            ¡Ojo! Este pedido es nuevo: todavía no lo presupuestaste ni pagó.
+            ¿Seguro que es este pedido?
+          </span>
+        </div>
+      )}
       <p>
         <span className="font-bold text-[var(--text-main)]">{pedido.pedido}</span>{" "}
         pasa de «{textoEstado(pedido.estado)}» a «{estado}».
@@ -372,17 +453,25 @@ export default function DetallePedidoAdmin({
     }
   }
 
-  function pedirEstado(estado: EstadoPedidoEditable) {
+  function pedirEstado(estado: EstadoPedidoEditable, avisarIgual = false) {
     if (!pedido) return;
     setHojaEstado(false);
+    const atras = vaHaciaAtras(pedido, estado);
+    const saltea = salteaPresupuesto(pedido, estado);
+    // Para atrás no se le avisa al cliente (salvo un presupuesto nuevo, si se elige).
+    const avisar = !atras || avisarIgual;
     setConfirmacion({
-      titulo: `Pasar a «${estado}»`,
-      mensaje: mensajeEstado(pedido, estado),
-      textoConfirmar: "Cambiar estado",
-      exito: `Pedido en «${estado}»`,
+      titulo: atras ? `Volver a «${estado}»` : `Pasar a «${estado}»`,
+      mensaje: mensajeEstado(pedido, estado, {
+        avisar,
+        onAvisarIgual: atras && estado === "Presupuestado" ? () => pedirEstado(estado, true) : undefined,
+      }),
+      textoConfirmar: saltea ? "Sí, pasarlo igual" : atras && !avisar ? "Volver sin avisar" : "Cambiar estado",
+      exito: atras && !avisar ? `Volvió a «${estado}» sin avisar al cliente` : `Pedido en «${estado}»`,
       ejecutar: () =>
-        accionAdmin("admin_pedido_estado", { pedido: pedido.pedido, estado }),
+        accionAdmin("admin_pedido_estado", { pedido: pedido.pedido, estado, avisar }),
       enSegundoPlano: { estado },
+      peligro: saltea,
     });
   }
 
@@ -968,19 +1057,23 @@ export default function DetallePedidoAdmin({
         titulo="Cambiar estado"
       >
         <p className="mb-3 text-sm text-[var(--text-muted)]">
-          Elegí el nuevo estado. Al cliente le llega el correo correspondiente
-          en la próxima revisión automática.
+          Elegí el nuevo estado. Para adelante, al cliente le llega el correo
+          correspondiente. Para atrás (si lo cambiaste sin querer) no se le avisa nada.
         </p>
         <ul className="space-y-2">
           {ESTADOS_PEDIDO_EDITABLES.map((estado) => {
             const esActual = estado === pedido.estado;
             const sinPresupuestos =
               estado === "Presupuestado" && !tienePresupuestos(pedido);
+            const atras = vaHaciaAtras(pedido, estado);
+            // Entregado ya sumó puntos y mandó el agradecimiento: de ahí no se vuelve.
+            const yaEntregado = atras && pedido.estado === "Entregado";
+            const saltea = salteaPresupuesto(pedido, estado);
             return (
               <li key={estado}>
                 <button
                   type="button"
-                  disabled={esActual || sinPresupuestos}
+                  disabled={esActual || sinPresupuestos || yaEntregado}
                   onClick={() => pedirEstado(estado)}
                   className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition disabled:cursor-not-allowed ${
                     esActual
@@ -990,13 +1083,25 @@ export default function DetallePedidoAdmin({
                 >
                   <Chip tono={tonoEstado(estado)}>{estado}</Chip>
                   <span className="min-w-0 flex-1 text-xs text-[var(--text-muted)]">
-                    {esActual
-                      ? "Estado actual"
-                      : sinPresupuestos
-                      ? "Primero cargá los presupuestos"
-                      : ""}
+                    {esActual ? (
+                      "Estado actual"
+                    ) : yaEntregado ? (
+                      "Ya entregado: no se vuelve atrás"
+                    ) : sinPresupuestos && !atras ? (
+                      "Primero cargá los presupuestos"
+                    ) : sinPresupuestos ? (
+                      "No tiene presupuestos cargados"
+                    ) : atras ? (
+                      "↩ Volver, sin avisar al cliente"
+                    ) : saltea ? (
+                      <span className="font-bold text-red-600 dark:text-red-400">
+                        Todavía no está presupuestado
+                      </span>
+                    ) : (
+                      ""
+                    )}
                   </span>
-                  {!esActual && !sinPresupuestos && (
+                  {!esActual && !sinPresupuestos && !yaEntregado && (
                     <ArrowRight size={16} className="shrink-0 text-[var(--text-muted)]" />
                   )}
                 </button>
@@ -1066,6 +1171,7 @@ export default function DetallePedidoAdmin({
         titulo={confirmacion?.titulo ?? ""}
         mensaje={confirmacion?.mensaje}
         textoConfirmar={confirmacion?.textoConfirmar}
+        peligro={confirmacion?.peligro}
         cargando={guardando}
         onConfirmar={confirmar}
         onCancelar={() => setConfirmacion(null)}

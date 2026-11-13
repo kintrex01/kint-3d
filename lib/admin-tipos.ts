@@ -30,6 +30,7 @@ export const ESTADO_CANCELADO = "❌❌❌";
 
 /* Estados que el dueño puede poner desde el panel (como hoy en la hoja). */
 export const ESTADOS_PEDIDO_EDITABLES = [
+  "Recibido", // solo para volver atrás (por si se cambió sin querer)
   "Presupuestado",
   "En impresión",
   "Terminado",
@@ -364,7 +365,8 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; aviso: string };
   };
   admin_pedido_estado: {
-    pedido: { pedido: string; estado: EstadoPedidoEditable };
+    // avisar: false = vuelve atrás sin mandarle correo al cliente.
+    pedido: { pedido: string; estado: EstadoPedidoEditable; avisar?: boolean };
     respuesta: { pedido: PedidoDetalle; aviso: string };
   };
   /* Igual que marcar la casilla Pagos J (llama al mismo handler de onEdit). */
