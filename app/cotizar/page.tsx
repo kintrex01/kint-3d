@@ -1227,6 +1227,41 @@ const telefonoCompleto = (() => {
   return digitos.length >= 8 && digitos.length <= 15;
 })();
 
+/*
+ * «Antes de enviar»: tocar un pendiente lleva hasta ese campo, lo resalta
+ * un momento y deja el cursor ahí (así nadie se pierde la casilla de requisitos).
+ */
+const BUSCAR_CAMPO: Record<string, string> = {
+  "Tu nombre": 'input[placeholder="Tu nombre"]',
+  "Celular (WhatsApp)": 'input[type="tel"]',
+  "Correo electrónico": 'input[type="email"]',
+  "Nombre público": 'input[placeholder="Ej.: Vale Arquitecta"]',
+  "Color de impresión": "#seccion-colores",
+};
+const TEXTO_CAMPO: Record<string, string> = {
+  "Escala de la maqueta": "Escala de la maqueta",
+  "Armado de piezas": "Armado de piezas",
+  Boquilla: "Boquilla",
+  "Requisitos del modelo": "Mi modelo cumple los requisitos",
+};
+
+function irACampo(nombre: string) {
+  let destino: HTMLElement | null = BUSCAR_CAMPO[nombre] ? document.querySelector<HTMLElement>(BUSCAR_CAMPO[nombre]) : null;
+  if (!destino && TEXTO_CAMPO[nombre]) {
+    const texto = TEXTO_CAMPO[nombre];
+    destino =
+      [...document.querySelectorAll<HTMLElement>("label, h2, p")].find((el) => (el.textContent || "").trim().startsWith(texto)) || null;
+  }
+  if (!destino) return;
+  // El bloque del campo (la etiqueta sola es muy chica para resaltar).
+  const bloque = destino.matches("input, select") ? destino.closest<HTMLElement>("div") || destino : destino.closest<HTMLElement>("label, div") || destino;
+  bloque.scrollIntoView({ behavior: "smooth", block: "center" });
+  bloque.classList.add("ring-4", "ring-red-600/50", "rounded-xl");
+  window.setTimeout(() => bloque.classList.remove("ring-4", "ring-red-600/50"), 1800);
+  const campo = destino.matches("input, select") ? destino : bloque.querySelector<HTMLElement>("input, select");
+  window.setTimeout(() => campo?.focus({ preventScroll: true }), 450);
+}
+
 const camposPendientes = [
   {
     nombre: "Tu nombre",
@@ -3001,18 +3036,21 @@ return (
       <div className="mt-4 space-y-2">
         {camposPendientes.map(
           (campo) => (
-            <div
+            <button
+              type="button"
               key={campo.nombre}
-              className="flex items-center gap-3 text-sm text-[var(--text-main)]"
+              onClick={() => irACampo(campo.nombre)}
+              className="flex w-full items-center gap-3 rounded-lg px-1 py-0.5 text-left text-sm text-[var(--text-main)] transition hover:bg-red-600/10"
             >
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-red-600 text-[10px] font-bold text-red-600">
                 !
               </span>
 
-              <span>
+              <span className="flex-1 underline decoration-red-600/40 underline-offset-4">
                 {campo.nombre}
               </span>
-            </div>
+              <span className="text-xs font-bold text-red-600">Ir ↑</span>
+            </button>
           )
         )}
       </div>

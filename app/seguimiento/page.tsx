@@ -1385,7 +1385,7 @@ function datosTecnicosPresupuesto(
 )}
 
 {resultado && (
-  <div className="mt-12 w-full max-w-4xl px-6 py-10 text-left sm:px-10">
+  <div className="mt-12 w-full max-w-4xl px-0 py-10 text-left sm:px-10">
     <p className="mb-2 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Número de pedido
     </p>
@@ -1426,7 +1426,7 @@ function datosTecnicosPresupuesto(
     resultado.beneficios?.codigos
   ) &&
   resultado.beneficios.codigos.length > 0 && (
-    <div className="mb-6 rounded-2xl border border-[var(--border-color)] p-6">
+    <div className="mb-6 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
       <p className="text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
         Beneficios disponibles
       </p>
@@ -1488,7 +1488,7 @@ function datosTecnicosPresupuesto(
 
     {resultado.fidelidad?.habilitada &&
   !resultado.puntos?.habilitados && (
-  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
 
     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -1560,7 +1560,7 @@ function datosTecnicosPresupuesto(
       ) && (
         <div className="mt-7 border-t border-[var(--border-color)] pt-6">
 
-          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          <p className="mb-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
             Recompensas
           </p>
 
@@ -1649,7 +1649,7 @@ function datosTecnicosPresupuesto(
   "Terminado",
   "Entregado",
 ].includes(resultado.estado) && (
-  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
     <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
   {resultado.estado === "Presupuestado"
     ? "Presupuesto"
@@ -1921,7 +1921,7 @@ disabled={
   resultado.presupuestos.length === 0 ||
   resultado.presupuestos.some((p: any) => String(p.seleccionado).toLowerCase() === "sí")) && (
   <>
-    <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+    <p className="mb-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
       Total a pagar
     </p>
 
@@ -1939,17 +1939,6 @@ resultado.precio !== "Pendiente"
 )}
 </div>
 
-{/* Productos de la tienda para sumar al pedido: desde que llega hasta que elige cómo pagar. */}
-{(resultado.estado === "Recibido" ||
-  (resultado.estado === "Presupuestado" &&
-    (!resultado.metodoPago ||
-      resultado.metodoPago === "Sin seleccionar"))) && (
-    <ExtrasPresupuesto
-      pedido={resultado.pedido}
-      codigo={codigo}
-      onCambio={() => void actualizarPedidoSilenciosamente()}
-    />
-  )}
 
 {(!resultado.metodoPago ||
   resultado.metodoPago === "Sin seleccionar") &&
@@ -1963,7 +1952,7 @@ resultado.precio !== "Pendiente"
     )) && (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        <p className="mb-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
           Elegí cómo querés pagar
         </p>
 
@@ -2193,7 +2182,7 @@ dark:hover:shadow-[0_18px_45px_rgba(199,109,124,0.16)]
             !modalidadPago ||
             guardandoMetodo
           }
-          className={`mt-6 w-full rounded-2xl border px-6 py-4 text-xs font-black uppercase tracking-[0.25em] transition-all ${
+          className={`mt-6 w-full rounded-2xl border px-6 py-4 text-xs font-black uppercase tracking-[0.12em] transition-all ${
   modalidadPago
     ? "border-[#7D0018] bg-gradient-to-r from-[#340A13] to-[#7D0018] text-[#B9D3E2] shadow-[0_12px_35px_rgba(52,10,19,0.35)] hover:-translate-y-0.5 hover:shadow-[0_16px_45px_rgba(52,10,19,0.42)]"
     : "cursor-not-allowed border-[#87A4B5]/50 bg-[#eef4f8] text-[#4C6C81] opacity-70 dark:border-[#4C6C81]/35 dark:bg-white/[0.02] dark:text-[#87A4B5] dark:opacity-45"
@@ -2214,8 +2203,8 @@ dark:hover:shadow-[0_18px_45px_rgba(199,109,124,0.16)]
       resultado.estadoPago !== "Esperando validación" &&
       resultado.estadoPago !== "Seña realizada correctamente" &&
       resultado.estadoPago !== "Pago realizado correctamente" && (
-        <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-6">
-          <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        <div className="mt-6 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
+          <p className="mb-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
             Datos bancarios
           </p>
 
@@ -2271,7 +2260,8 @@ Cuenta: 26557312<br />
       rounded-2xl
       border border-[#87A4B5]/55
       bg-[#eef4f8]
-      p-5
+      p-4
+      sm:p-5
       shadow-[0_10px_26px_rgba(37,67,93,0.08)]
 
       dark:border-[#4C6C81]/40
@@ -2609,8 +2599,8 @@ aplicada al pedido.
 
 
 
-          <div className="seguimiento-presupuesto-elegido rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+          <div className="seguimiento-presupuesto-elegido rounded-2xl border-2 border-dashed border-[var(--border-color)] px-4 py-6 text-center sm:px-6 sm:py-10">
+            <p className="text-xs font-bold uppercase tracking-[0.12em] text-red-600">
               Subir comprobante
             </p>
 
@@ -2618,7 +2608,7 @@ aplicada al pedido.
               JPG, PNG o PDF
             </p>
 
-            <label className="mt-6 inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+            <label className="mt-6 inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white">
               Seleccionar archivo
 
               <input
@@ -2639,7 +2629,7 @@ aplicada al pedido.
                 type="button"
                 onClick={subirComprobante}
                 disabled={subiendoArchivo}
-                className="seguimiento-puntos mt-6 rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+                className="seguimiento-puntos mt-6 rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
               >
                 {subiendoArchivo ? "Enviando..." : "Enviar comprobante"}
               </button>
@@ -2655,11 +2645,11 @@ aplicada al pedido.
       )}
 
 {resultado.metodoPago === "Transferencia" && (
-  <div className="mt-8 rounded-2xl border border-[var(--border-color)] p-6">
+  <div className="mt-8 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
 
     <div className="mb-6 flex items-center justify-between gap-4">
       <div>
-        <p className="text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+        <p className="text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
           Resumen de pago
         </p>
 
@@ -2716,7 +2706,7 @@ aplicada al pedido.
       resultado.saldoConfirmado !== "Sí" &&
       !resultado.comprobanteSaldo && (
         <div className="mt-6 border-t border-[var(--border-color)] pt-6">
-          <p className="mb-2 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+          <p className="mb-2 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
             Resta pagar
           </p>
 
@@ -2940,7 +2930,7 @@ aplicada al pedido.
             <button
               type="button"
               onClick={() => setMostrarSaldo(true)}
-              className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white"
+              className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white"
             >
               Pagar presupuesto restante
             </button>
@@ -2958,7 +2948,7 @@ aplicada al pedido.
                 Concepto: {resultado.pedido} - Saldo
               </p>
 
-              <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white">
+              <label className="inline-block cursor-pointer rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white">
                 Seleccionar comprobante
 
                 <input
@@ -2980,7 +2970,7 @@ aplicada al pedido.
                   type="button"
                   onClick={subirComprobanteSaldo}
                   disabled={subiendoArchivo}
-                  className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+                  className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
                 >
                   {subiendoArchivo
                     ? "Enviando..."
@@ -2993,7 +2983,7 @@ aplicada al pedido.
       )}
 
     <div className="mt-6 border-t border-[var(--border-color)] pt-6">
-      <p className="mb-4 text-xs uppercase tracking-[0.25em] text-[var(--text-muted)]">
+      <p className="mb-4 text-xs uppercase tracking-[0.12em] text-[var(--text-muted)]">
         Estado del pago
       </p>
 
@@ -3102,7 +3092,7 @@ aplicada al pedido.
 )}
 
 {!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (
-  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-6">
+  <div className="mb-12 rounded-2xl border border-[var(--border-color)] p-4 sm:p-6">
     <p className="mb-4 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
       Código de descuento o premio
     </p>
@@ -3133,7 +3123,7 @@ aplicada al pedido.
       type="button"
       onClick={aplicarCodigoDescuento}
       disabled={aplicandoDescuento}
-      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
     >
       {aplicandoDescuento ? "Aplicando..." : "Aplicar código"}
     </button>
@@ -3273,7 +3263,7 @@ aplicada al pedido.
     </p>
 
     <label className="mb-5 block cursor-pointer rounded-2xl border-2 border-dashed border-[var(--border-color)] px-6 py-10 text-center transition hover:border-red-600">
-  <p className="text-xs font-bold uppercase tracking-[0.25em] text-red-600">
+  <p className="text-xs font-bold uppercase tracking-[0.12em] text-red-600">
     Subir archivos
   </p>
 
@@ -3298,7 +3288,7 @@ aplicada al pedido.
     <button
       onClick={subirArchivoAdicional}
       disabled={subiendoArchivo}
-      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
+      className="w-full rounded-2xl border border-red-600 px-6 py-4 text-xs font-bold uppercase tracking-[0.12em] text-red-600 transition hover:bg-red-600 hover:text-white disabled:opacity-50"
     >
       {subiendoArchivo ? "Enviando..." : "Enviar archivos"}
     </button>
@@ -3323,6 +3313,18 @@ aplicada al pedido.
     </p>
   </div>
 )}
+
+{/* Productos de la tienda para sumar al pedido (abajo y plegados): desde que llega hasta que elige cómo pagar. */}
+{(resultado.estado === "Recibido" ||
+  (resultado.estado === "Presupuestado" &&
+    (!resultado.metodoPago ||
+      resultado.metodoPago === "Sin seleccionar"))) && (
+    <ExtrasPresupuesto
+      pedido={resultado.pedido}
+      codigo={codigo}
+      onCambio={() => void actualizarPedidoSilenciosamente()}
+    />
+  )}
 
 {resultado.historial && (
   <div className="border-t border-[var(--border-color)] pt-8">

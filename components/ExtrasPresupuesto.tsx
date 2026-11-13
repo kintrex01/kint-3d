@@ -71,6 +71,8 @@ export default function ExtrasPresupuesto({
   const [guardando, setGuardando] = useState("");
   const [error, setError] = useState("");
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
+  // Plegado: se ven 2 productos y el resto con «Ver los N productos».
+  const [verTodos, setVerTodos] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -194,8 +196,9 @@ export default function ExtrasPresupuesto({
       )}
 
       {datos.editable && datos.productos.length > 0 && (
+        <>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {datos.productos.map((producto) => {
+          {(verTodos ? datos.productos : datos.productos.slice(0, 2)).map((producto) => {
             const cadena = producto.cadenas.length
               ? cadenas[producto.nombre] || ""
               : "";
@@ -305,14 +308,14 @@ export default function ExtrasPresupuesto({
                         type="button"
                         onClick={() => cambiarCantidad(producto.nombre, cadena, 1)}
                         disabled={Boolean(guardando) || faltaCadena || lleno}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-red-600 px-3 text-[11px] font-black uppercase tracking-[0.12em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-red-600 px-2 text-xs font-black text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {guardando === clave ? (
                           <LoaderCircle size={13} className="animate-spin" />
                         ) : (
                           <Plus size={13} />
                         )}
-                        {faltaCadena ? "Elegí la cadena" : "Agregar"}
+                        {faltaCadena ? "Elegí cadena" : "Agregar"}
                       </button>
                     )}
                   </div>
@@ -321,6 +324,17 @@ export default function ExtrasPresupuesto({
             );
           })}
         </div>
+        {datos.productos.length > 2 && (
+          <button
+            type="button"
+            onClick={() => setVerTodos((actual) => !actual)}
+            aria-expanded={verTodos}
+            className="mt-3 w-full rounded-xl border border-[var(--border-color)] px-4 py-3 text-sm font-bold text-[var(--text-main)] transition hover:border-red-600"
+          >
+            {verTodos ? "Ver menos ▴" : `Ver los ${datos.productos.length} productos ▾`}
+          </button>
+        )}
+        </>
       )}
 
       {datos.total > 0 && (
