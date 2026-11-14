@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CargandoResenas from "./CargandoResenas";
+import InsigniaTop from "./InsigniaTop";
 
 type Resena = {
   fecha?: string;
@@ -10,6 +11,7 @@ type Resena = {
   estrellas: number;
   comentario: string;
   insignia: string;
+  topKint?: number; // 1, 2 o 3: está en el podio de Top Kint
   fotoProyecto?: string;
   fotos?: string[];
   likes: number;
@@ -599,14 +601,19 @@ const fotosProyecto = enlacesFotos
 
                 <div className="flex items-start justify-between gap-5">
                   <div>
-                    <h3 className="text-lg font-black text-[var(--text-main)]">
-                      {resena.nombre || "Cliente de Kint 3D"}
+                    <h3 className="flex items-center gap-2 text-lg font-black text-[var(--text-main)]">
+                      {resena.topKint ? <InsigniaTop puesto={resena.topKint} tamano="md" /> : null}
+                      <span className="min-w-0">{resena.nombre || "Cliente de Kint 3D"}</span>
                     </h3>
 
                     <div className="mt-3 flex flex-wrap items-center gap-2">
   <span className="inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-500">
     ✓ Compra verificada
   </span>
+
+  {resena.topKint ? (
+    <InsigniaTop puesto={resena.topKint} tamano="xs" conTexto />
+  ) : null}
 
   {resena.insignia && (
     <span

@@ -3,7 +3,7 @@ import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
@@ -1037,13 +1037,55 @@ useEffect(() => {
     return;
   }
   if (!mostrarBoquilla && boquilla !== boquillaPorDefecto) setBoquilla(boquillaPorDefecto);
-  else if (mostrarBoquilla && !boquilla) setBoquilla("Que Kint 3D decida");
 }, [cargandoConfiguracion, mostrarBoquilla, boquilla, boquillaPorDefecto, codigoEspecial]);
 
+/*
+ * Lo que viene elegido: lo decide el dueño en Configuración › Cotizar
+ * («Que elijan» = vacío, lo tiene que elegir el cliente).
+ */
+function predeterminados() {
+  const leer = (clave: string) => {
+    const valor = String(configuracion[clave]?.valor ?? "").trim();
+    return !valor || valor === "Que elijan" ? "" : valor;
+  };
+  const escalaElegida = leer("cotizar_escala");
+  const colorElegido = leer("cotizar_color");
+  const armadoElegido = leer("cotizar_armado");
+  const boquillaElegida = leer("cotizar_boquilla");
+  return {
+    escala: /^1:\d+$|^No es necesario$/.test(escalaElegida) ? escalaElegida : "",
+    color: coloresDisponibles.some((item) => item.nombre === colorElegido) ? [colorElegido] : [],
+    armado: !armadoHabilitado
+      ? "No requiero este servicio"
+      : armadoElegido === "Sí"
+      ? "Sí, quiero incluir este servicio"
+      : armadoElegido === "No"
+      ? "No requiero este servicio"
+      : "",
+    boquilla: !mostrarBoquilla
+      ? boquillaPorDefecto
+      : boquillaElegida === "0.2"
+      ? "0.2 mm — Máximo detalle"
+      : boquillaElegida === "0.4"
+      ? "0.4 mm — Mejor equilibrio"
+      : boquillaElegida === "Que Kint 3D decida"
+      ? "Que Kint 3D decida"
+      : "",
+  };
+}
+
+// Una sola vez al cargar la configuración (sin pisar lo que ya venga de «repetir pedido»).
+const predeterminadosPuestos = useRef(false);
 useEffect(() => {
-  if (cargandoConfiguracion) return;
-  if (armadoHabilitado && !armado) setArmado("No requiero este servicio");
-}, [cargandoConfiguracion, armadoHabilitado, armado]);
+  if (cargandoConfiguracion || predeterminadosPuestos.current) return;
+  predeterminadosPuestos.current = true;
+  const inicial = predeterminados();
+  setEscala((actual) => actual || inicial.escala);
+  setColor((actual) => (actual.length ? actual : inicial.color));
+  setArmado((actual) => actual || inicial.armado);
+  setBoquilla((actual) => actual || inicial.boquilla);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [cargandoConfiguracion]);
 
 useEffect(() => {
   if (colorUnico && (color.length !== 1 || color[0] !== colorUnico)) setColor([colorUnico]);
@@ -1808,12 +1850,16 @@ setPuntosDisponibles(0);
 setTelefono("");
     setFechaEntrega("");
     setDiasEntrega([]);
-    setEscala("");
-    setEscalaPersonalizada("");
-    setColor([]);
-    setArmado("");
-    setAlisado("No requiero este servicio");
-    setBoquilla("");
+    {
+      // De vuelta a lo que viene elegido (Configuración › Cotizar).
+      const inicial = predeterminados();
+      setEscala(inicial.escala);
+      setEscalaPersonalizada("");
+      setColor(inicial.color);
+      setArmado(inicial.armado);
+      setAlisado("No requiero este servicio");
+      setBoquilla(inicial.boquilla);
+    }
 setComentarios("");
 setCodigoDescuento("");
 setExtras([]);

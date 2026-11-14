@@ -53,6 +53,7 @@ import { unidadConfig } from "@/components/admin/unidadesConfig";
 import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
 import CodigosEspeciales from "@/components/admin/CodigosEspeciales";
 import { AgregarFilamento, AgregarHito, BorrarConfig, EditarFilamento } from "@/components/admin/AgregarConfig";
+import { CLAVES_TOP_KINT, ConfigTopKint, PredeterminadosCotizar } from "@/components/admin/ConfigEspeciales";
 
 /* ------------------------------------------------------------------ */
 /* Textos                                                              */
@@ -95,6 +96,14 @@ const DESCRIPCIONES: Record<string, string> = {
     "Estado en el que se acreditan los puntos (dejá «Entregado»)",
   top_kint: "Muestra el ranking público Top Kint",
   top_kint_periodo: "Período del ranking: Histórico, Anual o Semestral",
+  top_kint_cantidad: "Cuántos clientes se ven en el ranking (3, 5 o 10)",
+  top_kint_celular: "El ranking también se ve en el celular",
+  top_kint_puntos: "El ranking muestra los puntos de cada uno",
+  top_kint_insignias: "Insignias de oro, plata y bronce para los 3 primeros",
+  cotizar_escala: "Escala que viene elegida en /cotizar («Que elijan» = vacío)",
+  cotizar_color: "Color que viene elegido en /cotizar («Que elijan» = vacío)",
+  cotizar_armado: "Armado que viene elegido en /cotizar: Sí, No o «Que elijan»",
+  cotizar_boquilla: "Boquilla que viene elegida en /cotizar (0.2, 0.4, Que Kint 3D decida o «Que elijan»)",
   fidelidad:
     "Cupones por cantidad de pedidos (no corre si Puntos está prendido)",
   fidelidad_vencimiento: "Días que dura el cupón de fidelidad",
@@ -225,6 +234,7 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
   Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
   Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
   Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
+  Cotizar: { icono: ClipboardList, color: "#0ea5e9", detalle: "Lo que viene elegido en el formulario de /cotizar" },
   General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
 };
 
@@ -509,17 +519,26 @@ export default function ConfiguracionAdmin() {
               <p className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Giros de regalo</p>
               <GirosRuleta />
             </>
+          ) : elegida === "Cotizar" ? (
+            <>
+              <CabeceraSeccion titulo="Cotizar" />
+              <PredeterminadosCotizar filas={filas} guardar={guardar} />
+            </>
           ) : (
             <>
               <SeccionConfig
                 titulo={elegida}
-                filas={todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []}
+                filas={(todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []).filter(
+                  // El Top Kint tiene su propia tarjeta (abajo).
+                  (fila) => !CLAVES_TOP_KINT.includes(fila.clave)
+                )}
                 todasLasFilas={filas}
                 optimistas={optimistas}
                 onToggle={alCambiarToggle}
                 guardar={guardar}
                 onFilas={(nuevas) => setDatos({ filas: nuevas })}
               />
+              {elegida === "Puntos" && <ConfigTopKint filas={filas} guardar={guardar} />}
               {elegida === "Promociones" && <CodigosEspeciales filas={filas} />}
             </>
           )}

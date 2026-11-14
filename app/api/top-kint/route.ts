@@ -20,7 +20,7 @@ export async function GET() {
 
     const url =
       `${baseUrl}` +
-      `?tipo=top_kint&limite=3`;
+      `?tipo=top_kint`;
 
     const response =
   await fetch(url, {

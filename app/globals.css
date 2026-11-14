@@ -1039,3 +1039,34 @@ html[data-fondo="grafito"]:not(.dark) {
   --acento-oscuro: #18181b;
   --acento-fondo: #09090b;
 }
+
+/* Insignia Top Kint (components/InsigniaTop.tsx) */
+.kint-insignia-giro {
+  transform-box: view-box;
+  transform-origin: 50px 54px;
+  animation: kint-insignia-giro 28s linear infinite;
+}
+.kint-insignia-brillo {
+  animation: kint-insignia-brillo 3.8s ease-in-out infinite;
+}
+.kint-insignia-destello {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: kint-insignia-destello 2.6s ease-in-out infinite;
+}
+@keyframes kint-insignia-giro {
+  to { transform: rotate(360deg); }
+}
+@keyframes kint-insignia-brillo {
+  0%, 55% { transform: translateX(0); }
+  100% { transform: translateX(150px); }
+}
+@keyframes kint-insignia-destello {
+  0%, 100% { opacity: 0.1; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kint-insignia-giro,
+  .kint-insignia-brillo,
+  .kint-insignia-destello { animation: none; }
+}

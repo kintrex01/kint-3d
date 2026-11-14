@@ -1,5 +1,6 @@
 "use client";
 
+import InsigniaTop from "@/components/InsigniaTop";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -57,6 +58,7 @@ type Cuenta = {
   telefono: string;
   registro: string;
   topKint: boolean;
+  puestoTop?: number; // 1, 2 o 3 si está en el podio de Top Kint
   puntos: number;
   puntosAcumulados: number;
   valorPunto: number;
@@ -396,12 +398,19 @@ function PanelCuenta({
               {cuenta.registro ? ` · cliente desde ${fecha(cuenta.registro)}` : ""}
             </p>
           </div>
-          {cuenta.topKint && (
+          {cuenta.puestoTop ? (
+            <span className="flex shrink-0 flex-col items-center gap-1">
+              <InsigniaTop puesto={cuenta.puestoTop} tamano="lg" className="-my-3" />
+              <span className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">
+                Top {cuenta.puestoTop} Kint
+              </span>
+            </span>
+          ) : cuenta.topKint ? (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-amber-200">
               <Crown size={12} />
               Top Kint
             </span>
-          )}
+          ) : null}
         </div>
 
         <div className="relative mt-5 grid grid-cols-3 gap-2">
