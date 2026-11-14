@@ -214,7 +214,7 @@ export function SeccionPresupuesto({
   const urgente = pedido.presupuestos.find((opcion) => opcion.urgente);
 
   const motivoConfirmar = elegida
-    ? `El cliente ya eligió «${elegida.opcion || "una opción"}». Si cambiás el presupuesto ahora, lo que ya pasó a Pagos no se actualiza solo.`
+    ? `El cliente ya eligió «${elegida.opcion || "una opción"}». Si todavía no pagó, al guardar el precio nuevo pasa solo a Pagos y a su seguimiento (también la seña si ya eligió cómo pagar).`
     : avanzado
     ? `El pedido ya está en «${pedido.estado}». Normalmente el presupuesto no se toca a esta altura.`
     : "";
