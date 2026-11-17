@@ -5,10 +5,10 @@ import { Printer } from "lucide-react";
 
 /*
  * /cotizar: hasta cuándo está ocupada la impresora. Sale de la cola que
- * arma el dueño en el panel (solo horarios, sin nombres ni pedidos).
+ * arma el dueño en el panel (número de pedido y horarios, sin nombres).
  */
 
-type Bloque = { inicio: string; fin: string; imprimiendo: boolean };
+type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
 type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string };
 
 const ZONA = "America/Montevideo";
@@ -67,7 +67,7 @@ export default function AgendaImpresora() {
   const posicion = (iso: string) => Math.min(100, Math.max(0, ((Date.parse(iso) - desde) / largo) * 100));
 
   return (
-    <div className="mb-3 rounded-2xl border border-orange-500/30 bg-orange-500/[0.07] p-4">
+    <div className="mb-3 min-w-0 overflow-hidden rounded-2xl border border-orange-500/30 bg-orange-500/[0.07] p-4">
       <div className="flex items-center gap-2.5">
         <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
           <Printer size={16} />
@@ -104,10 +104,15 @@ export default function AgendaImpresora() {
 
       <ol className="mt-3 space-y-1">
         {bloques.map((bloque, indice) => (
-          <li key={`${bloque.fin}-${indice}`} className="flex items-center gap-2 text-xs text-[var(--text-main)]">
+          <li key={`${bloque.fin}-${indice}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--text-main)]">
             <span className={`h-2 w-2 shrink-0 rounded-full ${bloque.imprimiendo ? "bg-orange-500" : "bg-orange-400/70"}`} />
-            <span className="shrink-0 whitespace-nowrap font-semibold">{bloque.imprimiendo ? "Imprimiendo" : `Impresión ${indice + 1}`}</span>
-            <span className="ml-auto whitespace-nowrap text-right text-[11px] tabular-nums text-[var(--text-muted)]">
+            <span className="font-black">{bloque.pedido || `Impresión ${indice + 1}`}</span>
+            {bloque.imprimiendo && (
+              <span className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">
+                Imprimiendo
+              </span>
+            )}
+            <span className="ml-auto text-right text-[11px] tabular-nums text-[var(--text-muted)]">
               {bloque.imprimiendo ? "termina" : cuando(bloque.inicio, ahora)} → <span className="font-bold text-[var(--text-main)]">{cuando(bloque.fin, ahora)}</span>
             </span>
           </li>

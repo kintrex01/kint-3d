@@ -1,5 +1,5 @@
 /*
- * Horarios de la impresora para /cotizar (sin números de pedido ni nombres).
+ * Horarios de la impresora para /cotizar (número de pedido y horarios, sin nombres).
  * Sale de la cola que arma el dueño en el panel (ColaImpresion_Kint3D.js).
  */
 export async function GET() {
