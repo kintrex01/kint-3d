@@ -80,7 +80,7 @@ import {
 } from "@/components/admin/pedidos/partes";
 import { SeccionArchivos } from "@/components/admin/pedidos/ArchivosPedido";
 import { colorFilamento } from "@/lib/colores-filamento";
-import { Calculator, Inbox, FileText, CreditCard, BadgeCheck, Printer, PackageCheck, Truck, XCircle } from "lucide-react";
+import { Calculator, Inbox, FileText, CreditCard, BadgeCheck, Printer, PackageCheck, Truck, XCircle, Link2, PenLine } from "lucide-react";
 import {
   SeccionPresupuesto,
   estadoPresupuesto,
@@ -330,6 +330,9 @@ export default function DetallePedidoAdmin({
   const [guardando, setGuardando] = useState(false);
   const [hojaEstado, setHojaEstado] = useState(false);
   const [hojaEntrega, setHojaEntrega] = useState(false);
+  const [hojaCorreo, setHojaCorreo] = useState(false);
+  const [correoNuevo, setCorreoNuevo] = useState("");
+  const [reenviarAlCambiar, setReenviarAlCambiar] = useState(true);
   const [fechaNueva, setFechaNueva] = useState("");
   const [pidiendoCancelar, setPidiendoCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
@@ -453,6 +456,18 @@ export default function DetallePedidoAdmin({
     }
   }
 
+  /* Link para mandarle al cliente: lo abre y ve su pedido en Consultar pedido. */
+  async function copiarSeguimiento() {
+    if (!pedido?.codigo) return;
+    const link = `https://kint3d.com/seguimiento?pedido=${encodeURIComponent(pedido.pedido)}&codigo=${encodeURIComponent(pedido.codigo)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      avisar("Link de seguimiento copiado: pegalo en WhatsApp o en un correo");
+    } catch {
+      window.prompt("Copiá el link de seguimiento:", link);
+    }
+  }
+
   function pedirEstado(estado: EstadoPedidoEditable, avisarIgual = false) {
     if (!pedido) return;
     setHojaEstado(false);
@@ -530,6 +545,61 @@ export default function DetallePedidoAdmin({
       exito: "Saldo confirmado",
       ejecutar: () => accionAdmin("admin_saldo_confirmar", { pedido: pedido.pedido }),
     });
+  }
+
+  /* Etapas con correo para reenviar (como en el Apps Script). */
+  const ETAPAS_REENVIABLES = ["Recibido", "Presupuestado", "En impresión", "Terminado"];
+
+  function pedirReenvio() {
+    if (!pedido) return;
+    const opciones = pedido.presupuestos.filter((opcion) => opcion.precioTotal > 0 || opcion.precioBase > 0).length;
+    setConfirmacion({
+      titulo: "Reenviar correo",
+      mensaje: (
+        <div className="space-y-3">
+          <p>
+            Le mandamos de nuevo el correo de{" "}
+            <span className="font-bold text-[var(--text-main)]">«{pedido.estado}»</span> a{" "}
+            <span className="font-bold text-[var(--text-main)]">{pedido.email}</span>.
+          </p>
+          {pedido.estado === "Presupuestado" && (
+            <p>
+              Va con {opciones === 1 ? "la opción cargada" : `las ${opciones} opciones cargadas`} ahora (si sumaste
+              opciones nuevas, las ve todas).
+            </p>
+          )}
+          <p>Su seguimiento no cambia.</p>
+        </div>
+      ),
+      textoConfirmar: "Reenviar",
+      exito: "Correo reenviado",
+      ejecutar: () => accionAdmin("admin_pedido_reenviar", { pedido: pedido.pedido }),
+    });
+  }
+
+  function abrirCorreo() {
+    setCorreoNuevo(pedido?.email || "");
+    setReenviarAlCambiar(true);
+    setHojaCorreo(true);
+  }
+
+  async function guardarCorreo() {
+    if (!pedido) return;
+    setGuardando(true);
+    try {
+      const respuesta = await accionAdmin("admin_pedido_correo", {
+        pedido: pedido.pedido,
+        email: correoNuevo.trim(),
+        reenviar: reenviarAlCambiar && ETAPAS_REENVIABLES.includes(pedido.estado),
+      });
+      setDatos({ pedido: respuesta.pedido });
+      avisar(respuesta.aviso || "Correo cambiado", /No salió/.test(respuesta.aviso || "") ? "error" : undefined);
+      setHojaCorreo(false);
+    } catch (errorAccion) {
+      avisar(errorAccion instanceof Error ? errorAccion.message : "No se pudo guardar.", "error");
+    } finally {
+      setGuardando(false);
+    }
   }
 
   function abrirEntrega() {
@@ -716,6 +786,36 @@ export default function DetallePedidoAdmin({
         </div>
       </div>
 
+        {pedido.codigo && (
+          <button
+            type="button"
+            onClick={() => void copiarSeguimiento()}
+            className={`${claseEnlaceBoton} mt-2 w-full`}
+          >
+            <Link2 size={16} />
+            Copiar link de seguimiento
+          </button>
+        )}
+
+        {!cancelado && pedido.estado !== "Entregado" && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button type="button" onClick={abrirCorreo} className={claseEnlaceBoton}>
+              <PenLine size={16} />
+              Cambiar correo
+            </button>
+            <button
+              type="button"
+              onClick={pedirReenvio}
+              disabled={!pedido.email || !ETAPAS_REENVIABLES.includes(pedido.estado)}
+              title={ETAPAS_REENVIABLES.includes(pedido.estado) ? undefined : "En esta etapa no hay correo para reenviar"}
+              className={`${claseEnlaceBoton} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <Send size={16} />
+              Reenviar correo
+            </button>
+          </div>
+        )}
+
       <div className="mt-3">
         <ProgresoEstados estado={pedido.estado} />
       </div>
@@ -871,13 +971,16 @@ export default function DetallePedidoAdmin({
         <CuadroDato icono={<Palette size={16} />} color="#f472b6" titulo="Colores">
           {pedido.color ? (
             <span className="flex flex-wrap gap-x-2 gap-y-1">
-              {pedido.color.split(/\s*,\s*/).filter(Boolean).map((color) => (
-                <span key={color} className="inline-flex items-center gap-1">
+              {(
+                pedido.colores ??
+                pedido.color.split(/\s*,\s*/).filter(Boolean).map((nombre) => ({ nombre, visible: nombre, hex: "" }))
+              ).map((color) => (
+                <span key={color.nombre} className="inline-flex items-center gap-1">
                   <span
                     className="h-3 w-3 rounded-full ring-1 ring-black/20 dark:ring-white/25"
-                    style={{ background: colorFilamento(color) }}
+                    style={{ background: color.hex || colorFilamento(color.nombre) }}
                   />
-                  {color}
+                  {color.visible}
                 </span>
               ))}
             </span>
@@ -1109,6 +1212,55 @@ export default function DetallePedidoAdmin({
             );
           })}
         </ul>
+      </Hoja>
+
+      {/* Cambiar el correo del cliente */}
+      <Hoja
+        abierta={hojaCorreo}
+        onCerrar={() => {
+          if (!guardando) setHojaCorreo(false);
+        }}
+        titulo="Correo del cliente"
+        pie={
+          <div className="grid grid-cols-2 gap-3">
+            <Boton onClick={() => setHojaCorreo(false)} disabled={guardando}>
+              Cancelar
+            </Boton>
+            <Boton
+              variante="principal"
+              onClick={guardarCorreo}
+              cargando={guardando}
+              disabled={!correoNuevo.trim() || correoNuevo.trim().toLowerCase() === (pedido.email || "").toLowerCase()}
+            >
+              Guardar
+            </Boton>
+          </div>
+        }
+      >
+        <Campo etiqueta="Correo nuevo" ayuda="Por si lo escribió mal. Con este correo también consulta su pedido.">
+          <input
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            value={correoNuevo}
+            onChange={(evento) => setCorreoNuevo(evento.target.value)}
+            className={`${claseInput} h-12`}
+          />
+        </Campo>
+        {ETAPAS_REENVIABLES.includes(pedido.estado) && (
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm text-[var(--text-main)]">
+            <input
+              type="checkbox"
+              checked={reenviarAlCambiar}
+              onChange={(evento) => setReenviarAlCambiar(evento.target.checked)}
+              className="mt-0.5 h-5 w-5 accent-[var(--kint-selected-border)]"
+            />
+            <span>
+              Mandarle el correo de «{pedido.estado}» al correo nuevo
+              {pedido.estado === "Presupuestado" ? " (con las opciones del presupuesto)" : ""}.
+            </span>
+          </label>
+        )}
       </Hoja>
 
       {/* Fecha de entrega */}

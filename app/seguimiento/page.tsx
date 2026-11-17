@@ -4,7 +4,7 @@ import PasosPedido from "@/components/PasosPedido";
 import Link from "next/link";
 
 import { createClient } from "@supabase/supabase-js";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import ExtrasPresupuesto from "@/components/ExtrasPresupuesto";
 import SeguimientoTienda, {
@@ -97,8 +97,21 @@ const [archivoEliminando, setArchivoEliminando] =
   useState("");
   
   const searchParams = useSearchParams();
+  // El link que puso la propia página al consultar (no se vuelve a buscar).
+  const linkPropio = useRef("");
+
+  /*
+   * Al consultar, el número y el código (o correo) quedan en la barra del
+   * navegador: copiás el link, lo pegás y se abre ese pedido.
+   */
+  function dejarEnElLink(parametros: Record<string, string>) {
+    const query = new URLSearchParams(parametros).toString();
+    linkPropio.current = query;
+    window.history.replaceState(null, "", `${window.location.pathname}?${query}`);
+  }
 
 useEffect(() => {
+  if (linkPropio.current && searchParams.toString() === linkPropio.current) return;
   // Link de los correos de la tienda: ?n=TND-0001&e=email.
   const numeroUrl = (
     searchParams.get("n") ||
@@ -260,6 +273,7 @@ function cambiarTema() {
 
       try {
         setCompraTienda(await buscarCompraTienda(pedido, email));
+        dejarEnElLink({ n: pedido.trim().toUpperCase(), e: email.trim() });
       } catch (error: unknown) {
         setError(
           error instanceof Error
@@ -292,6 +306,7 @@ function cambiarTema() {
       }
 
       setResultado(data);
+      dejarEnElLink({ pedido: pedido.trim().toUpperCase(), codigo: codigo.trim() });
     } catch (error: any) {
       setError(error.message || "Error al consultar el pedido.");
     }

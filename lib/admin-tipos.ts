@@ -108,7 +108,9 @@ export type ArchivoPedido = {
 export type PedidoDetalle = PedidoResumen & {
   telefonoCuenta?: string; // celular de la cuenta del cliente (Clientes › Teléfono)
   escala: string;
-  color: string;
+  color: string; // nombres internos («Violeta Beto, Lila»): los que se validan
+  // Cómo se ven: el nombre que le pusiste en el panel y su color.
+  colores?: { nombre: string; visible: string; hex: string }[];
   armado: string;
   alisado: string;
   boquilla: string;
@@ -363,6 +365,16 @@ export type AccionesAdmin = {
   admin_pedido_cancelar: {
     pedido: { pedido: string };
     respuesta: { pedido: string; aviso: string };
+  };
+  /* Cambia el correo del cliente (Pedidos F y Gestión D); reenviar: le manda el correo de la etapa. */
+  admin_pedido_correo: {
+    pedido: { pedido: string; email: string; reenviar?: boolean };
+    respuesta: { pedido: PedidoDetalle; aviso: string };
+  };
+  /* Reenvía el correo de la etapa actual (en Presupuestado, con todas las opciones cargadas). */
+  admin_pedido_reenviar: {
+    pedido: { pedido: string };
+    respuesta: { pedido: PedidoDetalle; aviso: string };
   };
   admin_pedido_estado: {
     // avisar: false = vuelve atrás sin mandarle correo al cliente.
@@ -758,6 +770,8 @@ export const ACCIONES_ADMIN = [
   "admin_pedidos_listar",
   "admin_pedido_detalle",
   "admin_pedido_estado",
+  "admin_pedido_correo",
+  "admin_pedido_reenviar",
   "admin_pedido_cancelar",
   "admin_pago_confirmar",
   "admin_saldo_confirmar",

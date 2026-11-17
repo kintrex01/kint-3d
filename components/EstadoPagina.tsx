@@ -34,6 +34,29 @@ function obtenerTexto(valor: unknown) {
   return String(valor || "").trim();
 }
 
+/*
+ * «Fecha reapertura» puede ser una fecha o un interruptor: prendido, se
+ * muestra lo que diga su mensaje; apagado, no se muestra ninguna fecha.
+ */
+function fechaDeReapertura(opcion?: OpcionConfiguracion) {
+  const valor = obtenerTexto(opcion?.valor).toLowerCase();
+  if (/^(des)?habilitad[ao]$/.test(valor)) {
+    return opcionHabilitada(opcion) ? formatearFecha(opcion?.comentario) : "";
+  }
+  return formatearFecha(opcion?.valor);
+}
+
+/* Lo que ya cerró en esta visita (si cambia el aviso, vuelve a salir). */
+const CLAVE_AVISO_CERRADO = "kint_aviso_cerrado";
+
+function avisoYaCerrado(firma: string) {
+  try {
+    return sessionStorage.getItem(CLAVE_AVISO_CERRADO) === firma;
+  } catch {
+    return false;
+  }
+}
+
 function formatearFecha(valor: unknown) {
   const texto = obtenerTexto(valor);
 
@@ -99,7 +122,12 @@ export default function EstadoPagina() {
               .mostrar_aviso_emergente
           );
 
-        if (mostrarAviso) {
+        const firma = [
+          obtenerTexto(configuracionRecibida.aviso_titulo?.valor),
+          obtenerTexto(configuracionRecibida.mostrar_aviso_emergente?.comentario),
+        ].join("|");
+
+        if (mostrarAviso && !avisoYaCerrado(firma)) {
   setAvisoVisible(true);
 }
       } catch {
@@ -152,13 +180,23 @@ export default function EstadoPagina() {
     mensajeEstado;
 
   const fechaReapertura =
-    formatearFecha(
+    fechaDeReapertura(
       configuracion?.fecha_reapertura
-        ?.valor
     );
+
+  // Título del aviso: el que escribiste en Configuración (vacío = sin título).
+  const tituloAviso = obtenerTexto(configuracion?.aviso_titulo?.valor);
 
   function cerrarAviso() {
   setAvisoVisible(false);
+  try {
+    sessionStorage.setItem(
+      CLAVE_AVISO_CERRADO,
+      [tituloAviso, obtenerTexto(configuracion?.mostrar_aviso_emergente?.comentario)].join("|")
+    );
+  } catch {
+    /* sin almacenamiento: vuelve a salir al recargar */
+  }
 }
 
 if (cotizacionBloqueada) {
@@ -184,7 +222,7 @@ if (!avisoVisible) {
 return (
   <AvisoKint
     tamano="compacto"
-    titulo="Aviso importante"
+    titulo={tituloAviso}
     mensaje={mensajeAviso}
     fecha={fechaReapertura}
     etiquetaFecha="Reapertura"

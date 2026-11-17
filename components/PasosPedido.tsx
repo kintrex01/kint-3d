@@ -36,7 +36,8 @@ export default function PasosPedido({ estado }: { estado: string }) {
             const anterior = ETAPAS_PEDIDO[indice - 1];
             return (
               <div key={etapa.estado} className="flex min-w-0 flex-col items-center">
-                <div className="flex w-full items-center">
+                {/* Misma altura para todos (el actual es más grande): la línea queda derecha. */}
+                <div className="flex h-10 w-full items-center">
                   <div
                     className="h-[4px] flex-1 rounded-full"
                     style={{

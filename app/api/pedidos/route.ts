@@ -275,6 +275,7 @@ telefono: String(body.telefono || ""),
         : [],
       escala: String(body.escala || ""),
       color: String(body.color || ""),
+      colorVisible: String(body.colorVisible || body.color || "").slice(0, 300),
       armado: String(body.armado || ""),
       alisado: String(body.alisado || ""),
       boquilla: String(body.boquilla || ""),
@@ -639,7 +640,7 @@ if (archivosRegistrados.length > 0) {
             : "Sin fecha"
         }</p>
         <p><strong>Escala:</strong> ${escaparHtml(payload.escala)}</p>
-        <p><strong>Color:</strong> ${escaparHtml(payload.color)}</p>
+        <p><strong>Color:</strong> ${escaparHtml(payload.colorVisible)}</p>
         <p><strong>Armado:</strong> ${escaparHtml(payload.armado)}</p>
         <p><strong>Alisado:</strong> ${escaparHtml(payload.alisado)}</p>
         <p><strong>Boquilla:</strong> ${escaparHtml(payload.boquilla)}</p>

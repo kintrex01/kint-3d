@@ -1799,6 +1799,10 @@ if (aEnviar.length > 0) {
         fechasEntrega: diasEntrega,
         escala: escalaFinal,
         color: color.join(", "),
+        // Para el correo: el nombre que ve el cliente (no el interno).
+        colorVisible: color
+          .map((nombre) => filamentosConfigurados.find((item) => item.nombre === nombre)?.etiqueta || nombre)
+          .join(", "),
         armado: armadoHabilitado
   ? armado
   : "No requiero este servicio",

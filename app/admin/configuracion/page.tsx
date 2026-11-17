@@ -64,7 +64,9 @@ const DESCRIPCIONES: Record<string, string> = {
   estado_pagina: "Si está apagado, /cotizar muestra «Cotizaciones pausadas»",
   mostrar_aviso_emergente:
     "Muestra un aviso emergente en toda la web con el mensaje",
-  fecha_reapertura: "Fecha que se anuncia en el aviso y en la pausa",
+  fecha_reapertura:
+    "Prendido: el aviso y la pausa muestran la fecha que escribas en el mensaje (ej. «lunes 24 de noviembre»)",
+  aviso_titulo: "Título del aviso emergente (vacío = sin título, solo el mensaje)",
   pedido_urgente: "Ofrece la opción de pedido urgente en /cotizar",
   pedido_urgente_valor: "Recargo en % (escribí 20, no 0,2)",
   pedido_urgente_cupos:
@@ -226,7 +228,7 @@ type InfoSeccion = { icono: LucideIcon; color: string; detalle: string };
 
 const INFO_SECCIONES: Record<string, InfoSeccion> = {
   "Control general": { icono: Power, color: "#ef4444", detalle: "Prender o pausar la web y los avisos" },
-  Pedidos: { icono: ClipboardList, color: "#3b82f6", detalle: "Pedidos urgentes, recargo y cupos" },
+  Pedidos: { icono: ClipboardList, color: "#3b82f6", detalle: "Urgentes, seña, precio estimado y lo que viene elegido en /cotizar" },
   Tienda: { icono: Store, color: "#8b5cf6", detalle: "Precios por mayor de la tienda" },
   Servicios: { icono: Wrench, color: "#f59e0b", detalle: "Armado, alisado y boquillas en /cotizar" },
   Automatizaciones: { icono: Bot, color: "#06b6d4", detalle: "Cosas que se hacen solas" },
@@ -234,7 +236,6 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
   Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
   Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
   Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
-  Cotizar: { icono: ClipboardList, color: "#0ea5e9", detalle: "Lo que viene elegido en el formulario de /cotizar" },
   General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
 };
 
@@ -322,7 +323,8 @@ export default function ConfiguracionAdmin() {
     const lista: { titulo: string; filas: FilaConfig[] }[] = [];
     for (const fila of filas) {
       if (fila.esSeccion) continue;
-      const titulo = tituloSeccion(fila.seccion);
+      // «Cotizar» (lo que viene elegido) va junto con Pedidos: se configura en el mismo lugar.
+      const titulo = tituloSeccion(fila.seccion) === "Cotizar" ? "Pedidos" : tituloSeccion(fila.seccion);
       let seccion = lista.find((item) => item.titulo === titulo);
       if (!seccion) {
         seccion = { titulo, filas: [] };
@@ -519,18 +521,14 @@ export default function ConfiguracionAdmin() {
               <p className="mb-2 mt-6 text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Giros de regalo</p>
               <GirosRuleta />
             </>
-          ) : elegida === "Cotizar" ? (
-            <>
-              <CabeceraSeccion titulo="Cotizar" />
-              <PredeterminadosCotizar filas={filas} guardar={guardar} />
-            </>
           ) : (
             <>
               <SeccionConfig
                 titulo={elegida}
                 filas={(todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []).filter(
                   // El Top Kint tiene su propia tarjeta (abajo).
-                  (fila) => !CLAVES_TOP_KINT.includes(fila.clave)
+                  // El Top Kint y lo que viene elegido en /cotizar tienen su propia tarjeta (abajo).
+                  (fila) => !CLAVES_TOP_KINT.includes(fila.clave) && !fila.clave.startsWith("cotizar_")
                 )}
                 todasLasFilas={filas}
                 optimistas={optimistas}
@@ -539,6 +537,7 @@ export default function ConfiguracionAdmin() {
                 onFilas={(nuevas) => setDatos({ filas: nuevas })}
               />
               {elegida === "Puntos" && <ConfigTopKint filas={filas} guardar={guardar} />}
+              {elegida === "Pedidos" && <PredeterminadosCotizar filas={filas} guardar={guardar} />}
               {elegida === "Promociones" && <CodigosEspeciales filas={filas} />}
             </>
           )}
