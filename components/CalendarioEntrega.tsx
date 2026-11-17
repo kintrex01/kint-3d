@@ -444,7 +444,7 @@ export default function CalendarioEntrega({
                 : bloqueado
                 ? `Sin entregas${motivo ? `: ${motivo}` : ""}`
                 : feriados.get(iso) ||
-                  (gris ? "Sin facultad: se coordina el envío" : undefined);
+                  (gris ? "Sin facultad: envío a coordinar, con costo extra" : undefined);
 
               return (
                 <button
@@ -519,7 +519,7 @@ export default function CalendarioEntrega({
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-amber-500/40" />
-              Fin de semana o feriado: sin facultad (envío a coordinar)
+              Fin de semana o feriado: sin facultad (envío a coordinar, con costo extra)
             </span>
           </div>
 
@@ -548,8 +548,8 @@ export default function CalendarioEntrega({
       {todosSinFacultad && (
         <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 dark:text-amber-300">
           {elegidos.length > 1
-            ? "En esos días no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp."
-            : "Ese día no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp."}
+            ? "En esos días no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp y tiene un costo extra."
+            : "Ese día no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp y tiene un costo extra."}
         </p>
       )}
     </div>

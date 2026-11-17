@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
+import ColaImpresion from "@/components/admin/ColaImpresion";
 import type { PedidoGeneral } from "@/lib/admin-tipos";
 import {
   Boton,
@@ -161,6 +162,13 @@ export default function TodosLosPedidos() {
         }
       />
 
+      {/* La impresora: al costado en la compu, arriba en el celular. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_270px] lg:items-start lg:gap-5">
+      <div className="min-w-0">
+      <div className="mb-3 lg:hidden">
+        <ColaImpresion />
+      </div>
+
       {datos && totalPorCobrar > 0 && (
         <button
           type="button"
@@ -263,6 +271,12 @@ export default function TodosLosPedidos() {
           ))}
         </ul>
       )}
+
+      </div>
+      <aside className="hidden lg:sticky lg:top-6 lg:block">
+        <ColaImpresion />
+      </aside>
+      </div>
 
       {/* Barra de borrado (con pedidos elegidos). */}
       {seleccionando && elegidos.size > 0 && (

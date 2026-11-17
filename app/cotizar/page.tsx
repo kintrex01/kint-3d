@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
+import AgendaImpresora from "@/components/AgendaImpresora";
 import { marcarPaso } from "@/lib/embudo";
 import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-recordado";
 import { medirSTL } from "@/lib/precio-estimado";
@@ -2410,6 +2411,8 @@ return (
           <p className="mb-3 text-sm text-[var(--text-muted)]">
             Para cuándo la necesitás. Si no tenés fecha, dejalo vacío.
           </p>
+          {/* Hasta cuándo está ocupada la impresora (cola del panel, sin nombres). */}
+          <AgendaImpresora />
           {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
           <div className="rounded-2xl bg-[var(--kint-panel)]">
             <CalendarioEntrega

@@ -225,6 +225,26 @@ export type FilaConfig = {
 
 export type DiaSinEntrega = { fecha: string; motivo: string };
 
+/* Cola de la impresora (hoja «Cola impresión»). Horarios en ISO. */
+export type ItemColaImpresion = {
+  pedido: string;
+  nombre: string;
+  estadoPedido: string;
+  duracionMin: number;
+  inicioFijo: string; // "" = arranca cuando termina el anterior
+  inicio: string;
+  fin: string;
+  estado: "terminada" | "imprimiendo" | "en cola";
+  nota: string;
+  tiempoPresupuesto: string;
+};
+
+export type ColaImpresion = {
+  ahora: string;
+  cola: ItemColaImpresion[];
+  candidatos: { pedido: string; nombre: string; estado: string; duracionMin: number }[];
+};
+
 export type ResenaAdmin = {
   id: string;
   fecha: string; // ISO
@@ -513,6 +533,15 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
   };
 
+  admin_cola_listar: {
+    pedido: SinDatos;
+    respuesta: ColaImpresion;
+  };
+  /* Reemplaza la cola entera (en orden). */
+  admin_cola_guardar: {
+    pedido: { items: { pedido: string; duracionMin: number; inicio: string; nota: string }[] };
+    respuesta: ColaImpresion;
+  };
   admin_dias_listar: {
     pedido: SinDatos;
     respuesta: { dias: DiaSinEntrega[] };
@@ -795,6 +824,8 @@ export const ACCIONES_ADMIN = [
   "admin_extras_ver",
   "admin_extras_guardar",
   "admin_dias_listar",
+  "admin_cola_listar",
+  "admin_cola_guardar",
   "admin_dia_guardar",
   "admin_dia_quitar",
   "admin_resenas_listar",
