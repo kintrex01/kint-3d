@@ -8,6 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import AgendaImpresora from "@/components/AgendaImpresora";
+import VerAgenda from "@/components/VerAgenda";
 import { marcarPaso } from "@/lib/embudo";
 import { correoRecordado, olvidarCorreo, recordarCorreo } from "@/lib/correo-recordado";
 import { medirSTL } from "@/lib/precio-estimado";
@@ -2413,6 +2414,8 @@ return (
           </p>
           {/* Hasta cuándo está ocupada la impresora (cola del panel, sin nombres). */}
           <AgendaImpresora />
+          {/* La agenda completa (FADU, cuándo respondo, impresora) en una ventana. */}
+          <VerAgenda />
           {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
           <div className="rounded-2xl bg-[var(--kint-panel)]">
             <CalendarioEntrega

@@ -20,6 +20,7 @@ import {
   type TouchEvent,
 } from "react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
+import HorariosAgenda from "@/components/admin/HorariosAgenda";
 import {
   ESTADO_CANCELADO,
   type CompraTienda,
@@ -265,6 +266,8 @@ export default function CalendarioAdmin() {
           pueden elegir.
         </p>
       </div>
+
+      <HorariosAgenda />
 
       {dias.cargando || !actual ? (
         <Esqueleto filas={4} />

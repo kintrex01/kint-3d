@@ -225,6 +225,15 @@ export type FilaConfig = {
 
 export type DiaSinEntrega = { fecha: string; motivo: string };
 
+/* Agenda pública: un horario en FADU o de atención (hoja «Agenda horarios»). */
+export type HorarioAgendaAdmin = {
+  tipo: "FADU" | "Atención";
+  dia: string; // "Lunes"… (todas las semanas) o "yyyy-mm-dd" (un día puntual)
+  desde: string; // "09:00"
+  hasta: string; // "13:00"; menor que desde = termina al día siguiente
+  nota: string;
+};
+
 /* Cola de la impresora (hoja «Cola impresión»). Horarios en ISO. */
 export type ItemColaImpresion = {
   pedido: string;
@@ -533,6 +542,15 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
   };
 
+  admin_agenda_listar: {
+    pedido: SinDatos;
+    respuesta: { horarios: HorarioAgendaAdmin[] };
+  };
+  /* Reemplaza todos los horarios. */
+  admin_agenda_guardar: {
+    pedido: { horarios: HorarioAgendaAdmin[] };
+    respuesta: { horarios: HorarioAgendaAdmin[] };
+  };
   admin_cola_listar: {
     pedido: SinDatos;
     respuesta: ColaImpresion;
@@ -826,6 +844,8 @@ export const ACCIONES_ADMIN = [
   "admin_dias_listar",
   "admin_cola_listar",
   "admin_cola_guardar",
+  "admin_agenda_listar",
+  "admin_agenda_guardar",
   "admin_dia_guardar",
   "admin_dia_quitar",
   "admin_resenas_listar",

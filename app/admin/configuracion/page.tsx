@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Bot,
+  CalendarDays,
   ClipboardList,
   ArrowDown,
   ArrowUp,
@@ -67,6 +68,9 @@ const DESCRIPCIONES: Record<string, string> = {
   fecha_reapertura:
     "Prendido: el aviso y la pausa muestran la fecha que escribas en el mensaje (ej. «lunes 24 de noviembre»)",
   aviso_titulo: "Título del aviso emergente (vacío = sin título, solo el mensaje)",
+  agenda: "Muestra la agenda pública (/agenda y «Ver mi agenda» en /cotizar)",
+  agenda_impresora: "La agenda muestra la cola de la impresora",
+  agenda_mensaje: "Texto que se ve arriba de la agenda (vacío = nada)",
   pedido_urgente: "Ofrece la opción de pedido urgente en /cotizar",
   pedido_urgente_valor: "Recargo en % (escribí 20, no 0,2)",
   pedido_urgente_cupos:
@@ -236,6 +240,7 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
   Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
   Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
   Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
+  Agenda: { icono: CalendarDays, color: "#14b8a6", detalle: "Agenda pública: mostrarla, la impresora y el mensaje (los horarios van en Calendario)" },
   General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
 };
 

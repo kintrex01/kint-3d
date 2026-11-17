@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Box,
   Calculator,
+  CalendarClock,
   FileText,
   HelpCircle,
     Home,
@@ -115,6 +116,11 @@ const enlacesPrincipales: EnlaceMenu[] = [
     nombre: "Consultar pedido",
     href: "/seguimiento",
     icono: Package,
+  },
+  {
+    nombre: "Agenda",
+    href: "/agenda",
+    icono: CalendarClock,
   },
 ];
 
