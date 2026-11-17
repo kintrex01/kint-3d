@@ -181,8 +181,8 @@ export default function CalendarioAdmin() {
     if (!guardando) setDiaAbierto(null);
   }, [guardando]);
 
-  async function bloquear(fecha: string) {
-    const texto = motivo.trim();
+  async function bloquear(fecha: string, motivoForzado?: string) {
+    const texto = (motivoForzado ?? motivo).trim();
     const yaBloqueado = bloqueados.has(fecha);
     setGuardando("bloquear");
     try {
@@ -608,9 +608,29 @@ export default function CalendarioAdmin() {
                     )
                   )}
 
+                  {/* Lleno: los clientes lo ven en rojo, con el primer día libre. */}
+                  {!/^lleno/i.test(bloqueados.get(diaAbierto) || "") && (
+                    <button
+                      type="button"
+                      onClick={() => bloquear(diaAbierto, "Lleno: sin cupo")}
+                      disabled={Boolean(guardando)}
+                      className="flex w-full items-center gap-3 rounded-2xl border-2 border-red-600 bg-red-600/10 px-4 py-3 text-left transition hover:bg-red-600/15 disabled:opacity-50"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm font-black text-white">
+                        <Lock size={16} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-black text-red-700 dark:text-red-300">Marcar como lleno</span>
+                        <span className="block text-xs text-[var(--text-muted)]">
+                          En /cotizar y la tienda lo ven en rojo: «ya no hay cupo», con el primer día libre.
+                        </span>
+                      </span>
+                    </button>
+                  )}
+
                   <Campo
                     etiqueta={abiertoBloqueado ? "Motivo" : "Motivo (opcional)"}
-                    ayuda="Es solo para vos, los clientes no lo ven."
+                    ayuda="Es solo para vos, salvo si empieza con «Lleno»: ahí los clientes ven que no hay más cupo."
                   >
                     <input
                       className={claseInput}

@@ -19,7 +19,9 @@ import { useEffect, useState } from "react";
  *   ("me sirve el lunes, el miércoles o el viernes"): quedan en verde.
  *   `valor` es siempre el primero (el que va a la columna de entrega).
  * - Rojo, no se puede elegir: días sin entrega que carga el dueño
- *   (hoja "Días sin entrega" o panel de admin).
+ *   (hoja "Días sin entrega" o panel de admin). Si el motivo empieza con
+ *   «Lleno», el cliente ve que ese día no hay más cupo y cuál es el
+ *   primer día libre (arriba del calendario, si es hoy).
  * - Ámbar, se puede elegir: sábados, domingos y feriados (no hay
  *   facultad, la entrega se coordina por WhatsApp).
  *
@@ -27,7 +29,7 @@ import { useEffect, useState } from "react";
  * horaria del navegador no corra ningún día.
  */
 
-type DiaBloqueado = { fecha: string; motivo: string };
+type DiaBloqueado = { fecha: string; motivo: string; lleno?: boolean };
 type Feriado = { fecha: string; nombre: string };
 
 type Calendario = {
@@ -264,6 +266,30 @@ export default function CalendarioEntrega({
   const bloqueados = new Map(
     calendario.bloqueados.map((dia) => [dia.fecha, dia.motivo])
   );
+  const llenos = new Set(calendario.bloqueados.filter((dia) => dia.lleno).map((dia) => dia.fecha));
+
+  /* Primer día libre después de `iso` (sin bloquear). */
+  function siguienteLibre(iso: string) {
+    const { anio, mes, dia } = partes(iso);
+    for (let paso = 1; paso <= 60; paso++) {
+      const fecha = new Date(Date.UTC(anio, mes, dia + paso));
+      const candidato = aISO(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate());
+      if (candidato > calendario!.hasta) return "";
+      if (!bloqueados.has(candidato)) return candidato;
+    }
+    return "";
+  }
+
+  function textoLibre(iso: string) {
+    const libre = siguienteLibre(iso);
+    if (!libre) return "";
+    const { anio, mes, dia } = partes(iso);
+    const manana = new Date(Date.UTC(anio, mes, dia + 1));
+    const esManana = libre === aISO(manana.getUTCFullYear(), manana.getUTCMonth(), manana.getUTCDate());
+    return `${esManana ? "mañana, " : "el "}${describirFecha(libre)}`;
+  }
+
+  const hoyLleno = llenos.has(calendario.desde);
   const feriados = new Map(
     calendario.feriados.map((dia) => [dia.fecha, dia.nombre])
   );
@@ -333,6 +359,21 @@ export default function CalendarioEntrega({
 
   return (
     <div className="space-y-2">
+      {/* Hoy lleno: se ve antes de abrir el calendario. */}
+      {hoyLleno && (
+        <div role="status" className="flex items-start gap-3 rounded-2xl border-2 border-red-600 bg-red-600/10 px-4 py-3">
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-600 text-white">
+            <X size={15} strokeWidth={3} />
+          </span>
+          <p className="text-sm leading-5 text-[var(--text-main)]">
+            <span className="font-black text-red-600 dark:text-red-400">Hoy ya no hay cupo.</span>{" "}
+            {textoLibre(calendario.desde)
+              ? <>Lo más pronto que podemos entregar es <span className="font-bold">{textoLibre(calendario.desde)}</span>.</>
+              : "Elegí otro día."}
+          </p>
+        </div>
+      )}
+
       {boton}
 
       {abierto && (
@@ -397,7 +438,10 @@ export default function CalendarioEntrega({
               const elegido = elegidos.includes(iso);
               const esHoy = iso === calendario.desde;
 
-              const titulo = bloqueado
+              const lleno = llenos.has(iso);
+              const titulo = lleno
+                ? "Lleno: ya no hay cupo"
+                : bloqueado
                 ? `Sin entregas${motivo ? `: ${motivo}` : ""}`
                 : feriados.get(iso) ||
                   (gris ? "Sin facultad: se coordina el envío" : undefined);
@@ -406,14 +450,25 @@ export default function CalendarioEntrega({
                 <button
                   key={iso}
                   type="button"
-                  disabled={fueraDeRango || bloqueado}
-                  onClick={() => elegir(iso)}
+                  disabled={fueraDeRango || (bloqueado && !lleno)}
+                  onClick={() => {
+                    if (lleno) {
+                      const libre = textoLibre(iso);
+                      setAviso(
+                        `El ${describirFecha(iso)} ya está lleno: no hay más cupo.${libre ? ` Lo más pronto es ${libre}.` : ""}`
+                      );
+                      return;
+                    }
+                    elegir(iso);
+                  }}
                   title={titulo}
                   aria-label={`${describirFecha(iso)}${titulo ? ` (${titulo})` : ""}`}
                   aria-pressed={elegido}
                   className={`relative flex h-9 items-center justify-center rounded-lg text-xs font-bold transition ${
                     elegido
                       ? "bg-emerald-600 text-white shadow-md ring-2 ring-emerald-600/30"
+                      : lleno
+                      ? "cursor-not-allowed bg-red-600 text-white shadow-sm"
                       : bloqueado
                       ? "cursor-not-allowed bg-red-600/15 text-red-600 line-through decoration-2 dark:text-red-400"
                       : fueraDeRango
@@ -431,6 +486,11 @@ export default function CalendarioEntrega({
                   ) : (
                     partes(iso).dia
                   )}
+                  {lleno && (
+                    <span aria-hidden="true" className="absolute bottom-0.5 text-[6.5px] font-black uppercase leading-none tracking-[0.06em] text-white/90">
+                      lleno
+                    </span>
+                  )}
                   {gris && !elegido && !bloqueado && !fueraDeRango && (
                     <span
                       aria-hidden="true"
@@ -447,6 +507,12 @@ export default function CalendarioEntrega({
               <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" />
               Elegido
             </span>
+            {llenos.size > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-sm bg-red-600" />
+                Lleno: no hay más cupo
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-sm bg-red-600/40" />
               Sin entregas
