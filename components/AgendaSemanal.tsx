@@ -15,6 +15,7 @@ export type HorarioAgenda = { tipo: "FADU" | "Atención"; dia: string; desde: st
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
 type Agenda = {
   habilitada: boolean;
+  dias: number;
   ahora: string;
   mensaje: string;
   horarios: HorarioAgenda[];
@@ -111,6 +112,7 @@ export default function AgendaSemanal({ compacta = false }: { compacta?: boolean
           horarios: Array.isArray(data.horarios) ? data.horarios : [],
           impresora: data.impresora?.ok ? data.impresora : null,
           diasSinEntrega: Array.isArray(data.diasSinEntrega) ? data.diasSinEntrega : [],
+          dias: Math.min(31, Math.max(1, Number(data.dias) || 7)),
         });
       })
       .catch(() => activo && setError(true));
@@ -137,7 +139,7 @@ export default function AgendaSemanal({ compacta = false }: { compacta?: boolean
   const ahoraMs = Date.parse(agenda.ahora);
   const hoy = fechaUY(ahoraMs);
   const ahoraMin = Math.round((ahoraMs - inicioDelDia(hoy)) / 60000);
-  const dias = Array.from({ length: 7 }, (_, indice) => sumarDias(hoy, indice));
+  const dias = Array.from({ length: agenda.dias }, (_, indice) => sumarDias(hoy, indice));
   const sinEntrega = new Map(agenda.diasSinEntrega.map((dia) => [dia.fecha, dia.lleno]));
 
   // Ahora mismo

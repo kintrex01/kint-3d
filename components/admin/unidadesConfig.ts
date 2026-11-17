@@ -22,6 +22,9 @@ export const EXCEPCIONES_UNIDAD: Record<string, UnidadConfig> = {
   puntos_minimo_uso: { prefijo: "pts" },
   armado_precio_maximo: { prefijo: "$" },
   armado_precio_minimo: { prefijo: "$" },
+  envio_sin_facultad: { prefijo: "$" },
+  tienda_recargo_fin_de_semana: { prefijo: "$" },
+  agenda_dias: { sufijo: "días" },
 };
 
 function normalizar(texto: string) {

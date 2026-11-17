@@ -11,6 +11,18 @@ import AgendaSemanal from "./AgendaSemanal";
  */
 export default function VerAgenda() {
   const [abierta, setAbierta] = useState(false);
+  const [prendida, setPrendida] = useState(false);
+
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/agenda")
+      .then((respuesta) => respuesta.json())
+      .then((data) => activo && setPrendida(Boolean(data?.ok && data.habilitada !== false)))
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!abierta) return;
@@ -23,6 +35,8 @@ export default function VerAgenda() {
       document.body.style.overflow = desborde;
     };
   }, [abierta]);
+
+  if (!prendida) return null;
 
   return (
     <>

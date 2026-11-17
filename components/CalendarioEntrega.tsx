@@ -123,6 +123,7 @@ export default function CalendarioEntrega({
   onCambiarDias,
   onBloqueados,
   onFeriados,
+  costoEnvio = 0,
 }: {
   /* Fecha elegida (con varios días, el primero). */
   valor: string;
@@ -134,6 +135,8 @@ export default function CalendarioEntrega({
   onBloqueados?: (fechas: string[]) => void;
   /* Avisa al padre qué días son feriado (recargo de la tienda). */
   onFeriados?: (fechas: string[]) => void;
+  /* Costo del envío sin facultad (Configuración › Envio sin facultad; 0 = «a coordinar»). */
+  costoEnvio?: number;
 }) {
   const [calendario, setCalendario] = useState<Calendario | null>(null);
   const [error, setError] = useState(false);
@@ -547,9 +550,9 @@ export default function CalendarioEntrega({
 
       {todosSinFacultad && (
         <p className="rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-semibold leading-5 text-amber-800 dark:text-amber-300">
-          {elegidos.length > 1
-            ? "En esos días no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp y tiene un costo extra."
-            : "Ese día no hay facultad: no se entrega en FADU, coordinamos el envío por WhatsApp y tiene un costo extra."}
+          {elegidos.length > 1 ? "En esos días" : "Ese día"} no hay facultad: no se entrega en FADU, coordinamos el envío por
+          WhatsApp y tiene un costo extra
+          {costoEnvio > 0 ? ` de $${costoEnvio.toLocaleString("es-UY")}` : ""}.
         </p>
       )}
     </div>

@@ -2419,6 +2419,7 @@ return (
           {/* Días sin entrega en rojo; findes y feriados en gris (components/CalendarioEntrega). */}
           <div className="rounded-2xl bg-[var(--kint-panel)]">
             <CalendarioEntrega
+              costoEnvio={Math.max(0, Number(configuracion.envio_sin_facultad?.valor) || 0)}
               valor={fechaEntrega}
               onCambiar={setFechaEntrega}
               dias={diasEntrega}

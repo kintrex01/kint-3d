@@ -12,7 +12,7 @@ export async function GET() {
     if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo cargar la impresora.");
 
     return Response.json(
-      { ok: true, ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "" },
+      { ok: true, oculta: Boolean(data.oculta), ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "" },
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
     );
   } catch (error: unknown) {

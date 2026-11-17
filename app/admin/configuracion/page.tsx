@@ -69,7 +69,11 @@ const DESCRIPCIONES: Record<string, string> = {
     "Prendido: el aviso y la pausa muestran la fecha que escribas en el mensaje (ej. «lunes 24 de noviembre»)",
   aviso_titulo: "Título del aviso emergente (vacío = sin título, solo el mensaje)",
   agenda: "Muestra la agenda pública (/agenda y «Ver mi agenda» en /cotizar)",
-  agenda_impresora: "La agenda muestra la cola de la impresora",
+  agenda_impresora: "Muestra la impresora al público (en la agenda y en /cotizar)",
+  agenda_dias: "Cuántos días muestra la agenda (de 1 a 31)",
+  envio_sin_facultad:
+    "Costo del envío de maquetas cuando no hay facultad (0 = «a coordinar», sin monto)",
+  tienda_recargo_fin_de_semana: "Recargo de la tienda por entrega en fin de semana o feriado",
   agenda_mensaje: "Texto que se ve arriba de la agenda (vacío = nada)",
   pedido_urgente: "Ofrece la opción de pedido urgente en /cotizar",
   pedido_urgente_valor: "Recargo en % (escribí 20, no 0,2)",
@@ -1093,7 +1097,8 @@ function FilaAjuste({
 
       {!esToggle && (
         <EditorValor
-          key={String(fila.valor)}
+          // Prefijos distintos: con valor y mensaje vacíos, las claves no se repiten.
+          key={"valor:" + String(fila.valor)}
           fila={fila}
           filas={filas}
           guardar={guardar}
@@ -1101,7 +1106,7 @@ function FilaAjuste({
       )}
 
       <EditorComentario
-        key={fila.comentario}
+        key={"mensaje:" + fila.comentario}
         fila={fila}
         esMensaje={esToggle || COMENTARIO_ES_MENSAJE.has(fila.clave)}
         guardar={guardar}

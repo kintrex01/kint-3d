@@ -24,7 +24,7 @@ export default function AgendaPage() {
         <p className="mb-4 text-xs font-black uppercase tracking-[0.4em] text-red-600">Agenda</p>
         <h1 className="text-4xl font-black leading-tight sm:text-5xl">¿Cuándo me encontrás?</h1>
         <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--text-muted)]">
-          Los próximos 7 días: cuándo estoy en FADU para entregar en mano, cuándo respondo y cotizo, y hasta cuándo
+          Los próximos días: cuándo estoy en FADU para entregar en mano, cuándo respondo y cotizo, y hasta cuándo
           está ocupada la impresora. Así elegís qué te conviene.
         </p>
       </section>

@@ -9,7 +9,7 @@ import { Printer } from "lucide-react";
  */
 
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
-type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string };
+type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: boolean };
 
 const ZONA = "America/Montevideo";
 
@@ -39,7 +39,7 @@ export default function AgendaImpresora() {
     fetch("/api/cola-impresion")
       .then((respuesta) => respuesta.json())
       .then((data) => {
-        if (activo && data?.ok) setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "" });
+        if (activo && data?.ok) setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "", oculta: Boolean(data.oculta) });
       })
       .catch(() => {});
     return () => {
@@ -47,7 +47,7 @@ export default function AgendaImpresora() {
     };
   }, []);
 
-  if (!agenda) return null;
+  if (!agenda || agenda.oculta) return null;
 
   const ahora = agenda.ahora;
   const bloques = agenda.bloques.filter((bloque) => bloque.fin > ahora);
