@@ -20,6 +20,8 @@ type Item = {
   colores: string;
   fotos: string[];
   estrellas: number;
+  likes?: number; // likes de la reseña
+  conPermiso?: boolean; // el cliente aprobó mostrar la foto de su proyecto
   resena: Resena | null;
 };
 
@@ -90,9 +92,15 @@ export default function GaleriaImpresos() {
     return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
   }, [items]);
 
-  // Primero las que tienen reseña (con fotos del cliente, arriba de todo).
+  /*
+   * Orden: 1) las reseñas con más likes; 2) las de clientes que aprobaron
+   * mostrar la foto de su proyecto; 3) todo lo demás (de la más nueva a la
+   * más vieja, como viene).
+   */
   const visibles = useMemo(() => {
-    const peso = (item: Item) => (item.resena ? (item.resena.fotosCliente ? 3 : 2) : 0) + (item.estrellas >= 5 ? 1 : 0);
+    const grupo = (item: Item) => ((item.likes ?? 0) > 0 ? 0 : item.conPermiso ? 1 : 2);
+    const ordenar = (a: Item, b: Item) =>
+      grupo(a) - grupo(b) || (grupo(a) === 0 ? (b.likes ?? 0) - (a.likes ?? 0) : 0);
     return (items ?? [])
       .filter(
         (item) =>
@@ -101,7 +109,7 @@ export default function GaleriaImpresos() {
           (!color || listaColores(item.colores).includes(color))
       )
       .map((item, orden) => ({ item, orden }))
-      .sort((a, b) => peso(b.item) - peso(a.item) || a.orden - b.orden)
+      .sort((a, b) => ordenar(a.item, b.item) || a.orden - b.orden)
       .map(({ item }) => item);
   }, [items, soloResenas, escala, color]);
   const conResena = (items ?? []).filter((item) => item.resena).length;
