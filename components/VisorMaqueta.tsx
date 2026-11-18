@@ -237,7 +237,7 @@ export default function VisorMaqueta({
                   key={link}
                   type="button"
                   onClick={() => setFoto(indice)}
-                  aria-label={indice === 0 ? "Foto final" : `Foto de la clienta ${indice}`}
+                  aria-label={`Foto ${indice + 1} de ${maqueta.fotos.length}`}
                   className={`h-12 w-12 overflow-hidden rounded-xl ring-2 transition ${indice === foto ? "ring-white" : "ring-white/25 opacity-70 hover:opacity-100"}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
