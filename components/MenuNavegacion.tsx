@@ -18,6 +18,7 @@ import {
   Settings,
   Gift,
   ShoppingBag,
+  ChevronDown,
   X,
 } from "lucide-react";
 import {
@@ -94,40 +95,32 @@ type GrupoMenuProps = {
   enlaces: EnlaceMenu[];
   pathname: string;
   cerrar: () => void;
+  abierto: boolean;
+  onAlternar: () => void;
 };
 
-const enlacesPrincipales: EnlaceMenu[] = [
-  {
-    nombre: "Inicio",
-    href: "/",
-    icono: Home,
-  },
-  {
-    nombre: "Cotizar impresión",
-    href: "/cotizar",
-    icono: Send,
-  },
-  {
-    nombre: "Tienda",
-    href: "/tienda",
-    icono: ShoppingBag,
-    etiqueta: "Nuevo",
-  },
-  {
-    nombre: "Consultar pedido",
-    href: "/seguimiento",
-    icono: Package,
-  },
-  {
-    nombre: "Agenda",
-    href: "/agenda",
-    icono: CalendarClock,
-  },
+/* Arriba de todo, en cuadrícula: lo que más se usa. */
+const accesosRapidos: (EnlaceMenu & { destacado?: boolean })[] = [
+  { nombre: "Cotizar", href: "/cotizar", icono: Send, destacado: true },
+  { nombre: "Consultar pedido", href: "/seguimiento", icono: Package },
+  { nombre: "Tienda", href: "/tienda", icono: ShoppingBag, etiqueta: "Nuevo" },
+  { nombre: "Inicio", href: "/", icono: Home },
+];
+
+const enlacesTrabajos: EnlaceMenu[] = [
   {
     nombre: "Galería de lo impreso",
     href: "/galeria",
     icono: Images,
     etiqueta: "Nuevo",
+  },
+];
+
+const enlacesAyuda: EnlaceMenu[] = [
+  {
+    nombre: "Agenda",
+    href: "/agenda",
+    icono: CalendarClock,
   },
 ];
 
@@ -156,24 +149,25 @@ const enlacesPreparacion: EnlaceMenu[] = [
 },
 ];
 
-const enlacesKint: EnlaceMenu[] = [
+enlacesTrabajos.push(
   {
-  nombre: "Reseñas verificadas",
-  href: "/?ir=resenas",
-  icono: MessageCircle,
-},
- {
+    nombre: "Reseñas verificadas",
+    href: "/?ir=resenas",
+    icono: MessageCircle,
+  },
+  {
+    nombre: "Instagram",
+    href: "https://www.instagram.com/kint.3d/",
+    icono: IconoInstagram,
+    externo: true,
+  }
+);
+
+enlacesAyuda.push({
   nombre: "Preguntas frecuentes",
   href: "/tutorial?ir=preguntas",
   icono: HelpCircle,
-},
-  {
-  nombre: "Ver trabajos en Instagram",
-  href: "https://www.instagram.com/kint.3d/",
-  icono: IconoInstagram,
-  externo: true,
-},
-];
+});
 
 /* Al final del menú: la cuenta del cliente (Ajustes). */
 const enlacesCuenta: EnlaceMenu[] = [
@@ -194,14 +188,25 @@ function GrupoMenu({
   enlaces,
   pathname,
   cerrar,
+  abierto,
+  onAlternar,
 }: GrupoMenuProps) {
   return (
-    <section>
-      <p className="mb-3 px-2 text-[9px] font-black uppercase tracking-[0.28em] text-[var(--blue-soft)]">
-        {titulo}
-      </p>
+    <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--glass-bg)]/40">
+      <button
+        type="button"
+        onClick={onAlternar}
+        aria-expanded={abierto}
+        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+      >
+        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--blue-soft)]">{titulo}</span>
+        <span className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)]">
+          {!abierto && enlaces.length}
+          <ChevronDown size={15} className={`transition ${abierto ? "rotate-180" : ""}`} />
+        </span>
+      </button>
 
-      <div className="space-y-1">
+      <div className={abierto ? "space-y-0.5 px-1.5 pb-1.5" : "hidden"}>
         {enlaces.map((enlace) => {
           const Icono = enlace.icono;
 
@@ -223,8 +228,8 @@ function GrupoMenu({
             "gap-3",
 "rounded-xl",
 "border",
-"px-3",
-"py-2",
+"px-2.5",
+"py-1.5",
             "text-left",
             "transition",
             "duration-200",
@@ -242,8 +247,8 @@ function GrupoMenu({
     <span
                 className={[
                   "flex",
-                  "h-9",
-"w-9",
+                  "h-8",
+"w-8",
                   "shrink-0",
                   "items-center",
                   "justify-center",
@@ -256,7 +261,7 @@ function GrupoMenu({
                 ].join(" ")}
               >
                 <Icono
-                  size={19}
+                  size={17}
                   strokeWidth={1.7}
                 />
               </span>
@@ -267,14 +272,10 @@ function GrupoMenu({
                 </span>
 
                 {enlace.etiqueta && (
-                  <span className="mt-1 inline-flex rounded-full border border-[var(--blue-main)] bg-[var(--glass-bg)] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-[var(--blue-soft)]">
+                  <span className="mt-0.5 inline-flex rounded-full border border-[var(--blue-main)] bg-[var(--glass-bg)] px-1.5 py-px text-[7.5px] font-black uppercase tracking-[0.12em] text-[var(--blue-soft)]">
                     {enlace.etiqueta}
                   </span>
                 )}
-              </span>
-
-              <span className="text-sm text-[var(--blue-soft)] transition group-hover:translate-x-1">
-                →
               </span>
             </>
           );
@@ -392,6 +393,41 @@ export default function MenuNavegacion() {
 
   const [abierto, setAbierto] =
     useState(false);
+
+  // Grupos plegables: abierto el de la página actual; recuerda los que abriste.
+  const grupos = [
+    { titulo: "Preparar tu archivo", enlaces: enlacesPreparacion },
+    { titulo: "Ver trabajos", enlaces: enlacesTrabajos },
+    { titulo: "Agenda y ayuda", enlaces: enlacesAyuda },
+    { titulo: "Mi cuenta", enlaces: enlacesCuenta },
+  ];
+  const [abiertos, setAbiertos] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!abierto) return;
+    let guardados: string[] = [];
+    try {
+      guardados = JSON.parse(localStorage.getItem("kint_menu_grupos") || "[]");
+    } catch {
+      guardados = [];
+    }
+    const actual = grupos.find((grupo) => grupo.enlaces.some((enlace) => enlace.href.split("?")[0] === pathname))?.titulo;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAbiertos([...new Set([...guardados, ...(actual ? [actual] : [])])]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abierto, pathname]);
+
+  function alternarGrupo(titulo: string) {
+    setAbiertos((actuales) => {
+      const nuevos = actuales.includes(titulo) ? actuales.filter((t) => t !== titulo) : [...actuales, titulo];
+      try {
+        localStorage.setItem("kint_menu_grupos", JSON.stringify(nuevos));
+      } catch {
+        /* sin almacenamiento: no se recuerda */
+      }
+      return nuevos;
+    });
+  }
 
   const ocultarMenu =
     pathname.startsWith("/editar-resena") ||
@@ -601,33 +637,47 @@ abierto
 </header>
 
           <div className="relative z-10 flex-1 space-y-5 overflow-y-auto px-4 py-4">
-            <GrupoMenu
-              titulo="Principal"
-              enlaces={enlacesPrincipales}
-              pathname={pathname}
-              cerrar={cerrarMenu}
-            />
+            {/* Lo más usado, en grande */}
+            <div className="grid grid-cols-2 gap-2">
+              {accesosRapidos.map((acceso) => {
+                const Icono = acceso.icono;
+                const activo = pathname === acceso.href;
+                return (
+                  <Link
+                    key={acceso.href}
+                    href={acceso.href}
+                    onClick={cerrarMenu}
+                    className={`relative flex flex-col gap-2 rounded-2xl border p-3 transition ${
+                      acceso.destacado
+                        ? "border-transparent bg-[linear-gradient(135deg,#ef4444,#b91c1c)] text-white shadow-[0_12px_28px_-12px_rgba(220,38,38,0.8)]"
+                        : activo
+                        ? "border-[var(--blue-soft)] bg-[var(--glass-bg)] text-[var(--text-main)]"
+                        : "border-[var(--border-color)] bg-[var(--glass-bg)]/60 text-[var(--text-main)] hover:border-[var(--blue-border)]"
+                    }`}
+                  >
+                    <Icono size={19} strokeWidth={1.8} />
+                    <span className="text-sm font-black leading-tight">{acceso.nombre}</span>
+                    {acceso.etiqueta && (
+                      <span className="absolute right-2 top-2 rounded-full bg-red-600 px-1.5 py-px text-[7.5px] font-black uppercase tracking-[0.1em] text-white">
+                        {acceso.etiqueta}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
 
-            <GrupoMenu
-              titulo="Preparar un archivo"
-              enlaces={enlacesPreparacion}
-              pathname={pathname}
-              cerrar={cerrarMenu}
-            />
-
-            <GrupoMenu
-              titulo="Conocer Kint 3D"
-              enlaces={enlacesKint}
-              pathname={pathname}
-              cerrar={cerrarMenu}
-            />
-
-            <GrupoMenu
-              titulo="Mi cuenta"
-              enlaces={enlacesCuenta}
-              pathname={pathname}
-              cerrar={cerrarMenu}
-            />
+            {grupos.map((grupo) => (
+              <GrupoMenu
+                key={grupo.titulo}
+                titulo={grupo.titulo}
+                enlaces={grupo.enlaces}
+                pathname={pathname}
+                cerrar={cerrarMenu}
+                abierto={abiertos.includes(grupo.titulo)}
+                onAlternar={() => alternarGrupo(grupo.titulo)}
+              />
+            ))}
 
             <SelectorFondo />
           </div>
