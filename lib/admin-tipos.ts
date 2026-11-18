@@ -555,6 +555,14 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
   };
 
+  admin_galeria_comentarios_listar: {
+    pedido: SinDatos;
+    respuesta: { comentarios: { id: number; pedido: string; nombre: string; texto: string; fecha: string; visible: boolean }[] };
+  };
+  admin_galeria_comentario_ocultar: {
+    pedido: { id: number; visible: boolean };
+    respuesta: { comentarios: { id: number; pedido: string; nombre: string; texto: string; fecha: string; visible: boolean }[] };
+  };
   admin_cupones_listar: {
     pedido: SinDatos;
     respuesta: { cupones: CuponDescuento[] };
@@ -873,6 +881,8 @@ export const ACCIONES_ADMIN = [
   "admin_cola_guardar",
   "admin_agenda_listar",
   "admin_agenda_guardar",
+  "admin_galeria_comentarios_listar",
+  "admin_galeria_comentario_ocultar",
   "admin_cupones_listar",
   "admin_cupon_crear",
   "admin_cupon_borrar",

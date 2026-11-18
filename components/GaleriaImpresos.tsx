@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
-import { Camera, ChevronLeft, ChevronRight, LoaderCircle, MessageSquareQuote, Star, X } from "lucide-react";
+import { Camera, Heart, LoaderCircle, MessageCircle, Star } from "lucide-react";
+import VisorMaqueta, { type MaquetaGaleria } from "./VisorMaqueta";
 
 /*
  * Galería de lo impreso: las maquetas terminadas con foto final y, si el
@@ -12,17 +12,9 @@ import { Camera, ChevronLeft, ChevronRight, LoaderCircle, MessageSquareQuote, St
  * o «con reseña»; tocar una foto la abre grande.
  */
 
-type Resena = { comentario: string; nombre: string; fotosCliente: number };
-type Item = {
-  pedido: string;
+type Item = MaquetaGaleria & {
   fecha: string;
-  escala: string;
-  colores: string;
-  fotos: string[];
-  estrellas: number;
-  likes?: number; // likes de la reseña
   conPermiso?: boolean; // el cliente aprobó mostrar la foto de su proyecto
-  resena: Resena | null;
 };
 
 /* Las fotos de Drive pasan por /api/imagen-drive (así cargan siempre). */
@@ -55,8 +47,9 @@ export default function GaleriaImpresos() {
   const [escala, setEscala] = useState("");
   const [color, setColor] = useState("");
   const [soloResenas, setSoloResenas] = useState(false);
-  const [abierta, setAbierta] = useState<number | null>(null);
-  const [foto, setFoto] = useState(0);
+  // La maqueta abierta, por su número (no por su lugar: al dar like la lista se reordena).
+  const [abiertaId, setAbiertaId] = useState<string | null>(null);
+  const [comentariosPrendidos, setComentariosPrendidos] = useState(true);
   const [cantidad, setCantidad] = useState(24);
   const [puntos, setPuntos] = useState({ resena: 0, foto: 0 });
 
@@ -70,6 +63,7 @@ export default function GaleriaImpresos() {
         if (data.habilitada === false) return setApagada(true);
         setItems(Array.isArray(data.items) ? data.items.map((item: Item) => ({ ...item, resena: item.resena ?? null })) : []);
         setPuntos({ resena: Number(data.puntosResena) || 0, foto: Number(data.puntosFoto) || 0 });
+        setComentariosPrendidos(data.comentarios !== false);
       })
       .catch(() => activo && setError(true));
     return () => {
@@ -115,27 +109,8 @@ export default function GaleriaImpresos() {
   const conResena = (items ?? []).filter((item) => item.resena).length;
 
   function abrir(indice: number) {
-    setAbierta(indice);
-    setFoto(0);
+    setAbiertaId(visibles[indice]?.id ?? null);
   }
-
-  // Teclado en la foto grande: flechas y Escape.
-  useEffect(() => {
-    if (abierta === null) return;
-    const tecla = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") setAbierta(null);
-      if (evento.key === "ArrowRight") {
-        setAbierta((actual) => (actual === null ? null : Math.min(visibles.length - 1, actual + 1)));
-        setFoto(0);
-      }
-      if (evento.key === "ArrowLeft") {
-        setAbierta((actual) => (actual === null ? null : Math.max(0, actual - 1)));
-        setFoto(0);
-      }
-    };
-    window.addEventListener("keydown", tecla);
-    return () => window.removeEventListener("keydown", tecla);
-  }, [abierta, visibles.length]);
 
   if (error) return <p className="text-center text-sm text-[var(--text-muted)]">No pudimos cargar la galería. Probá en un rato.</p>;
   if (apagada) return <p className="text-center text-sm text-[var(--text-muted)]">La galería no está disponible ahora.</p>;
@@ -152,7 +127,8 @@ export default function GaleriaImpresos() {
     `h-8 shrink-0 rounded-full px-3 text-xs font-black transition ${
       activo ? "bg-red-600 text-white" : "border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
     }`;
-  const actual = abierta === null ? null : visibles[abierta];
+  const abierta = abiertaId === null ? -1 : visibles.findIndex((item) => item.id === abiertaId);
+  const actual = abierta === -1 ? null : visibles[abierta];
 
   return (
     <div>
@@ -246,13 +222,25 @@ export default function GaleriaImpresos() {
             <span className="flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold text-[var(--text-muted)]">
               {escalaCorta(item.escala) && <span className="text-[var(--text-main)]">{escalaCorta(item.escala)}</span>}
               <span className="min-w-0 flex-1 truncate">{item.colores}</span>
-              {!item.resena && item.estrellas > 0 && (
-                <span className="inline-flex shrink-0 items-center gap-0.5 text-amber-500">
-                  <Star size={11} className="fill-amber-400" />
-                  {item.estrellas}
+              {/* Likes y comentarios, como en un posteo */}
+              {(item.likes ?? 0) > 0 && (
+                <span className="inline-flex shrink-0 items-center gap-0.5 text-red-500">
+                  <Heart size={11} className="fill-red-500" />
+                  {item.likes}
+                </span>
+              )}
+              {(item.comentarios?.length ?? 0) > 0 && (
+                <span className="inline-flex shrink-0 items-center gap-0.5">
+                  <MessageCircle size={11} />
+                  {item.comentarios!.length}
                 </span>
               )}
             </span>
+            {item.resena && (
+              <span className="block px-2.5 pb-2 text-[10px] font-black uppercase tracking-[0.1em] text-amber-600 dark:text-amber-400">
+                Ver reseña →
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -267,61 +255,19 @@ export default function GaleriaImpresos() {
         </button>
       )}
 
-      {/* Foto grande, con sus otras fotos y la reseña */}
-      {actual &&
-        createPortal(
-          <div className="fixed inset-0 z-[9990] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur-sm" onClick={() => setAbierta(null)}>
-            <figure className="relative my-auto w-full max-w-4xl" onClick={(evento) => evento.stopPropagation()}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={srcFoto(actual.fotos[foto] || actual.fotos[0])} alt={`Maqueta ${actual.pedido}`} className="mx-auto max-h-[64vh] rounded-2xl object-contain" />
-              {actual.fotos.length > 1 && (
-                <div className="mt-3 flex justify-center gap-2">
-                  {actual.fotos.map((link, indice) => (
-                    <button
-                      key={link}
-                      type="button"
-                      onClick={() => setFoto(indice)}
-                      aria-label={indice === 0 ? "Foto final" : `Foto del cliente ${indice}`}
-                      className={`h-14 w-14 overflow-hidden rounded-xl ring-2 ${indice === foto ? "ring-white" : "ring-white/20 opacity-70"}`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={srcFoto(link)} alt="" className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-              <figcaption className="mx-auto mt-3 max-w-2xl text-center text-sm text-white">
-                <span className="font-black">{actual.pedido}</span>
-                {actual.escala && ` · Escala ${actual.escala}`}
-                {actual.colores && ` · ${actual.colores}`}
-                {actual.resena && (
-                  <span className="mt-3 block rounded-2xl bg-white/10 px-4 py-3 text-left">
-                    <span className="flex items-center gap-2">
-                      <MessageSquareQuote size={16} className="text-amber-300" />
-                      <Estrellas cuantas={actual.estrellas} />
-                    </span>
-                    {actual.resena.comentario && <span className="mt-1.5 block italic leading-6">«{actual.resena.comentario}»</span>}
-                    {actual.resena.nombre && <span className="mt-1 block text-xs font-black text-white/70">— {actual.resena.nombre}</span>}
-                  </span>
-                )}
-              </figcaption>
-              <button type="button" aria-label="Cerrar" onClick={() => setAbierta(null)} className="absolute -top-2 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white">
-                <X size={18} />
-              </button>
-              {abierta! > 0 && (
-                <button type="button" aria-label="Anterior" onClick={() => abrir(abierta! - 1)} className="absolute left-0 top-[30vh] flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white">
-                  <ChevronLeft size={22} />
-                </button>
-              )}
-              {abierta! < visibles.length - 1 && (
-                <button type="button" aria-label="Siguiente" onClick={() => abrir(abierta! + 1)} className="absolute right-0 top-[30vh] flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-white">
-                  <ChevronRight size={22} />
-                </button>
-              )}
-            </figure>
-          </div>,
-          document.body
-        )}
+      {/* La maqueta abierta, como un posteo: foto, reseña, likes y comentarios */}
+      {actual && (
+        <VisorMaqueta
+          maqueta={actual}
+          comentariosPrendidos={comentariosPrendidos}
+          onCerrar={() => setAbiertaId(null)}
+          onAnterior={abierta > 0 ? () => abrir(abierta - 1) : undefined}
+          onSiguiente={abierta < visibles.length - 1 ? () => abrir(abierta + 1) : undefined}
+          onCambio={(cambios) =>
+            setItems((actuales) => (actuales ?? []).map((item) => (item.id === actual.id ? { ...item, ...cambios } : item)))
+          }
+        />
+      )}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ImageIcon, MessageSquareHeart, RefreshCw, Star, Trash2 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { ResenaAdmin } from "@/lib/admin-tipos";
+import ComentariosGaleria from "@/components/admin/ComentariosGaleria";
 import {
   Boton,
   CajaError,
@@ -217,6 +218,9 @@ export default function ResenasAdmin() {
           )}
         </>
       )}
+
+      {/* Lo que comenta la gente en /galeria */}
+      <ComentariosGaleria />
 
       <DialogoConfirmar
         abierto={Boolean(porBorrar)}

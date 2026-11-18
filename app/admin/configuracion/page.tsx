@@ -75,6 +75,7 @@ const DESCRIPCIONES: Record<string, string> = {
   puntos_resena: "Puntos que gana el cliente al dejar la reseña de su pedido (0 = nada). Una vez por pedido",
   puntos_resena_foto: "Puntos extra si la reseña tiene foto (0 = nada). Una vez por pedido",
   galeria: "Muestra la galería pública de lo impreso (/galeria)",
+  galeria_comentarios: "La gente puede comentar las maquetas de la galería (se moderan en Reseñas)",
   galeria_ocultos: "Pedidos que no salen en la galería, separados por coma (ej.: KNT-0012, KNT-0040)",
   whatsapp_recibido: "WhatsApp al recibir el pedido. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
   whatsapp_presupuestado: "WhatsApp cuando mandás el presupuesto (por si le llegó a spam). Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
