@@ -7,6 +7,7 @@ import {
   Box,
   Calculator,
   CalendarClock,
+  Images,
   FileText,
   HelpCircle,
     Home,
@@ -121,6 +122,12 @@ const enlacesPrincipales: EnlaceMenu[] = [
     nombre: "Agenda",
     href: "/agenda",
     icono: CalendarClock,
+  },
+  {
+    nombre: "Galería de lo impreso",
+    href: "/galeria",
+    icono: Images,
+    etiqueta: "Nuevo",
   },
 ];
 

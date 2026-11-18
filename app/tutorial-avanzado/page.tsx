@@ -170,10 +170,10 @@ const pasos = [
       "Estas opciones permiten conservar correctamente el tamaño del modelo.",
     imagen:
       "/tutorial-avanzado/05-opciones-stl.png",
-    alt: "Opciones de exportación STL en milímetros",
+    alt: "Opciones de exportación STL",
     instrucciones: [
       "Elegí Binario como formato de archivo.",
-      "Elegí Milímetros en Unidades STL.",
+      "Elegí Metros en Unidades STL (en la imagen dice Milímetros: cambialo a Metros).",
       "Dejá desmarcada la opción Cambiar coordenadas YZ.",
       "Presioná Aceptar.",
     ],

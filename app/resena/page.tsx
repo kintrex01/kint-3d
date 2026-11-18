@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import PuntosPorResena from "@/components/PuntosPorResena";
 import { useSearchParams } from "next/navigation";
 import {
   ChangeEvent,
@@ -433,6 +434,9 @@ setEnviado(true);
         <p className="mb-12 text-3xl font-black text-red-600">
           {pedido || "Sin pedido"}
         </p>
+
+        {/* Cuántos puntos gana (Configuración › Puntos). */}
+        <PuntosPorResena />
 
         <div className="mb-10">
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.3em] text-[var(--text-muted)]">

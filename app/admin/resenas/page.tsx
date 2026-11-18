@@ -359,6 +359,7 @@ function TarjetaResena({
             onCambiar={(activo) => onModerar({ mostrarProyecto: activo })}
           />
         </label>
+        <PremiarResena resena={resena} />
         <button
           type="button"
           onClick={onBorrar}
@@ -370,6 +371,79 @@ function TarjetaResena({
         </button>
       </div>
     </Tarjeta>
+  );
+}
+
+/* Puntos extra a mano para una reseña que vale la pena (quedan en el historial de puntos). */
+function PremiarResena({ resena }: { resena: ResenaAdmin }) {
+  const avisar = useAvisos();
+  const [abierto, setAbierto] = useState(false);
+  const [puntos, setPuntos] = useState("25");
+  const [enviando, setEnviando] = useState(false);
+  const [dados, setDados] = useState(0);
+
+  if (!resena.email) return null;
+
+  async function premiar() {
+    const cantidad = Math.round(Number(puntos));
+    if (!(cantidad > 0)) return;
+    setEnviando(true);
+    try {
+      await accionAdmin("admin_puntos_ajustar", {
+        email: resena.email,
+        modo: "sumar",
+        puntos: cantidad,
+        motivo: `Reseña destacada ${resena.pedido || ""}`.trim(),
+      });
+      setDados((actual) => actual + cantidad);
+      setAbierto(false);
+      avisar(`Le diste ${cantidad} puntos a ${resena.nombre || "este cliente"}`);
+    } catch (error) {
+      avisar(error instanceof Error ? error.message : "No se pudieron dar los puntos.", "error");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="px-4 py-2.5">
+      {abierto ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {["10", "25", "50", "100"].map((opcion) => (
+            <button
+              key={opcion}
+              type="button"
+              onClick={() => setPuntos(opcion)}
+              className={`h-8 rounded-full px-3 text-xs font-black ${puntos === opcion ? "bg-amber-500 text-white" : "border border-[var(--kint-panel-border)]"}`}
+            >
+              {opcion}
+            </button>
+          ))}
+          <input
+            value={puntos}
+            inputMode="numeric"
+            onChange={(evento) => setPuntos(evento.target.value.replace(/\D/g, ""))}
+            className="h-8 w-16 rounded-lg border border-[var(--kint-panel-border)] bg-transparent px-2 text-sm font-bold"
+            aria-label="Puntos"
+          />
+          <Boton tamano="chico" variante="principal" cargando={enviando} onClick={() => void premiar()}>
+            Dar {puntos || 0} pts
+          </Boton>
+          <button type="button" onClick={() => setAbierto(false)} className="text-xs font-bold text-[var(--text-muted)]">
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setAbierto(true)}
+          className="flex min-h-10 w-full items-center justify-center gap-2 text-sm font-bold text-amber-600 transition hover:text-amber-500 dark:text-amber-400"
+        >
+          <Star size={15} />
+          {dados ? `Le diste ${dados} puntos · dar más` : "Premiar con puntos"}
+        </button>
+      )}
+    </div>
   );
 }
 

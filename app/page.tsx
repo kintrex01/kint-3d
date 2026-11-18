@@ -310,6 +310,11 @@ const elementoResenas: HTMLElement =
   </Link>
 </div>
 
+{/* Top Kint en el celular (si está prendido en Configuración): justo abajo de los botones. */}
+<div className="-mx-6 mt-2 xl:hidden">
+  <TopKintInicio variante="celular" />
+</div>
+
 
 
       <section className="kint-services-section">
@@ -377,9 +382,6 @@ const elementoResenas: HTMLElement =
   <div className="relative z-20 mb-10 mt-10 flex w-full justify-center px-6 2xl:hidden">
   <EstadisticasInicio />
 </div>
-
-  {/* Top Kint en el celular (si está prendido en Configuración). */}
-  <TopKintInicio variante="celular" />
 
 
 

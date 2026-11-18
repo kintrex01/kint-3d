@@ -53,6 +53,7 @@ import {
 import { unidadConfig } from "@/components/admin/unidadesConfig";
 import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
 import CodigosEspeciales from "@/components/admin/CodigosEspeciales";
+import Cupones from "@/components/admin/Cupones";
 import { AgregarFilamento, AgregarHito, BorrarConfig, EditarFilamento } from "@/components/admin/AgregarConfig";
 import { CLAVES_TOP_KINT, ConfigTopKint, PredeterminadosCotizar } from "@/components/admin/ConfigEspeciales";
 
@@ -71,6 +72,10 @@ const DESCRIPCIONES: Record<string, string> = {
   agenda: "Muestra la agenda pública (/agenda y «Ver mi agenda» en /cotizar)",
   agenda_impresora: "Muestra la impresora al público (en la agenda y en /cotizar)",
   agenda_dias: "Cuántos días muestra la agenda (de 1 a 31)",
+  puntos_resena: "Puntos que gana el cliente al dejar la reseña de su pedido (0 = nada). Una vez por pedido",
+  puntos_resena_foto: "Puntos extra si la reseña tiene foto (0 = nada). Una vez por pedido",
+  galeria: "Muestra la galería pública de lo impreso (/galeria)",
+  galeria_ocultos: "Pedidos que no salen en la galería, separados por coma (ej.: KNT-0012, KNT-0040)",
   whatsapp_recibido: "WhatsApp al recibir el pedido. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
   whatsapp_presupuestado: "WhatsApp cuando mandás el presupuesto (por si le llegó a spam). Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
   whatsapp_en_impresion: "WhatsApp cuando empieza la impresión. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
@@ -245,10 +250,11 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
   Tienda: { icono: Store, color: "#8b5cf6", detalle: "Precios por mayor de la tienda" },
   Servicios: { icono: Wrench, color: "#f59e0b", detalle: "Armado, alisado y boquillas en /cotizar" },
   Automatizaciones: { icono: Bot, color: "#06b6d4", detalle: "Cosas que se hacen solas" },
-  Promociones: { icono: Percent, color: "#ec4899", detalle: "Descuento para todos por un tiempo" },
+  Promociones: { icono: Percent, color: "#ec4899", detalle: "Descuento para todos, códigos de descuento y códigos especiales" },
   Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
   Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
   Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
+  Galeria: { icono: Palette, color: "#f97316", detalle: "Galería pública de las maquetas terminadas (/galeria)" },
   Whatsapp: { icono: MessageSquareText, color: "#22c55e", detalle: "Mensajes que abre el botón de WhatsApp de cada pedido, por etapa" },
   Agenda: { icono: CalendarDays, color: "#14b8a6", detalle: "Agenda pública: mostrarla, la impresora y el mensaje (los horarios van en Calendario)" },
   General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
@@ -553,6 +559,7 @@ export default function ConfiguracionAdmin() {
               />
               {elegida === "Puntos" && <ConfigTopKint filas={filas} guardar={guardar} />}
               {elegida === "Pedidos" && <PredeterminadosCotizar filas={filas} guardar={guardar} />}
+              {elegida === "Promociones" && <Cupones />}
               {elegida === "Promociones" && <CodigosEspeciales filas={filas} />}
             </>
           )}

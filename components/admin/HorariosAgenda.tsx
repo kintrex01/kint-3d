@@ -1,26 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, GraduationCap, MessageCircle, Plus, Trash2 } from "lucide-react";
+import { Ban, CalendarDays, ExternalLink, GraduationCap, MessageCircle, Plus, StickyNote, Trash2 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { HorarioAgendaAdmin } from "@/lib/admin-tipos";
 import { Boton, Esqueleto, Tarjeta, claseInput, useAvisos } from "@/components/admin/ui";
 
 /*
- * Mis horarios (Calendario del panel): cuándo estoy en FADU y cuándo
- * respondo. Se ven en /agenda y en la ventana «Ver mi agenda» de /cotizar.
- * Cada horario es semanal («todos los lunes») o de un día puntual.
+ * Mis horarios (Calendario del panel): se ven en /agenda y en «Ver mi
+ * agenda» de /cotizar. Cada horario es:
+ *   - En FADU, Respondo, o No disponible (se resta de «Respondo»:
+ *     «respondo todo el día, menos de 02:00 a 08:00»);
+ *   - para uno o varios días de la semana (L M M J V S D) o un día puntual;
+ *   - de una hora a otra (cada media hora; «Todo el día» = 00:00 a 24:00).
  */
 
-const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const PUNTUAL = "puntual";
+const DIAS = [
+  { valor: "Lunes", corto: "L" },
+  { valor: "Martes", corto: "M" },
+  { valor: "Miércoles", corto: "M" },
+  { valor: "Jueves", corto: "J" },
+  { valor: "Viernes", corto: "V" },
+  { valor: "Sábado", corto: "S" },
+  { valor: "Domingo", corto: "D" },
+];
+
+const TIPOS = [
+  { valor: "FADU" as const, texto: "En FADU", icono: GraduationCap, color: "bg-emerald-600" },
+  { valor: "Atención" as const, texto: "Respondo", icono: MessageCircle, color: "bg-blue-600" },
+  { valor: "No disponible" as const, texto: "No disponible", icono: Ban, color: "bg-slate-600" },
+];
+
+// 00:00, 00:30 … 24:00 (en 24 h: sin a.m./p.m.).
+const HORAS = Array.from({ length: 49 }, (_, indice) => {
+  const minutos = indice * 30;
+  return `${String(Math.floor(minutos / 60)).padStart(2, "0")}:${minutos % 60 ? "30" : "00"}`;
+});
+
+const esFecha = (dia: string) => /^\d{4}-\d{2}-\d{2}$/.test(dia);
+const hoyUY = () => new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10);
 
 const nuevo = (): HorarioAgendaAdmin => ({ tipo: "FADU", dia: "Lunes", desde: "09:00", hasta: "13:00", nota: "" });
+
+/* Hora guardada que no cae justo en la media hora (ej. 09:15): igual se muestra. */
+function opcionesHora(actual: string) {
+  return HORAS.includes(actual) || !actual ? HORAS : [...HORAS, actual].sort();
+}
 
 export default function HorariosAgenda() {
   const { datos, setDatos, cargando } = useDatosAdmin("admin_agenda_listar", {});
   const avisar = useAvisos();
   const [borrador, setBorrador] = useState<HorarioAgendaAdmin[] | null>(null);
+  const [conNota, setConNota] = useState<Set<number>>(new Set());
   const [guardando, setGuardando] = useState(false);
 
   const lista = borrador ?? datos?.horarios ?? [];
@@ -30,7 +61,20 @@ export default function HorariosAgenda() {
     setBorrador(lista.map((horario, i) => (i === indice ? { ...horario, ...cambios } : horario)));
   }
 
+  function alternarDia(indice: number, dia: string) {
+    const horario = lista[indice];
+    const actuales = esFecha(horario.dia) ? [] : horario.dia.split(",").filter(Boolean);
+    const nuevos = actuales.includes(dia) ? actuales.filter((d) => d !== dia) : [...actuales, dia];
+    const ordenados = DIAS.map((d) => d.valor).filter((d) => nuevos.includes(d));
+    cambiar(indice, { dia: ordenados.join(",") });
+  }
+
   async function guardar() {
+    const sinDia = lista.findIndex((horario) => !horario.dia);
+    if (sinDia !== -1) {
+      avisar(`El horario ${sinDia + 1} no tiene ningún día marcado.`, "error");
+      return;
+    }
     setGuardando(true);
     try {
       const respuesta = await accionAdmin("admin_agenda_guardar", { horarios: lista });
@@ -72,34 +116,35 @@ export default function HorariosAgenda() {
         <>
           {lista.length === 0 && (
             <p className="mt-3 rounded-xl bg-[var(--kint-selected-bg)] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-              Todavía no cargaste horarios. Ej.: FADU todos los lunes de 09:00 a 13:00, o respondo de 18:00 a 02:00.
+              Ej.: En FADU lunes, martes y miércoles de 17:00 a 22:00. Respondo todos los días, todo el día, y No
+              disponible de 02:00 a 08:00.
             </p>
           )}
 
           <ul className="mt-3 space-y-2">
             {lista.map((horario, indice) => {
-              const puntual = /^\d{4}-\d{2}-\d{2}$/.test(horario.dia);
+              const puntual = esFecha(horario.dia);
+              const marcados = puntual ? [] : horario.dia.split(",");
+              const todoElDia = horario.desde === "00:00" && horario.hasta === "24:00";
+              const verNota = Boolean(horario.nota) || conNota.has(indice);
               return (
                 <li key={indice} className="rounded-xl border border-[var(--kint-panel-border)] p-2.5">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(["FADU", "Atención"] as const).map((tipo) => {
-                      const activo = horario.tipo === tipo;
-                      const Icono = tipo === "FADU" ? GraduationCap : MessageCircle;
+                  {/* Qué */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {TIPOS.map((tipo) => {
+                      const activo = horario.tipo === tipo.valor;
+                      const Icono = tipo.icono;
                       return (
                         <button
-                          key={tipo}
+                          key={tipo.valor}
                           type="button"
-                          onClick={() => cambiar(indice, { tipo })}
-                          className={`inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-xs font-black transition ${
-                            activo
-                              ? tipo === "FADU"
-                                ? "bg-emerald-600 text-white"
-                                : "bg-blue-600 text-white"
-                              : "border border-[var(--kint-panel-border)] text-[var(--text-muted)]"
+                          onClick={() => cambiar(indice, { tipo: tipo.valor })}
+                          className={`inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-black transition ${
+                            activo ? `${tipo.color} text-white` : "border border-[var(--kint-panel-border)] text-[var(--text-muted)]"
                           }`}
                         >
-                          <Icono size={13} />
-                          {tipo === "FADU" ? "En FADU" : "Respondo"}
+                          <Icono size={12} />
+                          {tipo.texto}
                         </button>
                       );
                     })}
@@ -113,58 +158,111 @@ export default function HorariosAgenda() {
                     </button>
                   </div>
 
-                  <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <select
-                      value={puntual ? PUNTUAL : horario.dia}
-                      onChange={(evento) =>
-                        cambiar(indice, {
-                          dia:
-                            evento.target.value === PUNTUAL
-                              ? new Date(Date.now() - 3 * 3600000).toISOString().slice(0, 10)
-                              : evento.target.value,
-                        })
-                      }
-                      className={`${claseInput} h-10 text-sm`}
-                      aria-label="Día"
+                  {/* Qué días */}
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    {DIAS.map((dia) => {
+                      const activo = marcados.includes(dia.valor);
+                      return (
+                        <button
+                          key={dia.valor}
+                          type="button"
+                          title={dia.valor}
+                          aria-pressed={activo}
+                          onClick={() => alternarDia(indice, dia.valor)}
+                          className={`h-8 w-8 rounded-full text-xs font-black transition ${
+                            activo
+                              ? "bg-[var(--text-main)] text-[var(--kint-panel)]"
+                              : "border border-[var(--kint-panel-border)] text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                          }`}
+                        >
+                          {dia.corto}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => cambiar(indice, { dia: DIAS.map((d) => d.valor).join(",") })}
+                      className="h-8 rounded-full border border-[var(--kint-panel-border)] px-2.5 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]"
                     >
-                      {DIAS.map((dia) => (
-                        <option key={dia} value={dia}>
-                          Todos los {dia.toLowerCase()}
-                          {dia === "Sábado" || dia === "Domingo" ? "s" : ""}
-                        </option>
-                      ))}
-                      <option value={PUNTUAL}>Un día puntual</option>
-                    </select>
-                    {puntual ? (
+                      Todos
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => cambiar(indice, { dia: puntual ? "Lunes" : hoyUY() })}
+                      className={`inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-bold transition ${
+                        puntual ? "bg-amber-500 text-white" : "border border-[var(--kint-panel-border)] text-[var(--text-muted)]"
+                      }`}
+                    >
+                      <CalendarDays size={12} />
+                      Un día
+                    </button>
+                    {puntual && (
                       <input
                         type="date"
                         value={horario.dia}
+                        min={hoyUY()}
                         onChange={(evento) => evento.target.value && cambiar(indice, { dia: evento.target.value })}
-                        className={`${claseInput} h-10 text-sm`}
+                        className="h-8 rounded-lg border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-2 text-xs font-bold text-[var(--text-main)] dark:[color-scheme:dark]"
                         aria-label="Fecha"
                       />
-                    ) : (
-                      <span className="hidden sm:block" />
                     )}
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
-                      de
-                      <input type="time" value={horario.desde} onChange={(evento) => cambiar(indice, { desde: evento.target.value })} className={`${claseInput} h-10 text-sm`} />
-                    </label>
-                    <label className="flex items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
-                      a
-                      <input type="time" value={horario.hasta} onChange={(evento) => cambiar(indice, { hasta: evento.target.value })} className={`${claseInput} h-10 text-sm`} />
-                    </label>
                   </div>
-                  {horario.hasta <= horario.desde && horario.hasta !== "" && (
+
+                  {/* A qué hora */}
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+                    <select
+                      value={horario.desde}
+                      onChange={(evento) => cambiar(indice, { desde: evento.target.value })}
+                      className="h-8 w-[5.25rem] rounded-lg border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-2 text-sm font-bold tabular-nums text-[var(--text-main)] dark:[color-scheme:dark]"
+                      aria-label="Desde"
+                    >
+                      {opcionesHora(horario.desde).slice(0, -1).map((hora) => (
+                        <option key={hora} value={hora}>{hora}</option>
+                      ))}
+                    </select>
+                    a
+                    <select
+                      value={horario.hasta}
+                      onChange={(evento) => cambiar(indice, { hasta: evento.target.value })}
+                      className="h-8 w-[5.25rem] rounded-lg border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-2 text-sm font-bold tabular-nums text-[var(--text-main)] dark:[color-scheme:dark]"
+                      aria-label="Hasta"
+                    >
+                      {opcionesHora(horario.hasta).slice(1).map((hora) => (
+                        <option key={hora} value={hora}>{hora}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => cambiar(indice, { desde: "00:00", hasta: "24:00" })}
+                      className={`h-8 rounded-full px-2.5 text-[11px] font-bold transition ${
+                        todoElDia ? "bg-[var(--text-main)] text-[var(--kint-panel)]" : "border border-[var(--kint-panel-border)]"
+                      }`}
+                    >
+                      Todo el día
+                    </button>
+                    {!verNota && (
+                      <button
+                        type="button"
+                        onClick={() => setConNota(new Set(conNota).add(indice))}
+                        className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold hover:text-[var(--text-main)]"
+                      >
+                        <StickyNote size={12} />
+                        Nota
+                      </button>
+                    )}
+                  </div>
+                  {horario.hasta !== "24:00" && horario.hasta <= horario.desde && (
                     <p className="mt-1 text-[11px] font-semibold text-[var(--text-muted)]">Termina al día siguiente.</p>
                   )}
-                  <input
-                    value={horario.nota}
-                    maxLength={80}
-                    onChange={(evento) => cambiar(indice, { nota: evento.target.value })}
-                    placeholder="Nota (opcional), ej.: entregas en el hall"
-                    className={`${claseInput} mt-2 h-10 text-sm`}
-                  />
+                  {verNota && (
+                    <input
+                      value={horario.nota}
+                      maxLength={80}
+                      onChange={(evento) => cambiar(indice, { nota: evento.target.value })}
+                      placeholder="Nota (se ve en la agenda), ej.: entregas en el hall"
+                      className={`${claseInput} mt-2 h-9 text-sm`}
+                    />
+                  )}
                 </li>
               );
             })}

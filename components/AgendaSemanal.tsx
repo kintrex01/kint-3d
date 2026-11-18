@@ -11,7 +11,8 @@ import { GraduationCap, LoaderCircle, MessageCircle, Printer } from "lucide-reac
  * y Configuración › Agenda). Uruguay: UTC−3 todo el año.
  */
 
-export type HorarioAgenda = { tipo: "FADU" | "Atención"; dia: string; desde: string; hasta: string; nota: string };
+// dia: «Lunes», «Lunes,Martes,Miércoles» o «2026-11-20». «No disponible» se resta de «Atención».
+export type HorarioAgenda = { tipo: "FADU" | "Atención" | "No disponible"; dia: string; desde: string; hasta: string; nota: string };
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
 type Agenda = {
   habilitada: boolean;
@@ -51,7 +52,8 @@ function nombreDia(fecha: string) {
 }
 
 const minutos = (hhmm: string) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
-const hhmm = (m: number) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+const hhmm = (m: number) =>
+  m === 1440 ? "24:00" : `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 
 /* finReal: la hora en que termina de verdad (si sigue al día siguiente). */
 type Tramo = { capa: keyof typeof CAPAS; desde: number; hasta: number; nota?: string; pedido?: string; sigue?: boolean; venia?: boolean; finReal?: string };
@@ -60,17 +62,51 @@ type Tramo = { capa: keyof typeof CAPAS; desde: number; hasta: number; nota?: st
 function tramosDelDia(agenda: Agenda, fecha: string): Tramo[] {
   const tramos: Tramo[] = [];
   const anterior = sumarDias(fecha, -1);
-  const aplica = (horario: HorarioAgenda, dia: string) => horario.dia === dia || horario.dia === nombreDia(dia);
+  const aplica = (horario: HorarioAgenda, dia: string) =>
+    horario.dia === dia || horario.dia.split(",").includes(nombreDia(dia));
 
+  // Primero los horarios tal cual (los que cruzan la medianoche, partidos).
+  const crudos: (Tramo & { tipo: HorarioAgenda["tipo"] })[] = [];
   for (const horario of agenda.horarios) {
     const desde = minutos(horario.desde);
     const hasta = minutos(horario.hasta);
     const cruza = hasta <= desde;
     if (aplica(horario, fecha)) {
-      tramos.push({ capa: horario.tipo, desde, hasta: cruza ? 1440 : hasta, nota: horario.nota, sigue: cruza, finReal: horario.hasta });
+      crudos.push({ tipo: horario.tipo, capa: "FADU", desde, hasta: cruza ? 1440 : hasta, nota: horario.nota, sigue: cruza, finReal: horario.hasta });
     }
     if (cruza && aplica(horario, anterior) && hasta > 0) {
-      tramos.push({ capa: horario.tipo, desde: 0, hasta, nota: horario.nota, venia: true });
+      crudos.push({ tipo: horario.tipo, capa: "FADU", desde: 0, hasta, nota: horario.nota, venia: true });
+    }
+  }
+
+  // «Respondo» menos los ratos «No disponible».
+  const huecos = crudos.filter((tramo) => tramo.tipo === "No disponible");
+  for (const tramo of crudos) {
+    if (tramo.tipo === "No disponible") continue;
+    let partes: Tramo[] = [{ ...tramo, capa: tramo.tipo }];
+    if (tramo.tipo === "Atención") {
+      for (const hueco of huecos) {
+        partes = partes.flatMap((parte) => {
+          if (hueco.hasta <= parte.desde || hueco.desde >= parte.hasta) return [parte];
+          const restos: Tramo[] = [];
+          if (hueco.desde > parte.desde) restos.push({ ...parte, hasta: hueco.desde, sigue: false, finReal: undefined });
+          if (hueco.hasta < parte.hasta) restos.push({ ...parte, desde: hueco.hasta, venia: false });
+          return restos;
+        });
+      }
+    }
+    tramos.push(...partes);
+  }
+  // Unir los «Respondo» pegados (ej. dos horarios seguidos).
+  tramos.sort((x, y) => x.desde - y.desde);
+  for (let i = tramos.length - 1; i > 0; i--) {
+    const a = tramos[i - 1];
+    const b = tramos[i];
+    if (a.capa === b.capa && a.capa === "Atención" && b.desde <= a.hasta && !a.nota && !b.nota) {
+      a.hasta = Math.max(a.hasta, b.hasta);
+      a.sigue = b.sigue;
+      a.finReal = b.finReal;
+      tramos.splice(i, 1);
     }
   }
 

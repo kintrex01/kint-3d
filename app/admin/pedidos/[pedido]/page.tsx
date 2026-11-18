@@ -689,10 +689,12 @@ export default function DetallePedidoAdmin({
     { estado: pedido.estado, nombre: pedido.nombre, pedido: pedido.pedido, email: pedido.email, codigo: pedido.codigo },
     plantillasWhatsapp
   );
+  // El botón verde: el saludo de siempre. El aviso de la etapa va en «Avisar por WhatsApp».
   const whatsapp = linkWhatsapp(
     pedido.whatsapp || pedido.telefonoCuenta || "",
-    textoEtapa || `Hola ${pedido.nombre}, te escribo por tu pedido ${pedido.pedido} de Kint 3D`
+    `Hola ${pedido.nombre}, te escribo por tu pedido ${pedido.pedido} de Kint 3D`
   );
+  const whatsappEtapa = textoEtapa ? linkWhatsapp(pedido.whatsapp || pedido.telefonoCuenta || "", textoEtapa) : "";
   const etapaWhatsapp = ETAPAS_WHATSAPP[pedido.estado];
   // revisarEstados saltea los pedidos sin email.
   const avisoPendiente =
@@ -815,9 +817,9 @@ export default function DetallePedidoAdmin({
       </div>
 
         {/* Avisar por WhatsApp lo que dice el correo (muchos van a spam). */}
-        {whatsapp && etapaWhatsapp && !cancelado && (
+        {whatsappEtapa && etapaWhatsapp && !cancelado && (
           <a
-            href={whatsapp}
+            href={whatsappEtapa}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-2 flex items-center gap-3 rounded-xl border border-[#25d366]/50 bg-[#25d366]/10 px-3 py-2.5 transition hover:bg-[#25d366]/15"

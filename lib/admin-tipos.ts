@@ -225,10 +225,21 @@ export type FilaConfig = {
 
 export type DiaSinEntrega = { fecha: string; motivo: string };
 
+/* Código de descuento de un solo uso (planilla de códigos). */
+export type CuponDescuento = {
+  codigo: string;
+  descuento: number; // %
+  estado: string; // Disponible / Reservado / Usado / Vencido
+  cliente: string;
+  pedido: string;
+  correo: string; // "" = cualquiera
+  vencimiento: string; // "yyyy-mm-dd" o ""
+};
+
 /* Agenda pública: un horario en FADU o de atención (hoja «Agenda horarios»). */
 export type HorarioAgendaAdmin = {
-  tipo: "FADU" | "Atención";
-  dia: string; // "Lunes"… (todas las semanas) o "yyyy-mm-dd" (un día puntual)
+  tipo: "FADU" | "Atención" | "No disponible"; // «No disponible» se resta de «Atención»
+  dia: string; // "Lunes,Martes" (todas las semanas, uno o varios días) o "yyyy-mm-dd" (un día puntual)
   desde: string; // "09:00"
   hasta: string; // "13:00"; menor que desde = termina al día siguiente
   nota: string;
@@ -542,6 +553,20 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
   };
 
+  admin_cupones_listar: {
+    pedido: SinDatos;
+    respuesta: { cupones: CuponDescuento[] };
+  };
+  /* codigo vacío = se generan «cantidad» códigos KINT-XXXXX. */
+  admin_cupon_crear: {
+    pedido: { codigo: string; descuento: number; cantidad: number; correo: string; vencimiento: string };
+    respuesta: { cupones: CuponDescuento[]; creados?: string[] };
+  };
+  /* Solo los Disponibles o Vencidos. */
+  admin_cupon_borrar: {
+    pedido: { codigo: string };
+    respuesta: { cupones: CuponDescuento[] };
+  };
   admin_agenda_listar: {
     pedido: SinDatos;
     respuesta: { horarios: HorarioAgendaAdmin[] };
@@ -846,6 +871,9 @@ export const ACCIONES_ADMIN = [
   "admin_cola_guardar",
   "admin_agenda_listar",
   "admin_agenda_guardar",
+  "admin_cupones_listar",
+  "admin_cupon_crear",
+  "admin_cupon_borrar",
   "admin_dia_guardar",
   "admin_dia_quitar",
   "admin_resenas_listar",
