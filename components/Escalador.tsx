@@ -538,6 +538,16 @@ const estadoImprimibilidad =
               <span className="rounded-full border border-red-600/40 bg-red-600/10 px-4 py-2 text-xs font-black uppercase tracking-[0.12em] text-red-600">
                 Escala {factorInicial}:{factorFinal}
               </span>
+
+              {/* Lo mínimo que se imprime a esta escala (lado más finito, en medida real). */}
+              {escalaValida && (
+                <span className="text-[11px] font-bold leading-4 text-[var(--text-muted)]">
+                  Mínimo imprimible:{" "}
+                  <span className="text-amber-600">{formatearNumero(((boquillaMm ?? 0.4) * (final / inicial)) / 10)} cm</span>
+                  {" · "}Recomendado:{" "}
+                  <span className="text-emerald-600">{formatearNumero(((boquillaMm ?? 0.4) * 2 * (final / inicial)) / 10)} cm</span>
+                </span>
+              )}
             </div>
           </div>
 

@@ -195,7 +195,7 @@ export default function CuentaPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] px-4 pb-20 pt-8 text-[var(--text-main)] sm:px-6">
+    <main className="min-h-screen px-4 pb-20 pt-8 text-[var(--text-main)] sm:px-6">
       {/* "‹ Inicio" ya lo pone la web arriba a la izquierda. */}
 
       <section className="mx-auto mt-10 max-w-2xl">

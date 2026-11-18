@@ -1275,7 +1275,7 @@ function datosTecnicosPresupuesto(
 }
 
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
+    <main className="min-h-screen px-6 py-20 text-[var(--text-main)] transition">
 
       <section className="mx-auto flex max-w-3xl flex-col items-center text-center pt-24 pb-16">
         <h1 className="text-3xl font-black uppercase tracking-[0.18em] sm:text-6xl">

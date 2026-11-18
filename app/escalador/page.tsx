@@ -6,7 +6,7 @@ import MinimosImprimibles from "@/components/MinimosImprimibles";
 
 export default function EscaladorPage() {
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
+    <main className="min-h-screen px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
       <div className="mx-auto max-w-3xl">
 
         <section className="mb-7">
@@ -40,10 +40,12 @@ export default function EscaladorPage() {
           <span className="text-xl text-red-600" aria-hidden>→</span>
         </Link>
 
-        {/* Lo que más preguntan: lo mínimo que se puede imprimir, por escala. */}
-        <MinimosImprimibles />
-
         <Escalador />
+
+        {/* La tabla de mínimos por escala, abajo y plegable. */}
+        <div className="mt-6">
+          <MinimosImprimibles />
+        </div>
       </div>
     </main>
   );

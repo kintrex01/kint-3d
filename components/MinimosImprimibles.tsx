@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Ruler } from "lucide-react";
+import { ChevronDown, Ruler } from "lucide-react";
 
 /*
  * Escalador: «¿cuánto tiene que medir como mínimo?». Para cada escala, lo
@@ -45,18 +45,21 @@ export default function MinimosImprimibles() {
   }, []);
 
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
-      <div className="flex flex-wrap items-start gap-3 p-5">
+    <details className="group overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--card-bg)] shadow-[var(--shadow-soft)]">
+      <summary className="flex cursor-pointer list-none items-start gap-3 p-5 [&::-webkit-details-marker]:hidden">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-600/10 text-red-600">
           <Ruler size={19} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-base font-black text-[var(--text-main)]">¿Cuánto tiene que medir como mínimo?</p>
+          <p className="text-base font-black text-[var(--text-main)]">¿Cuánto tiene que medir como mínimo? Tabla por escala</p>
           <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
             Pilares, muros, barandas, parteluces: mirá su <strong className="text-[var(--text-main)]">lado más finito</strong>, en
             medida real (como lo dibujás en SketchUp).
           </p>
         </div>
+        <ChevronDown size={18} className="mt-1 shrink-0 text-[var(--text-muted)] transition group-open:rotate-180" />
+      </summary>
+      <div className="flex justify-end px-5 pb-3 empty:hidden">
         {boquillas.length > 1 && (
           <div className="flex gap-1 rounded-xl border border-[var(--border-color)] p-1">
             {boquillas.map((opcion) => (
@@ -101,6 +104,6 @@ export default function MinimosImprimibles() {
         puede quebrar; con <strong className="text-[var(--text-main)]">{medida((boquilla * 200) / 10)}</strong> queda firme. Más fino que
         el mínimo, no se imprime. Para revisar una medida tuya, usá la calculadora de abajo.
       </p>
-    </section>
+    </details>
   );
 }

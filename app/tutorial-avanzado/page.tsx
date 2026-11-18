@@ -217,7 +217,7 @@ const pasos = [
 
 export default function TutorialAvanzadoPage() {
   return (
-    <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
+    <main className="min-h-screen px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
       <div className="mx-auto max-w-6xl">
 
 <header className="mb-12">
