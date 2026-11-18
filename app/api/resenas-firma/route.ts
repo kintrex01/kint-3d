@@ -43,9 +43,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (archivos.length > 3) {
+    if (archivos.length > 5) {
       throw new Error(
-        "Podés subir un máximo de 3 imágenes."
+        "Podés subir un máximo de 5 imágenes."
       );
     }
 

@@ -9,7 +9,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, Gift, KeyRound, LoaderCircle, Mail, Sparkles, Ticket, Trophy } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 
 const CLAVE_SESION = "kint-cuenta-sesion-v1";
@@ -132,9 +131,6 @@ export default function RuletaPage() {
 
   return (
     <main className="relative -mt-28 min-h-screen overflow-hidden px-4 pb-24 text-[var(--text-main)] sm:-mt-32 sm:px-6">
-      <div className="fixed right-6 top-6 z-[1000]">
-        <ThemeToggle />
-      </div>
 
       {/* El fondo sube hasta el borde de arriba (el menú deja h-28 / sm:h-32 libres). */}
       <section className="relative isolate -mx-4 mb-[-7rem] overflow-hidden px-4 pb-32 pt-32 sm:-mx-6 sm:px-6 sm:pt-24">

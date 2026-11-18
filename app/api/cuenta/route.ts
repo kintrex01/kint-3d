@@ -36,6 +36,8 @@ export async function POST(request: Request) {
         codigo: String(body?.codigo || "").slice(0, 10),
         token: String(body?.token || "").slice(0, 200),
         nombre: String(body?.nombre || "").slice(0, 80),
+        // Alta de cuenta sin pedido (para comentar la galería).
+        crear: body?.crear === true,
         alias: String(body?.alias || "").slice(0, 40),
         telefono: String(body?.telefono || "").slice(0, 24),
         // Aparecer o no en el ranking Top Kint (solo al guardar).

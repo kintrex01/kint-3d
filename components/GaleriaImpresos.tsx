@@ -50,6 +50,7 @@ export default function GaleriaImpresos() {
   // La maqueta abierta, por su número (no por su lugar: al dar like la lista se reordena).
   const [abiertaId, setAbiertaId] = useState<string | null>(null);
   const [comentariosPrendidos, setComentariosPrendidos] = useState(true);
+  const [puntosComentario, setPuntosComentario] = useState(0);
   const [cantidad, setCantidad] = useState(24);
   const [puntos, setPuntos] = useState({ resena: 0, foto: 0 });
 
@@ -64,6 +65,7 @@ export default function GaleriaImpresos() {
         setItems(Array.isArray(data.items) ? data.items.map((item: Item) => ({ ...item, resena: item.resena ?? null })) : []);
         setPuntos({ resena: Number(data.puntosResena) || 0, foto: Number(data.puntosFoto) || 0 });
         setComentariosPrendidos(data.comentarios !== false);
+        setPuntosComentario(Number(data.puntosComentario) || 0);
       })
       .catch(() => activo && setError(true));
     return () => {
@@ -260,6 +262,7 @@ export default function GaleriaImpresos() {
         <VisorMaqueta
           maqueta={actual}
           comentariosPrendidos={comentariosPrendidos}
+          puntosComentario={puntosComentario}
           onCerrar={() => setAbiertaId(null)}
           onAnterior={abierta > 0 ? () => abrir(abierta - 1) : undefined}
           onSiguiente={abierta < visibles.length - 1 ? () => abrir(abierta + 1) : undefined}

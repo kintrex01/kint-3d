@@ -42,7 +42,6 @@ import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
-import ThemeToggle from "@/components/ThemeToggle";
 import { correoRecordado, recordarCorreo } from "@/lib/correo-recordado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import {
@@ -3705,9 +3704,6 @@ export default function TiendaPage() {
       <main className="min-h-screen px-4 pb-20 pt-24 text-[var(--text-main)] sm:px-6">
         <FondoOscuro />
 
-        <div className="fixed right-6 top-6 z-50">
-          <ThemeToggle />
-        </div>
 
         <section className={`${CLASE_PANEL} mx-auto max-w-2xl p-7 text-center sm:p-10`}>
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
@@ -3904,7 +3900,6 @@ export default function TiendaPage() {
             )}
           </button>
         )}
-        <ThemeToggle />
       </div>
       <style>{`@keyframes kint-salto { 0% { transform: scale(0.4); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }`}</style>
 

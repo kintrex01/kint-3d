@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import SelectorFondo from "@/components/SelectorFondo";
+import SelectorTema from "@/components/SelectorTema";
 import { usePathname } from "next/navigation";
 import {
   Box,
@@ -411,7 +412,7 @@ export default function MenuNavegacion() {
     } catch {
       guardados = [];
     }
-    const actual = grupos.find((grupo) => grupo.enlaces.some((enlace) => enlace.href.split("?")[0] === pathname))?.titulo;
+    const actual = grupos.find((grupo) => grupo.enlaces.some((enlace) => enlace.href === pathname))?.titulo;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAbiertos([...new Set([...guardados, ...(actual ? [actual] : [])])]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -451,6 +452,8 @@ export default function MenuNavegacion() {
     }
 
     document.body.style.overflow = "hidden";
+    // El fondo animado se pausa mientras el menú está abierto (FondoKintAnimado).
+    document.documentElement.dataset.kintMenu = "abierto";
 
     window.addEventListener(
       "keydown",
@@ -460,6 +463,7 @@ export default function MenuNavegacion() {
     return () => {
       document.body.style.overflow =
         overflowAnterior;
+      delete document.documentElement.dataset.kintMenu;
 
       window.removeEventListener(
         "keydown",
@@ -559,8 +563,8 @@ export default function MenuNavegacion() {
             "inset-0",
             "h-full",
             "w-full",
-            "bg-black/65",
-            "backdrop-blur-sm",
+            // Sin desenfoque: sobre el fondo animado bajaba mucho los cuadros por segundo.
+            "bg-black/70",
             "transition-opacity",
             "duration-300",
             abierto
@@ -587,6 +591,7 @@ export default function MenuNavegacion() {
             "bg-[var(--page-bg)]",
 "transition-transform",
 "duration-300",
+"will-change-transform",
 abierto
   ? "translate-x-0 shadow-[25px_0_70px_rgba(0,0,0,0.45)]"
   : "-translate-x-[120%] shadow-none",
@@ -596,9 +601,10 @@ abierto
           aria-label="Navegación principal"
         >
 <div className="pointer-events-none absolute inset-0">
-  <div className="absolute -left-28 -top-28 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl" />
+  {/* Brillos con degradé (no con blur): no se recalculan mientras el panel se mueve. */}
+  <div className="absolute -left-28 -top-28 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.14),transparent_70%)]" />
 
-  <div className="absolute -bottom-32 -right-28 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
+  <div className="absolute -bottom-32 -right-28 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.12),transparent_70%)]" />
 
   <div className="absolute left-0 top-0 h-full w-px bg-gradient-to-b from-transparent via-blue-400 to-transparent opacity-70" />
 
@@ -679,6 +685,8 @@ abierto
               />
             ))}
 
+            {/* Claro / oscuro y fondo de pantalla, juntos */}
+            <SelectorTema />
             <SelectorFondo />
           </div>
         </aside>

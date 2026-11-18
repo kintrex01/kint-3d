@@ -46,7 +46,7 @@ const TIPOS_PERMITIDOS = [
   "image/webp",
 ];
 
-const MAXIMO_FOTOS = 3;
+const MAXIMO_FOTOS = 5;
 const MAXIMO_PESO = 8 * 1024 * 1024;
 
 function obtenerIdDrive(enlace?: string) {
@@ -545,7 +545,7 @@ function EditarResenaContent() {
                   </p>
 
                   <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
-                    Conservá, eliminá o agregá fotos. Máximo 3 imágenes.
+                    Conservá, eliminá o agregá fotos. Máximo 5 imágenes.
                   </p>
                 </div>
 

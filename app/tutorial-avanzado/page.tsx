@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import ImagenAmpliable from "../../components/ImagenAmpliable";
-import ThemeToggle from "../../components/ThemeToggle";
 
 const pasos = [
   {
@@ -220,9 +219,6 @@ export default function TutorialAvanzadoPage() {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
       <div className="mx-auto max-w-6xl">
-        <div className="fixed right-6 top-6 z-50">
-  <ThemeToggle />
-</div>
 
 <header className="mb-12">
           <p className="mb-3 text-[10px] uppercase tracking-[0.3em] text-red-600">

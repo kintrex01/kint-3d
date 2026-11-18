@@ -39,6 +39,9 @@ export async function POST(request: Request) {
       dispositivo: String(cuerpo.dispositivo || "").slice(0, 80),
       nombre: String(cuerpo.nombre || "").slice(0, 40),
       texto: String(cuerpo.texto || "").slice(0, 300),
+      // Comentar: con la sesión de la cuenta.
+      email: String(cuerpo.email || "").slice(0, 160),
+      token: String(cuerpo.token || "").slice(0, 200),
     };
     const response = await fetch(urlAppsScript(), {
       method: "POST",

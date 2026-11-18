@@ -4,7 +4,6 @@ import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
-import ThemeToggle from "@/components/ThemeToggle";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import AgendaImpresora from "@/components/AgendaImpresora";
@@ -2025,9 +2024,6 @@ if (enviado) {
 return (
     <main className="relative min-h-screen px-4 pb-20 pt-6 text-[var(--text-main)] transition sm:px-6">
 
-      <div className="fixed right-6 top-6 z-[1000]">
-  <ThemeToggle />
-</div>
 
       {/* Banner: el fondo animado del tema, que se funde hacia abajo. */}
       <section className="relative isolate -mx-4 -mt-[8.5rem] mb-[-7rem] overflow-hidden px-4 pb-40 pt-60 sm:-mx-6 sm:-mt-[9.5rem] sm:px-6 sm:pt-64">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import InsigniaTop from "./InsigniaTop";
 import { BadgeCheck, ChevronLeft, ChevronRight, Heart, Maximize2, MessageCircle, Send, Star, X } from "lucide-react";
 
 /*
@@ -13,7 +14,8 @@ import { BadgeCheck, ChevronLeft, ChevronRight, Heart, Maximize2, MessageCircle,
  * - Comentarios: con un nombre opcional; se publican al toque.
  */
 
-export type ComentarioGaleria = { id: number; nombre: string; texto: string; fecha: string };
+// top: 1, 2 o 3 si quien comenta está en el podio del Top Kint.
+export type ComentarioGaleria = { id: number; nombre: string; texto: string; fecha: string; top?: number };
 export type MaquetaGaleria = {
   id: string; // KNT-0063
   pedido: string; // KNT-63
@@ -24,13 +26,44 @@ export type MaquetaGaleria = {
   likes?: number;
   tieneResena?: boolean;
   comentarios?: ComentarioGaleria[];
-  resena: { comentario: string; nombre: string; fotosCliente: number } | null;
+  resena: { comentario: string; nombre: string; fotosCliente: number; top?: number } | null;
 };
 
 const CLAVE_DISPOSITIVO = "kint3d_dispositivo_resenas";
 const CLAVE_LIKES_RESENAS = "kint3d_resenas_con_like";
 const CLAVE_LIKES_GALERIA = "kint3d_galeria_con_like";
-const CLAVE_NOMBRE = "kint3d_nombre_comentario";
+// La misma sesión que Mi cuenta (app/cuenta): entrar acá también deja entrado allá.
+const CLAVE_SESION = "kint-cuenta-sesion-v1";
+type Sesion = { email: string; token: string };
+
+function leerSesion(): Sesion | null {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CLAVE_SESION) || "null");
+    return guardada?.email && guardada?.token ? { email: String(guardada.email), token: String(guardada.token) } : null;
+  } catch {
+    return null;
+  }
+}
+
+function guardarSesion(sesion: Sesion | null) {
+  try {
+    if (sesion) localStorage.setItem(CLAVE_SESION, JSON.stringify(sesion));
+    else localStorage.removeItem(CLAVE_SESION);
+  } catch {
+    /* sin almacenamiento: dura lo que la página */
+  }
+}
+
+async function llamarCuenta(cuerpo: Record<string, unknown>) {
+  const respuesta = await fetch("/api/cuenta", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(cuerpo),
+  });
+  const data = await respuesta.json().catch(() => null);
+  if (!data?.ok) throw new Error(data?.error || "No pudimos completar la acción.");
+  return data;
+}
 
 function leerLista(clave: string): string[] {
   try {
@@ -82,6 +115,7 @@ function srcFoto(link: string) {
 export default function VisorMaqueta({
   maqueta,
   comentariosPrendidos,
+  puntosComentario = 0,
   onCerrar,
   onAnterior,
   onSiguiente,
@@ -89,6 +123,8 @@ export default function VisorMaqueta({
 }: {
   maqueta: MaquetaGaleria;
   comentariosPrendidos: boolean;
+  /* Puntos por el primer comentario en cada maqueta (Configuración › Puntos). */
+  puntosComentario?: number;
   onCerrar: () => void;
   onAnterior?: () => void;
   onSiguiente?: () => void;
@@ -98,24 +134,27 @@ export default function VisorMaqueta({
   const [completa, setCompleta] = useState(false);
   const [conLike, setConLike] = useState(false);
   const [enviandoLike, setEnviandoLike] = useState(false);
-  const [nombre, setNombre] = useState("");
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
+  const [aviso, setAviso] = useState("");
+  // Para comentar hace falta la cuenta: la sesión de Mi cuenta o entrar acá con el correo.
+  const [sesion, setSesion] = useState<Sesion | null>(null);
+  const [paso, setPaso] = useState<"" | "correo" | "codigo">("");
+  const [nombre, setNombre] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [codigo, setCodigo] = useState("");
 
   const claveLikes = maqueta.tieneResena ? CLAVE_LIKES_RESENAS : CLAVE_LIKES_GALERIA;
 
-  // Al cambiar de maqueta: primera foto, su like y el nombre guardado.
+  // Al cambiar de maqueta: primera foto, su like y la sesión guardada.
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFoto(0);
     setError("");
+    setAviso("");
     setConLike(leerLista(claveLikes).includes(maqueta.id.toUpperCase()));
-    try {
-      setNombre(localStorage.getItem(CLAVE_NOMBRE) || "");
-    } catch {
-      setNombre("");
-    }
+    setSesion(leerSesion());
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [maqueta.id, claveLikes]);
 
@@ -172,29 +211,88 @@ export default function VisorMaqueta({
     }
   }
 
-  async function comentar(evento: React.FormEvent) {
-    evento.preventDefault();
+  /* Publica el comentario con la sesión (si no hay, pide el correo). */
+  async function publicar(conSesion: Sesion | null = sesion) {
     if (!texto.trim() || enviando) return;
+    if (!conSesion) {
+      setPaso("correo");
+      return;
+    }
     setEnviando(true);
     setError("");
     try {
       const respuesta = await fetch("/api/galeria", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo: "comentario", pedido: maqueta.id, dispositivo: dispositivo(), nombre: nombre.trim(), texto: texto.trim() }),
+        body: JSON.stringify({
+          tipo: "comentario",
+          pedido: maqueta.id,
+          dispositivo: dispositivo(),
+          email: conSesion.email,
+          token: conSesion.token,
+          texto: texto.trim(),
+        }),
       });
       const data = await respuesta.json();
-      if (!respuesta.ok || !data.ok) throw new Error(data.error || "No se pudo publicar el comentario.");
+      if (!respuesta.ok || !data.ok) {
+        // Sesión vencida: se vuelve a pedir el correo.
+        if (/sesi[oó]n/i.test(String(data.error))) {
+          guardarSesion(null);
+          setSesion(null);
+          setPaso("correo");
+        }
+        throw new Error(data.error || "No se pudo publicar el comentario.");
+      }
       onCambio({ comentarios: [...(maqueta.comentarios ?? []), data.comentario] });
       setTexto("");
-      try {
-        localStorage.setItem(CLAVE_NOMBRE, nombre.trim());
-      } catch {
-        /* sin almacenamiento */
-      }
+      setAviso(data.puntos ? `¡Sumaste ${data.puntos} Puntos Kint por tu primer comentario acá!` : "");
     } catch (errorComentario) {
       setError(errorComentario instanceof Error ? errorComentario.message : "No se pudo publicar el comentario.");
     } finally {
+      setEnviando(false);
+    }
+  }
+
+  function comentar(evento: React.FormEvent) {
+    evento.preventDefault();
+    void publicar();
+  }
+
+  /* Paso 1: el correo (y el nombre si es nueva): le llega un código. */
+  async function pedirCodigo(evento: React.FormEvent) {
+    evento.preventDefault();
+    if (enviando) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim())) return setError("Revisá tu correo.");
+    setEnviando(true);
+    setError("");
+    try {
+      await llamarCuenta({ tipo: "cuenta_codigo", email: correo.trim(), nombre: nombre.trim(), crear: Boolean(nombre.trim()) });
+      setCodigo("");
+      setPaso("codigo");
+    } catch (errorCodigo) {
+      const mensaje = errorCodigo instanceof Error ? errorCodigo.message : "No pudimos mandar el código.";
+      setError(/No encontramos una cuenta/.test(mensaje) && !nombre.trim() ? "Es tu primera vez: poné tu nombre y te creamos la cuenta." : mensaje);
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  /* Paso 2: el código. Queda la sesión (también para Mi cuenta) y se publica. */
+  async function verificar(evento: React.FormEvent) {
+    evento.preventDefault();
+    if (enviando || codigo.trim().length !== 5) return;
+    setEnviando(true);
+    setError("");
+    try {
+      const data = await llamarCuenta({ tipo: "cuenta_verificar", email: correo.trim(), codigo: codigo.trim() });
+      const nueva = { email: correo.trim(), token: String(data.token) };
+      guardarSesion(nueva);
+      setSesion(nueva);
+      setPaso("");
+      setEnviando(false);
+      await publicar(nueva);
+    } catch (errorVerificar) {
+      setError(errorVerificar instanceof Error ? errorVerificar.message : "El código no es correcto.");
       setEnviando(false);
     }
   }
@@ -205,18 +303,6 @@ export default function VisorMaqueta({
 
   return createPortal(
     <div className="fixed inset-0 z-[9990] flex items-stretch justify-center bg-black/85 backdrop-blur-sm lg:items-center lg:p-6" onClick={onCerrar}>
-      {/* Pasar de maqueta (compu) */}
-      {onAnterior && (
-        <button type="button" aria-label="Anterior" onClick={(e) => { e.stopPropagation(); onAnterior(); }} className="absolute left-3 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 lg:flex">
-          <ChevronLeft size={24} />
-        </button>
-      )}
-      {onSiguiente && (
-        <button type="button" aria-label="Siguiente" onClick={(e) => { e.stopPropagation(); onSiguiente(); }} className="absolute right-3 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white hover:bg-white/25 lg:flex">
-          <ChevronRight size={24} />
-        </button>
-      )}
-
       <article
         onClick={(evento) => evento.stopPropagation()}
         className="kint-aviso-tarjeta flex w-full max-w-6xl flex-col overflow-y-auto bg-[var(--page-bg)] lg:grid lg:h-[86vh] lg:grid-cols-[minmax(0,1fr)_380px] lg:overflow-hidden lg:rounded-3xl"
@@ -246,19 +332,27 @@ export default function VisorMaqueta({
               ))}
             </div>
           )}
-          {/* Pasar de maqueta (celular) */}
-          <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 justify-between lg:hidden">
-            {onAnterior ? (
-              <button type="button" aria-label="Anterior" onClick={onAnterior} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white">
-                <ChevronLeft size={20} />
-              </button>
-            ) : <span />}
-            {onSiguiente && (
-              <button type="button" aria-label="Siguiente" onClick={onSiguiente} className="flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white">
-                <ChevronRight size={20} />
-              </button>
-            )}
-          </div>
+          {/* Pasar de maqueta sin cerrar (también con las flechas del teclado) */}
+          {onAnterior && (
+            <button
+              type="button"
+              aria-label="Maqueta anterior"
+              onClick={onAnterior}
+              className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:scale-105 hover:bg-white"
+            >
+              <ChevronLeft size={26} />
+            </button>
+          )}
+          {onSiguiente && (
+            <button
+              type="button"
+              aria-label="Maqueta siguiente"
+              onClick={onSiguiente}
+              className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:scale-105 hover:bg-white"
+            >
+              <ChevronRight size={26} />
+            </button>
+          )}
         </div>
 
         {/* Al costado: reseña, likes y comentarios */}
@@ -285,6 +379,7 @@ export default function VisorMaqueta({
                   <div className="min-w-0">
                     <p className="flex items-center gap-1 text-sm font-black text-[var(--text-main)]">
                       {maqueta.resena.nombre || "Cliente"}
+                      {maqueta.resena.top ? <InsigniaTop puesto={maqueta.resena.top} tamano="xs" /> : null}
                       <BadgeCheck size={14} className="text-emerald-500" />
                     </p>
                     <span className="inline-flex items-center gap-0.5" aria-label={`${maqueta.estrellas} de 5 estrellas`}>
@@ -318,7 +413,9 @@ export default function VisorMaqueta({
                         {comentario.nombre.charAt(0).toUpperCase()}
                       </span>
                       <p className="min-w-0 text-sm leading-5 text-[var(--text-main)]">
-                        <span className="font-black">{comentario.nombre}</span> {comentario.texto}
+                        <span className="font-black">{comentario.nombre}</span>
+                        {comentario.top ? <InsigniaTop puesto={comentario.top} tamano="xs" className="mx-0.5 inline-block align-[-3px]" /> : null}{" "}
+                        {comentario.texto}
                         <span className="mt-0.5 block text-[11px] text-[var(--text-muted)]">{hace(comentario.fecha)}</span>
                       </p>
                     </li>
@@ -344,14 +441,7 @@ export default function VisorMaqueta({
               </p>
             </div>
             {comentariosPrendidos && (
-              <form onSubmit={(evento) => void comentar(evento)} className="mt-3 space-y-2">
-                <input
-                  value={nombre}
-                  onChange={(evento) => setNombre(evento.target.value)}
-                  maxLength={40}
-                  placeholder="Tu nombre (opcional)"
-                  className="h-9 w-full rounded-xl border border-[var(--border-color)] bg-transparent px-3 text-sm outline-none focus:border-red-500"
-                />
+              <form onSubmit={comentar} className="mt-3 space-y-2">
                 <div className="flex gap-2">
                   <input
                     value={texto}
@@ -364,8 +454,74 @@ export default function VisorMaqueta({
                     <Send size={16} />
                   </button>
                 </div>
+                {sesion && !paso && (
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Comentás como <span className="font-bold">{sesion.email}</span>
+                    {puntosComentario > 0 && ` · tu primer comentario acá suma ${puntosComentario} Puntos Kint`}
+                  </p>
+                )}
+                {!sesion && !paso && (
+                  <p className="text-[11px] text-[var(--text-muted)]">
+                    Para comentar entrás con tu correo{puntosComentario > 0 ? ` y sumás ${puntosComentario} Puntos Kint por tu primer comentario en cada maqueta` : ""}.
+                  </p>
+                )}
               </form>
             )}
+
+            {/* Entrar (o crear la cuenta) sin salir de la galería */}
+            {paso === "correo" && (
+              <form onSubmit={(evento) => void pedirCodigo(evento)} className="mt-3 space-y-2 rounded-2xl bg-[var(--border-color)]/40 p-3">
+                <p className="text-xs font-black text-[var(--text-main)]">Entrá con tu correo para publicar</p>
+                <input
+                  value={nombre}
+                  onChange={(evento) => setNombre(evento.target.value)}
+                  maxLength={40}
+                  autoComplete="name"
+                  placeholder="Tu nombre (si es tu primera vez)"
+                  className="h-10 w-full rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-3 text-sm outline-none focus:border-red-500"
+                />
+                <input
+                  value={correo}
+                  onChange={(evento) => setCorreo(evento.target.value)}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="tu@correo.com"
+                  className="h-10 w-full rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-3 text-sm outline-none focus:border-red-500"
+                />
+                <div className="flex gap-2">
+                  <button type="submit" disabled={enviando} className="h-10 flex-1 rounded-xl bg-red-600 text-sm font-black text-white disabled:opacity-50">
+                    {enviando ? "Mandando…" : "Mandame el código"}
+                  </button>
+                  <button type="button" onClick={() => setPaso("")} className="h-10 rounded-xl px-3 text-sm font-bold text-[var(--text-muted)]">
+                    Cancelar
+                  </button>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">Te llega un código de 5 letras. Si no tenés cuenta, se crea con tu nombre.</p>
+              </form>
+            )}
+            {paso === "codigo" && (
+              <form onSubmit={(evento) => void verificar(evento)} className="mt-3 space-y-2 rounded-2xl bg-[var(--border-color)]/40 p-3">
+                <p className="text-xs font-black text-[var(--text-main)]">Escribí el código que te mandamos a {correo}</p>
+                <input
+                  value={codigo}
+                  onChange={(evento) => setCodigo(evento.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 5))}
+                  autoComplete="one-time-code"
+                  placeholder="ABCDE"
+                  className="h-11 w-full rounded-xl border border-[var(--border-color)] bg-[var(--page-bg)] px-3 text-center text-lg font-black tracking-[0.4em] outline-none focus:border-red-500"
+                />
+                <div className="flex gap-2">
+                  <button type="submit" disabled={enviando || codigo.length !== 5} className="h-10 flex-1 rounded-xl bg-red-600 text-sm font-black text-white disabled:opacity-50">
+                    {enviando ? "Publicando…" : "Entrar y publicar"}
+                  </button>
+                  <button type="button" onClick={() => setPaso("correo")} className="h-10 rounded-xl px-3 text-sm font-bold text-[var(--text-muted)]">
+                    Cambiar correo
+                  </button>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)]">Si no lo ves, fijate en Spam o Promociones.</p>
+              </form>
+            )}
+            {aviso && <p className="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">🎁 {aviso}</p>}
             {error && <p className="mt-2 text-xs font-semibold text-red-600 dark:text-red-400">{error}</p>}
           </footer>
         </div>

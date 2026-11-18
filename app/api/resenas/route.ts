@@ -401,12 +401,12 @@ export async function POST(
       );
     }
 
-    if (fotos.length > 3) {
+    if (fotos.length > 5) {
       return Response.json(
         {
           ok: false,
           error:
-            "Podés subir un máximo de 3 imágenes.",
+            "Podés subir un máximo de 5 imágenes.",
         },
         {
           status: 400,

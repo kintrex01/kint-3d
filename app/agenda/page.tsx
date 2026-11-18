@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import ThemeToggle from "@/components/ThemeToggle";
 import AgendaSemanal from "@/components/AgendaSemanal";
 
 export const metadata: Metadata = {
@@ -15,9 +14,6 @@ export default function AgendaPage() {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-40 top-24 h-96 w-96 rounded-full bg-emerald-500/10 blur-[120px]" />
         <div className="absolute -right-40 top-[520px] h-96 w-96 rounded-full bg-orange-500/10 blur-[120px]" />
-      </div>
-      <div className="fixed right-6 top-6 z-50">
-        <ThemeToggle />
       </div>
 
       <section className="relative z-10 mx-auto max-w-4xl pb-8 pt-16 text-center sm:pt-20">

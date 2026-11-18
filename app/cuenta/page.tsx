@@ -18,7 +18,6 @@ import {
   ThumbsUp,
   UserRound,
 } from "lucide-react";
-import ThemeToggle from "@/components/ThemeToggle";
 
 /*
  * Ajustes de la cuenta del cliente (Apps Script: Cuenta_Kint3D.js).
@@ -198,9 +197,6 @@ export default function CuentaPage() {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-4 pb-20 pt-8 text-[var(--text-main)] sm:px-6">
       {/* "‹ Inicio" ya lo pone la web arriba a la izquierda. */}
-      <div className="mx-auto flex max-w-2xl justify-end">
-        <ThemeToggle />
-      </div>
 
       <section className="mx-auto mt-10 max-w-2xl">
         <p className="text-[11px] font-black uppercase tracking-[0.3em] text-[var(--blue-main)]">

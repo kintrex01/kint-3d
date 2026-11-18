@@ -1265,6 +1265,13 @@ const altoInicial = Math.max(
             return;
           }
 
+          // Con el menú abierto el fondo no se ve: no se dibuja (así el menú va fluido).
+          if (document.documentElement.dataset.kintMenu === "abierto") {
+            tiempoAnterior = tiempoActual;
+            animacion = window.requestAnimationFrame(renderizar);
+            return;
+          }
+
           const delta = Math.min(
             0.05,
             Math.max(

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import ResenasInicio from "../components/ResenasInicio";
 import TopKintInicio from "../components/TopKintInicio";
-import ThemeToggle from "../components/ThemeToggle";
 import EstadisticasInicio from "../components/EstadisticasInicio";
 import FondoKintAnimado from "../components/FondoKintAnimado";
 import {
@@ -158,7 +157,6 @@ const elementoResenas: HTMLElement =
     Kint 3D
   </Link>
 
-  <ThemeToggle />
 </header>
 
 <TopKintInicio variante="lateral" />

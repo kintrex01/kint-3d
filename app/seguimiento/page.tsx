@@ -76,7 +76,6 @@ const [mensajeArchivo, setMensajeArchivo] = useState("");
 const [guardandoMetodo, setGuardandoMetodo] = useState(false);
 const [modalidadPago, setModalidadPago] = useState("");
 const [mostrarSaldo, setMostrarSaldo] = useState(false);
-const [modoOscuro, setModoOscuro] = useState(false);
 const [codigoDescuentoInput, setCodigoDescuentoInput] = useState("");
 const [avisoCodigo, setAvisoCodigo] = useState("");
 const [aplicandoDescuento, setAplicandoDescuento] = useState(false);
@@ -220,37 +219,7 @@ useEffect(() => {
   void cargarPedidoDesdeUrl();
 }, [searchParams]);
 
-useEffect(() => {
-  const temaGuardado = localStorage.getItem("tema");
-
-  const paginaYaEstaOscura =
-    document.documentElement.classList.contains("dark");
-
-  const usarModoOscuro =
-    temaGuardado === "dark" ||
-    (!temaGuardado && paginaYaEstaOscura);
-
-  setModoOscuro(usarModoOscuro);
-
-  if (usarModoOscuro) {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
-}, []);
-
-function cambiarTema() {
-  const nuevoModo = !modoOscuro;
-  setModoOscuro(nuevoModo);
-
-  if (nuevoModo) {
-    document.documentElement.classList.add("dark");
-    localStorage.setItem("tema", "dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-    localStorage.setItem("tema", "light");
-  }
-}
+// El tema (claro / oscuro) es el de toda la web: se elige en el menú.
 
   async function consultarPedido() {
     setError("");
@@ -1307,15 +1276,6 @@ function datosTecnicosPresupuesto(
 
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-6 py-20 text-[var(--text-main)] transition">
-<div className="fixed right-6 top-6 z-50">
-  <button
-    type="button"
-    onClick={cambiarTema}
-    className="rounded-full border border-[var(--border-color)] bg-[var(--page-bg)] px-5 py-3 text-sm font-bold transition hover:border-red-600 hover:text-red-600"
-  >
-    {modoOscuro ? "☀️ Modo claro" : "🌙 Modo noche"}
-  </button>
-</div>
 
       <section className="mx-auto flex max-w-3xl flex-col items-center text-center pt-24 pb-16">
         <h1 className="text-3xl font-black uppercase tracking-[0.18em] sm:text-6xl">

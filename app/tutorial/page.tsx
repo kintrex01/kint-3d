@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import ThemeToggle from "../../components/ThemeToggle";
 import TutorialGallery from "../../components/TutorialGallery";
 import VideoTutorial from "../../components/VideoTutorial";
 import PreguntasFrecuentes from "../../components/PreguntasFrecuentes";
@@ -78,9 +77,6 @@ export default function TutorialPage() {
         <div className="absolute -right-40 top-[650px] h-96 w-96 rounded-full bg-red-600/10 blur-[120px]" />
         <div className="absolute left-1/2 top-[1500px] h-80 w-80 -translate-x-1/2 rounded-full bg-blue-500/5 blur-[120px]" />
       </div>
-      <div className="fixed right-6 top-6 z-50">
-  <ThemeToggle />
-</div>
 
       <section className="relative z-10 mx-auto max-w-4xl pb-10 pt-20 text-center sm:pt-24">
         <p className="mb-5 text-xs font-black uppercase tracking-[0.4em] text-red-600">

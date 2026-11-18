@@ -1,6 +1,5 @@
 "use client";
 
-import ThemeToggle from "../../components/ThemeToggle";
 import Link from "next/link";
 import Escalador from "@/components/Escalador";
 
@@ -8,9 +7,6 @@ export default function EscaladorPage() {
   return (
     <main className="min-h-screen bg-[var(--page-bg)] px-5 py-10 text-[var(--text-main)] transition-colors duration-300">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-6 flex justify-end">
-          <ThemeToggle />
-        </header>
 
         <section className="mb-7">
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-600">

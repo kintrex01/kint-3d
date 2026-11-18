@@ -247,6 +247,18 @@ export type HorarioAgendaAdmin = {
   menos?: { desde: string; hasta: string }[];
 };
 
+/* Comentario de la galería (hoja «Galería interacciones»). */
+export type ComentarioGaleriaAdmin = {
+  id: number;
+  pedido: string;
+  nombre: string;
+  texto: string;
+  fecha: string;
+  visible: boolean;
+  email: string;
+  puntos: string; // «PTS-0001» si dio puntos; «PTS-0001 (deshecho)» si se sacaron
+};
+
 /* Cola de la impresora (hoja «Cola impresión»). Horarios en ISO. */
 export type ItemColaImpresion = {
   pedido: string;
@@ -557,11 +569,11 @@ export type AccionesAdmin = {
 
   admin_galeria_comentarios_listar: {
     pedido: SinDatos;
-    respuesta: { comentarios: { id: number; pedido: string; nombre: string; texto: string; fecha: string; visible: boolean }[] };
+    respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
   };
   admin_galeria_comentario_ocultar: {
     pedido: { id: number; visible: boolean };
-    respuesta: { comentarios: { id: number; pedido: string; nombre: string; texto: string; fecha: string; visible: boolean }[] };
+    respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
   };
   admin_cupones_listar: {
     pedido: SinDatos;

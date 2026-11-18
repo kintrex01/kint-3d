@@ -35,7 +35,7 @@ const TIPOS_PERMITIDOS = [
   "image/webp",
 ];
 
-const MAXIMO_FOTOS = 3;
+const MAXIMO_FOTOS = 5;
 const MAXIMO_PESO = 8 * 1024 * 1024;
 
 function ResenaContent() {
@@ -495,7 +495,7 @@ calificación, el comentario, las fotos o las autorizaciones.
               </p>
 
               <p className="mt-2 text-xs leading-6 text-[var(--text-muted)]">
-                Opcional. Podés subir hasta 3 imágenes en formato
+                Opcional. Podés subir de 1 a 5 imágenes en formato
                 JPG, PNG o WebP.
               </p>
             </div>

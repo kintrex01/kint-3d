@@ -18,8 +18,9 @@ export default function ComentariosGaleria() {
   async function cambiar(id: number, visible: boolean) {
     setGuardando(id);
     try {
-      setDatos(await accionAdmin("admin_galeria_comentario_ocultar", { id, visible }));
-      avisar(visible ? "Comentario visible otra vez" : "Comentario oculto");
+      const respuesta = await accionAdmin("admin_galeria_comentario_ocultar", { id, visible });
+      setDatos(respuesta);
+      avisar(respuesta.aviso || (visible ? "Comentario visible otra vez" : "Comentario oculto"));
     } catch (error) {
       avisar(error instanceof Error ? error.message : "No se pudo guardar.", "error");
     } finally {
@@ -34,7 +35,8 @@ export default function ComentariosGaleria() {
         Comentarios de la galería
       </p>
       <p className="text-xs text-[var(--text-muted)]">
-        Se publican solos (sin links, hasta 5 por hora por persona). Ocultá los que no van.
+        Se publican solos con la cuenta de cada uno (sin links, hasta 5 por hora). El primero de cada maqueta suma
+        puntos: si lo ocultás porque es cualquier cosa, esos puntos se le sacan.
       </p>
       {cargando && !datos ? (
         <div className="mt-3">
@@ -51,9 +53,15 @@ export default function ComentariosGaleria() {
                   <span className="font-black">{comentario.nombre}</span>
                   <Chip tono="azul">{comentario.pedido}</Chip>
                   {!comentario.visible && <Chip tono="gris">Oculto</Chip>}
+                  {/^PTS-/i.test(comentario.puntos) && (
+                    <Chip tono={/deshecho/.test(comentario.puntos) ? "gris" : "ambar"}>
+                      {/deshecho/.test(comentario.puntos) ? "Puntos sacados" : "Dio puntos"}
+                    </Chip>
+                  )}
                   <span className="text-[var(--text-muted)]">{fechaHora(comentario.fecha)}</span>
                 </p>
                 <p className="mt-0.5 text-sm">{comentario.texto}</p>
+                {comentario.email && <p className="text-[11px] text-[var(--text-muted)]">{comentario.email}</p>}
               </div>
               <button
                 type="button"

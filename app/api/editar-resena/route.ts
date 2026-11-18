@@ -156,12 +156,12 @@ export async function POST(request: Request) {
       );
     }
 
-    if (fotos.length > 3) {
+    if (fotos.length > 5) {
       return Response.json(
         {
           ok: false,
           error:
-            "Podés guardar un máximo de 3 imágenes.",
+            "Podés guardar un máximo de 5 imágenes.",
         },
         { status: 400 }
       );
