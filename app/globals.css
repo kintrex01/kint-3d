@@ -1084,3 +1084,16 @@ html[data-fondo="grafito"]:not(.dark) {
 @media (prefers-reduced-motion: reduce) {
   .kint-aviso-fondo, .kint-aviso-tarjeta, .kint-aviso-pulso { animation: none; }
 }
+
+/* Impresión en curso (components/AgendaImpresora.tsx): rayas que avanzan. */
+.kint-rayas-vivas {
+  background: repeating-linear-gradient(135deg, #f97316 0 8px, #fdba74 8px 16px);
+  background-size: 22.6px 22.6px;
+  animation: kint-rayas-vivas 1.1s linear infinite;
+}
+@keyframes kint-rayas-vivas {
+  to { background-position: 22.6px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kint-rayas-vivas { animation: none; }
+}

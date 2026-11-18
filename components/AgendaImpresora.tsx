@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Printer } from "lucide-react";
+import { CheckCircle2, Printer } from "lucide-react";
 
 /*
  * /cotizar: hasta cuándo está ocupada la impresora. Sale de la cola que
  * arma el dueño en el panel (número de pedido y horarios, sin nombres).
+ * Un panel «en vivo»: qué imprime, cuánto falta para que quede libre
+ * (se actualiza solo cada minuto), la cola y desde cuándo puede empezar
+ * la maqueta del cliente.
  */
 
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
@@ -13,115 +16,176 @@ type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: b
 
 const ZONA = "America/Montevideo";
 
-function dia(iso: string) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA }).format(new Date(iso));
+function dia(ms: number) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: ZONA }).format(new Date(ms));
 }
 
 function hora(iso: string) {
   return new Intl.DateTimeFormat("es-UY", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ZONA }).format(new Date(iso));
 }
 
-/* «20:00», «mañana 03:00» o «jueves 19, 09:00». */
-function cuando(iso: string, ahora: string) {
-  const hoy = dia(ahora);
-  const manana = dia(new Date(Date.parse(ahora) + 86400000).toISOString());
-  if (dia(iso) === hoy) return `hoy ${hora(iso)}`;
-  if (dia(iso) === manana) return `mañana ${hora(iso)}`;
+/* «hoy 16:19», «mañana 03:00» o «jueves 19, 09:00». */
+function cuando(iso: string, ahoraMs: number) {
+  const ms = Date.parse(iso);
+  if (dia(ms) === dia(ahoraMs)) return `hoy ${hora(iso)}`;
+  if (dia(ms) === dia(ahoraMs + 86400000)) return `mañana ${hora(iso)}`;
   const nombre = new Intl.DateTimeFormat("es-UY", { weekday: "long", day: "numeric", timeZone: ZONA }).format(new Date(iso));
   return `${nombre}, ${hora(iso)}`;
 }
 
+/* «1 h 23 min», «45 min», «2 días 3 h». */
+function falta(ms: number) {
+  const minutos = Math.max(1, Math.round(ms / 60000));
+  if (minutos < 60) return `${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `${horas} h${minutos % 60 ? ` ${minutos % 60} min` : ""}`;
+  const dias = Math.floor(horas / 24);
+  return `${dias} ${dias === 1 ? "día" : "días"}${horas % 24 ? ` ${horas % 24} h` : ""}`;
+}
+
 export default function AgendaImpresora() {
   const [agenda, setAgenda] = useState<Agenda | null>(null);
+  // Diferencia entre el reloj del servidor y el de la compu, y un tic por minuto.
+  const [desfase, setDesfase] = useState(0);
+  const [, setTic] = useState(0);
 
   useEffect(() => {
     let activo = true;
     fetch("/api/cola-impresion")
       .then((respuesta) => respuesta.json())
       .then((data) => {
-        if (activo && data?.ok) setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "", oculta: Boolean(data.oculta) });
+        if (!activo || !data?.ok) return;
+        setDesfase(Date.parse(data.ahora) - Date.now());
+        setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "", oculta: Boolean(data.oculta) });
       })
       .catch(() => {});
+    const reloj = window.setInterval(() => setTic((n) => n + 1), 60000);
     return () => {
       activo = false;
+      window.clearInterval(reloj);
     };
   }, []);
 
   if (!agenda || agenda.oculta) return null;
 
-  const ahora = agenda.ahora;
-  const bloques = agenda.bloques.filter((bloque) => bloque.fin > ahora);
+  // eslint-disable-next-line react-hooks/purity -- el reloj avanza con el tic de cada minuto
+  const ahoraMs = Date.now() + desfase;
+  const bloques = agenda.bloques.filter((bloque) => Date.parse(bloque.fin) > ahoraMs);
 
   if (!bloques.length) {
     return (
-      <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/12 px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-        La impresora está libre ahora
-      </p>
+      <div className="mb-3 flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.08] px-4 py-3">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        </span>
+        <p className="text-sm font-bold text-[var(--text-main)]">
+          La impresora está libre: <span className="text-emerald-600 dark:text-emerald-400">tu maqueta puede empezar ya</span>
+        </p>
+      </div>
     );
   }
 
-  const desde = Date.parse(ahora);
-  const hasta = Date.parse(bloques[bloques.length - 1].fin);
+  const libre = agenda.libreDesde && Date.parse(agenda.libreDesde) > ahoraMs ? agenda.libreDesde : bloques[bloques.length - 1].fin;
+  const desde = ahoraMs;
+  const hasta = Date.parse(libre);
   const largo = Math.max(1, hasta - desde);
   const posicion = (iso: string) => Math.min(100, Math.max(0, ((Date.parse(iso) - desde) / largo) * 100));
+  const actual = bloques.find((bloque) => bloque.imprimiendo && Date.parse(bloque.inicio) <= ahoraMs);
+  const enCola = bloques.length - (actual ? 1 : 0);
 
   return (
-    <div className="mb-3 min-w-0 overflow-hidden rounded-2xl border border-orange-500/30 bg-orange-500/[0.07] p-4">
-      <div className="flex items-center gap-2.5">
-        <span className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white">
-          <Printer size={16} />
-          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-red-500 ring-2 ring-[var(--kint-panel)]" />
+    <div className="relative mb-3 overflow-hidden rounded-3xl border border-orange-500/25 bg-[linear-gradient(135deg,rgba(249,115,22,0.16),rgba(249,115,22,0.04)_45%,transparent_80%)] p-4 sm:p-5">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-orange-500/20 blur-3xl" />
+
+      {/* Encabezado: qué imprime y cuánto falta */}
+      <div className="relative flex flex-wrap items-start gap-3">
+        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#fb923c,#ea580c)] text-white shadow-[0_10px_24px_-8px_rgba(234,88,12,0.7)]">
+          <Printer size={20} />
+          <span className="absolute -right-1 -top-1 flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-70 motion-reduce:animate-none" />
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500 ring-2 ring-[var(--kint-panel)]" />
+          </span>
         </span>
-        <div className="min-w-0">
-          <p className="text-sm font-black text-[var(--text-main)]">La impresora está a full</p>
-          <p className="text-xs text-[var(--text-muted)]">
-            {bloques.length === 1 ? "Hay 1 impresión" : `Hay ${bloques.length} impresiones`} antes de la tuya.
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600 sm:tracking-[0.22em] dark:text-orange-400">Impresora · en vivo</p>
+          <p className="mt-0.5 text-base font-black leading-tight text-[var(--text-main)]">
+            {actual ? `Imprimiendo ${actual.pedido || "un pedido"}` : "Por arrancar"}
           </p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+            {enCola > 0 ? `${enCola} ${enCola === 1 ? "pedido espera" : "pedidos esperan"} en la cola` : "Sin cola detrás"}
+          </p>
+        </div>
+        {/* En el celular va en su propia franja; en la compu, a la derecha. */}
+        <div className="flex w-full items-baseline justify-between gap-2 rounded-2xl bg-[var(--kint-panel)]/70 px-3 py-2 ring-1 ring-orange-500/20 sm:block sm:w-auto sm:shrink-0 sm:bg-transparent sm:p-0 sm:text-right sm:ring-0">
+          <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Libre en</p>
+          <p className="whitespace-nowrap text-lg font-black leading-tight tabular-nums text-[var(--text-main)] sm:text-2xl">{falta(hasta - ahoraMs)}</p>
+          <p className="whitespace-nowrap text-[11px] font-bold text-orange-600 dark:text-orange-400">{cuando(libre, ahoraMs)}</p>
         </div>
       </div>
 
-      {/* Línea de tiempo: de ahora hasta que queda libre. */}
-      <div className="relative mt-4 h-3 overflow-hidden rounded-full bg-[var(--border-color)]">
-        {bloques.map((bloque, indice) => (
-          <div
-            key={bloque.inicio + indice}
-            className={`absolute inset-y-0 border-r-2 border-[var(--kint-panel)] ${
-              bloque.imprimiendo
-                ? "bg-[repeating-linear-gradient(135deg,#f97316_0_6px,#fb923c_6px_12px)]"
-                : indice % 2
-                ? "bg-orange-400/70"
-                : "bg-orange-500/80"
-            }`}
-            style={{ left: `${posicion(bloque.inicio)}%`, width: `${posicion(bloque.fin) - posicion(bloque.inicio)}%` }}
-          />
-        ))}
-      </div>
-      <div className="mt-1 flex justify-between text-[10px] font-bold text-[var(--text-muted)]">
-        <span>Ahora</span>
-        <span>Libre</span>
+      {/* Línea de tiempo: de ahora hasta que queda libre */}
+      <div className="relative mt-4">
+        <div className="relative h-3 overflow-hidden rounded-full bg-[var(--border-color)]/70">
+          {bloques.map((bloque, indice) => (
+            <span
+              key={bloque.inicio + indice}
+              className={`absolute inset-y-0 ${indice > 0 ? "border-l-2 border-[var(--kint-panel)]" : ""} ${
+                bloque === actual ? "kint-rayas-vivas" : indice % 2 ? "bg-orange-400/60" : "bg-orange-500/75"
+              }`}
+              style={{ left: `${posicion(bloque.inicio)}%`, width: `${posicion(bloque.fin) - posicion(bloque.inicio)}%` }}
+            />
+          ))}
+        </div>
+        <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)]">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+            Ahora
+          </span>
+          <span>Libre {hora(libre)}</span>
+        </div>
       </div>
 
-      <ol className="mt-3 space-y-1">
-        {bloques.map((bloque, indice) => (
-          <li key={`${bloque.fin}-${indice}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--text-main)]">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${bloque.imprimiendo ? "bg-orange-500" : "bg-orange-400/70"}`} />
-            <span className="font-black">{bloque.pedido || `Impresión ${indice + 1}`}</span>
-            {bloque.imprimiendo && (
-              <span className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">
-                Imprimiendo
+      {/* La cola */}
+      <ol className="relative mt-3 space-y-1.5">
+        {bloques.map((bloque, indice) => {
+          const vivo = bloque === actual;
+          return (
+            <li
+              key={`${bloque.fin}-${indice}`}
+              className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl px-3 py-2 text-xs ${
+                vivo ? "bg-orange-500/12 ring-1 ring-orange-500/30" : "bg-[var(--kint-panel)]/70 ring-1 ring-[var(--border-color)]"
+              }`}
+            >
+              <span
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
+                  vivo ? "bg-orange-500 text-white" : "bg-[var(--border-color)] text-[var(--text-muted)]"
+                }`}
+              >
+                {indice + 1}
               </span>
-            )}
-            <span className="ml-auto text-right text-[11px] tabular-nums text-[var(--text-muted)]">
-              {bloque.imprimiendo ? "termina" : cuando(bloque.inicio, ahora)} → <span className="font-bold text-[var(--text-main)]">{cuando(bloque.fin, ahora)}</span>
-            </span>
-          </li>
-        ))}
+              <span className="font-black text-[var(--text-main)]">{bloque.pedido || `Impresión ${indice + 1}`}</span>
+              {vivo && (
+                <span className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">
+                  Imprimiendo
+                </span>
+              )}
+              <span className="ml-auto text-right tabular-nums text-[var(--text-muted)]">
+                {vivo ? "termina " : `${cuando(bloque.inicio, ahoraMs)} → `}
+                <span className="font-bold text-[var(--text-main)]">{cuando(bloque.fin, ahoraMs)}</span>
+              </span>
+            </li>
+          );
+        })}
       </ol>
 
-      <p className="mt-3 rounded-xl bg-[var(--kint-panel)] px-3 py-2 text-sm text-[var(--text-main)]">
-        Lo más pronto que puede empezar tu maqueta: <span className="font-black">{cuando(agenda.libreDesde || bloques[bloques.length - 1].fin, ahora)}</span>.
-      </p>
+      {/* Desde cuándo puede empezar la suya */}
+      <div className="relative mt-3 flex items-center gap-2.5 rounded-2xl bg-emerald-500/10 px-3.5 py-2.5 ring-1 ring-emerald-500/25">
+        <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <p className="text-sm text-[var(--text-main)]">
+          Tu maqueta puede empezar desde <span className="font-black">{cuando(libre, ahoraMs)}</span>
+        </p>
+      </div>
     </div>
   );
 }

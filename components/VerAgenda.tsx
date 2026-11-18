@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { CalendarClock, X } from "lucide-react";
+import { CalendarClock, ChevronRight, X } from "lucide-react";
 import AgendaSemanal from "./AgendaSemanal";
 
 /*
@@ -43,15 +43,16 @@ export default function VerAgenda() {
       <button
         type="button"
         onClick={() => setAbierta(true)}
-        className="mb-3 flex w-full items-center gap-3 rounded-2xl border border-[var(--border-color)] bg-[var(--kint-panel)] px-4 py-3 text-left transition hover:border-emerald-500"
+        className="group mb-3 flex w-full items-center gap-3 rounded-2xl border border-emerald-500/25 bg-[linear-gradient(135deg,rgba(16,185,129,0.12),rgba(59,130,246,0.06)_55%,transparent)] px-4 py-3 text-left transition hover:border-emerald-500/60 hover:shadow-[0_10px_30px_-12px_rgba(16,185,129,0.5)]"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-          <CalendarClock size={18} />
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#34d399,#059669)] text-white shadow-[0_8px_20px_-8px_rgba(5,150,105,0.7)]">
+          <CalendarClock size={19} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-black text-[var(--text-main)]">Ver mi agenda</span>
           <span className="block text-xs text-[var(--text-muted)]">Cuándo estoy en FADU, cuándo respondo y la impresora</span>
         </span>
+        <ChevronRight size={18} className="shrink-0 text-emerald-600 transition group-hover:translate-x-0.5 dark:text-emerald-400" />
       </button>
 
       {/* En document.body: el formulario tiene animaciones que encerrarían la ventana. */}
