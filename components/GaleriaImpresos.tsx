@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -6,10 +6,10 @@ import { createPortal } from "react-dom";
 import { Camera, ChevronLeft, ChevronRight, LoaderCircle, MessageSquareQuote, Star, X } from "lucide-react";
 
 /*
- * GalerÃ­a de lo impreso: las maquetas terminadas con foto final y, si el
- * cliente dejÃ³ reseÃ±a, lo que dijo, sus estrellas y sus fotos. Las que
- * tienen reseÃ±a van primero (dejar reseÃ±a luce). Filtra por escala, color
- * o Â«con reseÃ±aÂ»; tocar una foto la abre grande.
+ * Galería de lo impreso: las maquetas terminadas con foto final y, si el
+ * cliente dejó reseña, lo que dijo, sus estrellas y sus fotos. Las que
+ * tienen reseña van primero (dejar reseña luce). Filtra por escala, color
+ * o «con reseña»; tocar una foto la abre grande.
  */
 
 type Resena = { comentario: string; nombre: string; fotosCliente: number };
@@ -23,13 +23,13 @@ type Item = {
   resena: Resena | null;
 };
 
-/* Las fotos de Drive pasan por /api/imagen-drive (asÃ­ cargan siempre). */
+/* Las fotos de Drive pasan por /api/imagen-drive (así cargan siempre). */
 function srcFoto(link: string) {
   const id = /[-\w]{25,}/.exec(link)?.[0];
   return /drive\.google\.com/.test(link) && id ? `/api/imagen-drive?id=${encodeURIComponent(id)}` : link;
 }
 
-/* Â«1:125 / 1:1 (esta ya hecho)Â» â†’ Â«1:125Â». */
+/* «1:125 / 1:1 (esta ya hecho)» → «1:125». */
 function escalaCorta(escala: string) {
   return /1:\s?\d+/.exec(escala)?.[0].replace(/\s/g, "") || (escala.trim() ? "Otra" : "");
 }
@@ -90,7 +90,7 @@ export default function GaleriaImpresos() {
     return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
   }, [items]);
 
-  // Primero las que tienen reseÃ±a (con fotos del cliente, arriba de todo).
+  // Primero las que tienen reseña (con fotos del cliente, arriba de todo).
   const visibles = useMemo(() => {
     const peso = (item: Item) => (item.resena ? (item.resena.fotosCliente ? 3 : 2) : 0) + (item.estrellas >= 5 ? 1 : 0);
     return (items ?? [])
@@ -129,13 +129,13 @@ export default function GaleriaImpresos() {
     return () => window.removeEventListener("keydown", tecla);
   }, [abierta, visibles.length]);
 
-  if (error) return <p className="text-center text-sm text-[var(--text-muted)]">No pudimos cargar la galerÃ­a. ProbÃ¡ en un rato.</p>;
-  if (apagada) return <p className="text-center text-sm text-[var(--text-muted)]">La galerÃ­a no estÃ¡ disponible ahora.</p>;
+  if (error) return <p className="text-center text-sm text-[var(--text-muted)]">No pudimos cargar la galería. Probá en un rato.</p>;
+  if (apagada) return <p className="text-center text-sm text-[var(--text-muted)]">La galería no está disponible ahora.</p>;
   if (!items) {
     return (
       <p className="flex items-center justify-center gap-2 text-sm text-[var(--text-muted)]">
         <LoaderCircle size={16} className="animate-spin" />
-        Cargando las maquetasâ€¦
+        Cargando las maquetas…
       </p>
     );
   }
@@ -148,19 +148,19 @@ export default function GaleriaImpresos() {
 
   return (
     <div>
-      {/* InvitaciÃ³n: tu reseÃ±a tambiÃ©n aparece acÃ¡ */}
+      {/* Invitación: tu reseña también aparece acá */}
       <div className="mb-5 flex flex-col gap-3 rounded-3xl border border-amber-400/40 bg-[linear-gradient(135deg,rgba(251,191,36,0.16),rgba(239,68,68,0.06)_60%,transparent)] p-4 sm:flex-row sm:items-center">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#fbbf24,#f59e0b)] text-white shadow-[0_10px_24px_-10px_rgba(245,158,11,0.8)]">
           <Camera size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-black text-[var(--text-main)]">Â¿Ya tenÃ©s tu maqueta? Que aparezca acÃ¡ con tu reseÃ±a</p>
+          <p className="text-sm font-black text-[var(--text-main)]">¿Ya tenés tu maqueta? Que aparezca acá con tu reseña</p>
           <p className="mt-0.5 text-xs leading-5 text-[var(--text-muted)]">
-            Las maquetas con reseÃ±a y foto van primero en la galerÃ­a
+            Las maquetas con reseña y foto van primero en la galería
             {puntos.resena || puntos.foto
-              ? `, y sumÃ¡s ${[puntos.resena && `${puntos.resena} Puntos Kint por la reseÃ±a`, puntos.foto && `${puntos.foto} mÃ¡s por la foto`].filter(Boolean).join(" y ")}`
+              ? `, y sumás ${[puntos.resena && `${puntos.resena} Puntos Kint por la reseña`, puntos.foto && `${puntos.foto} más por la foto`].filter(Boolean).join(" y ")}`
               : ""}
-            . EntrÃ¡ a tu pedido y tocÃ¡ Â«DejÃ¡ tu reseÃ±aÂ».
+            . Entrá a tu pedido y tocá «Dejar mi reseña».
           </p>
         </div>
         <Link href="/seguimiento" className="inline-flex h-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--text-main)] px-4 text-xs font-black text-[var(--page-bg)]">
@@ -173,7 +173,7 @@ export default function GaleriaImpresos() {
         <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
           {conResena > 0 && (
             <button type="button" className={chip(soloResenas)} onClick={() => setSoloResenas(!soloResenas)}>
-              â˜… Con reseÃ±a ({conResena})
+              ★ Con reseña ({conResena})
             </button>
           )}
           <button type="button" className={chip(!escala)} onClick={() => setEscala("")}>Todas las escalas</button>
@@ -230,9 +230,9 @@ export default function GaleriaImpresos() {
                   {item.resena.fotosCliente > 0 && <span className="text-[9px] font-black uppercase tracking-[0.08em] text-amber-600 dark:text-amber-400">Foto del cliente</span>}
                 </span>
                 {item.resena.comentario && (
-                  <span className="mt-1 line-clamp-3 text-[11px] italic leading-4 text-[var(--text-main)]">Â«{item.resena.comentario}Â»</span>
+                  <span className="mt-1 line-clamp-3 text-[11px] italic leading-4 text-[var(--text-main)]">«{item.resena.comentario}»</span>
                 )}
-                {item.resena.nombre && <span className="mt-0.5 block text-[10px] font-black text-[var(--text-muted)]">â€” {item.resena.nombre}</span>}
+                {item.resena.nombre && <span className="mt-0.5 block text-[10px] font-black text-[var(--text-muted)]">— {item.resena.nombre}</span>}
               </span>
             )}
             <span className="flex items-center gap-1.5 px-2.5 py-2 text-[11px] font-bold text-[var(--text-muted)]">
@@ -255,11 +255,11 @@ export default function GaleriaImpresos() {
           onClick={() => setCantidad((actual) => actual + 24)}
           className="mx-auto mt-4 flex h-11 items-center rounded-2xl border border-[var(--border-color)] px-6 text-sm font-black hover:border-red-600"
         >
-          Ver mÃ¡s ({visibles.length - cantidad})
+          Ver más ({visibles.length - cantidad})
         </button>
       )}
 
-      {/* Foto grande, con sus otras fotos y la reseÃ±a */}
+      {/* Foto grande, con sus otras fotos y la reseña */}
       {actual &&
         createPortal(
           <div className="fixed inset-0 z-[9990] flex items-center justify-center overflow-y-auto bg-black/85 p-4 backdrop-blur-sm" onClick={() => setAbierta(null)}>
@@ -284,16 +284,16 @@ export default function GaleriaImpresos() {
               )}
               <figcaption className="mx-auto mt-3 max-w-2xl text-center text-sm text-white">
                 <span className="font-black">{actual.pedido}</span>
-                {actual.escala && ` Â· Escala ${actual.escala}`}
-                {actual.colores && ` Â· ${actual.colores}`}
+                {actual.escala && ` · Escala ${actual.escala}`}
+                {actual.colores && ` · ${actual.colores}`}
                 {actual.resena && (
                   <span className="mt-3 block rounded-2xl bg-white/10 px-4 py-3 text-left">
                     <span className="flex items-center gap-2">
                       <MessageSquareQuote size={16} className="text-amber-300" />
                       <Estrellas cuantas={actual.estrellas} />
                     </span>
-                    {actual.resena.comentario && <span className="mt-1.5 block italic leading-6">Â«{actual.resena.comentario}Â»</span>}
-                    {actual.resena.nombre && <span className="mt-1 block text-xs font-black text-white/70">â€” {actual.resena.nombre}</span>}
+                    {actual.resena.comentario && <span className="mt-1.5 block italic leading-6">«{actual.resena.comentario}»</span>}
+                    {actual.resena.nombre && <span className="mt-1 block text-xs font-black text-white/70">— {actual.resena.nombre}</span>}
                   </span>
                 )}
               </figcaption>
