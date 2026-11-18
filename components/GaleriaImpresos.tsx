@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Camera, Heart, LoaderCircle, MessageCircle, Star } from "lucide-react";
 import VisorMaqueta, { type MaquetaGaleria } from "./VisorMaqueta";
+import { ordenarGaleria } from "@/lib/galeria-orden";
 
 /*
  * Galería de lo impreso: las maquetas terminadas con foto final y, si el
@@ -89,29 +90,19 @@ export default function GaleriaImpresos() {
     return [...cuenta.entries()].sort((a, b) => b[1] - a[1]).map(([nombre]) => nombre);
   }, [items]);
 
-  /*
-   * Orden: 1) las reseñas con más likes; 2) las de clientes que aprobaron
-   * mostrar la foto de su proyecto; 3) todo lo demás (de la más nueva a la
-   * más vieja, como viene).
-   */
-  const visibles = useMemo(() => {
-    // Primero las destacadas por el dueño (en su orden); después, el orden automático.
-    const grupo = (item: Item) => (item.destacado ? -1 : (item.likes ?? 0) > 0 ? 0 : item.conPermiso ? 1 : 2);
-    const ordenar = (a: Item, b: Item) =>
-      grupo(a) - grupo(b) ||
-      (grupo(a) === -1 ? (a.destacado ?? 0) - (b.destacado ?? 0) : 0) ||
-      (grupo(a) === 0 ? (b.likes ?? 0) - (a.likes ?? 0) : 0);
-    return (items ?? [])
-      .filter(
-        (item) =>
-          (!soloResenas || item.resena) &&
-          (!escala || escalaCorta(item.escala) === escala) &&
-          (!color || listaColores(item.colores).includes(color))
-      )
-      .map((item, orden) => ({ item, orden }))
-      .sort((a, b) => ordenar(a.item, b.item) || a.orden - b.orden)
-      .map(({ item }) => item);
-  }, [items, soloResenas, escala, color]);
+  // Orden: el que eligió el dueño arrastrando; después reseñas y el resto, por likes (lib/galeria-orden).
+  const visibles = useMemo(
+    () =>
+      ordenarGaleria(
+        (items ?? []).filter(
+          (item) =>
+            (!soloResenas || item.resena) &&
+            (!escala || escalaCorta(item.escala) === escala) &&
+            (!color || listaColores(item.colores).includes(color))
+        )
+      ),
+    [items, soloResenas, escala, color]
+  );
   const conResena = (items ?? []).filter((item) => item.resena).length;
 
   function abrir(indice: number) {

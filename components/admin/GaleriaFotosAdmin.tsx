@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, EyeOff, ImagePlus, Images, Plus, RotateCcw, Search, Star, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, Eye, EyeOff, GripVertical, ImagePlus, Images, Plus, RotateCcw, Search, X } from "lucide-react";
+import { ordenarGaleria } from "@/lib/galeria-orden";
 import { accionAdmin } from "@/lib/admin-cliente";
 import type { FilaConfig } from "@/lib/admin-tipos";
 import { subirFoto } from "@/components/admin/AgregarConfig";
@@ -18,7 +19,7 @@ import { Boton, Chip, Tarjeta, claseInput, useAvisos } from "@/components/admin/
  *   también sale de la reseña.
  */
 
-type ItemGaleria = { id: string; pedido: string; fotos: string[]; editada?: boolean };
+type ItemGaleria = { id: string; pedido: string; fotos: string[]; editada?: boolean; likes?: number; tieneResena?: boolean; destacado?: number };
 type Disponibles = { tuyas: string[]; cliente: string[] };
 
 function srcFoto(link: string) {
@@ -48,6 +49,8 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
   const [disponibles, setDisponibles] = useState<Disponibles>({ tuyas: [], cliente: [] });
   const [guardando, setGuardando] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
+  const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const [ordenLocal, setOrdenLocal] = useState<string[] | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
 
   const destacadas = lista(filas.find((fila) => fila.clave === "galeria_destacadas")?.valor);
@@ -65,10 +68,71 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
   }, []);
 
   const porId = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const claveDestacadas = destacadas.join(",");
+  const claveOcultas = ocultas.join(",");
+  // El orden que ve la gente (el tuyo y después el automático), sin las ocultas.
+  const ordenBase = useMemo(() => {
+    const manual = claveDestacadas ? claveDestacadas.split(",") : [];
+    const fuera = new Set(claveOcultas ? claveOcultas.split(",") : []);
+    return ordenarGaleria(items.filter((item) => !fuera.has(item.id)).map((item) => ({ ...item, destacado: manual.indexOf(item.id) + 1 }))).map((item) => item.id);
+  }, [items, claveDestacadas, claveOcultas]);
+  const orden = ordenLocal ?? ordenBase;
+  const posicion = useMemo(() => new Map(orden.map((id, indice) => [id, indice + 1])), [orden]);
   const visibles = useMemo(() => {
     const termino = busqueda.replace(/\D/g, "").replace(/^0+/, "");
-    return items.filter((item) => !termino || item.id.replace(/\D/g, "").replace(/^0+/, "").includes(termino)).slice(0, 40);
-  }, [items, busqueda]);
+    return orden
+      .map((id) => porId.get(id))
+      .filter((item): item is ItemGaleria => Boolean(item))
+      .filter((item) => !termino || item.id.replace(/\D/g, "").replace(/^0+/, "").includes(termino));
+  }, [orden, porId, busqueda]);
+
+  /* Arrastrar: la manija captura el puntero (mouse o dedo); al pasar sobre otra maqueta, toma su lugar. */
+  function empezarArrastre(evento: React.PointerEvent<HTMLElement>, id: string) {
+    evento.preventDefault();
+    evento.currentTarget.setPointerCapture(evento.pointerId);
+    setArrastrando(id);
+    setOrdenLocal(orden);
+  }
+
+  function moverArrastre(evento: React.PointerEvent<HTMLElement>) {
+    if (!arrastrando) return;
+    // Cerca del borde de la pantalla, la página se desplaza sola.
+    if (evento.clientY < 70) window.scrollBy(0, -14);
+    else if (evento.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
+    const destino = document.elementFromPoint(evento.clientX, evento.clientY)?.closest<HTMLElement>("[data-pedido]")?.dataset.pedido;
+    if (!destino || destino === arrastrando) return;
+    setOrdenLocal((actual) => {
+      const lista = [...(actual ?? orden)];
+      const desde = lista.indexOf(arrastrando);
+      const hasta = lista.indexOf(destino);
+      if (desde < 0 || hasta < 0) return actual;
+      lista.splice(desde, 1);
+      lista.splice(hasta, 0, arrastrando);
+      return lista;
+    });
+  }
+
+  async function terminarArrastre() {
+    if (!arrastrando) return;
+    const nuevo = ordenLocal;
+    setArrastrando(null);
+    if (!nuevo || nuevo.join(",") === ordenBase.join(",")) {
+      setOrdenLocal(null);
+      return;
+    }
+    await guardarLista("galeria_destacadas", nuevo, "Orden guardado: la galería se ve así en unos minutos");
+    setOrdenLocal(null);
+  }
+
+  /* Mandar una maqueta al principio o al final de la galería (para moverla lejos sin arrastrar). */
+  function mandarA(id: string, lugar: "principio" | "final") {
+    const sin = ordenBase.filter((otro) => otro !== id);
+    void guardarLista(
+      "galeria_destacadas",
+      lugar === "principio" ? [id, ...sin] : [...sin, id],
+      lugar === "principio" ? `${id} va primera en la galería` : `${id} va última en la galería`
+    );
+  }
 
   async function guardarLista(clave: string, pedidos: string[], aviso: string) {
     try {
@@ -78,14 +142,6 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
     } catch (error) {
       avisar(error instanceof Error ? error.message : "No se pudo guardar.", "error");
     }
-  }
-
-  function moverDestacada(indice: number, paso: number) {
-    const nuevas = [...destacadas];
-    const destino = indice + paso;
-    if (destino < 0 || destino >= nuevas.length) return;
-    [nuevas[indice], nuevas[destino]] = [nuevas[destino], nuevas[indice]];
-    void guardarLista("galeria_destacadas", nuevas, "Orden de destacadas guardado");
   }
 
   async function elegir(pedido: string) {
@@ -168,7 +224,6 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
 
   const cambiado = JSON.stringify(fotos) !== JSON.stringify(originales);
   const item = porId.get(elegido);
-  const esDestacada = destacadas.includes(elegido);
   const estaOculta = ocultas.includes(elegido);
   const sinUsar = (urls: string[]) => urls.filter((url) => !fotos.includes(url));
 
@@ -179,88 +234,91 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
 
   return (
     <>
-      {/* Destacadas: van primero, en este orden */}
+      {/* Todas las maquetas en el orden en que las ve la gente: arrastrá para ordenar */}
       <Tarjeta className="mt-6 p-4">
         <p className="flex items-center gap-2 text-lg font-black">
-          <Star size={18} className="text-amber-500" />
-          Destacadas (van primero)
-        </p>
-        <p className="text-xs text-[var(--text-muted)]">
-          Tus mejores proyectos arriba de todo, en el orden que elijas. Las demás siguen el orden automático (más likes primero).
-        </p>
-        {destacadas.length === 0 ? (
-          <p className="mt-3 rounded-xl bg-[var(--kint-selected-bg)] px-3 py-2.5 text-sm text-[var(--text-muted)]">
-            Todavía no destacaste ninguna. Abrí una maqueta abajo y tocá «Destacar».
-          </p>
-        ) : (
-          <ol className="mt-3 space-y-1.5">
-            {destacadas.map((pedido, indice) => {
-              const destacada = porId.get(pedido);
-              return (
-                <li key={pedido} className="flex items-center gap-2 rounded-xl border border-[var(--kint-panel-border)] p-1.5">
-                  <span className="w-5 text-center text-xs font-black text-amber-600">{indice + 1}</span>
-                  <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[var(--kint-panel-soft)]">
-                    {destacada?.fotos[0] && miniatura(destacada.fotos[0], pedido)}
-                  </span>
-                  <button type="button" onClick={() => void elegir(pedido)} className="min-w-0 flex-1 truncate text-left text-sm font-black hover:underline">
-                    {pedido.replace(/^KNT-0*/, "KNT-")}
-                  </button>
-                  <button type="button" aria-label="Subir" disabled={indice === 0} onClick={() => moverDestacada(indice, -1)} className="rounded p-1 text-[var(--text-muted)] disabled:opacity-25">
-                    <ArrowUp size={14} />
-                  </button>
-                  <button type="button" aria-label="Bajar" disabled={indice === destacadas.length - 1} onClick={() => moverDestacada(indice, 1)} className="rounded p-1 text-[var(--text-muted)] disabled:opacity-25">
-                    <ArrowDown size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Quitar de destacadas"
-                    onClick={() => void guardarLista("galeria_destacadas", destacadas.filter((otro) => otro !== pedido), `${pedido} ya no está destacada`)}
-                    className="rounded p-1 text-[var(--text-muted)] hover:text-red-600"
-                  >
-                    <X size={14} />
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-      </Tarjeta>
-
-      {/* Cada maqueta: fotos, destacar, ocultar */}
-      <Tarjeta className="mt-4 p-4">
-        <p className="flex items-center gap-2 text-lg font-black">
           <Images size={18} />
-          Las maquetas y sus fotos
+          Orden de la galería y fotos
         </p>
         <p className="text-xs text-[var(--text-muted)]">
-          Tocá una para elegir qué fotos se ven (las tuyas, las del cliente o las dos, y en qué orden), destacarla u ocultarla.
+          Así las ve la gente, de arriba a la izquierda hacia abajo. Arrastrá desde <GripVertical size={12} className="inline" /> para moverlas, tocá
+          una para elegir sus fotos, o <EyeOff size={12} className="inline" /> para ocultarla.
         </p>
 
         {!elegido ? (
           <>
-            <div className="relative mt-3">
-              <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-              <input
-                value={busqueda}
-                onChange={(evento) => setBusqueda(evento.target.value)}
-                placeholder="Número de pedido (ej. 39)"
-                inputMode="numeric"
-                className={`${claseInput} h-10 pl-9`}
-              />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-40 flex-1">
+                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  value={busqueda}
+                  onChange={(evento) => setBusqueda(evento.target.value)}
+                  placeholder="Buscar por número (ej. 39)"
+                  inputMode="numeric"
+                  className={`${claseInput} h-10 pl-9`}
+                />
+              </div>
+              {destacadas.length > 0 && (
+                <Boton
+                  tamano="chico"
+                  icono={<RotateCcw size={14} />}
+                  onClick={() => {
+                    if (window.confirm("¿Volver al orden automático? (reseñas primero y después por likes)"))
+                      void guardarLista("galeria_destacadas", [], "Volvió al orden automático");
+                  }}
+                >
+                  Orden automático
+                </Boton>
+              )}
             </div>
-            <ul className="mt-2 grid max-h-80 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-5">
+            <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">
+              {destacadas.length
+                ? "Orden tuyo. Las maquetas nuevas aparecen después de las que ordenaste (reseñas primero)."
+                : "Orden automático: reseñas primero (más likes arriba) y después el resto por likes. Al mover una, queda tu orden."}
+            </p>
+
+            <ul className="mt-2 grid select-none grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
               {visibles.map((otro) => (
-                <li key={otro.id}>
-                  <button type="button" onClick={() => void elegir(otro.id)} className="relative block w-full overflow-hidden rounded-xl border border-[var(--kint-panel-border)] text-left">
+                <li
+                  key={otro.id}
+                  data-pedido={otro.id}
+                  className={`relative overflow-hidden rounded-xl border transition ${
+                    arrastrando === otro.id ? "scale-95 border-red-500 opacity-60 ring-2 ring-red-500" : "border-[var(--kint-panel-border)]"
+                  }`}
+                >
+                  <button type="button" onClick={() => void elegir(otro.id)} className="block w-full text-left">
                     {miniatura(otro.fotos[0], otro.pedido)}
-                    {destacadas.includes(otro.id) && (
-                      <span className="absolute left-1 top-1 rounded-full bg-amber-500 px-1.5 text-[10px] font-black text-white">★ {destacadas.indexOf(otro.id) + 1}</span>
-                    )}
                     <span className="block truncate px-1.5 py-1 text-[11px] font-black">
                       {otro.pedido}
                       {otro.editada && <span className="ml-1 text-amber-600">· editada</span>}
                     </span>
                   </button>
+                  <span className="pointer-events-none absolute left-1 top-1 rounded-full bg-black/65 px-1.5 text-[10px] font-black text-white">
+                    {posicion.get(otro.id)}
+                    {otro.tieneResena ? " · ★" : ""}
+                    {(otro.likes ?? 0) > 0 ? ` · ♥${otro.likes}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Ocultar ${otro.pedido}`}
+                    onClick={() => void guardarLista("galeria_ocultos", [...ocultas, otro.id], `${otro.pedido} oculta de la galería`)}
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white hover:bg-red-600"
+                  >
+                    <EyeOff size={12} />
+                  </button>
+                  {!busqueda && (
+                    <span
+                      role="button"
+                      aria-label={`Arrastrar ${otro.pedido}`}
+                      onPointerDown={(evento) => empezarArrastre(evento, otro.id)}
+                      onPointerMove={moverArrastre}
+                      onPointerUp={() => void terminarArrastre()}
+                      onPointerCancel={() => void terminarArrastre()}
+                      className="absolute bottom-7 right-1 flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-full bg-white/90 text-slate-900 shadow active:cursor-grabbing"
+                    >
+                      <GripVertical size={16} />
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -268,6 +326,25 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
               <Boton className="mt-2" onClick={() => void elegir(normalizarPedido(busqueda))}>
                 Abrir {normalizarPedido(busqueda)}
               </Boton>
+            )}
+
+            {ocultas.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-1.5 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">Ocultas · tocá para que vuelvan</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {ocultas.map((pedido) => (
+                    <button
+                      key={pedido}
+                      type="button"
+                      onClick={() => void guardarLista("galeria_ocultos", ocultas.filter((otro) => otro !== pedido), `${pedido} vuelve a la galería`)}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--kint-panel-border)] px-2.5 py-1 text-xs font-black hover:border-emerald-500"
+                    >
+                      <Eye size={12} />
+                      {pedido.replace(/^KNT-0*/, "KNT-")}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         ) : (
@@ -282,19 +359,16 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
             </div>
 
             <div className="mt-2 flex flex-wrap gap-2">
-              <Boton
-                tamano="chico"
-                icono={<Star size={14} className={esDestacada ? "fill-amber-400 text-amber-400" : ""} />}
-                onClick={() =>
-                  void guardarLista(
-                    "galeria_destacadas",
-                    esDestacada ? destacadas.filter((otro) => otro !== elegido) : [...destacadas, elegido],
-                    esDestacada ? `${elegido} ya no está destacada` : `${elegido} destacada: va en el lugar ${destacadas.length + 1}`
-                  )
-                }
-              >
-                {esDestacada ? "Quitar de destacadas" : "Destacar"}
-              </Boton>
+              {!estaOculta && (
+                <>
+                  <Boton tamano="chico" icono={<ArrowUp size={14} />} onClick={() => mandarA(elegido, "principio")}>
+                    Mandar al principio
+                  </Boton>
+                  <Boton tamano="chico" icono={<ArrowDown size={14} />} onClick={() => mandarA(elegido, "final")}>
+                    Mandar al final
+                  </Boton>
+                </>
+              )}
               <Boton
                 tamano="chico"
                 icono={<EyeOff size={14} />}
