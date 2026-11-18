@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Check, ChevronRight, ExternalLink, Search, Send } from "lucide-react";
+import { Check, ChevronRight, ExternalLink, Search, Send, X } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { PedidoResumen } from "@/lib/admin-tipos";
 import Calculadora, { type CalculoActual } from "@/components/admin/calculadora/Calculadora";
@@ -18,6 +18,7 @@ import {
   useAvisos,
 } from "@/components/admin/ui";
 import { coincide, estaCancelado } from "@/components/admin/pedidos/utilidades";
+import { colorFilamento } from "@/lib/colores-filamento";
 
 /*
  * Calculadora: se calcula el precio y, con un toque, se agrega como
@@ -151,13 +152,15 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
           </span>
           <button
             type="button"
+            aria-label="Quitar el pedido"
+            title="Quitar el pedido"
             onClick={() => {
               setElegido("");
               setConfirmar(false);
             }}
-            className="shrink-0 text-xs font-black text-[var(--blue-main)] hover:underline dark:text-sky-300"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:bg-red-600/10 hover:text-red-600"
           >
-            Cambiar
+            <X size={16} />
           </button>
         </div>
       ) : (
@@ -202,6 +205,9 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
           </ul>
         </div>
       )}
+
+      {/* Lo que importa para el precio, chiquito. */}
+      {pedido && <DatosParaPrecio numero={pedido.pedido} urgente={pedido.prioritario} />}
 
       {pedido && (
         <div className="mt-3 space-y-3">
@@ -348,5 +354,64 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
         </div>
       )}
     </Tarjeta>
+  );
+}
+
+/*
+ * Ficha del pedido elegido: escala, colores, armado, boquilla, urgente,
+ * descuento, productos sumados y comentarios (lo que cambia el precio).
+ */
+function DatosParaPrecio({ numero, urgente }: { numero: string; urgente: boolean }) {
+  const { datos, cargando } = useDatosAdmin("admin_pedido_detalle", { pedido: numero }, numero);
+  const detalle = datos?.pedido;
+
+  if (cargando && !detalle) {
+    return <p className="mt-2 px-1 text-[11px] text-[var(--text-muted)]">Cargando los datos del pedido…</p>;
+  }
+  if (!detalle) return null;
+
+  const colores =
+    detalle.colores ??
+    detalle.color.split(/\s*,\s*/).filter(Boolean).map((nombre) => ({ nombre, visible: nombre, hex: "" }));
+  const armado = /^s[ií]/i.test(detalle.armado);
+  const boquilla = detalle.boquilla.replace(/ — .*/, "");
+  const extras = detalle.extras ?? [];
+
+  const fila = (titulo: string, valor: React.ReactNode, destacado = false) => (
+    <div className="flex items-baseline gap-2">
+      <dt className="w-16 shrink-0 text-[10px] font-black uppercase tracking-[0.08em] text-[var(--text-muted)]">{titulo}</dt>
+      <dd className={`min-w-0 text-xs ${destacado ? "font-black text-amber-700 dark:text-amber-300" : "font-semibold"}`}>{valor}</dd>
+    </div>
+  );
+
+  return (
+    <dl data-ficha-pedido className="mt-2 space-y-1 rounded-xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel-soft)] px-3 py-2.5">
+      {fila("Escala", detalle.escala || "—")}
+      {fila(
+        "Colores",
+        colores.length ? (
+          <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+            {colores.map((color) => (
+              <span key={color.nombre} className="inline-flex items-center gap-1">
+                <span className="h-2.5 w-2.5 rounded-full ring-1 ring-black/20" style={{ background: color.hex || colorFilamento(color.nombre) }} />
+                {color.visible}
+              </span>
+            ))}
+            {colores.length > 1 && <span className="text-[var(--text-muted)]">({colores.length} colores)</span>}
+          </span>
+        ) : (
+          "—"
+        ),
+        colores.length > 1
+      )}
+      {fila("Armado", armado ? "Sí, lo armás vos" : "No", armado)}
+      {boquilla && fila("Boquilla", boquilla)}
+      {urgente && fila("Urgente", "Sí: lleva recargo", true)}
+      {detalle.codigoDescuento && fila("Código", `${detalle.codigoDescuento}${detalle.descuento ? ` (−${detalle.descuento}%)` : ""}`)}
+      {extras.length > 0 &&
+        fila("Suma", extras.map((extra) => `${extra.cantidad > 1 ? `${extra.cantidad}× ` : ""}${extra.producto}`).join(", "))}
+      {detalle.archivos.length > 0 && fila("Archivos", `${detalle.archivos.length}`)}
+      {detalle.comentarios && fila("Notas", <span className="line-clamp-3 whitespace-pre-line">{detalle.comentarios}</span>)}
+    </dl>
   );
 }
