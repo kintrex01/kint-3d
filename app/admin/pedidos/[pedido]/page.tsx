@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useState, type ReactNode } from "react";
+import { use, useEffect, useState, type ReactNode } from "react";
+import { ETAPAS_WHATSAPP, mensajeWhatsapp } from "@/lib/whatsapp-etapas";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -331,6 +332,27 @@ export default function DetallePedidoAdmin({
   const [hojaEstado, setHojaEstado] = useState(false);
   const [hojaEntrega, setHojaEntrega] = useState(false);
   const [hojaCorreo, setHojaCorreo] = useState(false);
+  // Mensajes de WhatsApp por etapa (Configuración › Whatsapp).
+  const [plantillasWhatsapp, setPlantillasWhatsapp] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/configuracion")
+      .then((respuesta) => respuesta.json())
+      .then((data) => {
+        if (!activo || !data?.ok) return;
+        const plantillas: Record<string, string> = {};
+        Object.values(ETAPAS_WHATSAPP).forEach(({ clave }) => {
+          const valor = data.configuracion?.[clave]?.valor;
+          if (typeof valor === "string") plantillas[clave] = valor;
+        });
+        setPlantillasWhatsapp(plantillas);
+      })
+      .catch(() => {});
+    return () => {
+      activo = false;
+    };
+  }, []);
   const [correoNuevo, setCorreoNuevo] = useState("");
   const [reenviarAlCambiar, setReenviarAlCambiar] = useState(true);
   const [fechaNueva, setFechaNueva] = useState("");
@@ -662,10 +684,16 @@ export default function DetallePedidoAdmin({
 
   const cancelado = estaCancelado(pedido.estado);
   const paso = proximoPaso(pedido);
+  // El WhatsApp abre con el mensaje de la etapa (por si el correo le llegó a spam).
+  const textoEtapa = mensajeWhatsapp(
+    { estado: pedido.estado, nombre: pedido.nombre, pedido: pedido.pedido, email: pedido.email, codigo: pedido.codigo },
+    plantillasWhatsapp
+  );
   const whatsapp = linkWhatsapp(
     pedido.whatsapp || pedido.telefonoCuenta || "",
-    `Hola ${pedido.nombre}, te escribo por tu pedido ${pedido.pedido} de Kint 3D`
+    textoEtapa || `Hola ${pedido.nombre}, te escribo por tu pedido ${pedido.pedido} de Kint 3D`
   );
+  const etapaWhatsapp = ETAPAS_WHATSAPP[pedido.estado];
   // revisarEstados saltea los pedidos sin email.
   const avisoPendiente =
     !cancelado &&
@@ -785,6 +813,24 @@ export default function DetallePedidoAdmin({
           )}
         </div>
       </div>
+
+        {/* Avisar por WhatsApp lo que dice el correo (muchos van a spam). */}
+        {whatsapp && etapaWhatsapp && !cancelado && (
+          <a
+            href={whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 flex items-center gap-3 rounded-xl border border-[#25d366]/50 bg-[#25d366]/10 px-3 py-2.5 transition hover:bg-[#25d366]/15"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25d366] text-white">
+              <MessageCircle size={17} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-black">Avisar por WhatsApp: {etapaWhatsapp.titulo.toLowerCase()}</span>
+              <span className="block truncate text-xs text-[var(--text-muted)]">{textoEtapa}</span>
+            </span>
+          </a>
+        )}
 
         {pedido.codigo && (
           <button

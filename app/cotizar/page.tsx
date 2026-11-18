@@ -2001,9 +2001,15 @@ if (enviado) {
           </p>
         )}
 
-        <p className="mb-8 max-w-xl text-lg text-[var(--text-muted)]">
+        <p className="mb-5 max-w-xl text-lg text-[var(--text-muted)]">
           Recibimos tu solicitud correctamente. Pronto recibirás
           actualizaciones sobre el estado de tu pedido.
+        </p>
+
+        {/* Muchos correos caen en spam: que lo sepa desde ya. */}
+        <p className="mb-8 max-w-xl rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-3 text-sm leading-6 text-[var(--text-main)]">
+          📩 Te mandamos un correo de confirmación. <strong>Si no lo ves, revisá Spam o Promociones</strong> y
+          marcalo como «No es spam»: así te llegan bien el presupuesto y los avisos.
         </p>
 
         <Link href="/">

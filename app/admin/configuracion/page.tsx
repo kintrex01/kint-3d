@@ -71,6 +71,11 @@ const DESCRIPCIONES: Record<string, string> = {
   agenda: "Muestra la agenda pública (/agenda y «Ver mi agenda» en /cotizar)",
   agenda_impresora: "Muestra la impresora al público (en la agenda y en /cotizar)",
   agenda_dias: "Cuántos días muestra la agenda (de 1 a 31)",
+  whatsapp_recibido: "WhatsApp al recibir el pedido. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
+  whatsapp_presupuestado: "WhatsApp cuando mandás el presupuesto (por si le llegó a spam). Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
+  whatsapp_en_impresion: "WhatsApp cuando empieza la impresión. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
+  whatsapp_terminado: "WhatsApp cuando está terminado. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
+  whatsapp_entregado: "WhatsApp al entregar (pide la reseña). Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
   envio_sin_facultad:
     "Costo del envío de maquetas cuando no hay facultad (0 = «a coordinar», sin monto)",
   tienda_recargo_fin_de_semana: "Recargo de la tienda por entrega en fin de semana o feriado",
@@ -244,6 +249,7 @@ const INFO_SECCIONES: Record<string, InfoSeccion> = {
   Fidelidad: { icono: HeartHandshake, color: "#f43f5e", detalle: "Cupones según la cantidad de pedidos" },
   Puntos: { icono: Star, color: "#eab308", detalle: "Puntos Kint y el ranking Top Kint" },
   Filamentos: { icono: Palette, color: "#10b981", detalle: "Colores que se pueden elegir en /cotizar" },
+  Whatsapp: { icono: MessageSquareText, color: "#22c55e", detalle: "Mensajes que abre el botón de WhatsApp de cada pedido, por etapa" },
   Agenda: { icono: CalendarDays, color: "#14b8a6", detalle: "Agenda pública: mostrarla, la impresora y el mensaje (los horarios van en Calendario)" },
   General: { icono: Settings2, color: "#64748b", detalle: "Otras opciones" },
 };
