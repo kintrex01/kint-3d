@@ -183,8 +183,9 @@ export default function Escalador() {
   const [campoEditado, setCampoEditado] =
     useState<CampoEditado>("real");
 
+  // Arranca con la 0,4 (la común): el resultado se ve sin tener que elegir nada.
   const [boquillaImprimibilidad, setBoquillaImprimibilidad] =
-    useState<"" | "0.2" | "0.4">("");
+    useState<"" | "0.2" | "0.4">("0.4");
 
   const [cargadoDesdeStorage, setCargadoDesdeStorage] =
     useState(false);

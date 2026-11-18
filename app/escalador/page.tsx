@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Escalador from "@/components/Escalador";
+import MinimosImprimibles from "@/components/MinimosImprimibles";
 
 export default function EscaladorPage() {
   return (
@@ -38,6 +39,9 @@ export default function EscaladorPage() {
           </span>
           <span className="text-xl text-red-600" aria-hidden>→</span>
         </Link>
+
+        {/* Lo que más preguntan: lo mínimo que se puede imprimir, por escala. */}
+        <MinimosImprimibles />
 
         <Escalador />
       </div>
