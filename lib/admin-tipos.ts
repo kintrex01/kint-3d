@@ -243,6 +243,8 @@ export type HorarioAgendaAdmin = {
   desde: string; // "09:00"
   hasta: string; // "13:00"; menor que desde = termina al día siguiente
   nota: string;
+  // Excepciones: «todo el día, menos de 03:00 a 05:00».
+  menos?: { desde: string; hasta: string }[];
 };
 
 /* Cola de la impresora (hoja «Cola impresión»). Horarios en ISO. */

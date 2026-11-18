@@ -12,7 +12,14 @@ import { GraduationCap, LoaderCircle, MessageCircle, Printer } from "lucide-reac
  */
 
 // dia: «Lunes», «Lunes,Martes,Miércoles» o «2026-11-20». «No disponible» se resta de «Atención».
-export type HorarioAgenda = { tipo: "FADU" | "Atención" | "No disponible"; dia: string; desde: string; hasta: string; nota: string };
+export type HorarioAgenda = {
+  tipo: "FADU" | "Atención" | "No disponible";
+  dia: string;
+  desde: string;
+  hasta: string;
+  nota: string;
+  menos?: { desde: string; hasta: string }[]; // «todo el día, menos de 03:00 a 05:00»
+};
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
 type Agenda = {
   habilitada: boolean;
@@ -66,16 +73,24 @@ function tramosDelDia(agenda: Agenda, fecha: string): Tramo[] {
     horario.dia === dia || horario.dia.split(",").includes(nombreDia(dia));
 
   // Primero los horarios tal cual (los que cruzan la medianoche, partidos).
-  const crudos: (Tramo & { tipo: HorarioAgenda["tipo"] })[] = [];
+  type Hueco = { desde: number; hasta: number };
+  const crudos: (Tramo & { tipo: HorarioAgenda["tipo"]; propios: Hueco[] })[] = [];
+  // Las excepciones del horario, en minutos (una que pasa la medianoche se parte).
+  const huecosDe = (horario: HorarioAgenda): Hueco[] =>
+    (horario.menos ?? []).flatMap((rango) => {
+      const a = minutos(rango.desde);
+      const b = minutos(rango.hasta);
+      return b > a ? [{ desde: a, hasta: b }] : [{ desde: a, hasta: 1440 }, { desde: 0, hasta: b }];
+    });
   for (const horario of agenda.horarios) {
     const desde = minutos(horario.desde);
     const hasta = minutos(horario.hasta);
     const cruza = hasta <= desde;
     if (aplica(horario, fecha)) {
-      crudos.push({ tipo: horario.tipo, capa: "FADU", desde, hasta: cruza ? 1440 : hasta, nota: horario.nota, sigue: cruza, finReal: horario.hasta });
+      crudos.push({ tipo: horario.tipo, capa: "FADU", desde, hasta: cruza ? 1440 : hasta, nota: horario.nota, sigue: cruza, finReal: horario.hasta, propios: huecosDe(horario) });
     }
     if (cruza && aplica(horario, anterior) && hasta > 0) {
-      crudos.push({ tipo: horario.tipo, capa: "FADU", desde: 0, hasta, nota: horario.nota, venia: true });
+      crudos.push({ tipo: horario.tipo, capa: "FADU", desde: 0, hasta, nota: horario.nota, venia: true, propios: huecosDe(horario) });
     }
   }
 
@@ -83,9 +98,12 @@ function tramosDelDia(agenda: Agenda, fecha: string): Tramo[] {
   const huecos = crudos.filter((tramo) => tramo.tipo === "No disponible");
   for (const tramo of crudos) {
     if (tramo.tipo === "No disponible") continue;
-    let partes: Tramo[] = [{ ...tramo, capa: tramo.tipo }];
-    if (tramo.tipo === "Atención") {
-      for (const hueco of huecos) {
+    const { propios, ...resto } = tramo;
+    let partes: Tramo[] = [{ ...resto, capa: tramo.tipo }];
+    // Se restan sus propias excepciones y, a «Respondo», los ratos «No disponible».
+    const restar = tramo.tipo === "Atención" ? [...propios, ...huecos] : propios;
+    {
+      for (const hueco of restar) {
         partes = partes.flatMap((parte) => {
           if (hueco.hasta <= parte.desde || hueco.desde >= parte.hasta) return [parte];
           const restos: Tramo[] = [];

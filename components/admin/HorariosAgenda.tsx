@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Ban, CalendarDays, ExternalLink, GraduationCap, MessageCircle, Plus, StickyNote, Trash2 } from "lucide-react";
+import { Ban, CalendarDays, ExternalLink, GraduationCap, MessageCircle, Minus, Plus, StickyNote, Trash2, X } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { HorarioAgendaAdmin } from "@/lib/admin-tipos";
 import { Boton, Esqueleto, Tarjeta, claseInput, useAvisos } from "@/components/admin/ui";
@@ -251,6 +251,59 @@ export default function HorariosAgenda() {
                       </button>
                     )}
                   </div>
+                  {/* Excepciones: «todo el día, menos de 03:00 a 05:00». */}
+                  {(horario.menos ?? []).map((rango, posicion) => (
+                    <div key={posicion} className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs font-bold text-[var(--text-muted)]">
+                      <span className="w-12 text-right">menos</span>
+                      <select
+                        value={rango.desde}
+                        onChange={(evento) =>
+                          cambiar(indice, {
+                            menos: (horario.menos ?? []).map((r, i) => (i === posicion ? { ...r, desde: evento.target.value } : r)),
+                          })
+                        }
+                        className="h-8 w-[5.25rem] rounded-lg border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-2 text-sm font-bold tabular-nums text-[var(--text-main)] dark:[color-scheme:dark]"
+                        aria-label="Menos desde"
+                      >
+                        {opcionesHora(rango.desde).slice(0, -1).map((hora) => (
+                          <option key={hora} value={hora}>{hora}</option>
+                        ))}
+                      </select>
+                      a
+                      <select
+                        value={rango.hasta}
+                        onChange={(evento) =>
+                          cambiar(indice, {
+                            menos: (horario.menos ?? []).map((r, i) => (i === posicion ? { ...r, hasta: evento.target.value } : r)),
+                          })
+                        }
+                        className="h-8 w-[5.25rem] rounded-lg border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-2 text-sm font-bold tabular-nums text-[var(--text-main)] dark:[color-scheme:dark]"
+                        aria-label="Menos hasta"
+                      >
+                        {opcionesHora(rango.hasta).slice(1).map((hora) => (
+                          <option key={hora} value={hora}>{hora}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        aria-label="Quitar esta excepción"
+                        onClick={() => cambiar(indice, { menos: (horario.menos ?? []).filter((_, i) => i !== posicion) })}
+                        className="rounded-lg p-1 hover:text-red-600"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {(horario.menos ?? []).length < 6 && (
+                    <button
+                      type="button"
+                      onClick={() => cambiar(indice, { menos: [...(horario.menos ?? []), { desde: "03:00", hasta: "05:00" }] })}
+                      className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-dashed border-[var(--kint-panel-border)] px-2.5 py-1 text-[11px] font-bold text-[var(--text-muted)] hover:text-[var(--text-main)]"
+                    >
+                      <Minus size={12} />
+                      {(horario.menos ?? []).length ? "Otra excepción" : "Menos… (ej. de 03:00 a 05:00)"}
+                    </button>
+                  )}
                   {horario.hasta !== "24:00" && horario.hasta <= horario.desde && (
                     <p className="mt-1 text-[11px] font-semibold text-[var(--text-muted)]">Termina al día siguiente.</p>
                   )}
