@@ -28,7 +28,7 @@ async function achicarFoto(archivo: File): Promise<Blob> {
 }
 
 /* Sube la foto (ya achicada) y devuelve su dirección. */
-async function subirFoto(archivo: File) {
+export async function subirFoto(archivo: File) {
   const datos = new FormData();
   datos.append("foto", new File([await achicarFoto(archivo)], "foto.webp", { type: "image/webp" }));
   const respuesta = await fetch("/api/admin/foto", { method: "POST", body: datos });

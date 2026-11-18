@@ -19,7 +19,6 @@ import {
   Settings,
   Gift,
   ShoppingBag,
-  ChevronDown,
   X,
 } from "lucide-react";
 import {
@@ -96,8 +95,6 @@ type GrupoMenuProps = {
   enlaces: EnlaceMenu[];
   pathname: string;
   cerrar: () => void;
-  abierto: boolean;
-  onAlternar: () => void;
 };
 
 /* Arriba de todo, en cuadrícula: lo que más se usa. */
@@ -146,7 +143,7 @@ const enlacesPreparacion: EnlaceMenu[] = [
   nombre: "Preparar mi modelo",
   href: "/preparador-3d",
   icono: Ruler,
-  etiqueta: "Lo ordena y repara solo",
+  etiqueta: "Automático",
 },
 ];
 
@@ -189,25 +186,13 @@ function GrupoMenu({
   enlaces,
   pathname,
   cerrar,
-  abierto,
-  onAlternar,
 }: GrupoMenuProps) {
   return (
-    <section className="rounded-2xl border border-[var(--border-color)] bg-[var(--glass-bg)]/40">
-      <button
-        type="button"
-        onClick={onAlternar}
-        aria-expanded={abierto}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
-      >
-        <span className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--blue-soft)]">{titulo}</span>
-        <span className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)]">
-          {!abierto && enlaces.length}
-          <ChevronDown size={15} className={`transition ${abierto ? "rotate-180" : ""}`} />
-        </span>
-      </button>
+    // Nada plegado: el título y las opciones como tarjetitas de a dos (se ve todo de una).
+    <section aria-label={titulo}>
+      <p className="mb-2 px-1 text-xs font-black text-[var(--text-muted)]">{titulo}</p>
 
-      <div className={abierto ? "space-y-0.5 px-1.5 pb-1.5" : "hidden"}>
+      <div className="grid grid-cols-2 gap-2">
         {enlaces.map((enlace) => {
           const Icono = enlace.icono;
 
@@ -224,60 +209,39 @@ function GrupoMenu({
             "relative",
 "overflow-hidden",
             "flex",
+            "min-h-[76px]",
             "w-full",
-            "items-center",
-            "gap-3",
-"rounded-xl",
+            "flex-col",
+            "items-start",
+            "gap-1.5",
+"rounded-2xl",
 "border",
-"px-2.5",
-"py-1.5",
+"p-3",
             "text-left",
             "transition",
             "duration-200",
             activo
   ? "border-[var(--blue-soft)] bg-[var(--glass-bg)] shadow-[0_10px_30px_rgba(40,130,220,0.16)]"
-  : "border-transparent hover:border-[var(--blue-border)] hover:bg-[var(--glass-bg)] hover:shadow-[0_8px_24px_rgba(40,130,220,0.10)]",
+  : "border-[var(--border-color)] bg-[var(--glass-bg)]/60 hover:border-[var(--blue-border)] hover:bg-[var(--glass-bg)]",
           ].join(" ");
 
           const contenido = (
   <>
-    {activo && (
-      <span className="absolute inset-y-3 left-0 w-[2px] rounded-full bg-[var(--blue-soft)] shadow-[0_0_14px_rgba(90,190,255,0.9)]" />
+    <Icono
+      size={19}
+      strokeWidth={1.8}
+      className={activo ? "text-[var(--text-main)]" : "text-[var(--blue-soft)]"}
+    />
+
+    <span className="text-[13px] font-black leading-tight text-[var(--text-main)]">
+      {enlace.nombre}
+    </span>
+
+    {enlace.etiqueta && (
+      <span className="absolute right-2 top-2 rounded-full bg-red-600 px-1.5 py-px text-[7.5px] font-black uppercase tracking-[0.1em] text-white">
+        {enlace.etiqueta}
+      </span>
     )}
-
-    <span
-                className={[
-                  "flex",
-                  "h-8",
-"w-8",
-                  "shrink-0",
-                  "items-center",
-                  "justify-center",
-                  "rounded-lg",
-                  "border",
-                  "transition",
-                  activo
-                    ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
-                    : "border-[var(--border-color)] text-[var(--blue-soft)] group-hover:border-[var(--blue-soft)]",
-                ].join(" ")}
-              >
-                <Icono
-                  size={17}
-                  strokeWidth={1.7}
-                />
-              </span>
-
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold leading-5 text-[var(--text-main)]">
-                  {enlace.nombre}
-                </span>
-
-                {enlace.etiqueta && (
-                  <span className="mt-0.5 inline-flex rounded-full border border-[var(--blue-main)] bg-[var(--glass-bg)] px-1.5 py-px text-[7.5px] font-black uppercase tracking-[0.12em] text-[var(--blue-soft)]">
-                    {enlace.etiqueta}
-                  </span>
-                )}
-              </span>
             </>
           );
 
@@ -395,41 +359,13 @@ export default function MenuNavegacion() {
   const [abierto, setAbierto] =
     useState(false);
 
-  // Grupos plegables: abierto el de la página actual; recuerda los que abriste.
+  // Las secciones del menú (abajo de los accesos grandes).
   const grupos = [
     { titulo: "Preparar tu archivo", enlaces: enlacesPreparacion },
     { titulo: "Ver trabajos", enlaces: enlacesTrabajos },
     { titulo: "Agenda y ayuda", enlaces: enlacesAyuda },
     { titulo: "Mi cuenta", enlaces: enlacesCuenta },
   ];
-  const [abiertos, setAbiertos] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!abierto) return;
-    let guardados: string[] = [];
-    try {
-      guardados = JSON.parse(localStorage.getItem("kint_menu_grupos") || "[]");
-    } catch {
-      guardados = [];
-    }
-    const actual = grupos.find((grupo) => grupo.enlaces.some((enlace) => enlace.href === pathname))?.titulo;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAbiertos([...new Set([...guardados, ...(actual ? [actual] : [])])]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [abierto, pathname]);
-
-  function alternarGrupo(titulo: string) {
-    setAbiertos((actuales) => {
-      const nuevos = actuales.includes(titulo) ? actuales.filter((t) => t !== titulo) : [...actuales, titulo];
-      try {
-        localStorage.setItem("kint_menu_grupos", JSON.stringify(nuevos));
-      } catch {
-        /* sin almacenamiento: no se recuerda */
-      }
-      return nuevos;
-    });
-  }
-
   const ocultarMenu =
     pathname.startsWith("/editar-resena") ||
     pathname.startsWith("/resena") ||
@@ -680,8 +616,6 @@ abierto
                 enlaces={grupo.enlaces}
                 pathname={pathname}
                 cerrar={cerrarMenu}
-                abierto={abiertos.includes(grupo.titulo)}
-                onAlternar={() => alternarGrupo(grupo.titulo)}
               />
             ))}
 

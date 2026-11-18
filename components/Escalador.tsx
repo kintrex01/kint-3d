@@ -541,7 +541,7 @@ const estadoImprimibilidad =
 
               {/* Lo mínimo que se imprime a esta escala (lado más finito, en medida real). */}
               {escalaValida && (
-                <span className="text-[11px] font-bold leading-4 text-[var(--text-muted)]">
+                <span className="text-sm font-bold leading-5 text-[var(--text-muted)]">
                   Mínimo imprimible:{" "}
                   <span className="text-amber-600">{formatearNumero(((boquillaMm ?? 0.4) * (final / inicial)) / 10)} cm</span>
                   {" · "}Recomendado:{" "}

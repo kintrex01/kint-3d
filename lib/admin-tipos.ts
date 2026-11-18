@@ -567,6 +567,20 @@ export type AccionesAdmin = {
     respuesta: { pedido: string; extras: ExtraPedido[]; total: number; productos: { nombre: string; precio: number; cadenas: string[]; foto: string }[] };
   };
 
+  /* Fotos de una maqueta en la galería (quitar: las que se sacan; si son de la reseña, salen de ahí). */
+  admin_galeria_fotos_guardar: {
+    pedido: { pedido: string; fotos: string[]; quitar: string[] };
+    respuesta: { pedido: string; fotos: string[]; aviso: string };
+  };
+  /* Todas las fotos posibles de una maqueta: las tuyas (final y segunda) y las del cliente. */
+  admin_galeria_fotos_disponibles: {
+    pedido: { pedido: string };
+    respuesta: { pedido: string; tuyas: string[]; cliente: string[]; elegidas: string[] | null };
+  };
+  admin_galeria_fotos_restablecer: {
+    pedido: { pedido: string };
+    respuesta: { pedido: string; aviso: string };
+  };
   admin_galeria_comentarios_listar: {
     pedido: SinDatos;
     respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
@@ -895,6 +909,9 @@ export const ACCIONES_ADMIN = [
   "admin_agenda_guardar",
   "admin_galeria_comentarios_listar",
   "admin_galeria_comentario_ocultar",
+  "admin_galeria_fotos_guardar",
+  "admin_galeria_fotos_restablecer",
+  "admin_galeria_fotos_disponibles",
   "admin_cupones_listar",
   "admin_cupon_crear",
   "admin_cupon_borrar",

@@ -15,6 +15,7 @@ import VisorMaqueta, { type MaquetaGaleria } from "./VisorMaqueta";
 type Item = MaquetaGaleria & {
   fecha: string;
   conPermiso?: boolean; // el cliente aprobó mostrar la foto de su proyecto
+  destacado?: number; // 1 = la primera de las destacadas por el dueño; 0 = no
 };
 
 /* Las fotos de Drive pasan por /api/imagen-drive (así cargan siempre). */
@@ -94,9 +95,12 @@ export default function GaleriaImpresos() {
    * más vieja, como viene).
    */
   const visibles = useMemo(() => {
-    const grupo = (item: Item) => ((item.likes ?? 0) > 0 ? 0 : item.conPermiso ? 1 : 2);
+    // Primero las destacadas por el dueño (en su orden); después, el orden automático.
+    const grupo = (item: Item) => (item.destacado ? -1 : (item.likes ?? 0) > 0 ? 0 : item.conPermiso ? 1 : 2);
     const ordenar = (a: Item, b: Item) =>
-      grupo(a) - grupo(b) || (grupo(a) === 0 ? (b.likes ?? 0) - (a.likes ?? 0) : 0);
+      grupo(a) - grupo(b) ||
+      (grupo(a) === -1 ? (a.destacado ?? 0) - (b.destacado ?? 0) : 0) ||
+      (grupo(a) === 0 ? (b.likes ?? 0) - (a.likes ?? 0) : 0);
     return (items ?? [])
       .filter(
         (item) =>

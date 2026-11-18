@@ -54,6 +54,7 @@ import { unidadConfig } from "@/components/admin/unidadesConfig";
 import { PremiosParaArmar } from "@/components/admin/PremiosParaArmar";
 import CodigosEspeciales from "@/components/admin/CodigosEspeciales";
 import Cupones from "@/components/admin/Cupones";
+import GaleriaFotosAdmin from "@/components/admin/GaleriaFotosAdmin";
 import { AgregarFilamento, AgregarHito, BorrarConfig, EditarFilamento } from "@/components/admin/AgregarConfig";
 import { CLAVES_TOP_KINT, ConfigTopKint, PredeterminadosCotizar } from "@/components/admin/ConfigEspeciales";
 
@@ -77,6 +78,7 @@ const DESCRIPCIONES: Record<string, string> = {
   galeria: "Muestra la galería pública de lo impreso (/galeria)",
   puntos_comentario: "Puntos por el primer comentario de cada maqueta en la galería (0 = nada). Si ocultás el comentario, se sacan",
   galeria_comentarios: "La gente puede comentar las maquetas de la galería (se moderan en Reseñas)",
+  galeria_destacadas: "Las maquetas que van primero en la galería, en orden (se arma abajo con «Destacar»)",
   galeria_ocultos: "Pedidos que no salen en la galería, separados por coma (ej.: KNT-0012, KNT-0040)",
   whatsapp_recibido: "WhatsApp al recibir el pedido. Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
   whatsapp_presupuestado: "WhatsApp cuando mandás el presupuesto (por si le llegó a spam). Vacío = el de siempre. Marcas: {nombre} {pedido} {correo} {link}",
@@ -551,7 +553,12 @@ export default function ConfiguracionAdmin() {
                 filas={(todas.find((seccion) => seccion.titulo === elegida)?.filas ?? []).filter(
                   // El Top Kint tiene su propia tarjeta (abajo).
                   // El Top Kint y lo que viene elegido en /cotizar tienen su propia tarjeta (abajo).
-                  (fila) => !CLAVES_TOP_KINT.includes(fila.clave) && !fila.clave.startsWith("cotizar_")
+                  (fila) =>
+                    !CLAVES_TOP_KINT.includes(fila.clave) &&
+                    !fila.clave.startsWith("cotizar_") &&
+                    // Destacadas y ocultas se manejan en «Fotos de la galería» (abajo).
+                    fila.clave !== "galeria_destacadas" &&
+                    fila.clave !== "galeria_ocultos"
                 )}
                 todasLasFilas={filas}
                 optimistas={optimistas}
@@ -561,6 +568,7 @@ export default function ConfiguracionAdmin() {
               />
               {elegida === "Puntos" && <ConfigTopKint filas={filas} guardar={guardar} />}
               {elegida === "Pedidos" && <PredeterminadosCotizar filas={filas} guardar={guardar} />}
+              {elegida === "Galeria" && <GaleriaFotosAdmin filas={filas} onFilas={(nuevas) => setDatos({ filas: nuevas })} />}
               {elegida === "Promociones" && <Cupones />}
               {elegida === "Promociones" && <CodigosEspeciales filas={filas} />}
             </>

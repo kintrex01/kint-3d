@@ -158,6 +158,18 @@ export default function VisorMaqueta({
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [maqueta.id, claveLikes]);
 
+  // Flechas: dentro de la maqueta pasan de foto; en la última foto, a la maqueta siguiente.
+  const haySiguiente = foto < maqueta.fotos.length - 1 || Boolean(onSiguiente);
+  const hayAnterior = foto > 0 || Boolean(onAnterior);
+  function irSiguiente() {
+    if (foto < maqueta.fotos.length - 1) setFoto(foto + 1);
+    else onSiguiente?.();
+  }
+  function irAnterior() {
+    if (foto > 0) setFoto(foto - 1);
+    else onAnterior?.();
+  }
+
   // Teclado: Escape cierra (primero la pantalla completa), flechas pasan.
   useEffect(() => {
     const tecla = (evento: KeyboardEvent) => {
@@ -166,8 +178,8 @@ export default function VisorMaqueta({
         if (completa) setCompleta(false);
         else onCerrar();
       }
-      if (evento.key === "ArrowRight") onSiguiente?.();
-      if (evento.key === "ArrowLeft") onAnterior?.();
+      if (evento.key === "ArrowRight") irSiguiente();
+      if (evento.key === "ArrowLeft") irAnterior();
     };
     window.addEventListener("keydown", tecla);
     const desborde = document.body.style.overflow;
@@ -176,7 +188,8 @@ export default function VisorMaqueta({
       window.removeEventListener("keydown", tecla);
       document.body.style.overflow = desborde;
     };
-  }, [completa, onCerrar, onAnterior, onSiguiente]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [completa, onCerrar, onAnterior, onSiguiente, foto, maqueta.fotos.length]);
 
   async function darLike() {
     if (enviandoLike) return;
@@ -332,22 +345,27 @@ export default function VisorMaqueta({
               ))}
             </div>
           )}
-          {/* Pasar de maqueta sin cerrar (también con las flechas del teclado) */}
-          {onAnterior && (
+          {maqueta.fotos.length > 1 && (
+            <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-xs font-black text-white">
+              {foto + 1} / {maqueta.fotos.length}
+            </span>
+          )}
+          {/* Flechas: primero las fotos de esta maqueta, después la maqueta siguiente (también con el teclado) */}
+          {hayAnterior && (
             <button
               type="button"
-              aria-label="Maqueta anterior"
-              onClick={onAnterior}
+              aria-label={foto > 0 ? "Foto anterior" : "Maqueta anterior"}
+              onClick={irAnterior}
               className="absolute left-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:scale-105 hover:bg-white"
             >
               <ChevronLeft size={26} />
             </button>
           )}
-          {onSiguiente && (
+          {haySiguiente && (
             <button
               type="button"
-              aria-label="Maqueta siguiente"
-              onClick={onSiguiente}
+              aria-label={foto < maqueta.fotos.length - 1 ? "Foto siguiente" : "Maqueta siguiente"}
+              onClick={irSiguiente}
               className="absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg transition hover:scale-105 hover:bg-white"
             >
               <ChevronRight size={26} />
