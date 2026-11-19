@@ -774,8 +774,27 @@ export default function DetallePedidoAdmin({
           </div>
           {pago && pago.precioFinal > 0 && (
             <div className="shrink-0 text-right">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Precio</p>
-              <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.precioFinal)}</p>
+              {(() => {
+                // Con seña: arriba lo que te tienen que pagar ahora (la seña, o el saldo si la seña ya está paga).
+                const situacion = situacionPago(pedido);
+                const conSena = /^seña/i.test(pago.modalidad || "") && pago.importe > 0 && pago.importe < pago.precioFinal && situacion?.tipo !== "pagado";
+                if (!conSena)
+                  return (
+                    <>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Precio</p>
+                      <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.precioFinal)}</p>
+                    </>
+                  );
+                return (
+                  <>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                      {pago.confirmado ? "Falta el saldo" : "Seña"}
+                    </p>
+                    <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.confirmado ? pago.saldoPendiente : pago.importe)}</p>
+                    <p className="mt-1 text-xs font-bold text-[var(--text-muted)]">Total {pesos(pago.precioFinal)}</p>
+                  </>
+                );
+              })()}
               {situacionPago(pedido) && (
                 <Chip tono={situacionPago(pedido)!.tono} className="mt-1.5">
                   {situacionPago(pedido)!.texto}
@@ -967,7 +986,7 @@ export default function DetallePedidoAdmin({
                 icono={<CheckCircle2 size={17} />}
                 onClick={pedirConfirmarPago}
               >
-                Confirmar pago
+                {/^seña/i.test(pedido.pago?.modalidad || "") && !pedido.pago?.confirmado ? "Confirmar seña" : "Confirmar pago"}
               </Boton>
             )}
             {paso.tipo === "info" && (
@@ -1091,7 +1110,7 @@ export default function DetallePedidoAdmin({
             {pago.modalidad && (
               <FilaDato etiqueta="Modalidad">{pago.modalidad}</FilaDato>
             )}
-            <FilaDato etiqueta="Importe">{pesos(pago.importe)}</FilaDato>
+            <FilaDato etiqueta={/^seña/i.test(pago.modalidad || "") ? "Seña (paga primero)" : "Importe"}>{pesos(pago.importe)}</FilaDato>
             {(pago.saldoPendiente > 0 || pago.comprobanteSaldo) && (
               <FilaDato etiqueta="Saldo">
                 {pesos(pago.saldoPendiente)}
@@ -1123,7 +1142,7 @@ export default function DetallePedidoAdmin({
                     icono={<CheckCircle2 size={16} />}
                     onClick={pedirConfirmarPago}
                   >
-                    Confirmar pago
+                    {/^seña/i.test(pedido.pago?.modalidad || "") && !pedido.pago?.confirmado ? "Confirmar seña" : "Confirmar pago"}
                   </Boton>
                 ) : null
               }

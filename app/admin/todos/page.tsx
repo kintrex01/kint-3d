@@ -385,26 +385,42 @@ function FilaPedido({
       </span>
 
       <span className="shrink-0 text-right">
-        <span className="block font-black tabular-nums">
-          {pedido.monto > 0 ? pesos(pedido.monto) : "—"}
-        </span>
-        {pedido.monto > 0 && (
-          <span
-            className={`block text-[10px] font-bold ${
-              (pedido.debe ?? 0) <= 0
-                ? "text-emerald-700 dark:text-emerald-400"
-                : pedido.pagado
-                  ? "text-red-600 dark:text-red-400"
-                  : "text-[var(--text-muted)]"
-            }`}
-          >
-            {(pedido.debe ?? 0) <= 0
-              ? "Pagado entero"
-              : pedido.pagado
-                ? `Seña paga · debe ${pesos(pedido.debe ?? 0)}`
-                : "Sin pagar"}
-          </span>
-        )}
+        {(() => {
+          if (!(pedido.monto > 0)) return <span className="block font-black tabular-nums">—</span>;
+          const pagadoEntero = (pedido.debe ?? 0) <= 0;
+          const sena = pedido.conSena && (pedido.importeSena ?? 0) > 0 && !pagadoEntero;
+          // Con seña, arriba va lo que te tienen que pagar ahora: la seña (si no la pagó) o el saldo.
+          const grande = !sena ? pedido.monto : pedido.pagado ? (pedido.debe ?? 0) : (pedido.importeSena ?? 0);
+          return (
+            <>
+              <span className="block font-black tabular-nums">{pesos(grande)}</span>
+              {sena && (
+                <span className="block text-[10px] font-bold text-[var(--text-muted)]">
+                  {pedido.pagado ? "Saldo" : "Seña"} · total {pesos(pedido.monto)}
+                </span>
+              )}
+              <span
+                className={`block text-[10px] font-bold ${
+                  pagadoEntero
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : sena || pedido.pagado
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-[var(--text-muted)]"
+                }`}
+              >
+                {pagadoEntero
+                  ? "Pagado entero"
+                  : sena
+                    ? pedido.pagado
+                      ? "Seña paga · falta el saldo"
+                      : `Sin pagar · después resta ${pesos(pedido.saldo ?? 0)}`
+                    : pedido.pagado
+                      ? `Seña paga · debe ${pesos(pedido.debe ?? 0)}`
+                      : "Sin pagar"}
+              </span>
+            </>
+          );
+        })()}
       </span>
 
       {!seleccionando && pedido.tipo === "maqueta" && (

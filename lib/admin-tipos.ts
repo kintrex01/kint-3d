@@ -307,6 +307,9 @@ export type PedidoGeneral = {
   pagado: boolean; // pagó algo (seña o total)
   sena?: boolean; // lo que pagó fue una seña
   debe?: number; // lo que falta cobrar (0 = pagado entero o sin precio)
+  conSena?: boolean; // eligió pagar con seña
+  importeSena?: number; // cuánto es la seña (Pagos M)
+  saldo?: number; // lo que queda después de la seña (Pagos N)
   detalle: string;
 };
 

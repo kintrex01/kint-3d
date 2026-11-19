@@ -59,8 +59,15 @@ export function situacionPago(pedido: Pick<PedidoResumen, "estado" | "pago">): S
   if (pago.comprobanteSaldo && !pago.saldoConfirmado) {
     return { tipo: "revisar", texto: `Revisar comprobante del saldo (${pesos(saldo)})`, tono: "ambar", debe: saldo };
   }
+  // Eligió seña: lo que tiene que pagar ahora es la seña (Pagos M), no el total.
+  const sena = esSena && pago.importe > 0 && pago.importe < total ? pago.importe : 0;
   if (pago.comprobante && !pago.confirmado) {
-    return { tipo: "revisar", texto: "Revisar comprobante", tono: "ambar", debe: total };
+    return sena
+      ? { tipo: "revisar", texto: `Revisar comprobante de la seña (${pesos(sena)}) · después resta ${pesos(saldo)}`, tono: "ambar", debe: total }
+      : { tipo: "revisar", texto: "Revisar comprobante", tono: "ambar", debe: total };
+  }
+  if (!pago.confirmado && sena) {
+    return { tipo: "sinPagar", texto: `Seña sin pagar · después resta ${pesos(saldo)}`, tono: "rojo", debe: total };
   }
   if (pago.confirmado && (!esSena || pago.saldoConfirmado || saldo <= 0)) {
     return { tipo: "pagado", texto: "Pagado entero", tono: "verde", debe: 0 };
