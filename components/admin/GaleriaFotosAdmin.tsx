@@ -50,6 +50,8 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
   const [guardando, setGuardando] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [arrastrando, setArrastrando] = useState<string | null>(null);
+  const [destino, setDestino] = useState<string | null>(null);
+  const [moviendo, setMoviendo] = useState<string | null>(null);
   const [ordenLocal, setOrdenLocal] = useState<string[] | null>(null);
   const entrada = useRef<HTMLInputElement>(null);
 
@@ -70,58 +72,120 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
   const porId = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
   const claveDestacadas = destacadas.join(",");
   const claveOcultas = ocultas.join(",");
+
+  // Las ocultas no vienen en la galería pública: se pide su portada para verlas acá.
+  const [portadasOcultas, setPortadasOcultas] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let activo = true;
+    const faltan = (claveOcultas ? claveOcultas.split(",") : []).filter((pedido) => !porId.get(pedido)?.fotos[0]);
+    faltan.forEach((pedido) => {
+      accionAdmin("admin_galeria_fotos_disponibles", { pedido })
+        .then((respuesta) => {
+          const portada = respuesta.elegidas?.[0] ?? respuesta.cliente[0] ?? respuesta.tuyas[0];
+          if (activo && portada) setPortadasOcultas((antes) => ({ ...antes, [pedido]: portada }));
+        })
+        .catch(() => {});
+    });
+    return () => {
+      activo = false;
+    };
+  }, [claveOcultas, porId]);
   // El orden que ve la gente (el tuyo y después el automático), sin las ocultas.
-  const ordenBase = useMemo(() => {
+  const ordenBase = (() => {
     const manual = claveDestacadas ? claveDestacadas.split(",") : [];
     const fuera = new Set(claveOcultas ? claveOcultas.split(",") : []);
     return ordenarGaleria(items.filter((item) => !fuera.has(item.id)).map((item) => ({ ...item, destacado: manual.indexOf(item.id) + 1 }))).map((item) => item.id);
-  }, [items, claveDestacadas, claveOcultas]);
+  })();
   const orden = ordenLocal ?? ordenBase;
-  const posicion = useMemo(() => new Map(orden.map((id, indice) => [id, indice + 1])), [orden]);
-  const visibles = useMemo(() => {
+  const posicion = new Map(orden.map((id, indice) => [id, indice + 1]));
+  const visibles = (() => {
     const termino = busqueda.replace(/\D/g, "").replace(/^0+/, "");
     return orden
       .map((id) => porId.get(id))
       .filter((item): item is ItemGaleria => Boolean(item))
       .filter((item) => !termino || item.id.replace(/\D/g, "").replace(/^0+/, "").includes(termino));
-  }, [orden, porId, busqueda]);
+  })();
 
-  /* Arrastrar: la manija captura el puntero (mouse o dedo); al pasar sobre otra maqueta, toma su lugar. */
+  /*
+   * Mover maquetas, dos formas:
+   * - Arrastrar la manija: la foto te sigue flotando; las demás quedan quietas y
+   *   la de destino se marca «va acá». Recién al soltar se reacomoda y se guarda.
+   * - Tocar la manija (sin arrastrar) y después tocar el lugar donde va.
+   */
+  const arrastre = useRef<{ id: string; x0: number; y0: number; x: number; y: number; movido: boolean; destino: string | null; reloj: number } | null>(null);
+  const fantasma = useRef<HTMLDivElement>(null);
+
+  function moverA(id: string, destinoId: string) {
+    const hasta = orden.indexOf(destinoId);
+    const lista = orden.filter((otro) => otro !== id);
+    lista.splice(hasta, 0, id);
+    return lista;
+  }
+
+  async function guardarOrden(nuevo: string[]) {
+    if (nuevo.join(",") === ordenBase.join(",")) return;
+    setOrdenLocal(nuevo);
+    await guardarLista("galeria_destacadas", nuevo, "Orden guardado: la galería se ve así en unos minutos");
+    setOrdenLocal(null);
+  }
+
   function empezarArrastre(evento: React.PointerEvent<HTMLElement>, id: string) {
     evento.preventDefault();
+    evento.stopPropagation();
     evento.currentTarget.setPointerCapture(evento.pointerId);
-    setArrastrando(id);
-    setOrdenLocal(orden);
+    arrastre.current = { id, x0: evento.clientX, y0: evento.clientY, x: evento.clientX, y: evento.clientY, movido: false, destino: null, reloj: 0 };
   }
 
   function moverArrastre(evento: React.PointerEvent<HTMLElement>) {
-    if (!arrastrando) return;
-    // Cerca del borde de la pantalla, la página se desplaza sola.
-    if (evento.clientY < 70) window.scrollBy(0, -14);
-    else if (evento.clientY > window.innerHeight - 70) window.scrollBy(0, 14);
-    const destino = document.elementFromPoint(evento.clientX, evento.clientY)?.closest<HTMLElement>("[data-pedido]")?.dataset.pedido;
-    if (!destino || destino === arrastrando) return;
-    setOrdenLocal((actual) => {
-      const lista = [...(actual ?? orden)];
-      const desde = lista.indexOf(arrastrando);
-      const hasta = lista.indexOf(destino);
-      if (desde < 0 || hasta < 0) return actual;
-      lista.splice(desde, 1);
-      lista.splice(hasta, 0, arrastrando);
-      return lista;
-    });
+    const actual = arrastre.current;
+    if (!actual) return;
+    actual.x = evento.clientX;
+    actual.y = evento.clientY;
+    if (!actual.movido) {
+      if (Math.hypot(actual.x - actual.x0, actual.y - actual.y0) < 8) return;
+      actual.movido = true;
+      if (fantasma.current) fantasma.current.style.transform = `translate(${actual.x - 40}px, ${actual.y - 40}px)`;
+      setMoviendo(null);
+      setArrastrando(actual.id);
+      // Cerca del borde de la pantalla, la página se desplaza sola (aunque no muevas el dedo).
+      actual.reloj = window.setInterval(() => {
+        const ahora = arrastre.current;
+        if (!ahora) return;
+        if (ahora.y < 90) window.scrollBy(0, -16);
+        else if (ahora.y > window.innerHeight - 90) window.scrollBy(0, 16);
+      }, 16);
+    }
+    if (fantasma.current) fantasma.current.style.transform = `translate(${actual.x - 40}px, ${actual.y - 40}px)`;
+    const destinoId = document.elementFromPoint(actual.x, actual.y)?.closest<HTMLElement>("[data-pedido]")?.dataset.pedido ?? null;
+    if (destinoId !== actual.destino) {
+      actual.destino = destinoId;
+      setDestino(destinoId && destinoId !== actual.id ? destinoId : null);
+    }
   }
 
-  async function terminarArrastre() {
-    if (!arrastrando) return;
-    const nuevo = ordenLocal;
+  function terminarArrastre(cancelado = false) {
+    const actual = arrastre.current;
+    if (!actual) return;
+    arrastre.current = null;
+    window.clearInterval(actual.reloj);
     setArrastrando(null);
-    if (!nuevo || nuevo.join(",") === ordenBase.join(",")) {
-      setOrdenLocal(null);
+    setDestino(null);
+    if (cancelado) return;
+    if (!actual.movido) {
+      // Un toque: queda elegida y la próxima maqueta que toques es su lugar.
+      setMoviendo((antes) => (antes === actual.id ? null : actual.id));
       return;
     }
-    await guardarLista("galeria_destacadas", nuevo, "Orden guardado: la galería se ve así en unos minutos");
-    setOrdenLocal(null);
+    if (actual.destino && actual.destino !== actual.id) void guardarOrden(moverA(actual.id, actual.destino));
+  }
+
+  function tocarMaqueta(id: string) {
+    if (moviendo) {
+      if (moviendo !== id) void guardarOrden(moverA(moviendo, id));
+      setMoviendo(null);
+      return;
+    }
+    void elegir(id);
   }
 
   /* Mandar una maqueta al principio o al final de la galería (para moverla lejos sin arrastrar). */
@@ -241,7 +305,7 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
           Orden de la galería y fotos
         </p>
         <p className="text-xs text-[var(--text-muted)]">
-          Así las ve la gente, de arriba a la izquierda hacia abajo. Arrastrá desde <GripVertical size={12} className="inline" /> para moverlas, tocá
+          Así las ve la gente, de arriba a la izquierda hacia abajo. Arrastrá desde <GripVertical size={12} className="inline" /> para moverlas (o tocala y después tocá dónde va), tocá
           una para elegir sus fotos, o <EyeOff size={12} className="inline" /> para ocultarla.
         </p>
 
@@ -277,16 +341,35 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
                 : "Orden automático: reseñas primero (más likes arriba) y después el resto por likes. Al mover una, queda tu orden."}
             </p>
 
+            {moviendo && (
+              <div className="sticky top-2 z-30 mt-2 flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-black text-white shadow-lg">
+                <GripVertical size={16} />
+                <span className="flex-1">Tocá la maqueta donde va {moviendo.replace(/^KNT-0*/, "KNT-")} (toma su lugar)</span>
+                <button type="button" onClick={() => setMoviendo(null)} className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs">
+                  Cancelar
+                </button>
+              </div>
+            )}
+
             <ul className="mt-2 grid select-none grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
               {visibles.map((otro) => (
                 <li
                   key={otro.id}
                   data-pedido={otro.id}
-                  className={`relative overflow-hidden rounded-xl border transition ${
-                    arrastrando === otro.id ? "scale-95 border-red-500 opacity-60 ring-2 ring-red-500" : "border-[var(--kint-panel-border)]"
+                  className={`relative overflow-hidden rounded-xl border ${
+                    arrastrando === otro.id || moviendo === otro.id
+                      ? "border-red-500 opacity-40 ring-2 ring-red-500"
+                      : destino === otro.id
+                        ? "border-red-500 ring-4 ring-red-500"
+                        : "border-[var(--kint-panel-border)]"
                   }`}
                 >
-                  <button type="button" onClick={() => void elegir(otro.id)} className="block w-full text-left">
+                  {destino === otro.id && (
+                    <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-red-600/35 text-xs font-black uppercase tracking-wider text-white">
+                      Va acá
+                    </span>
+                  )}
+                  <button type="button" onClick={() => tocarMaqueta(otro.id)} className="block w-full text-left">
                     {miniatura(otro.fotos[0], otro.pedido)}
                     <span className="block truncate px-1.5 py-1 text-[11px] font-black">
                       {otro.pedido}
@@ -312,16 +395,27 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
                       aria-label={`Arrastrar ${otro.pedido}`}
                       onPointerDown={(evento) => empezarArrastre(evento, otro.id)}
                       onPointerMove={moverArrastre}
-                      onPointerUp={() => void terminarArrastre()}
-                      onPointerCancel={() => void terminarArrastre()}
-                      className="absolute bottom-7 right-1 flex h-8 w-8 cursor-grab touch-none items-center justify-center rounded-full bg-white/90 text-slate-900 shadow active:cursor-grabbing"
+                      onPointerUp={() => terminarArrastre()}
+                      onPointerCancel={() => terminarArrastre(true)}
+                      className={`absolute bottom-7 right-1 z-20 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-full shadow active:cursor-grabbing ${
+                        moviendo === otro.id ? "bg-red-600 text-white" : "bg-white/90 text-slate-900"
+                      }`}
                     >
-                      <GripVertical size={16} />
+                      <GripVertical size={18} />
                     </span>
                   )}
                 </li>
               ))}
             </ul>
+
+            {/* La foto que estás arrastrando, flotando bajo el dedo */}
+            <div
+              ref={fantasma}
+              aria-hidden
+              className={`pointer-events-none fixed left-0 top-0 z-50 h-20 w-20 overflow-hidden rounded-xl border-2 border-red-500 shadow-2xl ${arrastrando ? "" : "hidden"}`}
+            >
+              {arrastrando && porId.get(arrastrando)?.fotos[0] && miniatura(porId.get(arrastrando)!.fotos[0], arrastrando)}
+            </div>
             {busqueda.replace(/\D/g, "") && (
               <Boton className="mt-2" onClick={() => void elegir(normalizarPedido(busqueda))}>
                 Abrir {normalizarPedido(busqueda)}
@@ -330,20 +424,36 @@ export default function GaleriaFotosAdmin({ filas, onFilas }: { filas: FilaConfi
 
             {ocultas.length > 0 && (
               <div className="mt-4">
-                <p className="mb-1.5 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">Ocultas · tocá para que vuelvan</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {ocultas.map((pedido) => (
-                    <button
-                      key={pedido}
-                      type="button"
-                      onClick={() => void guardarLista("galeria_ocultos", ocultas.filter((otro) => otro !== pedido), `${pedido} vuelve a la galería`)}
-                      className="inline-flex items-center gap-1 rounded-full border border-[var(--kint-panel-border)] px-2.5 py-1 text-xs font-black hover:border-emerald-500"
-                    >
-                      <Eye size={12} />
-                      {pedido.replace(/^KNT-0*/, "KNT-")}
-                    </button>
-                  ))}
-                </div>
+                <p className="mb-1.5 text-xs font-black uppercase tracking-[0.12em] text-[var(--text-muted)]">
+                  Ocultas ({ocultas.length}) · la gente no las ve
+                </p>
+                <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-6">
+                  {ocultas.map((pedido) => {
+                    const portada = porId.get(pedido)?.fotos[0] ?? portadasOcultas[pedido];
+                    return (
+                      <li key={pedido} className="relative overflow-hidden rounded-xl border border-dashed border-[var(--kint-panel-border)]">
+                        <button type="button" onClick={() => void elegir(pedido)} className="block w-full text-left">
+                          {portada ? (
+                            <span className="block opacity-60 grayscale-[40%]">{miniatura(portada, pedido)}</span>
+                          ) : (
+                            <span className="flex aspect-square w-full items-center justify-center bg-[var(--kint-panel-soft)] text-[10px] text-[var(--text-muted)]">
+                              Cargando…
+                            </span>
+                          )}
+                          <span className="block truncate px-1.5 py-1 text-[11px] font-black">{pedido.replace(/^KNT-0*/, "KNT-")}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void guardarLista("galeria_ocultos", ocultas.filter((otro) => otro !== pedido), `${pedido} vuelve a la galería`)}
+                          className="absolute inset-x-1 bottom-7 inline-flex items-center justify-center gap-1 rounded-full bg-emerald-600 py-1 text-[11px] font-black text-white shadow hover:bg-emerald-700"
+                        >
+                          <Eye size={12} />
+                          Volver a mostrar
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             )}
           </>
