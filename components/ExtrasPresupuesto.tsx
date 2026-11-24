@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { coloresVisiblesDesdeConfig, monosPrimero, pideColor } from "@/lib/extras-color";
+import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -18,6 +18,7 @@ type ProductoOferta = {
   precioOferta: number;
   foto: string;
   cadenas: string[];
+  variantes?: string[]; // en los monos: los tamaños (1:50, 1:100…)
   coloresDefecto: string[];
 };
 
@@ -62,9 +63,11 @@ export default function ExtrasPresupuesto({
   pedido,
   codigo,
   onCambio,
+  escala = "",
 }: {
   pedido: string;
   codigo: string;
+  escala?: string; // la escala de la maqueta: el tamaño de los monos arranca elegido en esa
   /* Se llama después de guardar (el total del pedido cambió). */
   onCambio: () => void;
 }) {
@@ -72,6 +75,7 @@ export default function ExtrasPresupuesto({
   const [guardando, setGuardando] = useState("");
   const [error, setError] = useState("");
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
+  const [tamanos, setTamanos] = useState<Record<string, string>>({});
   // Plegado: se ven 2 productos y el resto con «Ver los N productos».
   const [verTodos, setVerTodos] = useState(false);
   // Colores que se pueden elegir para los monos (con el nombre que ve la gente).
@@ -218,9 +222,13 @@ export default function ExtrasPresupuesto({
             // Los monos piden color (obligatorio); los llaveros, cadena.
             const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
             const opciones = conColor ? colores : producto.cadenas;
-            const cadena = opciones.length
+            // Monos: tamaño (de la escala de la maqueta si hay uno igual) + color → «1:100 · Rojo».
+            const listaTamanos = conColor ? (producto.variantes ?? []).filter((opcion) => !esTamanoPersonalizado(opcion)) : [];
+            const tamano = listaTamanos.length ? tamanos[producto.nombre] ?? tamanoDeEscala(listaTamanos, escala) : "";
+            const seleccion = opciones.length
               ? cadenas[producto.nombre] || ""
               : "";
+            const cadena = listaTamanos.length ? (tamano && seleccion ? `${tamano} · ${seleccion}` : "") : seleccion;
             const clave = `${producto.nombre}::${cadena}`;
             const elegido = actuales.find(
               (extra) => extra.producto === producto.nombre && extra.cadena === cadena
@@ -271,9 +279,33 @@ export default function ExtrasPresupuesto({
                     </span>
                   </p>
 
+                  {listaTamanos.length > 0 && (
+                    <>
+                      <p className={`mt-1.5 text-[10px] font-black uppercase tracking-wider ${tamano ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                        {tamano ? `Tamaño: ${tamano}` : "Elegí el tamaño"}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {listaTamanos.map((opcion) => (
+                          <button
+                            key={opcion}
+                            type="button"
+                            aria-pressed={tamano === opcion}
+                            onClick={() => setTamanos((actual) => ({ ...actual, [producto.nombre]: opcion }))}
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
+                              tamano === opcion
+                                ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
+                                : "border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--blue-main)]"
+                            }`}
+                          >
+                            {opcion}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                   {conColor && (
-                    <p className={`mt-1.5 text-[10px] font-black uppercase tracking-wider ${cadena ? "text-[var(--text-muted)]" : "text-red-600"}`}>
-                      {cadena ? `Color: ${cadena}` : "Elegí el color"}
+                    <p className={`mt-1.5 text-[10px] font-black uppercase tracking-wider ${seleccion ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                      {seleccion ? `Color: ${seleccion}` : "Elegí el color"}
                     </p>
                   )}
                   {opciones.length > 0 && (
@@ -282,12 +314,12 @@ export default function ExtrasPresupuesto({
                         <button
                           key={opcion}
                           type="button"
-                          aria-pressed={cadena === opcion}
+                          aria-pressed={seleccion === opcion}
                           onClick={() =>
                             setCadenas((actual) => ({ ...actual, [producto.nombre]: opcion }))
                           }
                           className={`rounded-full border px-2.5 py-1 text-[11px] font-bold transition ${
-                            cadena === opcion
+                            seleccion === opcion
                               ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
                               : "border-[var(--border-color)] text-[var(--text-muted)] hover:border-[var(--blue-main)]"
                           }`}
@@ -339,7 +371,7 @@ export default function ExtrasPresupuesto({
                         ) : (
                           <Plus size={13} />
                         )}
-                        {faltaCadena ? (conColor ? "Elegí color" : "Elegí cadena") : "Agregar"}
+                        {faltaCadena ? (conColor ? (listaTamanos.length && !tamano ? "Elegí tamaño" : "Elegí color") : "Elegí cadena") : "Agregar"}
                       </button>
                     )}
                   </div>

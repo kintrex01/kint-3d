@@ -32,3 +32,15 @@ export function coloresVisiblesDesdeConfig(configuracion: Record<string, { valor
     .sort((a, b) => a.orden - b.orden)
     .map((color) => color.nombre);
 }
+
+/* Tamaño «Personalizado» / «Otra escala»: el cliente escribe la escala (igual que kintExtrasTamanoPersonalizado_). */
+export function esTamanoPersonalizado(opcion: string) {
+  return /personaliz|otra/i.test(opcion || "");
+}
+
+/* El tamaño que coincide con la escala de la maqueta («1:100» → la variante «1:100»), para dejarlo elegido. */
+export function tamanoDeEscala(tamanos: string[], escala: string) {
+  const numero = /1\s*[:/]\s*(\d+)/.exec(escala || "")?.[1];
+  if (!numero) return "";
+  return tamanos.find((opcion) => /1\s*[:/]\s*(\d+)/.exec(opcion)?.[1] === numero) || "";
+}

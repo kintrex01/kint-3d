@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { monosPrimero, pideColor } from "@/lib/extras-color";
+import { esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * Cotizar: "¿Le sumás algo?" — productos de la tienda que se imprimen
@@ -18,6 +18,7 @@ type Producto = {
   precio: number;
   foto: string;
   cadenas: string[];
+  variantes?: string[]; // en los monos: los tamaños (1:50, 1:100…)
   personalizable: boolean;
 };
 
@@ -29,14 +30,17 @@ export default function SumarProductosCotizar({
   elegidos,
   onCambiar,
   colores = [],
+  escala = "",
 }: {
   elegidos: ExtraElegido[];
   onCambiar: (extras: ExtraElegido[]) => void;
   colores?: string[]; // los colores de filamento que se pueden elegir (para los monos)
+  escala?: string; // la escala de la maqueta: el tamaño de los monos arranca elegido en esa
 }) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [abierto, setAbierto] = useState(false);
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
+  const [tamanos, setTamanos] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let activo = true;
@@ -98,7 +102,11 @@ export default function SumarProductosCotizar({
               // Los monos piden color (obligatorio); los llaveros, cadena.
               const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
               const opciones = conColor ? colores : producto.cadenas;
-              const cadena = opciones.length ? cadenas[producto.nombre] || "" : "";
+              // Monos: tamaño (de la escala de la maqueta si hay uno igual) + color → «1:100 · Rojo».
+              const listaTamanos = conColor ? (producto.variantes ?? []).filter((opcion) => !esTamanoPersonalizado(opcion)) : [];
+              const tamano = listaTamanos.length ? tamanos[producto.nombre] ?? tamanoDeEscala(listaTamanos, escala) : "";
+              const seleccion = opciones.length ? cadenas[producto.nombre] || "" : "";
+              const cadena = listaTamanos.length ? (tamano && seleccion ? `${tamano} · ${seleccion}` : "") : seleccion;
               const cantidad =
                 elegidos.find((extra) => extra.producto === producto.nombre && extra.cadena === cadena)?.cantidad || 0;
               const totalProducto = elegidos
@@ -127,9 +135,33 @@ export default function SumarProductosCotizar({
                   <div className="flex flex-1 flex-col p-2.5">
                     <p className="truncate text-sm font-bold text-[var(--text-main)]">{producto.nombre}</p>
                     <p className="text-sm font-black text-red-600">{pesos(producto.precio)}</p>
+                    {listaTamanos.length > 0 && (
+                      <>
+                        <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${tamano ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                          {tamano ? `Tamaño: ${tamano}` : "Elegí el tamaño"}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {listaTamanos.map((opcion) => (
+                            <button
+                              key={opcion}
+                              type="button"
+                              aria-pressed={tamano === opcion}
+                              onClick={() => setTamanos((actual) => ({ ...actual, [producto.nombre]: opcion }))}
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-bold transition ${
+                                tamano === opcion
+                                  ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
+                                  : "border-[var(--border-color)] text-[var(--text-muted)]"
+                              }`}
+                            >
+                              {opcion}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                     {conColor && (
-                      <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${cadena ? "text-[var(--text-muted)]" : "text-red-600"}`}>
-                        {cadena ? `Color: ${cadena}` : "Elegí el color"}
+                      <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${seleccion ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                        {seleccion ? `Color: ${seleccion}` : "Elegí el color"}
                       </p>
                     )}
                     {opciones.length > 0 && (
@@ -138,10 +170,10 @@ export default function SumarProductosCotizar({
                           <button
                             key={opcion}
                             type="button"
-                            aria-pressed={cadena === opcion}
+                            aria-pressed={seleccion === opcion}
                             onClick={() => setCadenas((actual) => ({ ...actual, [producto.nombre]: opcion }))}
                             className={`rounded-full border px-2 py-0.5 text-[10px] font-bold transition ${
-                              cadena === opcion
+                              seleccion === opcion
                                 ? "border-[var(--blue-main)] bg-[var(--blue-main)] text-white"
                                 : "border-[var(--border-color)] text-[var(--text-muted)]"
                             }`}
@@ -170,7 +202,7 @@ export default function SumarProductosCotizar({
                           className="flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-red-600 text-[11px] font-black uppercase tracking-[0.1em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Plus size={13} />
-                          {faltaCadena ? (conColor ? "Elegí color" : "Elegí cadena") : "Sumar"}
+                          {faltaCadena ? (conColor ? (listaTamanos.length && !tamano ? "Elegí tamaño" : "Elegí color") : "Elegí cadena") : "Sumar"}
                         </button>
                       )}
                     </div>

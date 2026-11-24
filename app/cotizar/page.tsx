@@ -3049,7 +3049,7 @@ return (
 </div>
 
 {/* Productos de la tienda: chico y al final, antes de enviar. */}
-<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} colores={coloresDisponibles.map((item) => item.etiqueta)} />
+<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} colores={coloresDisponibles.map((item) => item.etiqueta)} escala={escala === "Otra escala" ? escalaPersonalizada : escala} />
 
 <div
   className={`mb-5 rounded-2xl border p-5 ${

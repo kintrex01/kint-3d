@@ -42,6 +42,7 @@ import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
+import { esTamanoPersonalizado, pideColor } from "@/lib/extras-color";
 import { correoRecordado, recordarCorreo } from "@/lib/correo-recordado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import {
@@ -1277,7 +1278,7 @@ function TarjetaProducto({
                 Agregado
               </>
             ) : conVariantes ? (
-              producto.combo?.tipo === "elegir" ? `Elegí tus ${producto.combo.cantidad}` : "Elegir variante"
+              producto.combo?.tipo === "elegir" ? `Elegí tus ${producto.combo.cantidad}` : pideColor(producto.nombre) ? "Elegir tamaño" : "Elegir variante"
             ) : faltaCadena ? (
               "Elegí la cadena"
             ) : (
@@ -1758,6 +1759,8 @@ function FichaProducto({
   // Cadena sin elegir y colores de la foto hasta que el cliente los cambie.
   // Variante: obligatoria si el producto tiene.
   const [variante, setVariante] = useState("");
+  // Monos con tamaño «Personalizado»: la escala que escribe el cliente (obligatoria).
+  const [escalaPropia, setEscalaPropia] = useState("");
   const [cadena, setCadena] = useState("");
   const [elegirColores, setElegirColores] = useState(false);
   const [colores, setColores] = useState<string[]>([]);
@@ -1871,6 +1874,10 @@ function FichaProducto({
 
   const varianteElegida = producto.variantes.includes(variante) ? variante : "";
   const faltaVariante = producto.variantes.length > 0 && !varianteElegida;
+  // En los monos las variantes son los tamaños (escalas).
+  const sonTamanos = pideColor(producto.nombre);
+  const tamanoPropio = Boolean(varianteElegida) && esTamanoPersonalizado(varianteElegida);
+  const faltaEscalaPropia = tamanoPropio && !escalaPropia.trim();
   const faltaCombo = producto.combo?.tipo === "elegir" && comboElegidos.length !== producto.combo.cantidad;
 
   // Por mayor: mismo producto, variante y colores (la cadena puede variar).
@@ -1887,7 +1894,11 @@ function FichaProducto({
   const aviso = deshabilitada
     ? "La tienda está en pausa: por ahora no se pueden agregar productos."
     : faltaVariante
-    ? "Elegí la variante."
+    ? sonTamanos
+      ? "Elegí el tamaño."
+      : "Elegí la variante."
+    : faltaEscalaPropia
+    ? "Escribí qué escala necesitás."
     : faltaCombo
     ? `Elegí ${producto.combo?.cantidad} para el combo (${comboElegidos.length} de ${producto.combo?.cantidad}).`
     : faltaCadena
@@ -1935,6 +1946,8 @@ function FichaProducto({
       comentario:
         producto.combo?.tipo === "elegir"
           ? comentarioCombo(comboElegidos, comentario)
+          : tamanoPropio
+          ? [`Escala ${escalaPropia.trim()}`, comentario.trim()].filter(Boolean).join(" · ")
           : comentario.trim(),
       cantidad,
     });
@@ -2149,7 +2162,7 @@ function FichaProducto({
             {producto.variantes.length > 0 && (
               <fieldset className="mt-6">
                 <legend className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
-                  Elegí la variante
+                  {sonTamanos ? "Elegí el tamaño (escala)" : "Elegí la variante"}
                   {faltaVariante && (
                     <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] tracking-[0.12em] text-white">
                       Obligatorio
@@ -2184,6 +2197,26 @@ function FichaProducto({
                     );
                   })}
                 </div>
+
+                {/* Tamaño personalizado: escribe la escala que necesita (obligatorio). */}
+                {tamanoPropio && (
+                  <label className="mt-3 block">
+                    <span className="mb-1 block text-xs font-bold text-[var(--text-main)]">
+                      ¿Qué escala necesitás? <span className="text-red-600">*</span>
+                    </span>
+                    <input
+                      value={escalaPropia}
+                      onChange={(evento) => {
+                        setError("");
+                        setEscalaPropia(evento.target.value.slice(0, 20));
+                      }}
+                      placeholder="Ej. 1:33"
+                      className={`h-11 w-full max-w-[12rem] rounded-xl border-2 bg-[var(--kint-input-bg)] px-3 text-sm font-bold outline-none transition focus:border-[var(--blue-main)] ${
+                        faltaEscalaPropia ? "border-dashed border-red-500/70" : "border-[var(--kint-panel-border)]"
+                      }`}
+                    />
+                  </label>
+                )}
               </fieldset>
             )}
 
