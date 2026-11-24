@@ -146,7 +146,7 @@ function FotoSeparadas() {
             <rect x="95" y="140" width="1135" height="450" rx="30" fill="none" stroke="#2563eb" strokeWidth="7" strokeDasharray="26 16" />
             <Cartel x={110} y={118} texto="Piezas separadas: cada una es un grupo" color="#2563eb" tamano={36} />
             <rect x="1265" y="225" width="580" height="400" rx="30" fill="none" stroke={VERDE} strokeWidth="7" strokeDasharray="26 16" />
-            <Cartel x={1275} y={205} texto="Modelo completo (referencia)" color={VERDE} tamano={32} />
+            <Cartel x={1275} y={205} texto="Modelo completo: solo si pedís armado" color={VERDE} tamano={32} />
             <line x1="120" y1="650" x2="1180" y2="650" stroke={ROJO} strokeWidth="6" />
             <Cartel x={170} y={720} texto="Todas a la misma altura (sin dibujar un piso)" color={ROJO} tamano={36} />
           </>

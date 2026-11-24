@@ -255,7 +255,7 @@ export default function TutorialPage() {
             <figcaption className="px-5 py-5 text-sm leading-7 text-[var(--text-muted)]">
               Niveles, muros y componentes interiores organizados como
               piezas independientes, junto al modelo completo de
-              referencia.
+              referencia (el modelo completo va solo si pedís el armado de piezas).
             </figcaption>
           </figure>
         </div>

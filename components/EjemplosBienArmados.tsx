@@ -6,15 +6,18 @@ import ImagenAmpliable from "@/components/ImagenAmpliable";
  * La gente copia lo que ve que funciona, por eso van grandes y arriba.
  */
 
+// El modelo completo al lado solo sirve si piden el armado de piezas.
+const CON_MODELO_COMPLETO = { src: "/tutorial/despiezado-unido.png", pie: "Con armado de piezas: cada planta separada y el modelo completo al lado, como referencia." };
+
 const EJEMPLOS = [
-  { src: "/tutorial/despiezado-unido.png", pie: "Cada planta separada y el modelo completo al lado, como referencia." },
   { src: "/tutorial/ejemplo5.png", pie: "Un edificio entero desplegado: plantas, muros y base, todo en el piso." },
   { src: "/tutorial/ejemplo1.png", pie: "Piezas repetidas ordenadas en filas, sin tocarse." },
   { src: "/tutorial/ejemplo3.png", pie: "Visto desde arriba: todo plano y separado." },
 ];
 
-export default function EjemplosBienArmados({ enGuia = false }: { enGuia?: boolean }) {
-  const [principal, ...resto] = EJEMPLOS;
+export default function EjemplosBienArmados({ enGuia = false, conArmado = false }: { enGuia?: boolean; conArmado?: boolean }) {
+  // Sin armado, el modelo completo al lado no hace falta y confunde: no se muestra.
+  const [principal, ...resto] = conArmado ? [CON_MODELO_COMPLETO, ...EJEMPLOS] : EJEMPLOS;
   return (
     <section
       className={`rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-500/[0.12] to-emerald-500/[0.03] p-4 sm:p-6 ${

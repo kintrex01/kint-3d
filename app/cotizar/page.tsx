@@ -2127,7 +2127,7 @@ return (
 
 
 {/* Ejemplos reales arriba de todo: la gente copia lo que ve que funciona. */}
-<EjemplosBienArmados />
+<EjemplosBienArmados conArmado={/^s[ií]/i.test(armado)} />
 
 <h2 className="mb-5 flex items-center gap-3 text-xl font-black text-[var(--text-main)]">
   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-sm text-white">1</span>
