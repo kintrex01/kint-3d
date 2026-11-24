@@ -104,6 +104,10 @@ export default function MinimosImprimibles() {
         puede quebrar; con <strong className="text-[var(--text-main)]">{medida((boquilla * 200) / 10)}</strong> queda firme. Más fino que
         el mínimo, no se imprime. Para revisar una medida tuya, usá la calculadora de abajo.
       </p>
+      <p className="border-t border-red-600/30 bg-red-600/10 px-5 py-3 text-xs font-bold leading-5 text-red-600">
+        Pilares: siempre el recomendado o más, nunca el mínimo. Con un diámetro menor es muy probable que no salgan, queden
+        extremadamente finos o se rompan.
+      </p>
     </details>
   );
 }

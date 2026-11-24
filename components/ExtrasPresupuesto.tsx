@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { coloresVisiblesDesdeConfig, monosPrimero, pideColor } from "@/lib/extras-color";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -73,6 +74,21 @@ export default function ExtrasPresupuesto({
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
   // Plegado: se ven 2 productos y el resto con «Ver los N productos».
   const [verTodos, setVerTodos] = useState(false);
+  // Colores que se pueden elegir para los monos (con el nombre que ve la gente).
+  const [colores, setColores] = useState<string[]>([]);
+
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/configuracion")
+      .then((respuesta) => respuesta.json())
+      .then((data) => {
+        if (activo && data?.configuracion) setColores(coloresVisiblesDesdeConfig(data.configuracion));
+      })
+      .catch(() => undefined);
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   useEffect(() => {
     let activo = true;
@@ -168,8 +184,8 @@ export default function ExtrasPresupuesto({
                   </strong>
                   {extra.cadena && (
                     <span className="block text-xs text-[var(--text-muted)]">
-                      Cadena {extra.cadena}
-                      {extra.colores ? ` · ${extra.colores}` : ""}
+                      {pideColor(extra.producto) ? `Color ${extra.cadena}` : `Cadena ${extra.cadena}`}
+                      {extra.colores && extra.colores !== extra.cadena ? ` · ${extra.colores}` : ""}
                     </span>
                   )}
                 </span>
@@ -198,8 +214,11 @@ export default function ExtrasPresupuesto({
       {datos.editable && datos.productos.length > 0 && (
         <>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {(verTodos ? datos.productos : datos.productos.slice(0, 2)).map((producto) => {
-            const cadena = producto.cadenas.length
+          {(verTodos ? monosPrimero(datos.productos) : monosPrimero(datos.productos).slice(0, 2)).map((producto) => {
+            // Los monos piden color (obligatorio); los llaveros, cadena.
+            const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
+            const opciones = conColor ? colores : producto.cadenas;
+            const cadena = opciones.length
               ? cadenas[producto.nombre] || ""
               : "";
             const clave = `${producto.nombre}::${cadena}`;
@@ -207,7 +226,7 @@ export default function ExtrasPresupuesto({
               (extra) => extra.producto === producto.nombre && extra.cadena === cadena
             );
             const cantidad = elegido?.cantidad || 0;
-            const faltaCadena = producto.cadenas.length > 0 && !cadena;
+            const faltaCadena = opciones.length > 0 && !cadena;
             const lleno =
               !elegido && actuales.length >= MAX_LINEAS;
 
@@ -252,9 +271,14 @@ export default function ExtrasPresupuesto({
                     </span>
                   </p>
 
-                  {producto.cadenas.length > 0 && (
+                  {conColor && (
+                    <p className={`mt-1.5 text-[10px] font-black uppercase tracking-wider ${cadena ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                      {cadena ? `Color: ${cadena}` : "Elegí el color"}
+                    </p>
+                  )}
+                  {opciones.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {producto.cadenas.map((opcion) => (
+                      {opciones.map((opcion) => (
                         <button
                           key={opcion}
                           type="button"
@@ -315,7 +339,7 @@ export default function ExtrasPresupuesto({
                         ) : (
                           <Plus size={13} />
                         )}
-                        {faltaCadena ? "Elegí cadena" : "Agregar"}
+                        {faltaCadena ? (conColor ? "Elegí color" : "Elegí cadena") : "Agregar"}
                       </button>
                     )}
                   </div>

@@ -748,7 +748,12 @@ export function linkWhatsapp(numero: string, texto = "") {
       texto ? `&text=${encodeURIComponent(texto)}` : ""
     }`;
   }
-  return `https://wa.me/${digitos}${
-    texto ? `?text=${encodeURIComponent(texto)}` : ""
-  }`;
+  const comun = `https://wa.me/${digitos}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
+  // Android: se abre WhatsApp Business (el del negocio), no el personal. Si no está instalado, wa.me.
+  if (/Android/i.test(navigator.userAgent)) {
+    return `intent://send?phone=${digitos}${
+      texto ? `&text=${encodeURIComponent(texto)}` : ""
+    }#Intent;scheme=whatsapp;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent(comun)};end`;
+  }
+  return comun;
 }

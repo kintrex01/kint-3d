@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
+import { monosPrimero, pideColor } from "@/lib/extras-color";
 
 /*
  * Cotizar: "¿Le sumás algo?" — productos de la tienda que se imprimen
@@ -27,9 +28,11 @@ function pesos(valor: number) {
 export default function SumarProductosCotizar({
   elegidos,
   onCambiar,
+  colores = [],
 }: {
   elegidos: ExtraElegido[];
   onCambiar: (extras: ExtraElegido[]) => void;
+  colores?: string[]; // los colores de filamento que se pueden elegir (para los monos)
 }) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [abierto, setAbierto] = useState(false);
@@ -42,7 +45,7 @@ export default function SumarProductosCotizar({
       .then((data) => {
         if (!activo || !Array.isArray(data?.productos)) return;
         setProductos(
-          (data.productos as Producto[]).filter((producto) => !producto.personalizable && producto.precio > 0)
+          monosPrimero((data.productos as Producto[]).filter((producto) => !producto.personalizable && producto.precio > 0))
         );
       })
       .catch(() => undefined);
@@ -92,13 +95,16 @@ export default function SumarProductosCotizar({
         <div className="border-t border-[var(--border-color)] p-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {productos.map((producto) => {
-              const cadena = producto.cadenas.length ? cadenas[producto.nombre] || "" : "";
+              // Los monos piden color (obligatorio); los llaveros, cadena.
+              const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
+              const opciones = conColor ? colores : producto.cadenas;
+              const cadena = opciones.length ? cadenas[producto.nombre] || "" : "";
               const cantidad =
                 elegidos.find((extra) => extra.producto === producto.nombre && extra.cadena === cadena)?.cantidad || 0;
               const totalProducto = elegidos
                 .filter((extra) => extra.producto === producto.nombre)
                 .reduce((suma, extra) => suma + extra.cantidad, 0);
-              const faltaCadena = producto.cadenas.length > 0 && !cadena;
+              const faltaCadena = opciones.length > 0 && !cadena;
               return (
                 <div
                   key={producto.nombre}
@@ -121,9 +127,14 @@ export default function SumarProductosCotizar({
                   <div className="flex flex-1 flex-col p-2.5">
                     <p className="truncate text-sm font-bold text-[var(--text-main)]">{producto.nombre}</p>
                     <p className="text-sm font-black text-red-600">{pesos(producto.precio)}</p>
-                    {producto.cadenas.length > 0 && (
+                    {conColor && (
+                      <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${cadena ? "text-[var(--text-muted)]" : "text-red-600"}`}>
+                        {cadena ? `Color: ${cadena}` : "Elegí el color"}
+                      </p>
+                    )}
+                    {opciones.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
-                        {producto.cadenas.map((opcion) => (
+                        {opciones.map((opcion) => (
                           <button
                             key={opcion}
                             type="button"
@@ -159,7 +170,7 @@ export default function SumarProductosCotizar({
                           className="flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-red-600 text-[11px] font-black uppercase tracking-[0.1em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Plus size={13} />
-                          {faltaCadena ? "Elegí cadena" : "Sumar"}
+                          {faltaCadena ? (conColor ? "Elegí color" : "Elegí cadena") : "Sumar"}
                         </button>
                       )}
                     </div>

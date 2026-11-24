@@ -548,6 +548,14 @@ const estadoImprimibilidad =
                   <span className="text-emerald-600">{formatearNumero(((boquillaMm ?? 0.4) * 2 * (final / inicial)) / 10)} cm</span>
                 </span>
               )}
+
+              {/* Pilares: siempre el recomendado o más; el mínimo no sirve para pilares. */}
+              {escalaValida && (
+                <p className="basis-full rounded-xl border border-red-600/40 bg-red-600/10 px-3 py-2 text-xs font-bold leading-5 text-red-600">
+                  Pilares: usá el recomendado ({formatearNumero(((boquillaMm ?? 0.4) * 2 * (final / inicial)) / 10)} cm) o más, nunca el mínimo.
+                  Con un diámetro menor es muy probable que los pilares no salgan, queden extremadamente finos o se rompan.
+                </p>
+              )}
             </div>
           </div>
 

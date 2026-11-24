@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Camera, Heart, LoaderCircle, MessageCircle, Star } from "lucide-react";
 import VisorMaqueta, { type MaquetaGaleria } from "./VisorMaqueta";
 import { ordenarGaleria } from "@/lib/galeria-orden";
@@ -104,6 +104,7 @@ export default function GaleriaImpresos() {
     [items, soloResenas, escala, color]
   );
   const conResena = (items ?? []).filter((item) => item.resena).length;
+  const columnas = useColumnas();
 
   function abrir(indice: number) {
     setAbiertaId(visibles[indice]?.id ?? null);
@@ -178,14 +179,17 @@ export default function GaleriaImpresos() {
         {visibles.length} {visibles.length === 1 ? "maqueta" : "maquetas"}
       </p>
 
-      {/* Fotos (en columnas, cada una con su alto) */}
-      <div className="mt-3 columns-2 gap-3 sm:columns-3 lg:columns-4">
-        {visibles.slice(0, cantidad).map((item, indice) => (
+      {/* Fotos por filas: 1 a la izquierda, 2 a la derecha, 3 abajo a la izquierda…
+          Cada columna con sus altos; las primeras de tu orden quedan arriba de todo. */}
+      <div className="mt-3 flex items-start gap-3">
+        {Array.from({ length: columnas }, (_, columna) => (
+          <div key={columna} className="min-w-0 flex-1">
+        {visibles.slice(0, cantidad).map((item, indice) => indice % columnas !== columna ? null : (
           <button
             key={item.pedido}
             type="button"
             onClick={() => abrir(indice)}
-            className={`group mb-3 block w-full break-inside-avoid overflow-hidden rounded-2xl border bg-[var(--kint-panel)] text-left ${
+            className={`group mb-3 block w-full overflow-hidden rounded-2xl border bg-[var(--kint-panel)] text-left ${
               item.resena ? "border-amber-400/50 shadow-[0_10px_30px_-16px_rgba(245,158,11,0.7)]" : "border-[var(--border-color)]"
             }`}
           >
@@ -240,6 +244,8 @@ export default function GaleriaImpresos() {
             )}
           </button>
         ))}
+          </div>
+        ))}
       </div>
 
       {visibles.length > cantidad && (
@@ -267,5 +273,17 @@ export default function GaleriaImpresos() {
         />
       )}
     </div>
+  );
+}
+
+/* Cuántas columnas entran: 2 en el celular, 3 en tablet, 4 en la compu (como antes). */
+function useColumnas() {
+  return useSyncExternalStore(
+    (avisar) => {
+      window.addEventListener("resize", avisar);
+      return () => window.removeEventListener("resize", avisar);
+    },
+    () => (window.innerWidth >= 1024 ? 4 : window.innerWidth >= 640 ? 3 : 2),
+    () => 2
   );
 }
