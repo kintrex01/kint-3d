@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
+import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, numeroEscala, pideColor, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -76,6 +76,7 @@ export default function ExtrasPresupuesto({
   const [error, setError] = useState("");
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
   const [tamanos, setTamanos] = useState<Record<string, string>>({});
+  const [escalasPropias, setEscalasPropias] = useState<Record<string, string>>({});
   // Plegado: se ven 2 productos y el resto con «Ver los N productos».
   const [verTodos, setVerTodos] = useState(false);
   // Colores que se pueden elegir para los monos (con el nombre que ve la gente).
@@ -197,7 +198,7 @@ export default function ExtrasPresupuesto({
                     </span>
                   )}
                 </span>
-                <span className="font-black">{pesos(extra.subtotal)}</span>
+                <span className="font-black">{extra.precio === 0 && pideColor(extra.producto) ? "A cotizar" : pesos(extra.subtotal)}</span>
                 {datos.editable && (
                   <button
                     type="button"
@@ -236,12 +237,18 @@ export default function ExtrasPresupuesto({
             const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
             const opciones = conColor ? colores : producto.cadenas;
             // Monos: tamaño (de la escala de la maqueta si hay uno igual) + color → «1:100 · Rojo».
-            const listaTamanos = conColor ? (producto.variantes ?? []).filter((opcion) => !esTamanoPersonalizado(opcion)) : [];
-            const tamano = listaTamanos.length ? tamanos[producto.nombre] ?? tamanoDeEscala(listaTamanos, escala) : "";
+            const listaTamanos = conColor ? producto.variantes ?? [] : [];
+            const tamano = listaTamanos.length
+              ? tamanos[producto.nombre] ?? tamanoDeEscala(listaTamanos.filter((opcion) => !esTamanoPersonalizado(opcion)), escala)
+              : "";
+            // «Personalizado»: escribe la escala; va sin precio (se cotiza después).
+            const propio = Boolean(tamano) && esTamanoPersonalizado(tamano);
+            const escalaPropia = escalasPropias[producto.nombre] ?? "";
+            const tamanoFinal = propio ? (numeroEscala(escalaPropia) ? `${tamano} 1:${numeroEscala(escalaPropia)}` : "") : tamano;
             const seleccion = opciones.length
               ? cadenas[producto.nombre] || ""
               : "";
-            const cadena = listaTamanos.length ? (tamano && seleccion ? `${tamano} · ${seleccion}` : "") : seleccion;
+            const cadena = listaTamanos.length ? (tamanoFinal && seleccion ? `${tamanoFinal} · ${seleccion}` : "") : seleccion;
             const clave = `${producto.nombre}::${cadena}`;
             const elegido = actuales.find(
               (extra) => extra.producto === producto.nombre && extra.cadena === cadena
@@ -282,13 +289,13 @@ export default function ExtrasPresupuesto({
                 <div className="flex min-w-0 flex-1 flex-col p-3">
                   <p className="truncate text-sm font-black">{producto.nombre}</p>
                   <p className="text-sm">
-                    {producto.precioOferta < producto.precio && (
+                    {!propio && producto.precioOferta < producto.precio && (
                       <span className="mr-1.5 text-xs text-[var(--text-muted)] line-through">
                         {pesos(producto.precio)}
                       </span>
                     )}
                     <span className="font-black text-red-600">
-                      {pesos(producto.precioOferta)}
+                      {propio ? "A cotizar" : pesos(producto.precioOferta)}
                     </span>
                   </p>
 
@@ -314,6 +321,21 @@ export default function ExtrasPresupuesto({
                           </button>
                         ))}
                       </div>
+                      {propio && (
+                        <>
+                          <input
+                            value={escalaPropia}
+                            onChange={(evento) => setEscalasPropias((actual) => ({ ...actual, [producto.nombre]: evento.target.value.slice(0, 12) }))}
+                            placeholder="Escala, ej. 1:300"
+                            className={`mt-2 h-9 w-full rounded-lg border bg-[var(--kint-input-bg)] px-2.5 text-sm font-bold outline-none focus:border-[var(--blue-main)] ${
+                              numeroEscala(escalaPropia) ? "border-[var(--border-color)]" : "border-dashed border-red-500/70"
+                            }`}
+                          />
+                          <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
+                            Te pasamos el precio después: lo vemos, lo escalamos y se suma a tu pedido.
+                          </p>
+                        </>
+                      )}
                     </>
                   )}
                   {conColor && (
@@ -384,7 +406,7 @@ export default function ExtrasPresupuesto({
                         ) : (
                           <Plus size={13} />
                         )}
-                        {faltaCadena ? (conColor ? (listaTamanos.length && !tamano ? "Elegí tamaño" : "Elegí color") : "Elegí cadena") : "Agregar"}
+                        {faltaCadena ? (conColor ? (listaTamanos.length && !tamanoFinal ? (propio ? "Escribí la escala" : "Elegí tamaño") : "Elegí color") : "Elegí cadena") : "Agregar"}
                       </button>
                     )}
                   </div>

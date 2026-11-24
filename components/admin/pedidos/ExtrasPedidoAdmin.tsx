@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { accionAdmin } from "@/lib/admin-cliente";
 import type { ExtraPedido } from "@/lib/admin-tipos";
 import { Boton, Tarjeta, claseInput, pesos, useAvisos } from "@/components/admin/ui";
+import { pideColor } from "@/lib/extras-color";
 
 /*
  * Productos de la tienda sumados a un pedido de maqueta. El dueño los
@@ -29,6 +30,7 @@ export function ExtrasPedidoAdmin({
   const [abierto, setAbierto] = useState(false);
   const [nuevo, setNuevo] = useState({ producto: "", cadena: "", cantidad: "1", precio: "" });
   const [guardando, setGuardando] = useState(false);
+  const [preciosNuevos, setPreciosNuevos] = useState<Record<number, string>>({});
 
   const actuales: Linea[] = extras.map((extra) => ({
     producto: extra.producto,
@@ -77,11 +79,46 @@ export function ExtrasPedidoAdmin({
               {extra.cantidad} × {extra.producto}
             </span>
             <span className="block text-xs text-[var(--text-muted)]">
-              {[extra.cadena && `Cadena ${extra.cadena}`, extra.colores, `${pesos(extra.precio)} c/u`].filter(Boolean).join(" · ")}
+              {[
+                extra.cadena && (pideColor(extra.producto) ? extra.cadena : `Cadena ${extra.cadena}`),
+                extra.colores !== extra.cadena && !extra.cadena.endsWith(extra.colores) ? extra.colores : "",
+                extra.precio > 0 ? `${pesos(extra.precio)} c/u` : "",
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </span>
+            {/* Monos de escala personalizada: llegan sin precio; lo ponés vos después de escalarlos. */}
+            {extra.precio === 0 && (
+              <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                  A cotizar
+                </span>
+                <input
+                  value={preciosNuevos[indice] ?? ""}
+                  onChange={(evento) => setPreciosNuevos((actual) => ({ ...actual, [indice]: evento.target.value.replace(/[^\d.,]/g, "") }))}
+                  inputMode="decimal"
+                  placeholder="Precio c/u"
+                  className={`${claseInput} h-8 w-24 text-xs`}
+                />
+                <Boton
+                  tamano="chico"
+                  disabled={guardando || !(Number((preciosNuevos[indice] ?? "").replace(",", ".")) > 0)}
+                  onClick={() =>
+                    void guardar(
+                      actuales.map((linea, i) =>
+                        i === indice ? { ...linea, precio: Number((preciosNuevos[indice] ?? "").replace(",", ".")) } : linea
+                      ),
+                      `Precio puesto: ${extra.producto}`
+                    )
+                  }
+                >
+                  Poner precio
+                </Boton>
+              </span>
+            )}
           </span>
           <span className="flex shrink-0 items-center gap-1">
-            <span className="font-black">{pesos(extra.subtotal)}</span>
+            <span className="font-black">{extra.precio === 0 ? "A cotizar" : pesos(extra.subtotal)}</span>
             <Boton
               tamano="chico"
               variante="fantasma"

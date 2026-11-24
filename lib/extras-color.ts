@@ -44,3 +44,32 @@ export function tamanoDeEscala(tamanos: string[], escala: string) {
   if (!numero) return "";
   return tamanos.find((opcion) => /1\s*[:/]\s*(\d+)/.exec(opcion)?.[1] === numero) || "";
 }
+
+/* «1:300» → 300 (0 si no hay escala). */
+export function numeroEscala(texto: string) {
+  const numero = /1\s*[:/]\s*(\d+)/.exec(texto || "")?.[1];
+  return numero ? Number(numero) : 0;
+}
+
+/*
+ * Qué monos le van a la maqueta según su escala:
+ * - si un producto tiene esa escala en la lista (o en el nombre), ese, con esa escala;
+ * - si no, el que tenga «Personalizado» y la escala más cercana a su lista, con la escala escrita (se cotiza después).
+ */
+export function monoParaEscala(productos: { nombre: string; variantes?: string[] }[], escala: string) {
+  const n = numeroEscala(escala);
+  if (!n) return null;
+  let mejor: { nombre: string; tamano: string; propia: string; distancia: number } | null = null;
+  for (const producto of productos) {
+    const variantes = producto.variantes ?? [];
+    const exacta = variantes.find((opcion) => !esTamanoPersonalizado(opcion) && numeroEscala(opcion) === n);
+    if (exacta) return { nombre: producto.nombre, tamano: exacta, propia: "" };
+    if (!variantes.length && numeroEscala(producto.nombre) === n) return { nombre: producto.nombre, tamano: "", propia: "" };
+    const personalizado = variantes.find(esTamanoPersonalizado);
+    if (!personalizado) continue;
+    const numeros = variantes.map(numeroEscala).filter(Boolean);
+    const distancia = numeros.length ? Math.max(0, Math.min(...numeros) - n, n - Math.max(...numeros)) : 0;
+    if (!mejor || distancia < mejor.distancia) mejor = { nombre: producto.nombre, tamano: personalizado, propia: `1:${n}`, distancia };
+  }
+  return mejor && { nombre: mejor.nombre, tamano: mejor.tamano, propia: mejor.propia };
+}

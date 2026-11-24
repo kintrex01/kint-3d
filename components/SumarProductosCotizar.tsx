@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
+import { esTamanoPersonalizado, monoParaEscala, monosPrimero, numeroEscala, pideColor, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * Cotizar: "¿Le sumás algo?" — productos de la tienda que se imprimen
@@ -41,6 +41,8 @@ export default function SumarProductosCotizar({
   const [abierto, setAbierto] = useState(false);
   const [cadenas, setCadenas] = useState<Record<string, string>>({});
   const [tamanos, setTamanos] = useState<Record<string, string>>({});
+  // Monos «Personalizado»: la escala que escribe (ej. 1:300). Se suma sin precio y se cotiza después.
+  const [escalasPropias, setEscalasPropias] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let activo = true;
@@ -62,8 +64,9 @@ export default function SumarProductosCotizar({
 
   const monos = productos.filter((producto) => pideColor(producto.nombre));
   const otros = productos.filter((producto) => !pideColor(producto.nombre));
-  // El mono de la misma escala que la maqueta («Monos 1:100» con escala 1:100) va primero y marcado.
-  const monoDeTuEscala = tamanoDeEscala(monos.map((producto) => producto.nombre), escala);
+  // Los monos que le van a la maqueta (por su escala) van primero, marcados y con la escala ya elegida.
+  const sugerencia = monoParaEscala(monos, escala);
+  const monoDeTuEscala = sugerencia?.nombre ?? "";
   if (monoDeTuEscala) monos.sort((a, b) => Number(b.nombre === monoDeTuEscala) - Number(a.nombre === monoDeTuEscala));
   const unidadesOtros = elegidos
     .filter((extra) => !pideColor(extra.producto))
@@ -83,10 +86,18 @@ export default function SumarProductosCotizar({
               const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
               const opciones = conColor ? colores : producto.cadenas;
               // Monos: tamaño (de la escala de la maqueta si hay uno igual) + color → «1:100 · Rojo».
-              const listaTamanos = conColor ? (producto.variantes ?? []).filter((opcion) => !esTamanoPersonalizado(opcion)) : [];
-              const tamano = listaTamanos.length ? tamanos[producto.nombre] ?? tamanoDeEscala(listaTamanos, escala) : "";
+              const listaTamanos = conColor ? producto.variantes ?? [] : [];
+              const sugerido = sugerencia?.nombre === producto.nombre ? sugerencia : null;
+              const tamano = listaTamanos.length
+                ? tamanos[producto.nombre] ??
+                  (sugerido ? sugerido.tamano : tamanoDeEscala(listaTamanos.filter((opcion) => !esTamanoPersonalizado(opcion)), escala))
+                : "";
+              // «Personalizado»: escribe la escala; va sin precio (se cotiza después).
+              const propio = Boolean(tamano) && esTamanoPersonalizado(tamano);
+              const escalaPropia = escalasPropias[producto.nombre] ?? (sugerido?.propia || "");
+              const tamanoFinal = propio ? (numeroEscala(escalaPropia) ? `${tamano} 1:${numeroEscala(escalaPropia)}` : "") : tamano;
               const seleccion = opciones.length ? cadenas[producto.nombre] || "" : "";
-              const cadena = listaTamanos.length ? (tamano && seleccion ? `${tamano} · ${seleccion}` : "") : seleccion;
+              const cadena = listaTamanos.length ? (tamanoFinal && seleccion ? `${tamanoFinal} · ${seleccion}` : "") : seleccion;
               const cantidad =
                 elegidos.find((extra) => extra.producto === producto.nombre && extra.cadena === cadena)?.cantidad || 0;
               const totalProducto = elegidos
@@ -119,7 +130,7 @@ export default function SumarProductosCotizar({
                   </div>
                   <div className="flex flex-1 flex-col p-2.5">
                     <p className="truncate text-sm font-bold text-[var(--text-main)]">{producto.nombre}</p>
-                    <p className="text-sm font-black text-red-600">{pesos(producto.precio)}</p>
+                    <p className="text-sm font-black text-red-600">{propio ? "A cotizar" : pesos(producto.precio)}</p>
                     {listaTamanos.length > 0 && (
                       <>
                         <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${tamano ? "text-[var(--text-muted)]" : "text-red-600"}`}>
@@ -142,6 +153,21 @@ export default function SumarProductosCotizar({
                             </button>
                           ))}
                         </div>
+                        {propio && (
+                          <>
+                            <input
+                              value={escalaPropia}
+                              onChange={(evento) => setEscalasPropias((actual) => ({ ...actual, [producto.nombre]: evento.target.value.slice(0, 12) }))}
+                              placeholder="Escala, ej. 1:300"
+                              className={`mt-1.5 h-8 w-full rounded-lg border bg-[var(--kint-input-bg)] px-2 text-xs font-bold outline-none focus:border-[var(--blue-main)] ${
+                                numeroEscala(escalaPropia) ? "border-[var(--border-color)]" : "border-dashed border-red-500/70"
+                              }`}
+                            />
+                            <p className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">
+                              Te pasamos el precio después: lo vemos, lo escalamos y se suma a tu pedido.
+                            </p>
+                          </>
+                        )}
                       </>
                     )}
                     {conColor && (
@@ -187,7 +213,7 @@ export default function SumarProductosCotizar({
                           className="flex h-8 w-full items-center justify-center gap-1 rounded-lg bg-red-600 text-[11px] font-black uppercase tracking-[0.1em] text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           <Plus size={13} />
-                          {faltaCadena ? (conColor ? (listaTamanos.length && !tamano ? "Elegí tamaño" : "Elegí color") : "Elegí cadena") : "Sumar"}
+                          {faltaCadena ? (conColor ? (listaTamanos.length && !tamanoFinal ? (propio ? "Escribí la escala" : "Elegí tamaño") : "Elegí color") : "Elegí cadena") : "Sumar"}
                         </button>
                       )}
                     </div>
