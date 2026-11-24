@@ -2469,10 +2469,13 @@ return (
     <li>
       <strong>💲 Tiene un costo extra</strong> que se suma al presupuesto.
     </li>
-    <li>
-      <strong>📁 Poné también el modelo armado</strong> (entero, como tiene que quedar) en el mismo archivo, al costado
-      de las piezas, para saber cómo va cada una. Si no está, lo tomamos como que no querés el servicio.
-    </li>
+    {/* Solo si pide el armado: sin armado, el modelo entero no hace falta y confunde. */}
+    {/^s[ií]/i.test(armado) && (
+      <li>
+        <strong>📁 Poné también el modelo armado</strong> (entero, como tiene que quedar) en el mismo archivo, al costado
+        de las piezas, para saber cómo va cada una. Si no está, lo tomamos como que no querés el servicio.
+      </li>
+    )}
     <li>
       <strong>📅 No está disponible en días de entregas</strong> ni en los días cercanos. Tenelo en cuenta al elegir la fecha.
     </li>
