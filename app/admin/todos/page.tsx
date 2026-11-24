@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import ColaImpresion from "@/components/admin/ColaImpresion";
+import PedidosCancelados from "@/components/admin/PedidosCancelados";
 import type { PedidoGeneral } from "@/lib/admin-tipos";
 import {
   Boton,
@@ -272,6 +273,7 @@ export default function TodosLosPedidos() {
         </ul>
       )}
 
+      <PedidosCancelados />
       </div>
       <aside className="hidden lg:sticky lg:top-6 lg:block">
         <ColaImpresion />

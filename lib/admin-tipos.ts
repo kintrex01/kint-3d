@@ -592,6 +592,10 @@ export type AccionesAdmin = {
     pedido: { id: number; visible: boolean };
     respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
   };
+  admin_cancelaciones_listar: {
+    pedido: SinDatos;
+    respuesta: { cancelaciones: PedidoCancelado[] };
+  };
   admin_cupones_listar: {
     pedido: SinDatos;
     respuesta: { cupones: CuponDescuento[] };
@@ -916,6 +920,7 @@ export const ACCIONES_ADMIN = [
   "admin_galeria_fotos_restablecer",
   "admin_galeria_fotos_disponibles",
   "admin_cupones_listar",
+  "admin_cancelaciones_listar",
   "admin_cupon_crear",
   "admin_cupon_borrar",
   "admin_dia_guardar",
@@ -951,3 +956,16 @@ export const ACCIONES_ADMIN = [
   "admin_correos_diagnostico",
   "admin_recordatorio_resenas_activar",
 ] as const satisfies readonly TipoAccionAdmin[];
+
+/* Un pedido que el cliente canceló desde el seguimiento (hoja «Cancelaciones»). */
+export type PedidoCancelado = {
+  fecha: string; // ISO
+  pedido: string;
+  nombre: string;
+  email: string;
+  estado: string; // en qué estado estaba al cancelar
+  motivo: string;
+  comentario: string;
+  urgente: boolean;
+  codigo: string; // código de descuento que usaba
+};
