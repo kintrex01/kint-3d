@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, numeroEscala, pideColor, tamanoDeEscala } from "@/lib/extras-color";
+import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -244,7 +244,8 @@ export default function ExtrasPresupuesto({
             // «Personalizado»: escribe la escala; va sin precio (se cotiza después).
             const propio = Boolean(tamano) && esTamanoPersonalizado(tamano);
             const escalaPropia = escalasPropias[producto.nombre] ?? "";
-            const tamanoFinal = propio ? (numeroEscala(escalaPropia) ? `${tamano} 1:${numeroEscala(escalaPropia)}` : "") : tamano;
+            // Solo el número (el «1:» va fijo adelante).
+            const tamanoFinal = propio ? (Number(escalaPropia) > 0 ? `${tamano} 1:${Number(escalaPropia)}` : "") : tamano;
             const seleccion = opciones.length
               ? cadenas[producto.nombre] || ""
               : "";
@@ -323,14 +324,23 @@ export default function ExtrasPresupuesto({
                       </div>
                       {propio && (
                         <>
-                          <input
-                            value={escalaPropia}
-                            onChange={(evento) => setEscalasPropias((actual) => ({ ...actual, [producto.nombre]: evento.target.value.slice(0, 12) }))}
-                            placeholder="Escala, ej. 1:300"
-                            className={`mt-2 h-9 w-full rounded-lg border bg-[var(--kint-input-bg)] px-2.5 text-sm font-bold outline-none focus:border-[var(--blue-main)] ${
-                              numeroEscala(escalaPropia) ? "border-[var(--border-color)]" : "border-dashed border-red-500/70"
+                          <span
+                            className={`mt-2 flex h-9 w-full items-center rounded-lg border bg-[var(--kint-input-bg)] px-2.5 text-sm font-bold focus-within:border-[var(--blue-main)] ${
+                              Number(escalaPropia) > 0 ? "border-[var(--border-color)]" : "border-dashed border-red-500/70"
                             }`}
-                          />
+                          >
+                            <span className="text-[var(--text-muted)]">1:</span>
+                            <input
+                              value={escalaPropia}
+                              onChange={(evento) =>
+                                setEscalasPropias((actual) => ({ ...actual, [producto.nombre]: evento.target.value.replace(/\D/g, "").slice(0, 5) }))
+                              }
+                              inputMode="numeric"
+                              placeholder="300"
+                              aria-label="Escala"
+                              className="h-full w-full min-w-0 bg-transparent pl-0.5 outline-none"
+                            />
+                          </span>
                           <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
                             Te pasamos el precio después: lo vemos, lo escalamos y se suma a tu pedido.
                           </p>

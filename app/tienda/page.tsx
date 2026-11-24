@@ -1042,7 +1042,9 @@ function TarjetaProducto({
   const cadenaElegida = producto.cadenas.includes(cadena) ? cadena : "";
   const faltaCadena = producto.cadenas.length > 0 && !cadenaElegida;
   // Con variantes o combo a elección, se elige en la ficha.
-  const conVariantes = producto.variantes.length > 0 || producto.combo?.tipo === "elegir";
+  // Los monos también: el color es obligatorio y se elige en la ficha.
+  const conVariantes =
+    producto.variantes.length > 0 || producto.combo?.tipo === "elegir" || (pideColor(producto.nombre) && producto.colores.length > 0);
 
   const indice = Math.min(indiceFoto, Math.max(0, fotos.length - 1));
   const fotoActual = fotos[indice];
@@ -1278,7 +1280,13 @@ function TarjetaProducto({
                 Agregado
               </>
             ) : conVariantes ? (
-              producto.combo?.tipo === "elegir" ? `Elegí tus ${producto.combo.cantidad}` : pideColor(producto.nombre) ? "Elegir tamaño" : "Elegir variante"
+              producto.combo?.tipo === "elegir"
+                ? `Elegí tus ${producto.combo.cantidad}`
+                : pideColor(producto.nombre)
+                ? producto.variantes.length
+                  ? "Elegir tamaño y color"
+                  : "Elegir color"
+                : "Elegir variante"
             ) : faltaCadena ? (
               "Elegí la cadena"
             ) : (
@@ -1862,10 +1870,13 @@ function FichaProducto({
 
   const hayColores = producto.colores.length > 0;
   const { minColores, maxColores, coloresDefecto } = producto;
-  const coloresElegidos = hayColores && elegirColores ? colores : [];
+  // Monos: el color se elige sí o sí (no hay «a elección del taller»).
+  const colorObligatorio = hayColores && pideColor(producto.nombre);
+  const eligiendoColores = elegirColores || colorObligatorio;
+  const coloresElegidos = hayColores && eligiendoColores ? colores : [];
 
   const faltanColores =
-    hayColores && elegirColores && colores.length < minColores;
+    hayColores && eligiendoColores && colores.length < Math.max(minColores, colorObligatorio ? 1 : 0);
 
   const textoLimiteColores =
     minColores === maxColores
@@ -1877,11 +1888,11 @@ function FichaProducto({
   // En los monos las variantes son los tamaños (escalas).
   const sonTamanos = pideColor(producto.nombre);
   const tamanoPropio = Boolean(varianteElegida) && esTamanoPersonalizado(varianteElegida);
-  const faltaEscalaPropia = tamanoPropio && !escalaPropia.trim();
+  const faltaEscalaPropia = tamanoPropio && !(Number(escalaPropia) > 0);
   const faltaCombo = producto.combo?.tipo === "elegir" && comboElegidos.length !== producto.combo.cantidad;
 
   // Por mayor: mismo producto, variante y colores (la cadena puede variar).
-  const coloresEfectivos = elegirColores && colores.length ? colores : coloresDefecto;
+  const coloresEfectivos = eligiendoColores && colores.length ? colores : coloresDefecto;
   const unidadesProducto =
     enCarritoConColores(coloresEfectivos, varianteElegida) + cantidad;
   const precioAplicado = precioUnitario(
@@ -1904,7 +1915,9 @@ function FichaProducto({
     : faltaCadena
     ? `Elegí la cadena (${producto.cadenas.join(" o ")}).`
     : faltanColores
-    ? `${textoLimiteColores} O dejá los colores de la foto.`
+    ? colorObligatorio
+      ? "Elegí el color."
+      : `${textoLimiteColores} O dejá los colores de la foto.`
     : "";
 
   function tocarColor(color: string) {
@@ -1947,7 +1960,7 @@ function FichaProducto({
         producto.combo?.tipo === "elegir"
           ? comentarioCombo(comboElegidos, comentario)
           : tamanoPropio
-          ? [`Escala ${escalaPropia.trim()}`, comentario.trim()].filter(Boolean).join(" · ")
+          ? [`Escala 1:${escalaPropia}`, comentario.trim()].filter(Boolean).join(" · ")
           : comentario.trim(),
       cantidad,
     });
@@ -2204,17 +2217,24 @@ function FichaProducto({
                     <span className="mb-1 block text-xs font-bold text-[var(--text-main)]">
                       ¿Qué escala necesitás? <span className="text-red-600">*</span>
                     </span>
-                    <input
-                      value={escalaPropia}
-                      onChange={(evento) => {
-                        setError("");
-                        setEscalaPropia(evento.target.value.slice(0, 20));
-                      }}
-                      placeholder="Ej. 1:33"
-                      className={`h-11 w-full max-w-[12rem] rounded-xl border-2 bg-[var(--kint-input-bg)] px-3 text-sm font-bold outline-none transition focus:border-[var(--blue-main)] ${
+                    {/* El «1:» va fijo: solo escribe el número (ej. 300). */}
+                    <span
+                      className={`flex h-11 w-full max-w-[12rem] items-center rounded-xl border-2 bg-[var(--kint-input-bg)] px-3 text-sm font-bold transition focus-within:border-[var(--blue-main)] ${
                         faltaEscalaPropia ? "border-dashed border-red-500/70" : "border-[var(--kint-panel-border)]"
                       }`}
-                    />
+                    >
+                      <span className="text-[var(--text-muted)]">1:</span>
+                      <input
+                        value={escalaPropia}
+                        onChange={(evento) => {
+                          setError("");
+                          setEscalaPropia(evento.target.value.replace(/\D/g, "").slice(0, 5));
+                        }}
+                        inputMode="numeric"
+                        placeholder="300"
+                        className="h-full w-full min-w-0 bg-transparent pl-0.5 outline-none"
+                      />
+                    </span>
                   </label>
                 )}
               </fieldset>
@@ -2273,7 +2293,7 @@ function FichaProducto({
                   Colores
                 </p>
 
-                {!elegirColores ? (
+                {!eligiendoColores ? (
                   <div className="flex items-center gap-3">
                     {coloresDefecto.length > 0 ? (
                       <>
@@ -2312,13 +2332,15 @@ function FichaProducto({
                           ? `Elegiste: ${colores.join(" + ")}`
                           : textoLimiteColores}
                       </p>
-                      <button
-                        type="button"
-                        onClick={alternarColores}
-                        className="shrink-0 text-xs font-bold text-[var(--blue-main)] underline-offset-4 hover:underline"
-                      >
-                        {coloresDefecto.length ? "Usar los de la foto" : "Cancelar"}
-                      </button>
+                      {!colorObligatorio && (
+                        <button
+                          type="button"
+                          onClick={alternarColores}
+                          className="shrink-0 text-xs font-bold text-[var(--blue-main)] underline-offset-4 hover:underline"
+                        >
+                          {coloresDefecto.length ? "Usar los de la foto" : "Cancelar"}
+                        </button>
+                      )}
                     </div>
 
                     <div
