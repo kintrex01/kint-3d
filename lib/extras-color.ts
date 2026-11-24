@@ -81,3 +81,34 @@ export function monoParaEscala(productos: { nombre: string; variantes?: string[]
   }
   return mejor && { nombre: mejor.nombre, tamano: mejor.tamano, propia: mejor.propia };
 }
+
+/*
+ * Precio de 30 monos a una escala que no está cargada (ej. 1:300): sigue la línea de
+ * los monos que hay (1:100 $120, 1:150 $110… → cada 50 de escala, $10). Mínimo $10.
+ * Igual que kintMonosPrecioEscala_ en Apps Script (lo que se cobra lo calcula el servidor).
+ */
+export function precioMonosEscala(productos: { nombre: string; precio: number; variantes?: string[] }[], escala: number) {
+  const vistos = new Set<number>();
+  const puntos = productos
+    .filter((p) => pideColor(p.nombre) && p.precio > 0 && !(p.variantes ?? []).length)
+    .map((p) => ({ e: numeroEscala(p.nombre), p: p.precio }))
+    .filter((punto) => punto.e > 0 && !vistos.has(punto.e) && Boolean(vistos.add(punto.e)))
+    .sort((a, b) => a.e - b.e);
+  if (!escala || !puntos.length) return 0;
+  if (puntos.length === 1) return puntos[0].p;
+  let a = puntos[0];
+  let b = puntos[1];
+  if (escala >= puntos[puntos.length - 1].e) {
+    a = puntos[puntos.length - 2];
+    b = puntos[puntos.length - 1];
+  } else if (escala > puntos[0].e) {
+    for (let i = 0; i < puntos.length - 1; i++) {
+      if (escala >= puntos[i].e && escala <= puntos[i + 1].e) {
+        a = puntos[i];
+        b = puntos[i + 1];
+        break;
+      }
+    }
+  }
+  return Math.max(10, Math.round(a.p + ((escala - a.e) * (b.p - a.p)) / (b.e - a.e)));
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { esTamanoPersonalizado, monoParaEscala, monosPrimero, numeroEscala, pideColor, tamanoDeEscala } from "@/lib/extras-color";
+import { esTamanoPersonalizado, monoParaEscala, monosPrimero, numeroEscala, pideColor, precioMonosEscala, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * Cotizar: "¿Le sumás algo?" — productos de la tienda que se imprimen
@@ -96,6 +96,7 @@ export default function SumarProductosCotizar({
               const propio = Boolean(tamano) && esTamanoPersonalizado(tamano);
               // Solo el número (el «1:» va fijo adelante).
               const escalaPropia = escalasPropias[producto.nombre] ?? (sugerido?.propia ? String(numeroEscala(sugerido.propia)) : "");
+              const precioPropio = propio ? precioMonosEscala(productos, Number(escalaPropia)) : 0;
               const tamanoFinal = propio ? (Number(escalaPropia) > 0 ? `${tamano} 1:${Number(escalaPropia)}` : "") : tamano;
               const seleccion = opciones.length ? cadenas[producto.nombre] || "" : "";
               const cadena = listaTamanos.length ? (tamanoFinal && seleccion ? `${tamanoFinal} · ${seleccion}` : "") : seleccion;
@@ -131,7 +132,7 @@ export default function SumarProductosCotizar({
                   </div>
                   <div className="flex flex-1 flex-col p-2.5">
                     <p className="truncate text-sm font-bold text-[var(--text-main)]">{producto.nombre}</p>
-                    <p className="text-sm font-black text-red-600">{propio ? "A cotizar" : pesos(producto.precio)}</p>
+                    <p className="text-sm font-black text-red-600">{propio ? (precioPropio ? pesos(precioPropio) : "Escribí la escala") : pesos(producto.precio)}</p>
                     {listaTamanos.length > 0 && (
                       <>
                         <p className={`mt-1 text-[10px] font-black uppercase tracking-wider ${tamano ? "text-[var(--text-muted)]" : "text-red-600"}`}>
@@ -174,7 +175,7 @@ export default function SumarProductosCotizar({
                               />
                             </span>
                             <p className="mt-1 text-[10px] leading-4 text-[var(--text-muted)]">
-                              Te pasamos el precio después: lo vemos, lo escalamos y se suma a tu pedido.
+                              30 monos a la escala que escribas; el precio se calcula solo según la escala.
                             </p>
                           </>
                         )}
@@ -210,7 +211,7 @@ export default function SumarProductosCotizar({
                           <button type="button" onClick={() => cambiar(producto.nombre, cadena, cantidad - 1)} aria-label="Uno menos" className="flex h-8 w-8 items-center justify-center">
                             <Minus size={14} />
                           </button>
-                          <span className="text-sm font-black">{cantidad}</span>
+                          <span className="text-sm font-black">{conColor ? `${cantidad * 30} monos` : cantidad}</span>
                           <button type="button" onClick={() => cambiar(producto.nombre, cadena, cantidad + 1)} aria-label="Uno más" disabled={cantidad >= 10} className="flex h-8 w-8 items-center justify-center disabled:opacity-40">
                             <Plus size={14} />
                           </button>

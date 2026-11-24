@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, tamanoDeEscala } from "@/lib/extras-color";
+import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, precioMonosEscala, tamanoDeEscala } from "@/lib/extras-color";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -245,6 +245,7 @@ export default function ExtrasPresupuesto({
             const propio = Boolean(tamano) && esTamanoPersonalizado(tamano);
             const escalaPropia = escalasPropias[producto.nombre] ?? "";
             // Solo el número (el «1:» va fijo adelante).
+            const precioPropio = propio ? precioMonosEscala(datos.productos, Number(escalaPropia)) : 0;
             const tamanoFinal = propio ? (Number(escalaPropia) > 0 ? `${tamano} 1:${Number(escalaPropia)}` : "") : tamano;
             const seleccion = opciones.length
               ? cadenas[producto.nombre] || ""
@@ -296,7 +297,7 @@ export default function ExtrasPresupuesto({
                       </span>
                     )}
                     <span className="font-black text-red-600">
-                      {propio ? "A cotizar" : pesos(producto.precioOferta)}
+                      {propio ? (precioPropio ? pesos(precioPropio) : "Escribí la escala") : pesos(producto.precioOferta)}
                     </span>
                   </p>
 
@@ -342,7 +343,7 @@ export default function ExtrasPresupuesto({
                             />
                           </span>
                           <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)]">
-                            Te pasamos el precio después: lo vemos, lo escalamos y se suma a tu pedido.
+                            30 monos a la escala que escribas; el precio se calcula solo según la escala.
                           </p>
                         </>
                       )}
@@ -387,11 +388,11 @@ export default function ExtrasPresupuesto({
                         >
                           <Minus size={14} />
                         </button>
-                        <span className="w-6 text-center text-sm font-black">
+                        <span className={`text-center text-sm font-black ${conColor ? "min-w-[4.5rem] px-1" : "w-6"}`}>
                           {guardando === clave ? (
                             <LoaderCircle size={14} className="mx-auto animate-spin" />
                           ) : (
-                            cantidad
+                            conColor ? `${cantidad * 30} monos` : cantidad
                           )}
                         </span>
                         <button

@@ -42,7 +42,7 @@ import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
 import { fotoFilamento } from "@/lib/colores-filamento";
-import { esTamanoPersonalizado, pideColor } from "@/lib/extras-color";
+import { esTamanoPersonalizado, numeroEscala, pideColor, precioMonosEscala } from "@/lib/extras-color";
 import { correoRecordado, recordarCorreo } from "@/lib/correo-recordado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import {
@@ -1895,7 +1895,9 @@ function FichaProducto({
   const coloresEfectivos = eligiendoColores && colores.length ? colores : coloresDefecto;
   const unidadesProducto =
     enCarritoConColores(coloresEfectivos, varianteElegida) + cantidad;
-  const precioAplicado = precioUnitario(
+  // Monos de otra escala (ej. 1:300): el precio sale de la línea de los monos cargados.
+  const precioMonos = tamanoPropio ? precioMonosEscala(catalogo.productos, Number(escalaPropia)) : 0;
+  const precioAplicado = precioMonos || precioUnitario(
     producto,
     unidadesProducto,
     catalogo
@@ -3310,12 +3312,18 @@ export default function TiendaPage() {
             const producto = productosPorNombre.get(linea.producto);
             if (!producto) return [];
 
-            const precio =
+            let precio =
               precioUnitario(
                 producto,
                 unidadesPorGrupo.get(grupoMayor(linea.producto, linea.colores, linea.variante)) || 0,
                 catalogo
               ) + recargoPersonalizacion(linea.comentario || "");
+            // Monos de otra escala: el mismo cálculo que hace el servidor al cobrar.
+            const precioMonos =
+              pideColor(linea.producto) && esTamanoPersonalizado(linea.variante || "")
+                ? precioMonosEscala(catalogo.productos, numeroEscala(linea.comentario || ""))
+                : 0;
+            if (precioMonos) precio = precioMonos;
 
             return [
               {
