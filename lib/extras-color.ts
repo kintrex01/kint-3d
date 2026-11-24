@@ -60,12 +60,20 @@ export function monoParaEscala(productos: { nombre: string; variantes?: string[]
   const n = numeroEscala(escala);
   if (!n) return null;
   let mejor: { nombre: string; tamano: string; propia: string; distancia: number } | null = null;
+  // Si la escala es más grande que todas las que hay (ej. 1:50), «Más grande»; si no, «Más chica».
+  const conocidas = productos
+    .flatMap((producto) => [producto.nombre, ...(producto.variantes ?? [])])
+    .map(numeroEscala)
+    .filter(Boolean);
+  const masGrande = conocidas.length > 0 && n < Math.min(...conocidas);
   for (const producto of productos) {
     const variantes = producto.variantes ?? [];
     const exacta = variantes.find((opcion) => !esTamanoPersonalizado(opcion) && numeroEscala(opcion) === n);
     if (exacta) return { nombre: producto.nombre, tamano: exacta, propia: "" };
     if (!variantes.length && numeroEscala(producto.nombre) === n) return { nombre: producto.nombre, tamano: "", propia: "" };
-    const personalizado = variantes.find(esTamanoPersonalizado);
+    const propias = variantes.filter(esTamanoPersonalizado);
+    const personalizado =
+      propias.find((opcion) => (masGrande ? /grande|mayor/i : /chic|menor/i).test(opcion)) ?? propias[0];
     if (!personalizado) continue;
     const numeros = variantes.map(numeroEscala).filter(Boolean);
     const distancia = numeros.length ? Math.max(0, Math.min(...numeros) - n, n - Math.max(...numeros)) : 0;
