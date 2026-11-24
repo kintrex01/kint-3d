@@ -1,5 +1,6 @@
 "use client";
 import { extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import { coloresConTonoDesdeConfig, preciosMonosDesdeConfig } from "@/lib/extras-color";
 
 import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
@@ -3049,7 +3050,7 @@ return (
 </div>
 
 {/* Productos de la tienda: chico y al final, antes de enviar. */}
-<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} colores={coloresDisponibles.map((item) => item.etiqueta)} escala={escala === "Otra escala" ? escalaPersonalizada : escala} />
+<SumarProductosCotizar elegidos={extras} onCambiar={setExtras} colores={coloresDisponibles.map((item) => item.etiqueta)} escala={escala === "Otra escala" ? escalaPersonalizada : escala} coloresTono={coloresConTonoDesdeConfig(configuracion)} preciosMonos={preciosMonosDesdeConfig(configuracion)} />
 
 <div
   className={`mb-5 rounded-2xl border p-5 ${

@@ -3,7 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, Minus, Plus, ShoppingBag } from "lucide-react";
-import { esTamanoPersonalizado, monoParaEscala, monosPrimero, numeroEscala, pideColor, precioMonosEscala, tamanoDeEscala } from "@/lib/extras-color";
+import {
+  esMonosAMedida,
+  esTamanoPersonalizado,
+  MONOS_MAXIMO,
+  monoParaEscala,
+  monosPrimero,
+  numeroEscala,
+  pideColor,
+  PRECIOS_MONOS_DEFECTO,
+  precioMonosEscala,
+  tamanoDeEscala,
+  type ColorMonos,
+  type PreciosMonos,
+} from "@/lib/extras-color";
+import ElegirMonos from "@/components/ElegirMonos";
 
 /*
  * Cotizar: "¿Le sumás algo?" — productos de la tienda que se imprimen
@@ -31,11 +45,15 @@ export default function SumarProductosCotizar({
   onCambiar,
   colores = [],
   escala = "",
+  coloresTono = [],
+  preciosMonos = PRECIOS_MONOS_DEFECTO,
 }: {
   elegidos: ExtraElegido[];
   onCambiar: (extras: ExtraElegido[]) => void;
   colores?: string[]; // los colores de filamento que se pueden elegir (para los monos)
   escala?: string; // la escala de la maqueta: el tamaño de los monos arranca elegido en esa
+  coloresTono?: ColorMonos[]; // los mismos colores, con su tono y foto (botones pintados)
+  preciosMonos?: PreciosMonos; // Configuración › Tienda › Monos precio…
 }) {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [abierto, setAbierto] = useState(false);
@@ -242,9 +260,31 @@ export default function SumarProductosCotizar({
         <p className="mt-1 text-sm text-[var(--text-muted)]">
           Las personas le dan escala y vida al proyecto. Elegí la escala y el color: los imprimimos con tu maqueta y te llegan juntos.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {monos.map((producto) => tarjeta(producto, producto.nombre === monoDeTuEscala))}
+        {/* Monos a medida: escala, color y cantidad, con el precio al momento */}
+        <div className="mt-3 space-y-3">
+          {monos.filter((producto) => esMonosAMedida(producto.nombre)).map((producto) => (
+            <ElegirMonos
+              key={producto.nombre}
+              nombre={producto.nombre}
+              foto={producto.foto}
+              colores={coloresTono}
+              precios={preciosMonos}
+              escalaInicial={escala}
+              elegidos={elegidos.filter((extra) => extra.producto === producto.nombre)}
+              onSumar={(cadena, cantidad) => {
+                const antes = elegidos.find((extra) => extra.producto === producto.nombre && extra.cadena === cadena)?.cantidad ?? 0;
+                const resto = elegidos.filter((extra) => !(extra.producto === producto.nombre && extra.cadena === cadena));
+                onCambiar([...resto, { producto: producto.nombre, cadena, cantidad: Math.min(MONOS_MAXIMO, antes + cantidad) }]);
+              }}
+              onQuitar={(cadena) => onCambiar(elegidos.filter((extra) => !(extra.producto === producto.nombre && extra.cadena === cadena)))}
+            />
+          ))}
         </div>
+        {monos.some((producto) => !esMonosAMedida(producto.nombre)) && (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {monos.filter((producto) => !esMonosAMedida(producto.nombre)).map((producto) => tarjeta(producto, producto.nombre === monoDeTuEscala))}
+          </div>
+        )}
       </div>
     )}
 

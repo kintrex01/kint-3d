@@ -3,7 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check, KeyRound, LoaderCircle, Minus, Plus, ShoppingBag, X } from "lucide-react";
-import { coloresVisiblesDesdeConfig, esTamanoPersonalizado, monosPrimero, pideColor, precioMonosEscala, tamanoDeEscala } from "@/lib/extras-color";
+import {
+  coloresConTonoDesdeConfig,
+  coloresVisiblesDesdeConfig,
+  esMonosAMedida,
+  esTamanoPersonalizado,
+  MONOS_MAXIMO,
+  monosPrimero,
+  pideColor,
+  PRECIOS_MONOS_DEFECTO,
+  precioMonosEscala,
+  preciosMonosDesdeConfig,
+  tamanoDeEscala,
+  type ColorMonos,
+  type PreciosMonos,
+} from "@/lib/extras-color";
+import ElegirMonos from "@/components/ElegirMonos";
 
 /*
  * "¿Sumás un llavero?": productos de la tienda a precio de oferta para
@@ -81,13 +96,19 @@ export default function ExtrasPresupuesto({
   const [verTodos, setVerTodos] = useState(false);
   // Colores que se pueden elegir para los monos (con el nombre que ve la gente).
   const [colores, setColores] = useState<string[]>([]);
+  // Para los monos a medida: los colores con su tono y los precios de Configuración.
+  const [coloresTono, setColoresTono] = useState<ColorMonos[]>([]);
+  const [preciosMonos, setPreciosMonos] = useState<PreciosMonos>(PRECIOS_MONOS_DEFECTO);
 
   useEffect(() => {
     let activo = true;
     fetch("/api/configuracion")
       .then((respuesta) => respuesta.json())
       .then((data) => {
-        if (activo && data?.configuracion) setColores(coloresVisiblesDesdeConfig(data.configuracion));
+        if (!activo || !data?.configuracion) return;
+        setColores(coloresVisiblesDesdeConfig(data.configuracion));
+        setColoresTono(coloresConTonoDesdeConfig(data.configuracion));
+        setPreciosMonos(preciosMonosDesdeConfig(data.configuracion));
       })
       .catch(() => undefined);
     return () => {
@@ -189,11 +210,15 @@ export default function ExtrasPresupuesto({
                 <Check size={16} className="shrink-0 text-emerald-600" />
                 <span className="min-w-0 flex-1">
                   <strong>
-                    {extra.cantidad} × {extra.producto}
+                    {esMonosAMedida(extra.producto) ? `${extra.cantidad} monos` : `${extra.cantidad} × ${extra.producto}`}
                   </strong>
                   {extra.cadena && (
                     <span className="block text-xs text-[var(--text-muted)]">
-                      {pideColor(extra.producto) ? `Color ${extra.cadena}` : `Cadena ${extra.cadena}`}
+                      {esMonosAMedida(extra.producto)
+                        ? `Escala ${extra.cadena}`
+                        : pideColor(extra.producto)
+                          ? `Color ${extra.cadena}`
+                          : `Cadena ${extra.cadena}`}
                       {extra.colores && extra.colores !== extra.cadena ? ` · ${extra.colores}` : ""}
                     </span>
                   )}
@@ -227,12 +252,30 @@ export default function ExtrasPresupuesto({
           <div className="mt-5 rounded-2xl border-2 border-red-600/40 bg-gradient-to-br from-red-600/[0.08] to-transparent px-4 py-3">
             <p className="text-base font-black leading-tight">¿Querés agregarle monos a tu maqueta?</p>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              Las personas le dan escala y vida al proyecto. Elegí la escala y el color: van con tu maqueta.
+              Las personas le dan escala y vida al proyecto. Elegí la escala, el color y cuántos: van con tu maqueta.
             </p>
+            {/* Monos a medida: escala, color y cantidad, con el precio al momento */}
+            <div className="mt-3 space-y-3">
+              {monosOferta.filter((producto) => esMonosAMedida(producto.nombre)).map((producto) => (
+                <ElegirMonos
+                  key={producto.nombre}
+                  nombre={producto.nombre}
+                  foto={producto.foto}
+                  colores={coloresTono}
+                  precios={preciosMonos}
+                  ocupado={Boolean(guardando)}
+                  textoBoton="Agregar"
+                  onSumar={(cadena, cantidad) => {
+                    const antes = actuales.find((extra) => extra.producto === producto.nombre && extra.cadena === cadena)?.cantidad ?? 0;
+                    cambiarCantidad(producto.nombre, cadena, Math.min(MONOS_MAXIMO, antes + cantidad));
+                  }}
+                />
+              ))}
+            </div>
           </div>
         )}
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {[...monosOferta, ...(verTodos ? otrosOferta : otrosOferta.slice(0, 2))].map((producto) => {
+          {[...monosOferta.filter((producto) => !esMonosAMedida(producto.nombre)), ...(verTodos ? otrosOferta : otrosOferta.slice(0, 2))].map((producto) => {
             // Los monos piden color (obligatorio); los llaveros, cadena.
             const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
             const opciones = conColor ? colores : producto.cadenas;

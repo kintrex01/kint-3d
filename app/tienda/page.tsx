@@ -41,8 +41,20 @@ import {
 import dynamic from "next/dynamic";
 import FondoKintAnimado from "@/components/FondoKintAnimado";
 import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPersonalizacion, textoVisible } from "@/lib/llavero/personalizacion";
-import { fotoFilamento } from "@/lib/colores-filamento";
-import { esTamanoPersonalizado, numeroEscala, pideColor, precioMonosEscala } from "@/lib/extras-color";
+import { colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
+import {
+  esMonosAMedida,
+  esTamanoPersonalizado,
+  numeroEscala,
+  pideColor,
+  precioMono,
+  precioMonos30,
+  precioMonosEscala,
+  preciosMonosDesdeConfig,
+  totalMonos,
+  type PreciosMonos,
+} from "@/lib/extras-color";
+import ElegirMonos from "@/components/ElegirMonos";
 import { correoRecordado, recordarCorreo } from "@/lib/correo-recordado";
 import CalendarioEntrega from "@/components/CalendarioEntrega";
 import {
@@ -113,6 +125,8 @@ type Catalogo = {
   // Desplegable "Colores" de la hoja Tienda: para productos sin colores propios.
   coloresGlobales: string[];
   productos: Producto[];
+  // Monos a medida: precio de 30 a 1:100, cuánto baja cada 50 y el mínimo (Configuración › Tienda).
+  monosPrecios: PreciosMonos;
 };
 
 type LineaCarrito = {
@@ -605,6 +619,11 @@ function normalizarCatalogo(data: any): Catalogo {
     granMayorDesde: Number(data.granMayorDesde) || 0,
     // 0 si Apps Script todavía no lo informa: así el total coincide con el suyo.
     recargoFinde: Math.max(0, Number(data.recargoFinde) || 0),
+    monosPrecios: preciosMonosDesdeConfig({
+      monos_precio: { valor: data.monosPrecios?.base },
+      monos_baja_cada_50: { valor: data.monosPrecios?.paso },
+      monos_precio_minimo: { valor: data.monosPrecios?.minimo },
+    }),
     coloresGlobales,
     productos: Array.isArray(data.productos)
       ? (data.productos as Producto[]).map((producto) => {
@@ -1897,6 +1916,8 @@ function FichaProducto({
     enCarritoConColores(coloresEfectivos, varianteElegida) + cantidad;
   // Monos de otra escala (ej. 1:300): el precio sale de la línea de los monos cargados.
   const precioMonos = tamanoPropio ? precioMonosEscala(catalogo.productos, Number(escalaPropia)) : 0;
+  // Monos a medida: escala, color y cuántos se eligen en <ElegirMonos> (sin la barra de abajo).
+  const aMedida = esMonosAMedida(producto.nombre);
   const precioAplicado = precioMonos || precioUnitario(
     producto,
     unidadesProducto,
@@ -2126,6 +2147,12 @@ function FichaProducto({
               {producto.nombre}
             </h2>
 
+            {aMedida ? (
+              <p className="mt-2 text-sm font-bold text-[var(--text-muted)]">
+                30 monos a 1:100: <span className="text-lg font-black text-red-600 dark:text-red-500">{pesos(precioMonos30(catalogo.monosPrecios, 100))}</span>
+                <span className="block text-xs font-semibold">El precio cambia según la escala y cuántos lleves.</span>
+              </p>
+            ) : (
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3">
               <p className="text-2xl font-black text-red-600 dark:text-red-500">
                 {pesos(precioAplicado)}
@@ -2139,11 +2166,36 @@ function FichaProducto({
                 </p>
               )}
             </div>
+            )}
 
             {producto.descripcion && (
               <p className="mt-3 whitespace-pre-line rounded-xl bg-[var(--kint-panel-soft)] px-3.5 py-2.5 text-sm leading-6 text-[var(--text-main)]">
                 {producto.descripcion}
               </p>
+            )}
+
+            {aMedida && (
+              <div className="mt-5">
+                <ElegirMonos
+                  nombre={producto.nombre}
+                  colores={producto.colores.map((nombre) => ({ nombre, tono: colorFilamento(nombre), foto: fotoFilamento(nombre)?.mini || "" }))}
+                  precios={catalogo.monosPrecios}
+                  textoBoton="Agregar"
+                  onSumar={(cadenaMonos, cantidadMonos) => {
+                    const [escalaMonos, ...resto] = cadenaMonos.split(" · ");
+                    const mensaje = onAgregar({
+                      variante: "",
+                      cadena: "",
+                      colores: [resto.join(" · ")],
+                      comentario: `Escala ${escalaMonos}`,
+                      cantidad: cantidadMonos,
+                    });
+                    if (mensaje) setError(mensaje);
+                    else onCerrar();
+                  }}
+                />
+                {error && <p role="alert" className="mt-2 text-xs font-semibold text-red-700 dark:text-red-400">{error}</p>}
+              </div>
             )}
 
             {producto.combo && (
@@ -2289,7 +2341,7 @@ function FichaProducto({
               </fieldset>
             )}
 
-            {hayColores && (
+            {hayColores && !aMedida && (
               <div className="mt-6">
                 <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
                   Colores
@@ -2434,7 +2486,7 @@ function FichaProducto({
               </div>
             )}
 
-            {verComentario || comentario ? (
+            {aMedida ? null : verComentario || comentario ? (
               <label className="mt-6 block">
                 <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.2em] text-[var(--kint-info)]">
                   Comentario
@@ -2470,6 +2522,7 @@ function FichaProducto({
           </div>
         </div>
 
+        {!aMedida && (
         <div
           className="border-t border-[var(--kint-panel-border)] bg-[var(--kint-panel)] px-5 pt-4 sm:px-7"
           style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
@@ -2525,6 +2578,7 @@ function FichaProducto({
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {visor && fotos.length > 0 && (
@@ -3324,14 +3378,20 @@ export default function TiendaPage() {
                 ? precioMonosEscala(catalogo.productos, numeroEscala(linea.comentario || ""))
                 : 0;
             if (precioMonos) precio = precioMonos;
+            // Monos a medida: precio por mono según la escala (la cantidad son monos).
+            if (esMonosAMedida(linea.producto)) {
+              precio = precioMono(catalogo.monosPrecios, numeroEscala(linea.comentario || "") || 100);
+            }
 
             return [
               {
                 ...linea,
                 precio,
-                precioLista: producto.precio,
-                mayorista: precio < producto.precio,
-                subtotal: redondear(precio * linea.cantidad),
+                precioLista: esMonosAMedida(linea.producto) ? precio : producto.precio,
+                mayorista: !esMonosAMedida(linea.producto) && precio < producto.precio,
+                subtotal: esMonosAMedida(linea.producto)
+                  ? totalMonos(catalogo.monosPrecios, numeroEscala(linea.comentario || "") || 100, linea.cantidad)
+                  : redondear(precio * linea.cantidad),
                 foto: fotosDe(producto)[0],
               },
             ];

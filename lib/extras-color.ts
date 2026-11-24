@@ -1,4 +1,4 @@
-import { extrasFilamento } from "@/lib/colores-filamento";
+import { colorFilamento, extrasFilamento, fotoFilamento } from "@/lib/colores-filamento";
 /*
  * Productos de la tienda que se suman a la maqueta y piden elegir color
  * (los monos / figuras humanas). Igual que kintExtrasPideColor_ en Apps Script.
@@ -112,3 +112,78 @@ export function precioMonosEscala(productos: { nombre: string; precio: number; v
   }
   return Math.max(10, Math.round(a.p + ((escala - a.e) * (b.p - a.p)) / (b.e - a.e)));
 }
+
+/* ------------------------------------------------------------------ */
+/* Monos a medida: un producto «Monos…» sin escala en el nombre.        */
+/* Eligen escala, color y cuántos monos; el precio sale de la escala.   */
+/* Igual que kintMonosPrecio30_ en Apps Script (que es el que cobra).   */
+/* ------------------------------------------------------------------ */
+
+export const MONOS_POR_PAQUETE = 30; // los precios de Configuración son por 30 monos
+export const MONOS_MAXIMO = 200; // monos por línea
+export const MONOS_PASO = 10; // el + y el − suman/restan de a 10
+export const ESCALAS_MONOS = [50, 75, 100, 125, 150, 200, 250, 500];
+
+export type PreciosMonos = { base: number; paso: number; minimo: number };
+export const PRECIOS_MONOS_DEFECTO: PreciosMonos = { base: 120, paso: 10, minimo: 40 };
+
+export function esMonosAMedida(nombre: string) {
+  return pideColor(nombre) && !numeroEscala(nombre);
+}
+
+/* Configuración (monos_precio, monos_baja_cada_50, monos_precio_minimo) → precios. */
+export function preciosMonosDesdeConfig(configuracion: Record<string, { valor?: unknown } | undefined> | null | undefined): PreciosMonos {
+  const numero = (clave: string, defecto: number) => {
+    const valor = Number(configuracion?.[clave]?.valor);
+    return valor > 0 ? valor : defecto;
+  };
+  return {
+    base: numero("monos_precio", PRECIOS_MONOS_DEFECTO.base),
+    paso: numero("monos_baja_cada_50", PRECIOS_MONOS_DEFECTO.paso),
+    minimo: numero("monos_precio_minimo", PRECIOS_MONOS_DEFECTO.minimo),
+  };
+}
+
+/*
+ * Precio de 30 monos a 1:escala: de 1:100 para arriba baja «paso» cada 50 (sin bajar del mínimo);
+ * más grandes que 1:100 crece con el plástico: base × (100 / escala)² (1:50 → 4 veces).
+ */
+export function precioMonos30(precios: PreciosMonos, escala: number) {
+  const n = Number(escala) || 100;
+  const precio = n >= 100 ? Math.max(precios.minimo, precios.base - ((n - 100) / 50) * precios.paso) : precios.base * (100 / n) ** 2;
+  return Math.round(precio);
+}
+
+/* Total de «cantidad» monos, en pesos enteros (lo mismo que cobra Apps Script). */
+export function totalMonos(precios: PreciosMonos, escala: number, cantidad: number) {
+  return Math.round((precioMonos30(precios, escala) * cantidad) / MONOS_POR_PAQUETE);
+}
+
+/* Precio de un mono (lo que se cobra por unidad), con centavos. */
+export function precioMono(precios: PreciosMonos, escala: number) {
+  return Math.round((precioMonos30(precios, escala) / MONOS_POR_PAQUETE) * 100) / 100;
+}
+
+/* Colores con su tono (para pintar el botón del color): Configuración › filamento_* (color: #hex). */
+export function coloresConTonoDesdeConfig(configuracion: Record<string, { valor?: unknown; comentario?: unknown }>) {
+  return Object.entries(configuracion || {})
+    .filter(([clave, opcion]) => clave.startsWith("filamento_") && ["habilitada", "habilitado", "sí", "si"].includes(String(opcion?.valor || "").trim().toLowerCase()))
+    .map(([clave, opcion]) => {
+      const extras = extrasFilamento(String(opcion?.comentario || ""));
+      const deClave = clave
+        .replace(/^filamento_/, "")
+        .split("_")
+        .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+        .join(" ");
+      return {
+        nombre: extras.nombre || deClave,
+        tono: extras.color || colorFilamento(deClave),
+        foto: extras.foto || fotoFilamento(deClave)?.mini || "",
+        orden: extras.orden ?? Infinity,
+      };
+    })
+    .sort((a, b) => a.orden - b.orden)
+    .map(({ nombre, tono, foto }) => ({ nombre, tono, foto }));
+}
+
+export type ColorMonos = { nombre: string; tono: string; foto: string };
