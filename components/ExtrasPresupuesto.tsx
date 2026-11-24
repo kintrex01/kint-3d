@@ -112,6 +112,10 @@ export default function ExtrasPresupuesto({
   // Nada que ofrecer ni nada elegido: no se muestra.
   if (!datos || (!datos.productos.length && !datos.extras.length)) return null;
 
+  // Los monos van aparte y siempre a la vista; el resto, plegado.
+  const monosOferta = monosPrimero(datos.productos).filter((producto) => pideColor(producto.nombre));
+  const otrosOferta = datos.productos.filter((producto) => !pideColor(producto.nombre));
+
   async function guardar(extras: { producto: string; cadena: string; cantidad: number }[], clave: string) {
     setGuardando(clave);
     setError("");
@@ -217,8 +221,17 @@ export default function ExtrasPresupuesto({
 
       {datos.editable && datos.productos.length > 0 && (
         <>
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {(verTodos ? monosPrimero(datos.productos) : monosPrimero(datos.productos).slice(0, 2)).map((producto) => {
+        {/* Monos: siempre a la vista y primero (es el extra que más suma a una maqueta). */}
+        {monosOferta.length > 0 && (
+          <div className="mt-5 rounded-2xl border-2 border-red-600/40 bg-gradient-to-br from-red-600/[0.08] to-transparent px-4 py-3">
+            <p className="text-base font-black leading-tight">¿Querés agregarle monos a tu maqueta?</p>
+            <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+              Las personas le dan escala y vida al proyecto. Elegí la escala y el color: van con tu maqueta.
+            </p>
+          </div>
+        )}
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[...monosOferta, ...(verTodos ? otrosOferta : otrosOferta.slice(0, 2))].map((producto) => {
             // Los monos piden color (obligatorio); los llaveros, cadena.
             const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
             const opciones = conColor ? colores : producto.cadenas;
@@ -380,14 +393,14 @@ export default function ExtrasPresupuesto({
             );
           })}
         </div>
-        {datos.productos.length > 2 && (
+        {otrosOferta.length > 2 && (
           <button
             type="button"
             onClick={() => setVerTodos((actual) => !actual)}
             aria-expanded={verTodos}
             className="mt-3 w-full rounded-xl border border-[var(--border-color)] px-4 py-3 text-sm font-bold text-[var(--text-main)] transition hover:border-red-600"
           >
-            {verTodos ? "Ver menos ▴" : `Ver los ${datos.productos.length} productos ▾`}
+            {verTodos ? "Ver menos ▴" : `Ver los ${otrosOferta.length} productos ▾`}
           </button>
         )}
         </>

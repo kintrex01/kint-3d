@@ -60,45 +60,25 @@ export default function SumarProductosCotizar({
 
   if (!productos.length) return null;
 
-  const total = elegidos.reduce(
-    (suma, extra) => suma + extra.cantidad * (productos.find((p) => p.nombre === extra.producto)?.precio || 0),
-    0
-  );
-  const unidades = elegidos.reduce((suma, extra) => suma + extra.cantidad, 0);
+  const monos = productos.filter((producto) => pideColor(producto.nombre));
+  const otros = productos.filter((producto) => !pideColor(producto.nombre));
+  // El mono de la misma escala que la maqueta («Monos 1:100» con escala 1:100) va primero y marcado.
+  const monoDeTuEscala = tamanoDeEscala(monos.map((producto) => producto.nombre), escala);
+  if (monoDeTuEscala) monos.sort((a, b) => Number(b.nombre === monoDeTuEscala) - Number(a.nombre === monoDeTuEscala));
+  const unidadesOtros = elegidos
+    .filter((extra) => !pideColor(extra.producto))
+    .reduce((suma, extra) => suma + extra.cantidad, 0);
+  const totalOtros = elegidos
+    .filter((extra) => !pideColor(extra.producto))
+    .reduce((suma, extra) => suma + extra.cantidad * (productos.find((p) => p.nombre === extra.producto)?.precio || 0), 0);
 
   function cambiar(producto: string, cadena: string, cantidad: number) {
     const resto = elegidos.filter((extra) => !(extra.producto === producto && extra.cadena === cadena));
     onCambiar(cantidad > 0 ? [...resto, { producto, cadena, cantidad: Math.min(10, cantidad) }] : resto);
   }
 
-  return (
-    <div className="mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--kint-input-bg)]">
-      <button
-        type="button"
-        onClick={() => setAbierto((actual) => !actual)}
-        aria-expanded={abierto}
-        className="flex w-full items-center gap-3 px-4 py-4 text-left"
-      >
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600/10 text-red-600">
-          <ShoppingBag size={20} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-semibold text-[var(--text-main)]">¿Le sumás llaveros o regalos?</span>
-          <span className="block text-sm text-[var(--text-muted)]">
-            {unidades
-              ? `${unidades} ${unidades === 1 ? "producto" : "productos"} · ${pesos(total)}, se cobran junto con la maqueta`
-              : "Los imprimimos con tu maqueta y te llegan juntos. Opcional."}
-          </span>
-        </span>
-        <span className="shrink-0 rounded-full border border-[var(--border-color)] px-3 py-1 text-xs font-bold text-[var(--text-main)]">
-          {abierto ? "Cerrar" : unidades ? "Cambiar" : "Ver"}
-        </span>
-      </button>
-
-      {abierto && (
-        <div className="border-t border-[var(--border-color)] p-4">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {productos.map((producto) => {
+  // Una tarjeta de producto (monos o llaveros). «tuEscala»: el mono de la escala de la maqueta.
+  const tarjeta = (producto: Producto, tuEscala = false) => {
               // Los monos piden color (obligatorio); los llaveros, cadena.
               const conColor = !producto.cadenas.length && pideColor(producto.nombre) && colores.length > 0;
               const opciones = conColor ? colores : producto.cadenas;
@@ -121,6 +101,11 @@ export default function SumarProductosCotizar({
                   }`}
                 >
                   <div className="relative aspect-square w-full overflow-hidden bg-black/5 dark:bg-white/5">
+                    {tuEscala && (
+                      <span className="absolute bottom-2 left-2 z-10 rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow">
+                        Tu escala
+                      </span>
+                    )}
                     {totalProducto > 0 && (
                       <span className="absolute left-2 top-2 z-10 flex h-6 min-w-6 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[11px] font-black text-white">
                         <Check size={12} className="mr-0.5" />
@@ -209,7 +194,51 @@ export default function SumarProductosCotizar({
                   </div>
                 </div>
               );
-            })}
+  };
+
+  return (
+    <>
+    {/* Monos: bloque propio, abierto y destacado (es el extra que más suma a una maqueta). */}
+    {monos.length > 0 && (
+      <div className="mb-4 overflow-hidden rounded-2xl border-2 border-red-600/40 bg-gradient-to-br from-red-600/[0.08] to-transparent p-4">
+        <p className="text-lg font-black leading-tight text-[var(--text-main)]">¿Querés agregarle monos a tu maqueta?</p>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          Las personas le dan escala y vida al proyecto. Elegí la escala y el color: los imprimimos con tu maqueta y te llegan juntos.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {monos.map((producto) => tarjeta(producto, producto.nombre === monoDeTuEscala))}
+        </div>
+      </div>
+    )}
+
+    {otros.length > 0 && (
+    <div className="mb-6 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--kint-input-bg)]">
+      <button
+        type="button"
+        onClick={() => setAbierto((actual) => !actual)}
+        aria-expanded={abierto}
+        className="flex w-full items-center gap-3 px-4 py-4 text-left"
+      >
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-600/10 text-red-600">
+          <ShoppingBag size={20} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold text-[var(--text-main)]">¿Le sumás llaveros o regalos?</span>
+          <span className="block text-sm text-[var(--text-muted)]">
+            {unidadesOtros
+              ? `${unidadesOtros} ${unidadesOtros === 1 ? "producto" : "productos"} · ${pesos(totalOtros)}, se cobran junto con la maqueta`
+              : "Los imprimimos con tu maqueta y te llegan juntos. Opcional."}
+          </span>
+        </span>
+        <span className="shrink-0 rounded-full border border-[var(--border-color)] px-3 py-1 text-xs font-bold text-[var(--text-main)]">
+          {abierto ? "Cerrar" : unidadesOtros ? "Cambiar" : "Ver"}
+        </span>
+      </button>
+
+      {abierto && (
+        <div className="border-t border-[var(--border-color)] p-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {otros.map((producto) => tarjeta(producto))}
           </div>
           <Link
             href="/tienda"
@@ -225,5 +254,7 @@ export default function SumarProductosCotizar({
         </div>
       )}
     </div>
+    )}
+    </>
   );
 }
