@@ -792,6 +792,12 @@ export default function DetallePedidoAdmin({
                     </p>
                     <p className="text-3xl font-black tabular-nums leading-none">{pesos(pago.confirmado ? pago.saldoPendiente : pago.importe)}</p>
                     <p className="mt-1 text-xs font-bold text-[var(--text-muted)]">Total {pesos(pago.precioFinal)}</p>
+                    {/* Lo que ya te pagó (la seña), en verde */}
+                    {pago.confirmado && (
+                      <p className="text-xs font-black text-emerald-700 dark:text-emerald-400">
+                        Pagó {pesos(Math.max(0, pago.precioFinal - pago.saldoPendiente))}
+                      </p>
+                    )}
                   </>
                 );
               })()}

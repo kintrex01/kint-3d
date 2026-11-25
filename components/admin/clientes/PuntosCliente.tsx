@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, Minus, Plus, Undo2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ChevronDown, HandCoins, Minus, Plus, Undo2 } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { MovimientoPuntos, PuntosCliente as DatosPuntos } from "@/lib/admin-tipos";
 import { Boton, Chip, DialogoConfirmar, claseInput, fechaHora, useAvisos } from "@/components/admin/ui";
@@ -165,6 +165,24 @@ function ContenidoPuntos({ email, onPuntos }: { email: string; onPuntos: (puntos
         </p>
       </div>
 
+      {/* Dinero a favor: plata que le debés (ej. pagó y no se llevó la maqueta). Va como puntos (1 punto = $valor). */}
+      <DineroAFavor
+        ocupado={Boolean(guardando)}
+        onDar={async (puntos, texto) => {
+          setGuardando("favor");
+          try {
+            const respuesta = await accionAdmin("admin_puntos_ajustar", { email, modo: "sumar", puntos, motivo: texto });
+            listo(respuesta, `Listo: ${texto}. Ahora tiene ${respuesta.puntos.toLocaleString("es-UY")} puntos`);
+            return true;
+          } catch (errorGuardado) {
+            avisar(errorGuardado instanceof Error ? errorGuardado.message : "No se pudo cargar.", "error");
+            return false;
+          } finally {
+            setGuardando("");
+          }
+        }}
+      />
+
       {/* Historial */}
       {datos.movimientos.length === 0 ? (
         <p className="py-3 text-sm text-[var(--text-muted)]">Todavía no tiene movimientos de puntos.</p>
@@ -244,6 +262,87 @@ function ContenidoPuntos({ email, onPuntos }: { email: string; onPuntos: (puntos
         onCancelar={() => setDeshaciendo(null)}
         onConfirmar={() => void deshacer()}
       />
+    </div>
+  );
+}
+
+/*
+ * Dinero a favor: plata que le debés al cliente (ej. pagó y no se llevó la maqueta).
+ * Se carga como Puntos Kint (1 punto = «Puntos valor» pesos) con el motivo «Dinero a favor…»;
+ * los usa para pagar su próximo pedido y no cuentan para el Top Kint.
+ */
+function DineroAFavor({ ocupado, onDar }: { ocupado: boolean; onDar: (puntos: number, motivo: string) => Promise<boolean> }) {
+  const [pesos, setPesos] = useState("");
+  const [pedido, setPedido] = useState("");
+  const [valorPunto, setValorPunto] = useState(1);
+  const [minimoUso, setMinimoUso] = useState(0);
+
+  useEffect(() => {
+    let activo = true;
+    fetch("/api/configuracion")
+      .then((respuesta) => respuesta.json())
+      .then((data) => {
+        if (!activo) return;
+        const valor = Number(data?.configuracion?.puntos_valor?.valor);
+        if (valor > 0) setValorPunto(valor);
+        setMinimoUso(Number(data?.configuracion?.puntos_minimo_uso?.valor) || 0);
+      })
+      .catch(() => undefined);
+    return () => {
+      activo = false;
+    };
+  }, []);
+
+  const monto = Math.round(Number(pesos) || 0);
+  const puntos = Math.round(monto / valorPunto);
+  const numeroPedido = /(\d+)/.exec(pedido)?.[1];
+  const motivo = `Dinero a favor: $${monto.toLocaleString("es-UY")}${numeroPedido ? ` por KNT-${numeroPedido.padStart(4, "0")}` : ""}`;
+
+  return (
+    <div className="mt-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3">
+      <p className="flex items-center gap-1.5 text-sm font-black">
+        <HandCoins size={16} className="text-emerald-600" />
+        Dinero a favor
+      </p>
+      <p className="mt-0.5 text-[11px] leading-4 text-[var(--text-muted)]">
+        Plata que le devolvés para su próximo pedido (ej. pagó y no se llevó la maqueta). Se carga como puntos
+        {valorPunto === 1 ? " ($1 = 1 punto)" : ` (1 punto = $${valorPunto})`} y la usa al pagar
+        {minimoUso ? ` (desde ${minimoUso} puntos)` : ""}.
+      </p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-[120px_130px_1fr]">
+        <span className={`${claseInput} flex h-10 items-center gap-1`}>
+          <span className="text-[var(--text-muted)]">$</span>
+          <input
+            value={pesos}
+            onChange={(evento) => setPesos(evento.target.value.replace(/[^\d]/g, "").slice(0, 6))}
+            inputMode="numeric"
+            placeholder="75"
+            aria-label="Pesos a favor"
+            className="h-full w-full min-w-0 bg-transparent outline-none"
+          />
+        </span>
+        <input
+          value={pedido}
+          onChange={(evento) => setPedido(evento.target.value.slice(0, 12))}
+          placeholder="Pedido (opcional)"
+          aria-label="Pedido"
+          className={`${claseInput} h-10`}
+        />
+        <Boton
+          tamano="chico"
+          variante="exito"
+          className="h-10"
+          disabled={ocupado || !(puntos > 0)}
+          onClick={async () => {
+            if (await onDar(puntos, motivo)) {
+              setPesos("");
+              setPedido("");
+            }
+          }}
+        >
+          {monto > 0 ? `Dar $${monto.toLocaleString("es-UY")} a favor` : "Dar a favor"}
+        </Boton>
+      </div>
     </div>
   );
 }

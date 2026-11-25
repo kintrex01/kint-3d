@@ -401,6 +401,12 @@ function FilaPedido({
                   {pedido.pagado ? "Saldo" : "Seña"} · total {pesos(pedido.monto)}
                 </span>
               )}
+              {/* Lo que ya te pagó (la seña), en verde */}
+              {!pagadoEntero && pedido.pagado && (
+                <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
+                  Pagó {pesos(Math.max(0, pedido.monto - (pedido.debe ?? 0)))}
+                </span>
+              )}
               <span
                 className={`block text-[10px] font-bold ${
                   pagadoEntero
