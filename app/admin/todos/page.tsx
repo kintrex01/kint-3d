@@ -51,6 +51,14 @@ type Filtro = "todos" | "maqueta" | "tienda" | "porCobrar";
 
 const SIN_DATOS = {};
 
+/* 0 = por hacer (nuevo, presupuestado, esperando pago, pagado, imprimiendo) · 1 = listo para entregar · 2 = entregado. */
+function grupoPedido(pedido: PedidoGeneral) {
+  const fase = faseEstado(pedido.estado, pedido.tipo === "tienda" && pedido.pagado);
+  return fase === "entregado" || fase === "cancelado" ? 2 : fase === "terminado" ? 1 : 0;
+}
+
+const TITULOS_GRUPO = ["Por hacer", "Listos para entregar", "Entregados"];
+
 function coincide(busqueda: string, pedido: PedidoGeneral) {
   const texto = busqueda.trim().toLocaleLowerCase("es");
   if (!texto) return true;
@@ -74,14 +82,20 @@ export default function TodosLosPedidos() {
 
   const pedidos = useMemo(() => datos?.pedidos ?? [], [datos]);
 
+  // Lo que tenés que atender arriba (aunque haya llegado antes); listos para entregar; entregados al final.
+  // Dentro de cada grupo, los más nuevos arriba (como vienen).
   const visibles = useMemo(
     () =>
-      pedidos.filter(
-        (pedido) =>
-          (filtro === "todos" ||
-            (filtro === "porCobrar" ? (pedido.debe ?? 0) > 0 : pedido.tipo === filtro)) &&
-          coincide(busqueda, pedido)
-      ),
+      pedidos
+        .filter(
+          (pedido) =>
+            (filtro === "todos" ||
+              (filtro === "porCobrar" ? (pedido.debe ?? 0) > 0 : pedido.tipo === filtro)) &&
+            coincide(busqueda, pedido)
+        )
+        .map((pedido, orden) => ({ pedido, orden }))
+        .sort((a, b) => grupoPedido(a.pedido) - grupoPedido(b.pedido) || a.orden - b.orden)
+        .map(({ pedido }) => pedido),
     [pedidos, filtro, busqueda]
   );
 
@@ -148,7 +162,7 @@ export default function TodosLosPedidos() {
     <>
       <Encabezado
         titulo="Todos los pedidos"
-        subtitulo="Maquetas y tienda, los más nuevos arriba."
+        subtitulo="Lo que tenés que hacer arriba, después lo listo para entregar y al final lo entregado."
         accion={
           datos && (
             <Boton
@@ -260,16 +274,29 @@ export default function TodosLosPedidos() {
         />
       ) : (
         <ul className="space-y-2 pb-24" aria-busy={recargando}>
-          {visibles.map((pedido) => (
-            <li key={pedido.pedido}>
-              <FilaPedido
-                pedido={pedido}
-                seleccionando={seleccionando}
-                elegido={elegidos.has(pedido.pedido)}
-                onAlternar={() => alternar(pedido.pedido)}
-              />
-            </li>
-          ))}
+          {visibles.map((pedido, indice) => {
+            const grupo = grupoPedido(pedido);
+            const nuevoGrupo = indice === 0 || grupoPedido(visibles[indice - 1]) !== grupo;
+            return (
+              <li key={pedido.pedido}>
+                {/* Título de cada grupo: por hacer, listos para entregar, entregados */}
+                {nuevoGrupo && (
+                  <p className={`mb-2 flex items-center gap-2 px-1 text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)] ${indice ? "mt-5" : ""}`}>
+                    {TITULOS_GRUPO[grupo]}
+                    <span className="rounded-full bg-[var(--kint-panel-soft)] px-2 py-0.5 text-[10px] tracking-normal">
+                      {visibles.filter((otro) => grupoPedido(otro) === grupo).length}
+                    </span>
+                  </p>
+                )}
+                <FilaPedido
+                  pedido={pedido}
+                  seleccionando={seleccionando}
+                  elegido={elegidos.has(pedido.pedido)}
+                  onAlternar={() => alternar(pedido.pedido)}
+                />
+              </li>
+            );
+          })}
         </ul>
       )}
 
