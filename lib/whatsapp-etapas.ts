@@ -58,3 +58,24 @@ export function mensajeWhatsapp(
     .replace(/\s+([!?.,])/g, "$1")
     .replace(/¡Hola !/g, "¡Hola!");
 }
+
+/*
+ * Reparto › «Estoy en FADU»: Configuración › Whatsapp › «Whatsapp fadu» ({nombre} {pedido}; vacío = este).
+ * Si le dijiste hasta qué hora estás, se agrega; si todavía debe plata, se le recuerda cuánto.
+ */
+export const MENSAJE_FADU = "¡Hola {nombre}! Estoy en FADU con tu pedido {pedido} 📦 ¿Pasás a retirarlo?";
+
+export function mensajeFadu(
+  datos: { nombre: string; pedido: string; hasta?: string; cobrar?: number },
+  plantilla = ""
+) {
+  const nombre = datos.nombre.trim().split(/\s+/)[0] || "";
+  let texto = (plantilla.trim() || MENSAJE_FADU)
+    .replace(/\{nombre\}/g, nombre)
+    .replace(/\{pedido\}/g, datos.pedido)
+    .replace(/\s+([!?.,])/g, "$1")
+    .replace(/¡Hola !/g, "¡Hola!");
+  if (datos.hasta) texto += ` Estoy hasta las ${datos.hasta}.`;
+  if (datos.cobrar && datos.cobrar > 0) texto += ` Acordate que quedan $${datos.cobrar.toLocaleString("es-UY")} por pagar.`;
+  return texto;
+}

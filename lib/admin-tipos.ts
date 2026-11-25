@@ -311,6 +311,8 @@ export type PedidoGeneral = {
   importeSena?: number; // cuánto es la seña (Pagos M)
   saldo?: number; // lo que queda después de la seña (Pagos N)
   extras?: string; // productos sumados a la maqueta («20 monos 1:200 · Cristal, 2 × Llavero»)
+  whatsapp?: string; // celular del pedido o de su cuenta (para Reparto)
+  guardado?: string; // Reparto: cuándo lo marcó como guardado/empaquetado ("" = no)
   detalle: string;
 };
 
@@ -592,6 +594,10 @@ export type AccionesAdmin = {
   admin_galeria_comentario_ocultar: {
     pedido: { id: number; visible: boolean };
     respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
+  };
+  admin_reparto_guardar: {
+    pedido: { pedido: string; guardado: boolean };
+    respuesta: { pedido: string; guardado: boolean };
   };
   admin_dinero_favor_ver: {
     pedido: { email: string };
@@ -934,6 +940,7 @@ export const ACCIONES_ADMIN = [
   "admin_galeria_fotos_disponibles",
   "admin_cupones_listar",
   "admin_cancelaciones_listar",
+  "admin_reparto_guardar",
   "admin_dinero_favor_ver",
   "admin_dinero_favor_cargar",
   "admin_dinero_favor_deshacer",

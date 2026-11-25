@@ -12,6 +12,7 @@ import {
   Filter,
   Ruler,
   CalendarDays,
+  Truck,
   Home,
   ListOrdered,
   LogOut,
@@ -43,6 +44,8 @@ export const ENLACES_ADMIN: Enlace[] = [
   // Maquetas y tienda están juntas en "Todos los pedidos" (se filtran ahí).
   { href: "/admin/todos", texto: "Todos los pedidos", icono: ListOrdered, grupo: "Pedidos", color: "#38bdf8", enBarra: true },
   { href: "/admin/calendario", texto: "Calendario", icono: CalendarDays, grupo: "Pedidos", color: "#fbbf24", enBarra: true },
+  // Modo reparto: lo listo para entregar, «Estoy en FADU» y entregado de un toque.
+  { href: "/admin/reparto", texto: "Reparto", icono: Truck, grupo: "Pedidos", color: "#4ade80", enBarra: true },
   { href: "/admin/caja", texto: "Caja", icono: Wallet, grupo: "Negocio", color: "#34d399" },
   { href: "/admin/calculadora", texto: "Calculadora", icono: Calculator, grupo: "Negocio", color: "#a78bfa" },
   { href: "/admin/escalador", texto: "Escalador", icono: Ruler, grupo: "Negocio", color: "#38bdf8" },
