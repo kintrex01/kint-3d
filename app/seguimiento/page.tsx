@@ -2982,9 +2982,8 @@ aplicada al pedido.
           <div className="mt-4 space-y-1 text-sm font-semibold">
   <p>
     Transferido: $
-    {Number(
-      resultado.importe || 0
-    ).toLocaleString("es-UY")}
+    {(
+      (Number(resultado.importe || 0) + (porcentajeSena(resultado.modalidad) > 0 ? Number(resultado.saldoPendiente || 0) : 0)) + (porcentajeSena(resultado.modalidad) > 0 ? Number(resultado.saldoPendiente || 0) : 0)).toLocaleString("es-UY")}
   </p>
 
   {Number(
