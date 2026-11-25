@@ -856,6 +856,27 @@ export default function DetallePedidoAdmin({
         </div>
       </div>
 
+        {/* Para no olvidarse: además de la maqueta pidió (y paga) monos u otros productos */}
+        {(pedido.extras?.length ?? 0) > 0 && !cancelado && (
+          <div className="mt-3 flex items-start gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 px-4 py-3">
+            <ShoppingBag size={20} className="mt-0.5 shrink-0 text-amber-600" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-amber-800 dark:text-amber-300">Además de la maqueta pidió:</p>
+              <ul className="mt-0.5 space-y-0.5 text-sm font-bold">
+                {pedido.extras!.map((extra, indice) => (
+                  <li key={`${extra.producto}-${extra.cadena}-${indice}`}>
+                    {/monos?/i.test(extra.producto) && !/1\s*[:/]\s*\d+/.test(extra.producto)
+                      ? `${extra.cantidad} monos ${extra.cadena}`
+                      : `${extra.cantidad} × ${extra.producto}${extra.cadena ? ` (${extra.cadena})` : ""}`}
+                    <span className="ml-1.5 font-semibold text-[var(--text-muted)]">{pesos(extra.subtotal)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Imprimilos junto con la maqueta: ya están en el precio.</p>
+            </div>
+          </div>
+        )}
+
         {/* Avisar por WhatsApp lo que dice el correo (muchos van a spam). */}
         {whatsappEtapa && etapaWhatsapp && !cancelado && (
           <a

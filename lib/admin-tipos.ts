@@ -310,6 +310,7 @@ export type PedidoGeneral = {
   conSena?: boolean; // eligió pagar con seña
   importeSena?: number; // cuánto es la seña (Pagos M)
   saldo?: number; // lo que queda después de la seña (Pagos N)
+  extras?: string; // productos sumados a la maqueta («20 monos 1:200 · Cristal, 2 × Llavero»)
   detalle: string;
 };
 

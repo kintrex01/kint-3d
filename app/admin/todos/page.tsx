@@ -411,6 +411,10 @@ function FilaPedido({
         {pedido.detalle && (
           <span className="block truncate text-xs text-[var(--text-muted)]">{pedido.detalle}</span>
         )}
+        {/* Para no olvidarse de imprimir lo que sumó (monos, llaveros…) */}
+        {pedido.extras && (
+          <span className="mt-0.5 block truncate text-xs font-bold text-amber-600 dark:text-amber-400">+ {pedido.extras}</span>
+        )}
       </span>
 
       <span className="shrink-0 text-right">
