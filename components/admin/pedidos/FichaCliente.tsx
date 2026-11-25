@@ -37,7 +37,9 @@ function Fila({ etiqueta, children }: { etiqueta: string; children: React.ReactN
 export default function FichaCliente({ pedido, abierta, onCerrar }: { pedido: PedidoDetalle; abierta: boolean; onCerrar: () => void }) {
   const pago = pedido.pago;
   const esSena = /^seña/i.test(pago?.modalidad || "");
-  const pagado = pago?.confirmado ? Math.max(0, (pago.precioFinal || 0) - (pago.saldoPendiente || 0)) : 0;
+  // Con el saldo confirmado pagó todo (la planilla deja el saldo anotado igual).
+  const falta = pago?.confirmado && !pago.saldoConfirmado ? Math.max(0, pago.saldoPendiente || 0) : pago?.confirmado ? 0 : pago?.precioFinal || 0;
+  const pagado = pago?.confirmado ? Math.max(0, (pago.precioFinal || 0) - falta) : 0;
 
   return (
     <Hoja abierta={abierta} onCerrar={onCerrar} titulo={`${pedido.nombre || "Cliente"} · ${pedido.pedido}`}>
@@ -75,9 +77,9 @@ export default function FichaCliente({ pedido, abierta, onCerrar }: { pedido: Pe
             <Fila etiqueta="Pagó">
               <span className={pagado ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--text-muted)]"}>{pagado ? pesos(pagado) : "Nada todavía"}</span>
             </Fila>
-            {pago.saldoPendiente > 0 && (
+            {falta > 0 && pagado > 0 && (
               <Fila etiqueta="Falta">
-                <span className="text-red-600 dark:text-red-400">{pesos(pago.saldoPendiente)}</span>
+                <span className="text-red-600 dark:text-red-400">{pesos(falta)}</span>
               </Fila>
             )}
             {pago.estado && <Fila etiqueta="Estado del pago">{pago.estado}</Fila>}
