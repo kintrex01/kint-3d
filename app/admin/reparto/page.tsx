@@ -188,7 +188,7 @@ export default function Reparto() {
             const titulo = indice === 0 || grupoEntrega(pedidos[indice - 1], hoy) !== grupo;
             const cobrar = pedido.debe ?? 0;
             const whatsapp = pedido.whatsapp
-              ? linkWhatsapp(pedido.whatsapp, mensajeFadu({ nombre: pedido.cliente, pedido: pedido.pedido, hasta, cobrar }, plantilla))
+              ? linkWhatsapp(pedido.whatsapp, mensajeFadu({ nombre: pedido.cliente, pedido: pedido.pedido, hasta, cobrar: pedido.revisar ? 0 : cobrar }, plantilla))
               : "";
             const atrasado = pedido.entrega && pedido.entrega < hoy;
             return (
@@ -234,7 +234,12 @@ export default function Reparto() {
                           {atrasado ? "Atrasado · " : ""}Entrega {fechaDia(pedido.entrega)}
                         </span>
                       )}
-                      {cobrar > 0 && <span className="text-red-600 dark:text-red-400">Cobrar {pesos(cobrar)}</span>}
+                      {cobrar > 0 && !pedido.revisar && <span className="text-red-600 dark:text-red-400">Cobrar {pesos(cobrar)}</span>}
+                      {pedido.revisar && (
+                        <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">
+                          {pedido.revisar === "saldo" ? `Subió el comprobante del saldo (${pesos(cobrar)})` : "Subió el comprobante"} · tocá para validarlo
+                        </span>
+                      )}
                     </p>
                   </Link>
 

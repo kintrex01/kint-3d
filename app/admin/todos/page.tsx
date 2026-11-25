@@ -457,6 +457,12 @@ function FilaPedido({
                       ? `Seña paga · debe ${pesos(pedido.debe ?? 0)}`
                       : "Sin pagar"}
               </span>
+              {/* Subió el comprobante y falta que lo valides */}
+              {pedido.revisar && (
+                <span className="mt-1 inline-block rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">
+                  {pedido.revisar === "saldo" ? "Subió el comprobante del saldo" : "Subió el comprobante"} · validalo
+                </span>
+              )}
             </>
           );
         })()}

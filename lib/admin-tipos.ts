@@ -313,6 +313,7 @@ export type PedidoGeneral = {
   extras?: string; // productos sumados a la maqueta («20 monos 1:200 · Cristal, 2 × Llavero»)
   whatsapp?: string; // celular del pedido o de su cuenta (para Reparto)
   guardado?: string; // Reparto: cuándo lo marcó como guardado/empaquetado ("" = no)
+  revisar?: "pago" | "saldo" | ""; // subió un comprobante que falta validar
   detalle: string;
 };
 
