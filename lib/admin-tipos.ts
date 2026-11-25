@@ -592,6 +592,18 @@ export type AccionesAdmin = {
     pedido: { id: number; visible: boolean };
     respuesta: { comentarios: ComentarioGaleriaAdmin[]; aviso?: string };
   };
+  admin_dinero_favor_ver: {
+    pedido: { email: string };
+    respuesta: DineroAFavor;
+  };
+  admin_dinero_favor_cargar: {
+    pedido: { email: string; monto: number; titulo?: string; pedido?: string };
+    respuesta: DineroAFavor & { aviso: string };
+  };
+  admin_dinero_favor_deshacer: {
+    pedido: { email: string; id: string };
+    respuesta: DineroAFavor & { aviso: string };
+  };
   admin_cancelaciones_listar: {
     pedido: SinDatos;
     respuesta: { cancelaciones: PedidoCancelado[] };
@@ -921,6 +933,9 @@ export const ACCIONES_ADMIN = [
   "admin_galeria_fotos_disponibles",
   "admin_cupones_listar",
   "admin_cancelaciones_listar",
+  "admin_dinero_favor_ver",
+  "admin_dinero_favor_cargar",
+  "admin_dinero_favor_deshacer",
   "admin_cupon_crear",
   "admin_cupon_borrar",
   "admin_dia_guardar",
@@ -969,3 +984,16 @@ export type PedidoCancelado = {
   urgente: boolean;
   codigo: string; // código de descuento que usaba
 };
+
+/* Dinero a favor de un cliente (hoja «Dinero a favor»): lo que le dejó el dueño y lo que usó. */
+export type MovimientoDineroAFavor = {
+  id: string; // DAF-0001
+  fecha: string; // ISO
+  monto: number; // + a favor, − usado
+  pedido: string;
+  titulo: string;
+  tipo: string; // "A favor" | "Usado"
+  estado: string; // "Activo" | "Deshecho"
+  donde: string; // "Precio" | "Saldo" (dónde se usó)
+};
+export type DineroAFavor = { email: string; saldo: number; movimientos: MovimientoDineroAFavor[] };

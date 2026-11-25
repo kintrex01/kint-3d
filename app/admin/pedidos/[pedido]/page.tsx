@@ -38,6 +38,7 @@ import {
   ImagePlus,
   Send,
 } from "lucide-react";
+import FichaCliente from "@/components/admin/pedidos/FichaCliente";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import {
   ESTADOS_PEDIDO,
@@ -331,6 +332,7 @@ export default function DetallePedidoAdmin({
   const [guardando, setGuardando] = useState(false);
   const [hojaEstado, setHojaEstado] = useState(false);
   const [hojaEntrega, setHojaEntrega] = useState(false);
+  const [ficha, setFicha] = useState(false);
   const [hojaCorreo, setHojaCorreo] = useState(false);
   // Mensajes de WhatsApp por etapa (Configuración › Whatsapp).
   const [plantillasWhatsapp, setPlantillasWhatsapp] = useState<Record<string, string>>({});
@@ -762,7 +764,20 @@ export default function DetallePedidoAdmin({
                 </Chip>
               )}
             </div>
-            <p className="mt-3 text-2xl font-black leading-tight sm:text-3xl">{pedido.nombre || "Sin nombre"}</p>
+            {/* Tocando el nombre: la ficha (cuándo llegó, presupuestó, pagó, cuánto…) y el dinero a favor */}
+            <button
+              type="button"
+              onClick={() => setFicha(true)}
+              className="group mt-3 flex items-center gap-2 text-left"
+              title="Ver la ficha y el dinero a favor"
+            >
+              <span className="text-2xl font-black leading-tight underline-offset-4 group-hover:underline sm:text-3xl">{pedido.nombre || "Sin nombre"}</span>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[var(--kint-panel-border)] px-2.5 py-1 text-[11px] font-black text-[var(--text-muted)] group-hover:border-emerald-500 group-hover:text-emerald-600">
+                <Info size={13} />
+                Ficha
+              </span>
+            </button>
+            <FichaCliente pedido={pedido} abierta={ficha} onCerrar={() => setFicha(false)} />
             {pedido.email && (
               <a
                 href={`mailto:${pedido.email}`}

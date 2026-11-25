@@ -7,6 +7,7 @@ import {
   Check,
   ChevronRight,
   Coins,
+  HandCoins,
   Crown,
   KeyRound,
   LoaderCircle,
@@ -62,6 +63,8 @@ type Cuenta = {
   puntosAcumulados: number;
   valorPunto: number;
   movimientosPuntos?: { fecha: string; tipo: string; puntos: number; saldo: number; estado: string; detalle: string }[];
+  // Plata que le dejó Kint 3D para su próximo pedido (se usa al pagar).
+  dineroAFavor?: { saldo: number; movimientos: { id: string; fecha: string; monto: number; pedido: string; titulo: string; tipo: string; estado: string }[] };
   gastado?: number; // ya no llega: lo ve solo el dueño
   resenas?: ResenaCuenta[];
   cantidadPedidos: number;
@@ -435,6 +438,41 @@ function PanelCuenta({
           </p>
         )}
       </div>
+
+      {/* Dinero a favor: lo usa al pagar su próximo pedido */}
+      {((cuenta.dineroAFavor?.saldo ?? 0) > 0 || (cuenta.dineroAFavor?.movimientos.some((m) => m.estado !== "Deshecho") ?? false)) && (
+        <div className={`${CLASE_PANEL} p-6`}>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="flex items-center gap-2 text-sm font-black">
+              <HandCoins size={17} className="text-emerald-500" />
+              Dinero a favor
+            </p>
+            <p className="text-2xl font-black tabular-nums text-emerald-600 dark:text-emerald-400">
+              ${(cuenta.dineroAFavor?.saldo ?? 0).toLocaleString("es-UY")}
+            </p>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+            Cuando vayas a pagar tu próximo pedido, te preguntamos si lo querés usar y se descuenta.
+          </p>
+          <ul className="mt-3 space-y-1.5">
+            {cuenta.dineroAFavor!.movimientos
+              .filter((movimiento) => movimiento.estado !== "Deshecho")
+              .map((movimiento) => (
+                <li key={movimiento.id} className="flex items-center justify-between gap-3 text-xs">
+                  <span className="min-w-0 truncate">
+                    {movimiento.titulo || (movimiento.tipo === "Usado" ? `Usado en ${movimiento.pedido}` : "A favor")}
+                    <span className="ml-1 text-[var(--text-muted)]">
+                      · {new Date(movimiento.fecha).toLocaleDateString("es-UY", { day: "numeric", month: "short" })}
+                    </span>
+                  </span>
+                  <span className={`shrink-0 font-black tabular-nums ${movimiento.monto >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[var(--text-muted)]"}`}>
+                    {movimiento.monto >= 0 ? "+" : "−"}${Math.abs(movimiento.monto).toLocaleString("es-UY")}
+                  </span>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       {/* Historial de puntos */}
       {(cuenta.movimientosPuntos?.length ?? 0) > 0 && (

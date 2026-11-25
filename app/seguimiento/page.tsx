@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import UsarDineroAFavor from "@/components/UsarDineroAFavor";
 import ExtrasPresupuesto from "@/components/ExtrasPresupuesto";
 import SeguimientoTienda, {
   buscarCompraTienda,
@@ -2574,6 +2575,9 @@ aplicada al pedido.
 
 
 
+          {/* Dinero a favor: «Tenés $X a favor, ¿querés usarlo?» (antes de mandar el comprobante) */}
+          <UsarDineroAFavor pedido={resultado.pedido} codigo={codigo} onCambio={() => void actualizarPedidoSilenciosamente()} />
+
           <div className="seguimiento-presupuesto-elegido rounded-2xl border-2 border-dashed border-[var(--border-color)] px-4 py-6 text-center sm:px-6 sm:py-10">
             <p className="text-xs font-bold uppercase tracking-[0.12em] text-red-600">
               Subir comprobante
@@ -2691,6 +2695,9 @@ aplicada al pedido.
               resultado.saldoPendiente || 0
             ).toLocaleString("es-UY")}
           </p>
+
+          {/* Dinero a favor también sirve para el saldo */}
+          <UsarDineroAFavor pedido={resultado.pedido} codigo={codigo} onCambio={() => void actualizarPedidoSilenciosamente()} />
 
           {resultado.puntos?.habilitados &&
   Number(
