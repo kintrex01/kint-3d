@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Printer } from "lucide-react";
+import { Check } from "lucide-react";
 
 /*
  * /cotizar: hasta cuándo está ocupada la impresora. Sale de la cola que
@@ -15,46 +15,13 @@ type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boole
 type PorHacer = { pagadosMin: number; pagados: number; cotizadosMin: number; cotizados: number };
 type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: boolean; porHacer?: PorHacer | null };
 
-/* «13 h», «1 h 30 min», «45 min». */
-function horas(minutos: number) {
-  if (minutos < 60) return `${Math.max(1, Math.round(minutos))} min`;
-  const h = Math.floor(minutos / 60);
-  const m = Math.round(minutos % 60);
-  return h >= 10 || !m ? `${Math.round(minutos / 60)} h` : `${h} h ${m} min`;
-}
-
-/* Debajo de la barra: cuántas horas de impresión faltan hacer (pagadas + cotizadas). */
-function HorasPorHacer({ datos }: { datos?: PorHacer | null }) {
-  const total = (datos?.pagadosMin || 0) + (datos?.cotizadosMin || 0);
-  if (!datos || total <= 0) return null;
-  const parte = (minutos: number) => `${(minutos / total) * 100}%`;
-  const pedidos = (n: number) => `${n} ${n === 1 ? "pedido" : "pedidos"}`;
-  return (
-    <div className="relative mt-3 rounded-2xl bg-[var(--kint-panel)]/70 px-3.5 py-2.5 ring-1 ring-[var(--border-color)]">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Impresiones por hacer</p>
-        <p className="text-lg font-black tabular-nums text-[var(--text-main)]">{horas(total)}</p>
-      </div>
-      <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[var(--border-color)]/70">
-        <span className="bg-orange-500" style={{ width: parte(datos.pagadosMin) }} />
-        <span className="bg-orange-300/80 dark:bg-orange-300/50" style={{ width: parte(datos.cotizadosMin) }} />
-      </div>
-      <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
-        {datos.pagadosMin > 0 && (
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-orange-500" />
-            <b className="text-[var(--text-main)]">{horas(datos.pagadosMin)}</b> ya pagadas ({pedidos(datos.pagados)})
-          </span>
-        )}
-        {datos.cotizadosMin > 0 && (
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-2 rounded-full bg-orange-300" />
-            <b className="text-[var(--text-main)]">{horas(datos.cotizadosMin)}</b> cotizadas, esperando el pago ({pedidos(datos.cotizados)})
-          </span>
-        )}
-      </p>
-    </div>
-  );
+/* Para los números chicos: «3h 45m», «12h», «45m». */
+function horasCorto(minutos: number) {
+  const total = Math.max(1, Math.round(minutos));
+  if (total < 60) return `${total}m`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h >= 10 || !m ? `${Math.round(total / 60)}h` : `${h}h ${m}m`;
 }
 
 const ZONA = "America/Montevideo";
@@ -114,124 +81,139 @@ export default function AgendaImpresora() {
   // eslint-disable-next-line react-hooks/purity -- el reloj avanza con el tic de cada minuto
   const ahoraMs = Date.now() + desfase;
   const bloques = agenda.bloques.filter((bloque) => Date.parse(bloque.fin) > ahoraMs);
+  const ocupada = bloques.length > 0;
 
-  if (!bloques.length) {
-    return (
-      <div className="mb-3">
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.08] px-4 py-3">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          </span>
-          <p className="text-sm font-bold text-[var(--text-main)]">
-            La impresora está libre: <span className="text-emerald-600 dark:text-emerald-400">tu maqueta puede empezar ya</span>
-          </p>
-        </div>
-        <HorasPorHacer datos={agenda.porHacer} />
-      </div>
-    );
-  }
-
-  const libre = agenda.libreDesde && Date.parse(agenda.libreDesde) > ahoraMs ? agenda.libreDesde : bloques[bloques.length - 1].fin;
-  const desde = ahoraMs;
-  const hasta = Date.parse(libre);
-  const largo = Math.max(1, hasta - desde);
-  const posicion = (iso: string) => Math.min(100, Math.max(0, ((Date.parse(iso) - desde) / largo) * 100));
+  const libre = !ocupada
+    ? ""
+    : agenda.libreDesde && Date.parse(agenda.libreDesde) > ahoraMs
+      ? agenda.libreDesde
+      : bloques[bloques.length - 1].fin;
+  const hasta = libre ? Date.parse(libre) : ahoraMs;
+  const largo = Math.max(1, hasta - ahoraMs);
+  const posicion = (iso: string) => Math.min(100, Math.max(0, ((Date.parse(iso) - ahoraMs) / largo) * 100));
   const actual = bloques.find((bloque) => bloque.imprimiendo && Date.parse(bloque.inicio) <= ahoraMs);
   const enCola = bloques.length - (actual ? 1 : 0);
 
-  return (
-    <div className="relative mb-3 overflow-hidden rounded-3xl border border-orange-500/25 bg-[linear-gradient(135deg,rgba(249,115,22,0.16),rgba(249,115,22,0.04)_45%,transparent_80%)] p-4 sm:p-5">
-      <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-orange-500/20 blur-3xl" />
+  const porHacer = agenda.porHacer;
+  const totalPorHacer = (porHacer?.pagadosMin || 0) + (porHacer?.cotizadosMin || 0);
+  const pedidos = (n: number) => `${n} ${n === 1 ? "pedido" : "pedidos"}`;
 
-      {/* Encabezado: qué imprime y cuánto falta */}
-      <div className="relative flex flex-wrap items-start gap-3">
-        <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#fb923c,#ea580c)] text-white shadow-[0_10px_24px_-8px_rgba(234,88,12,0.7)]">
-          <Printer size={20} />
-          <span className="absolute -right-1 -top-1 flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-70 motion-reduce:animate-none" />
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500 ring-2 ring-[var(--kint-panel)]" />
-          </span>
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-orange-600 sm:tracking-[0.22em] dark:text-orange-400">Impresora · en vivo</p>
-          <p className="mt-0.5 text-base font-black leading-tight text-[var(--text-main)]">
-            {actual ? `Imprimiendo ${actual.pedido || "un pedido"}` : "Por arrancar"}
+  const etiqueta = "text-[10px] font-semibold uppercase tracking-[0.08em] sm:tracking-[0.14em] text-[var(--text-muted)]";
+
+  return (
+    <div className="mb-3 overflow-hidden rounded-2xl border border-[var(--border-color)] bg-[var(--kint-panel)]">
+      {/* Estado: qué imprime y cuándo queda libre */}
+      <div className="flex items-start justify-between gap-4 p-4 sm:p-5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              {ocupada && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-500 opacity-50 motion-reduce:animate-none" />}
+              <span className={`relative inline-flex h-2 w-2 rounded-full ${ocupada ? "bg-orange-500" : "bg-emerald-500"}`} />
+            </span>
+            <p className={etiqueta}>
+              <span className="hidden sm:inline">Impresora · </span>En vivo
+            </p>
+          </div>
+          <p className="mt-1.5 text-[15px] font-semibold leading-snug text-[var(--text-main)]">
+            {!ocupada ? "Disponible ahora" : actual ? `Imprimiendo ${actual.pedido || "un pedido"}` : "Por arrancar"}
           </p>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-            {enCola > 0 ? `${enCola} ${enCola === 1 ? "pedido espera" : "pedidos esperan"} en la cola` : "Sin cola detrás"}
+            {!ocupada
+              ? "No hay nada imprimiéndose en este momento"
+              : enCola > 0
+                ? `${enCola} ${enCola === 1 ? "impresión espera" : "impresiones esperan"} en la cola`
+                : "Sin cola detrás"}
           </p>
         </div>
-        {/* En el celular va en su propia franja; en la compu, a la derecha. */}
-        <div className="flex w-full items-baseline justify-between gap-2 rounded-2xl bg-[var(--kint-panel)]/70 px-3 py-2 ring-1 ring-orange-500/20 sm:block sm:w-auto sm:shrink-0 sm:bg-transparent sm:p-0 sm:text-right sm:ring-0">
-          <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-muted)]">Libre en</p>
-          <p className="whitespace-nowrap text-lg font-black leading-tight tabular-nums text-[var(--text-main)] sm:text-2xl">{falta(hasta - ahoraMs)}</p>
-          <p className="whitespace-nowrap text-[11px] font-bold text-orange-600 dark:text-orange-400">{cuando(libre, ahoraMs)}</p>
-        </div>
+        {ocupada && (
+          <div className="shrink-0 text-right">
+            <p className={etiqueta}>Libre en</p>
+            <p className="mt-1 text-xl font-semibold leading-none tabular-nums text-[var(--text-main)] sm:text-2xl">{falta(hasta - ahoraMs)}</p>
+            <p className="mt-1 text-xs tabular-nums text-[var(--text-muted)]">{cuando(libre, ahoraMs)}</p>
+          </div>
+        )}
       </div>
 
       {/* Línea de tiempo: de ahora hasta que queda libre */}
-      <div className="relative mt-4">
-        <div className="relative h-3 overflow-hidden rounded-full bg-[var(--border-color)]/70">
-          {bloques.map((bloque, indice) => (
-            <span
-              key={bloque.inicio + indice}
-              className={`absolute inset-y-0 ${indice > 0 ? "border-l-2 border-[var(--kint-panel)]" : ""} ${
-                bloque === actual ? "kint-rayas-vivas" : indice % 2 ? "bg-orange-400/60" : "bg-orange-500/75"
-              }`}
-              style={{ left: `${posicion(bloque.inicio)}%`, width: `${posicion(bloque.fin) - posicion(bloque.inicio)}%` }}
-            />
-          ))}
+      {ocupada && (
+        <div className="px-4 pb-4 sm:px-5">
+          <div className="relative h-1.5 overflow-hidden rounded-full bg-[var(--border-color)]">
+            {bloques.map((bloque, indice) => (
+              <span
+                key={bloque.inicio + indice}
+                className={`absolute inset-y-0 ${indice > 0 ? "border-l-2 border-[var(--kint-panel)]" : ""} ${
+                  bloque === actual ? "bg-orange-500" : "bg-[var(--text-muted)]/45"
+                }`}
+                style={{ left: `${posicion(bloque.inicio)}%`, width: `${posicion(bloque.fin) - posicion(bloque.inicio)}%` }}
+              />
+            ))}
+          </div>
+          <div className="mt-1.5 flex justify-between text-[10px] tabular-nums text-[var(--text-muted)]">
+            <span>Ahora</span>
+            <span>{hora(libre)}</span>
+          </div>
         </div>
-        <div className="mt-1.5 flex items-center justify-between text-[10px] font-bold text-[var(--text-muted)]">
-          <span className="inline-flex items-center gap-1">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-            Ahora
-          </span>
-          <span>Libre {hora(libre)}</span>
-        </div>
-      </div>
-
-      <HorasPorHacer datos={agenda.porHacer} />
+      )}
 
       {/* La cola */}
-      <ol className="relative mt-3 space-y-1.5">
-        {bloques.map((bloque, indice) => {
-          const vivo = bloque === actual;
-          return (
-            <li
-              key={`${bloque.fin}-${indice}`}
-              className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl px-3 py-2 text-xs ${
-                vivo ? "bg-orange-500/12 ring-1 ring-orange-500/30" : "bg-[var(--kint-panel)]/70 ring-1 ring-[var(--border-color)]"
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-black ${
-                  vivo ? "bg-orange-500 text-white" : "bg-[var(--border-color)] text-[var(--text-muted)]"
-                }`}
-              >
-                {indice + 1}
-              </span>
-              <span className="font-black text-[var(--text-main)]">{bloque.pedido || `Impresión ${indice + 1}`}</span>
-              {vivo && (
-                <span className="rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white">
-                  Imprimiendo
+      {ocupada && (
+        <ol className="divide-y divide-[var(--border-color)] border-t border-[var(--border-color)]">
+          {bloques.map((bloque, indice) => {
+            const vivo = bloque === actual;
+            return (
+              <li key={`${bloque.fin}-${indice}`} className="flex items-center gap-3 px-4 py-2.5 text-[13px] sm:px-5">
+                <span className="w-4 shrink-0 text-xs tabular-nums text-[var(--text-muted)]">{indice + 1}</span>
+                <span className="whitespace-nowrap font-medium text-[var(--text-main)]">{bloque.pedido || `Impresión ${indice + 1}`}</span>
+                {vivo && (
+                  <span className="rounded-md bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-orange-600 dark:text-orange-400">
+                    Imprimiendo
+                  </span>
+                )}
+                <span className="ml-auto whitespace-nowrap text-right text-xs tabular-nums text-[var(--text-muted)]">
+                  {vivo ? <span className="hidden sm:inline">termina </span> : <span className="hidden sm:inline">{`${cuando(bloque.inicio, ahoraMs)} → `}</span>}
+                  <span className="text-[var(--text-main)]">{cuando(bloque.fin, ahoraMs)}</span>
                 </span>
-              )}
-              <span className="ml-auto text-right tabular-nums text-[var(--text-muted)]">
-                {vivo ? "termina " : `${cuando(bloque.inicio, ahoraMs)} → `}
-                <span className="font-bold text-[var(--text-main)]">{cuando(bloque.fin, ahoraMs)}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+
+      {/* Horas de impresión que faltan hacer (lo ya impreso no cuenta) */}
+      {porHacer && totalPorHacer > 0 && (
+        <dl className="grid grid-cols-3 divide-x divide-[var(--border-color)] border-t border-[var(--border-color)]">
+          {[
+            { titulo: "Por imprimir", corto: "Total", valor: totalPorHacer, detalle: pedidos(porHacer.pagados + porHacer.cotizados) },
+            { titulo: "Ya pagadas", corto: "Pagadas", valor: porHacer.pagadosMin, detalle: pedidos(porHacer.pagados) },
+            { titulo: "Cotizadas", corto: "Cotizadas", valor: porHacer.cotizadosMin, detalle: pedidos(porHacer.cotizados) },
+          ].map((dato) => (
+            <div key={dato.titulo} className="min-w-0 px-2.5 py-3 sm:px-5">
+              <dt className={`${etiqueta} whitespace-nowrap`}>
+                <span className="sm:hidden">{dato.corto}</span>
+                <span className="hidden sm:inline">{dato.titulo}</span>
+              </dt>
+              <dd className="mt-1 whitespace-nowrap text-[15px] font-semibold tabular-nums text-[var(--text-main)] sm:text-lg">{dato.valor > 0 ? horasCorto(dato.valor) : "—"}</dd>
+              <dd className="truncate text-[11px] text-[var(--text-muted)]">{dato.valor > 0 ? dato.detalle : "Ninguno"}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
 
       {/* Desde cuándo puede empezar la suya */}
-      <div className="relative mt-3 flex items-center gap-2.5 rounded-2xl bg-emerald-500/10 px-3.5 py-2.5 ring-1 ring-emerald-500/25">
-        <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+      <div className="flex items-center gap-2.5 border-t border-[var(--border-color)] bg-emerald-500/[0.06] px-4 py-3 sm:px-5">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+          <Check size={12} strokeWidth={3} />
+        </span>
         <p className="text-sm text-[var(--text-main)]">
-          Tu maqueta puede empezar desde <span className="font-black">{cuando(libre, ahoraMs)}</span>
+          {ocupada ? (
+            <>
+              Tu maqueta puede empezar desde <span className="font-semibold">{cuando(libre, ahoraMs)}</span>
+            </>
+          ) : (
+            <>
+              Tu maqueta puede <span className="font-semibold">empezar ya</span>
+            </>
+          )}
         </p>
       </div>
     </div>
