@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import UsarDineroAFavor from "@/components/UsarDineroAFavor";
+import CobrosExtraCliente from "@/components/CobrosExtraCliente";
 import ExtrasPresupuesto from "@/components/ExtrasPresupuesto";
 import SeguimientoTienda, {
   buscarCompraTienda,
@@ -3070,6 +3071,11 @@ aplicada al pedido.
 )}
 
   </div>
+)}
+
+{/* Cobros extra (algo que se sumó después, ej. una pieza que faltaba) */}
+{!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (
+  <CobrosExtraCliente pedido={resultado.pedido} codigo={codigo} />
 )}
 
 {!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (

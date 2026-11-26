@@ -237,7 +237,7 @@ export default function Reparto() {
                       {cobrar > 0 && !pedido.revisar && <span className="text-red-600 dark:text-red-400">Cobrar {pesos(cobrar)}</span>}
                       {pedido.revisar && (
                         <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">
-                          {pedido.revisar === "saldo" ? `Subió el comprobante del saldo (${pesos(cobrar)})` : "Subió el comprobante"} · tocá para validarlo
+                          {pedido.revisar === "saldo" ? `Subió el comprobante del saldo (${pesos(cobrar)})` : pedido.revisar === "extra" ? "Subió el comprobante del extra" : "Subió el comprobante"} · tocá para validarlo
                         </span>
                       )}
                     </p>

@@ -313,7 +313,8 @@ export type PedidoGeneral = {
   extras?: string; // productos sumados a la maqueta («20 monos 1:200 · Cristal, 2 × Llavero»)
   whatsapp?: string; // celular del pedido o de su cuenta (para Reparto)
   guardado?: string; // Reparto: cuándo lo marcó como guardado/empaquetado ("" = no)
-  revisar?: "pago" | "saldo" | ""; // subió un comprobante que falta validar
+  revisar?: "pago" | "saldo" | "extra" | ""; // subió un comprobante que falta validar
+  cobroExtra?: number; // cobros extra sin pagar (pieza olvidada, etc.)
   detalle: string;
 };
 
@@ -599,6 +600,18 @@ export type AccionesAdmin = {
   admin_reparto_guardar: {
     pedido: { pedido: string; guardado: boolean };
     respuesta: { pedido: string; guardado: boolean };
+  };
+  admin_cobros_extra_ver: {
+    pedido: { pedido: string };
+    respuesta: CobrosExtra;
+  };
+  admin_cobro_extra_crear: {
+    pedido: { pedido: string; concepto: string; monto: number };
+    respuesta: CobrosExtra;
+  };
+  admin_cobro_extra_estado: {
+    pedido: { id: string; estado: "Pagado" | "Pendiente" | "Anulado" };
+    respuesta: CobrosExtra;
   };
   admin_dinero_favor_ver: {
     pedido: { email: string };
@@ -943,6 +956,9 @@ export const ACCIONES_ADMIN = [
   "admin_cancelaciones_listar",
   "admin_reparto_guardar",
   "admin_dinero_favor_ver",
+  "admin_cobros_extra_ver",
+  "admin_cobro_extra_crear",
+  "admin_cobro_extra_estado",
   "admin_dinero_favor_cargar",
   "admin_dinero_favor_deshacer",
   "admin_cupon_crear",
@@ -1006,3 +1022,16 @@ export type MovimientoDineroAFavor = {
   donde: string; // "Precio" | "Saldo" (dónde se usó)
 };
 export type DineroAFavor = { email: string; saldo: number; movimientos: MovimientoDineroAFavor[] };
+
+/* Cobro extra de un pedido ya cotizado o pago (hoja «Cobros extra»): pieza olvidada, etc. */
+export type CobroExtra = {
+  id: string; // CEX-0001
+  fecha: string; // ISO
+  concepto: string;
+  monto: number;
+  estado: "Pendiente" | "Por validar" | "Pagado" | "Anulado";
+  comprobante: string; // link de Drive ("" = no subió)
+  fechaComprobante: string;
+  fechaPagado: string;
+};
+export type CobrosExtra = { pedido: string; cobros: CobroExtra[]; aviso?: string };

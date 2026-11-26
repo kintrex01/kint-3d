@@ -420,10 +420,13 @@ function FilaPedido({
       <span className="shrink-0 text-right">
         {(() => {
           if (!(pedido.monto > 0)) return <span className="block font-black tabular-nums">—</span>;
-          const pagadoEntero = (pedido.debe ?? 0) <= 0;
+          // Lo de la maqueta (los cobros extra van aparte, abajo).
+          const extraSinPagar = pedido.cobroExtra ?? 0;
+          const debe = Math.max(0, (pedido.debe ?? 0) - extraSinPagar);
+          const pagadoEntero = debe <= 0;
           const sena = pedido.conSena && (pedido.importeSena ?? 0) > 0 && !pagadoEntero;
           // Con seña, arriba va lo que te tienen que pagar ahora: la seña (si no la pagó) o el saldo.
-          const grande = !sena ? pedido.monto : pedido.pagado ? (pedido.debe ?? 0) : (pedido.importeSena ?? 0);
+          const grande = !sena ? pedido.monto : pedido.pagado ? debe : (pedido.importeSena ?? 0);
           return (
             <>
               <span className="block font-black tabular-nums">{pesos(grande)}</span>
@@ -435,7 +438,7 @@ function FilaPedido({
               {/* Lo que ya te pagó (la seña), en verde */}
               {!pagadoEntero && pedido.pagado && (
                 <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400">
-                  Pagó {pesos(Math.max(0, pedido.monto - (pedido.debe ?? 0)))}
+                  Pagó {pesos(Math.max(0, pedido.monto - debe))}
                 </span>
               )}
               <span
@@ -454,13 +457,17 @@ function FilaPedido({
                       ? "Seña paga · falta el saldo"
                       : `Sin pagar · después resta ${pesos(pedido.saldo ?? 0)}`
                     : pedido.pagado
-                      ? `Seña paga · debe ${pesos(pedido.debe ?? 0)}`
+                      ? `Seña paga · debe ${pesos(debe)}`
                       : "Sin pagar"}
               </span>
+              {/* Cobro extra (pieza olvidada…) que todavía no pagó */}
+              {extraSinPagar > 0 && (
+                <span className="block text-[10px] font-bold text-red-600 dark:text-red-400">+ Extra {pesos(extraSinPagar)} sin pagar</span>
+              )}
               {/* Subió el comprobante y falta que lo valides */}
               {pedido.revisar && (
                 <span className="mt-1 inline-block rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-black text-white">
-                  {pedido.revisar === "saldo" ? "Subió el comprobante del saldo" : "Subió el comprobante"} · validalo
+                  {pedido.revisar === "saldo" ? "Subió el comprobante del saldo" : pedido.revisar === "extra" ? "Subió el comprobante del extra" : "Subió el comprobante"} · validalo
                 </span>
               )}
             </>

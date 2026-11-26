@@ -88,6 +88,7 @@ import {
   estadoPresupuesto,
 } from "@/components/admin/pedidos/PresupuestoPedido";
 import { ExtrasPedidoAdmin } from "@/components/admin/pedidos/ExtrasPedidoAdmin";
+import { CobrosExtraAdmin } from "@/components/admin/pedidos/CobrosExtraAdmin";
 
 type Confirmacion = {
   titulo: string;
@@ -1141,6 +1142,15 @@ export default function DetallePedidoAdmin({
 
       <TituloSeccion icono={<ShoppingBag size={14} />} color="#f87171">Productos de la tienda</TituloSeccion>
       <ExtrasPedidoAdmin pedido={pedido.pedido} extras={pedido.extras ?? []} onGuardado={recargar} />
+
+      {/* Cobrar algo más (pieza olvidada…) aunque ya esté pago, sin otro pedido. */}
+      <TituloSeccion icono={<ReceiptText size={14} />} color="#f59e0b">Cobros extra</TituloSeccion>
+      <CobrosExtraAdmin
+        pedido={pedido.pedido}
+        nombre={pedido.nombre}
+        telefono={pedido.whatsapp || pedido.telefonoCuenta || ""}
+        codigo={pedido.codigo}
+      />
 
       {/* Pago */}
       <TituloSeccion icono={<Wallet size={14} />} color="#10b981">Pago</TituloSeccion>
