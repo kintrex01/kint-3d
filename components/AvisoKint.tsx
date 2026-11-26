@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarDays, Megaphone, X } from "lucide-react";
+import { CalendarDays, Info, X } from "lucide-react";
 
 type AvisoKintProps = {
   titulo?: string;
@@ -35,17 +35,16 @@ export default function AvisoKint({
   const esGrande = tamano === "grande";
 
   /*
-   * AVISO COMPACTO
-   * Copia exacta del diseño original.
-   */
-  /*
-   * AVISO EMERGENTE: tarjeta oscura con brillo, ícono, título opcional
-   * (el que escribe el dueño; vacío = sin título), el mensaje y la fecha.
+   * AVISO EMERGENTE: tarjeta sobria (claro u oscuro según la página), un
+   * ícono chico, el título opcional (vacío = sin título), el mensaje, la
+   * fecha si hay y un botón. Se cierra tocando afuera, la X o el botón.
    */
   if (!esGrande) {
+    const claseBoton =
+      "mt-6 flex h-11 w-full items-center justify-center rounded-xl bg-[var(--text-main)] text-sm font-semibold text-[var(--page-bg)] transition hover:opacity-90 active:scale-[0.99]";
     return (
       <div
-        className="kint-aviso-fondo fixed inset-0 z-[9998] flex items-center justify-center bg-black/55 px-5 backdrop-blur-md"
+        className="kint-aviso-fondo fixed inset-0 z-[9998] flex items-end justify-center bg-black/45 px-4 pb-4 backdrop-blur-[2px] sm:items-center sm:pb-0"
         onClick={onCerrar}
       >
         <section
@@ -53,66 +52,48 @@ export default function AvisoKint({
           aria-modal="true"
           aria-label={titulo || "Aviso de Kint 3D"}
           onClick={(evento) => evento.stopPropagation()}
-          className="kint-aviso-tarjeta relative w-full max-w-md overflow-hidden rounded-[28px] bg-[linear-gradient(160deg,#0d1526_0%,#0a0f1c_55%,#140b14_100%)] text-white shadow-[0_30px_80px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+          className="kint-aviso-tarjeta relative w-full max-w-[420px] rounded-2xl border border-[var(--kint-panel-border)] bg-[var(--kint-panel)] p-6 text-[var(--text-main)] shadow-[0_20px_60px_rgba(0,0,0,0.25)] sm:p-7"
         >
-          {/* Brillos de fondo y línea de color arriba */}
-          <div aria-hidden="true" className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-red-600/30 blur-3xl" />
-          <div aria-hidden="true" className="pointer-events-none absolute -bottom-28 -right-16 h-64 w-64 rounded-full bg-sky-500/20 blur-3xl" />
-          <div aria-hidden="true" className="h-1 w-full bg-[linear-gradient(90deg,#dc2626,#f97316_45%,#38bdf8)]" />
-
-          {onCerrar && (
-            <button
-              type="button"
-              onClick={onCerrar}
-              className="absolute right-4 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-slate-300 ring-1 ring-white/10 transition hover:bg-white/15 hover:text-white"
-              aria-label="Cerrar aviso"
-            >
-              <X size={17} />
-            </button>
-          )}
-
-          <div className="relative px-7 pb-7 pt-8 sm:px-9">
-            <div className="flex items-center gap-3">
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#ef4444,#b91c1c)] shadow-[0_10px_28px_rgba(220,38,38,0.45)]">
-                <span aria-hidden="true" className="kint-aviso-pulso absolute inset-0 rounded-2xl ring-2 ring-red-500/60" />
-                <Megaphone size={22} className="-rotate-12" />
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--kint-panel-soft)] text-[var(--text-main)]">
+                <Info size={16} />
               </span>
-              <p className="text-[11px] font-black uppercase tracking-[0.32em] text-red-400">Kint 3D</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)] opacity-80">Aviso · Kint 3D</p>
             </div>
-
-            {titulo && (
-              <h2 className="mt-6 text-2xl font-black leading-tight tracking-tight sm:text-[28px]">{titulo}</h2>
-            )}
-
-            <p className={`whitespace-pre-wrap text-[15px] leading-7 text-slate-200 ${titulo ? "mt-3" : "mt-6 text-base font-semibold leading-8 text-white"}`}>
-              {mensaje}
-            </p>
-
-            {fecha && (
-              <p className="mt-5 inline-flex items-center gap-2 rounded-full bg-white/[0.07] px-4 py-2 text-sm font-bold text-slate-100 ring-1 ring-white/10">
-                <CalendarDays size={15} className="text-sky-300" />
-                <span className="text-slate-400">{etiquetaFecha}</span>
-                {fecha}
-              </p>
-            )}
-
-            {hrefBoton ? (
-              <Link
-                href={hrefBoton}
-                className="mt-7 flex h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#ef4444,#dc2626)] text-sm font-black text-white shadow-[0_12px_30px_rgba(220,38,38,0.35)] transition hover:brightness-110 active:scale-[0.98]"
-              >
-                {textoBoton}
-              </Link>
-            ) : (
+            {onCerrar && (
               <button
                 type="button"
                 onClick={onCerrar}
-                className="mt-7 h-12 w-full rounded-2xl bg-[linear-gradient(135deg,#ef4444,#dc2626)] text-sm font-black text-white shadow-[0_12px_30px_rgba(220,38,38,0.35)] transition hover:brightness-110 active:scale-[0.98]"
+                className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] transition hover:bg-[var(--kint-panel-soft)] hover:text-[var(--text-main)]"
+                aria-label="Cerrar aviso"
               >
-                {textoBoton}
+                <X size={18} />
               </button>
             )}
           </div>
+
+          {titulo && <h2 className="mt-5 text-xl font-semibold leading-snug tracking-tight">{titulo}</h2>}
+
+          <p className={`whitespace-pre-wrap text-[15px] leading-relaxed text-[var(--text-muted)] ${titulo ? "mt-2" : "mt-5"}`}>{mensaje}</p>
+
+          {fecha && (
+            <p className="mt-4 flex items-center gap-2 border-t border-[var(--kint-panel-border)] pt-4 text-sm">
+              <CalendarDays size={15} className="shrink-0 text-[var(--text-muted)]" />
+              <span className="text-[var(--text-muted)]">{etiquetaFecha}:</span>
+              <span className="font-semibold">{fecha}</span>
+            </p>
+          )}
+
+          {hrefBoton ? (
+            <Link href={hrefBoton} className={claseBoton}>
+              {textoBoton}
+            </Link>
+          ) : (
+            <button type="button" onClick={onCerrar} className={claseBoton}>
+              {textoBoton}
+            </button>
+          )}
         </section>
       </div>
     );
