@@ -31,7 +31,7 @@ import { colorFilamento } from "@/lib/colores-filamento";
 const OPCIONES = ["Recomendada", "Premium", "Barata"];
 const ESTADOS_LIBRES = ["Recibido", "Presupuestado"];
 
-type Agregado = { pedido: string; nombre: string; opcion: string; precio: number };
+type Agregado = { pedido: string; nombre: string; opcion: string; precio: number; extra?: boolean };
 
 export default function CalculadoraAdmin() {
   return (
@@ -76,6 +76,36 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
   // El precio sugerido es el redondeado; se puede cambiar a mano.
   const precio = precioTexto.trim() ? Number(precioTexto.replace(",", ".")) : calculo.resultado.redondeado;
   const avanzado = Boolean(pedido && !ESTADOS_LIBRES.includes(pedido.estado));
+  // Ya pagó o se está imprimiendo: lo normal es cobrarlo como extra (le aparece en su seguimiento para pagar).
+  // Lo que eligió vale para ese pedido; al cambiar de pedido vuelve a lo normal.
+  const [modoElegido, setModoElegido] = useState<{ pedido: string; modo: "extra" | "presupuesto" } | null>(null);
+  const comoExtra = avanzado && !(modoElegido?.pedido === elegido && modoElegido.modo === "presupuesto");
+  const conceptoExtra =
+    descripcion.trim() ||
+    ["Pieza extra", [calculo.tiempo !== "0 min" ? calculo.tiempo : "", calculo.pieza.gramos > 0 ? `${Math.round(calculo.pieza.gramos)} g` : ""].filter(Boolean).join(", ")]
+      .filter(Boolean)
+      .join(" · ");
+
+  /* Cobro extra (CobrosExtra): no toca el presupuesto; el cliente lo paga aparte desde su seguimiento. */
+  async function cobrarExtra() {
+    if (!pedido) return;
+    if (!(precio > 0)) {
+      avisar("Poné un precio mayor a 0.", "error");
+      return;
+    }
+    setGuardando(true);
+    try {
+      const respuesta = await accionAdmin("admin_cobro_extra_crear", { pedido: pedido.pedido, concepto: conceptoExtra, monto: Math.round(precio) });
+      setAgregados([{ pedido: pedido.pedido, nombre: pedido.nombre, opcion: `Extra: ${conceptoExtra}`, precio: Math.round(precio), extra: true }, ...agregados]);
+      avisar(`${pedido.pedido}: ${respuesta.aviso || "cobro extra cargado"} Avisale por WhatsApp desde el pedido.`);
+      setDescripcion("");
+      setPrecioTexto("");
+    } catch (error) {
+      avisar(error instanceof Error ? error.message : "No se pudo cargar el cobro.", "error");
+    } finally {
+      setGuardando(false);
+    }
+  }
 
   /* Pasa el pedido a «Presupuestado»: el cliente recibe el correo con las opciones. */
   function enviarPresupuesto(numero: string) {
@@ -211,6 +241,42 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
 
       {pedido && (
         <div className="mt-3 space-y-3">
+          {avanzado && (
+            <div>
+              <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
+                {pedido.pedido} ya está en «{textoEstado(pedido.estado)}». ¿Cómo lo sumás?
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { valor: "extra" as const, titulo: "Cobro extra", detalle: "Lo paga aparte, desde su seguimiento" },
+                  { valor: "presupuesto" as const, titulo: "Al presupuesto", detalle: "Otra opción (no se suele tocar)" },
+                ].map((modo) => {
+                  const activo = (modo.valor === "extra") === comoExtra;
+                  return (
+                    <button
+                      key={modo.valor}
+                      type="button"
+                      aria-pressed={activo}
+                      onClick={() => {
+                        setModoElegido({ pedido: elegido, modo: modo.valor });
+                        setConfirmar(false);
+                      }}
+                      className={`rounded-xl border px-3 py-2 text-left transition ${
+                        activo
+                          ? "border-[var(--acento)] bg-[var(--acento)]/10"
+                          : "border-[var(--kint-panel-border)] hover:border-[var(--kint-selected-border)]"
+                      }`}
+                    >
+                      <span className="block text-xs font-black">{modo.titulo}</span>
+                      <span className="block text-[11px] leading-4 text-[var(--text-muted)]">{modo.detalle}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!comoExtra && (
           <div>
             <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Opción</span>
             <div className="flex flex-wrap gap-1.5">
@@ -238,15 +304,18 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
               />
             </div>
           </div>
+          )}
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">Descripción (opcional)</span>
+            <span className="mb-1.5 block text-xs font-bold text-[var(--text-muted)]">
+              {comoExtra ? "Qué le cobrás (lo ve el cliente)" : "Descripción (opcional)"}
+            </span>
             <input
               className={`${claseInput} h-10`}
               value={descripcion}
               onChange={(evento) => setDescripcion(evento.target.value)}
-              placeholder="Ej.: PLA blanco, escala 1:100, base incluida"
-              maxLength={300}
+              placeholder={comoExtra ? conceptoExtra : "Ej.: PLA blanco, escala 1:100, base incluida"}
+              maxLength={comoExtra ? 120 : 300}
             />
           </label>
 
@@ -279,7 +348,18 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
             </p>
           )}
 
-          {pedido.estado === "Recibido" && !enviados.includes(pedido.pedido) ? (
+          {comoExtra ? (
+            <Boton
+              variante="principal"
+              className="w-full"
+              icono={<Check size={16} />}
+              cargando={guardando}
+              disabled={!(precio > 0)}
+              onClick={() => void cobrarExtra()}
+            >
+              {`Cobrarle como extra · ${pesos(Math.round(precio || 0))}`}
+            </Boton>
+          ) : pedido.estado === "Recibido" && !enviados.includes(pedido.pedido) ? (
             <>
               {/* Lo más común: una opción y listo, se la manda ya. */}
               <Boton
@@ -320,7 +400,8 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
                 <span className="min-w-0 truncate">
                   <span className="font-bold">{item.pedido}</span> · {item.opcion} · {pesos(item.precio)}
                 </span>
-                {indice === agregados.findIndex((otro) => otro.pedido === item.pedido) &&
+                {!item.extra &&
+                  indice === agregados.findIndex((otro) => otro.pedido === item.pedido && !otro.extra) &&
                   (enviados.includes(item.pedido) ? (
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       <Check size={12} />
