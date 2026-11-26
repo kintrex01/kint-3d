@@ -438,14 +438,14 @@ export default function ConfiguracionAdmin() {
                     <p className="relative text-[11px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">
                       {titulo}
                     </p>
-                    <div className="relative mt-1 flex items-center justify-between gap-2">
+                    <div className="relative mt-1.5 flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p
-                        className={`flex items-center gap-1.5 text-base font-black ${
+                        className={`flex items-center gap-1.5 whitespace-nowrap text-[15px] font-black leading-tight sm:text-base ${
                           activo ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
                         }`}
                       >
                         <span
-                          className={`h-2 w-2 rounded-full ${activo ? "animate-pulse bg-emerald-500" : "bg-red-500"}`}
+                          className={`h-2 w-2 shrink-0 rounded-full ${activo ? "animate-pulse bg-emerald-500" : "bg-red-500"}`}
                         />
                         {activo ? prendido : apagado}
                       </p>
@@ -784,7 +784,7 @@ function SeccionConfig({
           {ordenando ? (
             <>
               <p className="w-full text-xs text-[var(--text-muted)]">
-                Mové cada color con las flechas. Así aparecen en la web, de izquierda a derecha.
+                Mové cada color con las flechas. En la web aparecen en este mismo orden.
               </p>
               <Boton tamano="chico" onClick={() => setOrdenando(null)} disabled={Boolean(progresoOrden)}>
                 Cancelar
@@ -802,7 +802,7 @@ function SeccionConfig({
       )}
 
       {colores.length > 0 && (
-        <div className={`grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 ${resto.length ? "mt-2.5" : ""}`}>
+        <div className={`mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3`}>
           {colores.map((fila, indice) => {
             const nombre = fila.etiqueta.replace(/^filamento\s+/i, "");
             const activo = estaHabilitada(optimistas[fila.clave] ?? fila.valor);
@@ -811,28 +811,31 @@ function SeccionConfig({
             return (
               <div
                 key={fila.fila}
-                className={`flex items-center gap-2.5 rounded-2xl border p-2.5 transition ${
+                className={`flex min-w-0 items-center gap-3 rounded-2xl border px-3 py-2.5 transition ${
                   activo
                     ? "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
-                    : "border-dashed border-[var(--kint-panel-border)] bg-transparent opacity-60"
+                    : "border-dashed border-[var(--kint-panel-border)] bg-transparent"
                 }`}
               >
                 <span
                   aria-hidden
-                  className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-black/15 dark:ring-white/20"
+                  className={`h-10 w-10 shrink-0 rounded-full bg-cover bg-center ring-1 ring-black/15 dark:ring-white/20 ${activo ? "" : "opacity-40 grayscale"}`}
                   style={mini ? { backgroundImage: `url("${mini}")` } : { background: extras.color || colorFilamento(nombre) }}
                 />
-                <p className="min-w-0 flex-1 truncate text-sm font-bold" title={extras.nombre || nombre}>
-                  {extras.nombre || nombre}
-                  {extras.nombre && <span className="block truncate text-[10px] font-semibold text-[var(--text-muted)]">{nombre}</span>}
-                </p>
+                <div className="min-w-0 flex-1" title={extras.nombre || nombre}>
+                  <p className={`truncate text-sm font-bold ${activo ? "" : "text-[var(--text-muted)]"}`}>{extras.nombre || nombre}</p>
+                  <p className={`truncate text-[11px] ${activo ? "text-emerald-700 dark:text-emerald-400" : "font-semibold text-red-600 dark:text-red-400"}`}>
+                    {activo ? "Se puede elegir" : `Apagado · dice «${extras.nota || "Color no disponible"}»`}
+                    {activo && extras.nombre ? <span className="text-[var(--text-muted)]">{` · antes ${nombre}`}</span> : ""}
+                  </p>
+                </div>
                 {ordenando ? (
                   <span className="flex shrink-0 items-center gap-1">
                     <span className="w-5 text-center text-xs font-black text-[var(--text-muted)]">{indice + 1}</span>
                     {[
-                      { paso: -1, Icono: ArrowLeft, texto: "Mover antes" },
-                      { paso: 1, Icono: ArrowRight, texto: "Mover después" },
-                    ].map(({ paso, Icono, texto }) => (
+                      { paso: -1, Icono: ArrowUp, IconoAncho: ArrowLeft, texto: "Mover antes" },
+                      { paso: 1, Icono: ArrowDown, IconoAncho: ArrowRight, texto: "Mover después" },
+                    ].map(({ paso, Icono, IconoAncho, texto }) => (
                       <button
                         key={paso}
                         type="button"
@@ -842,7 +845,8 @@ function SeccionConfig({
                         title={texto}
                         className="flex h-9 w-9 items-center justify-center rounded-xl border border-[var(--kint-panel-border)] transition hover:border-[var(--kint-selected-border)] disabled:opacity-30"
                       >
-                        <Icono size={15} />
+                        <Icono size={15} className="sm:hidden" />
+                        <IconoAncho size={15} className="hidden sm:block" />
                       </button>
                     ))}
                   </span>

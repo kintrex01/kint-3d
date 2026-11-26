@@ -290,9 +290,10 @@ export function EditarFilamento({
             </label>
           </div>
           <label className="block">
-            <span className="mb-1 block text-[11px] font-bold text-[var(--text-muted)]">Nota para el cliente (opcional)</span>
+            <span className="mb-1 block text-[11px] font-bold text-[var(--text-muted)]">Mensaje cuando está apagado (opcional)</span>
             <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="Ej.: Vuelve en diciembre" className={`${claseInput} h-10`} />
           </label>
+          <p className="-mt-1 text-[11px] text-[var(--text-muted)]">Solo lo ve el cliente cuando apagás este color. Vacío: «Color no disponible».</p>
           <p className="text-[11px] text-[var(--text-muted)]">
             Nombre original: <b>{nombre}</b>. Cambiarlo no afecta los pedidos viejos.
           </p>
