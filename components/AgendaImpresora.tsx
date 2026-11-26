@@ -12,7 +12,50 @@ import { CheckCircle2, Printer } from "lucide-react";
  */
 
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
-type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: boolean };
+type PorHacer = { pagadosMin: number; pagados: number; cotizadosMin: number; cotizados: number };
+type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: boolean; porHacer?: PorHacer | null };
+
+/* «13 h», «1 h 30 min», «45 min». */
+function horas(minutos: number) {
+  if (minutos < 60) return `${Math.max(1, Math.round(minutos))} min`;
+  const h = Math.floor(minutos / 60);
+  const m = Math.round(minutos % 60);
+  return h >= 10 || !m ? `${Math.round(minutos / 60)} h` : `${h} h ${m} min`;
+}
+
+/* Debajo de la barra: cuántas horas de impresión faltan hacer (pagadas + cotizadas). */
+function HorasPorHacer({ datos }: { datos?: PorHacer | null }) {
+  const total = (datos?.pagadosMin || 0) + (datos?.cotizadosMin || 0);
+  if (!datos || total <= 0) return null;
+  const parte = (minutos: number) => `${(minutos / total) * 100}%`;
+  const pedidos = (n: number) => `${n} ${n === 1 ? "pedido" : "pedidos"}`;
+  return (
+    <div className="relative mt-3 rounded-2xl bg-[var(--kint-panel)]/70 px-3.5 py-2.5 ring-1 ring-[var(--border-color)]">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">Impresiones por hacer</p>
+        <p className="text-lg font-black tabular-nums text-[var(--text-main)]">{horas(total)}</p>
+      </div>
+      <div className="mt-1.5 flex h-2 overflow-hidden rounded-full bg-[var(--border-color)]/70">
+        <span className="bg-orange-500" style={{ width: parte(datos.pagadosMin) }} />
+        <span className="bg-orange-300/80 dark:bg-orange-300/50" style={{ width: parte(datos.cotizadosMin) }} />
+      </div>
+      <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[var(--text-muted)]">
+        {datos.pagadosMin > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-orange-500" />
+            <b className="text-[var(--text-main)]">{horas(datos.pagadosMin)}</b> ya pagadas ({pedidos(datos.pagados)})
+          </span>
+        )}
+        {datos.cotizadosMin > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <span className="h-2 w-2 rounded-full bg-orange-300" />
+            <b className="text-[var(--text-main)]">{horas(datos.cotizadosMin)}</b> cotizadas, esperando el pago ({pedidos(datos.cotizados)})
+          </span>
+        )}
+      </p>
+    </div>
+  );
+}
 
 const ZONA = "America/Montevideo";
 
@@ -56,7 +99,7 @@ export default function AgendaImpresora() {
       .then((data) => {
         if (!activo || !data?.ok) return;
         setDesfase(Date.parse(data.ahora) - Date.now());
-        setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "", oculta: Boolean(data.oculta) });
+        setAgenda({ ahora: data.ahora, bloques: data.bloques || [], libreDesde: data.libreDesde || "", oculta: Boolean(data.oculta), porHacer: data.porHacer || null });
       })
       .catch(() => {});
     const reloj = window.setInterval(() => setTic((n) => n + 1), 60000);
@@ -74,14 +117,17 @@ export default function AgendaImpresora() {
 
   if (!bloques.length) {
     return (
-      <div className="mb-3 flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.08] px-4 py-3">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-        </span>
-        <p className="text-sm font-bold text-[var(--text-main)]">
-          La impresora está libre: <span className="text-emerald-600 dark:text-emerald-400">tu maqueta puede empezar ya</span>
-        </p>
+      <div className="mb-3">
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.08] px-4 py-3">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 motion-reduce:animate-none" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+          </span>
+          <p className="text-sm font-bold text-[var(--text-main)]">
+            La impresora está libre: <span className="text-emerald-600 dark:text-emerald-400">tu maqueta puede empezar ya</span>
+          </p>
+        </div>
+        <HorasPorHacer datos={agenda.porHacer} />
       </div>
     );
   }
@@ -145,6 +191,8 @@ export default function AgendaImpresora() {
           <span>Libre {hora(libre)}</span>
         </div>
       </div>
+
+      <HorasPorHacer datos={agenda.porHacer} />
 
       {/* La cola */}
       <ol className="relative mt-3 space-y-1.5">
