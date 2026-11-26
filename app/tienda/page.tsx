@@ -44,6 +44,7 @@ import { adornoDe, coloresPieza, leerMascota, recargoPersonalizacion, leerPerson
 import { colorFilamento, fotoFilamento } from "@/lib/colores-filamento";
 import {
   esMonosAMedida,
+  MONOS_MINIMO,
   esTamanoPersonalizado,
   numeroEscala,
   pideColor,
@@ -831,11 +832,13 @@ async function prepararComprobante(archivo: File) {
 function SelectorCantidad({
   valor,
   maximo,
+  minimo = 1,
   etiqueta,
   onCambiar,
 }: {
   valor: number;
   maximo: number;
+  minimo?: number;
   etiqueta: string;
   onCambiar: (valor: number) => void;
 }) {
@@ -844,7 +847,7 @@ function SelectorCantidad({
       <button
         type="button"
         onClick={() => onCambiar(valor - 1)}
-        disabled={valor <= 1}
+        disabled={valor <= minimo}
         aria-label={`Restar una unidad de ${etiqueta}`}
         className="flex h-10 w-9 items-center justify-center rounded-l-xl text-[var(--text-muted)] transition hover:text-red-600 disabled:opacity-30"
       >
@@ -854,12 +857,12 @@ function SelectorCantidad({
       <input
         type="number"
         inputMode="numeric"
-        min={1}
+        min={minimo}
         max={maximo}
         value={valor}
         onChange={(evento) => {
           const numero = Math.floor(Number(evento.target.value));
-          if (numero >= 1) onCambiar(Math.min(maximo, numero));
+          if (numero >= 1) onCambiar(Math.min(maximo, Math.max(minimo, numero)));
         }}
         aria-label={`Cantidad de ${etiqueta}`}
         className="w-10 bg-transparent text-center text-sm font-black tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
@@ -3669,7 +3672,7 @@ export default function TiendaPage() {
         claveLinea(linea) === clave
           ? {
               ...linea,
-              cantidad: Math.max(1, Math.min(maxUnidades, cantidad)),
+              cantidad: Math.max(esMonosAMedida(linea.producto) ? MONOS_MINIMO : 1, Math.min(maxUnidades, cantidad)),
             }
           : linea
       )
@@ -4377,6 +4380,7 @@ export default function TiendaPage() {
                             <SelectorCantidad
                               valor={linea.cantidad}
                               maximo={maxUnidades}
+                              minimo={esMonosAMedida(linea.producto) ? MONOS_MINIMO : 1}
                               etiqueta={linea.producto}
                               onCambiar={(cantidad) =>
                                 cambiarCantidad(clave, cantidad)

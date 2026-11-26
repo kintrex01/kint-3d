@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { borrarArchivosPedidos } from "@/lib/archivos-pedido";
-import { esMonosAMedida, MONOS_MAXIMO } from "@/lib/extras-color";
+import { esMonosAMedida, MONOS_MAXIMO, MONOS_MINIMO } from "@/lib/extras-color";
 
 /* Lo que escribió el cliente va al correo como texto (no como HTML). */
 function escaparHtml(valor: unknown) {
@@ -290,7 +290,7 @@ telefono: String(body.telefono || ""),
               producto: String(linea?.producto || "").slice(0, 80),
               cadena: String(linea?.cadena || "").slice(0, 40),
               // Monos a medida: la cantidad son monos (hasta 200); el resto, hasta 10. Apps Script vuelve a validar.
-              cantidad: Math.min(esMonosAMedida(String(linea?.producto || "")) ? MONOS_MAXIMO : 10, Math.max(1, Math.floor(Number(linea?.cantidad) || 1))),
+              cantidad: Math.min(esMonosAMedida(String(linea?.producto || "")) ? MONOS_MAXIMO : 10, Math.max(esMonosAMedida(String(linea?.producto || "")) ? MONOS_MINIMO : 1, Math.floor(Number(linea?.cantidad) || 1))),
             };
           })
         : [],

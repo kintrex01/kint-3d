@@ -122,10 +122,11 @@ export function precioMonosEscala(productos: { nombre: string; precio: number; v
 export const MONOS_POR_PAQUETE = 30; // los precios de Configuración son por 30 monos
 export const MONOS_MAXIMO = 200; // monos por línea
 export const MONOS_PASO = 10; // el + y el − suman/restan de a 10
+export const MONOS_MINIMO = 20; // no se venden menos de 20 monos a medida
 export const ESCALAS_MONOS = [50, 75, 100, 125, 150, 200, 250, 500];
 
 export type PreciosMonos = { base: number; paso: number; minimo: number };
-export const PRECIOS_MONOS_DEFECTO: PreciosMonos = { base: 120, paso: 10, minimo: 40 };
+export const PRECIOS_MONOS_DEFECTO: PreciosMonos = { base: 140, paso: 10, minimo: 40 };
 
 export function esMonosAMedida(nombre: string) {
   return pideColor(nombre) && !numeroEscala(nombre);

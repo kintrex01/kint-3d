@@ -5,6 +5,7 @@ import { Check, Minus, Plus, X } from "lucide-react";
 import {
   ESCALAS_MONOS,
   MONOS_MAXIMO,
+  MONOS_MINIMO,
   MONOS_PASO,
   MONOS_POR_PAQUETE,
   numeroEscala,
@@ -65,7 +66,7 @@ export default function ElegirMonos({
   const falta = !n ? "Elegí la escala" : !color ? "Elegí el color" : "";
 
   function poner(valor: number) {
-    const limpio = Math.min(MONOS_MAXIMO, Math.max(1, Math.round(valor) || 1));
+    const limpio = Math.min(MONOS_MAXIMO, Math.max(MONOS_MINIMO, Math.round(valor) || MONOS_MINIMO));
     setCantidad(limpio);
     setTextoCantidad(String(limpio));
   }
@@ -162,12 +163,12 @@ export default function ElegirMonos({
           {/* Cuántos monos y precio (sube con la cantidad) */}
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-[var(--border-color)] pt-3">
             <div>
-              <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">¿Cuántos monos?</p>
+              <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--text-muted)]">¿Cuántos monos? <span className="normal-case tracking-normal">(mínimo {MONOS_MINIMO})</span></p>
               <div className="flex items-center rounded-xl border border-[var(--border-color)]">
                 <button
                   type="button"
                   aria-label={`${MONOS_PASO} menos`}
-                  disabled={cantidad <= 1}
+                  disabled={cantidad <= MONOS_MINIMO}
                   onClick={() => poner(cantidad - MONOS_PASO)}
                   className="flex h-9 w-9 items-center justify-center disabled:opacity-30"
                 >
@@ -178,7 +179,7 @@ export default function ElegirMonos({
                   onChange={(evento) => {
                     const texto = evento.target.value.replace(/\D/g, "").slice(0, 3);
                     setTextoCantidad(texto);
-                    if (Number(texto) > 0) setCantidad(Math.min(MONOS_MAXIMO, Number(texto)));
+                    if (Number(texto) > 0) setCantidad(Math.min(MONOS_MAXIMO, Math.max(MONOS_MINIMO, Number(texto))));
                   }}
                   onBlur={() => poner(Number(textoCantidad))}
                   inputMode="numeric"
