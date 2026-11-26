@@ -679,6 +679,16 @@ function SeccionConfig({
   const avisar = useAvisos();
   const [ordenando, setOrdenando] = useState<string[] | null>(null);
   const [progresoOrden, setProgresoOrden] = useState("");
+  // Prender / apagar un color solo para los monos («monos: no» en el comentario).
+  const [cambiandoMonos, setCambiandoMonos] = useState("");
+  async function cambiarMonos(fila: FilaConfig) {
+    const extras = extrasFilamento(fila.comentario);
+    const nombre = extras.nombre || fila.etiqueta.replace(/^filamento\s+/i, "");
+    setCambiandoMonos(fila.clave);
+    const ok = await guardar(fila.clave, { comentario: comentarioFilamento({ ...extras, monos: !extras.monos }) });
+    setCambiandoMonos("");
+    if (ok) avisar(extras.monos ? `${nombre}: ya no se ofrece en los monos` : `${nombre}: vuelve a estar en los monos`);
+  }
   const colores = ordenando
     ? ordenando.map((clave) => enHoja.find((fila) => fila.clave === clave)).filter((fila): fila is FilaConfig => Boolean(fila))
     : ordenados;
@@ -828,6 +838,24 @@ function SeccionConfig({
                     {activo ? "Se puede elegir" : `Apagado · dice «${extras.nota || "Color no disponible"}»`}
                     {activo && extras.nombre ? <span className="text-[var(--text-muted)]">{` · antes ${nombre}`}</span> : ""}
                   </p>
+                  {/* Solo para los monos: si se apaga, no se ofrece en monos (las maquetas sí). */}
+                  {!ordenando && (
+                    <button
+                      type="button"
+                      aria-pressed={extras.monos}
+                      disabled={cambiandoMonos === fila.clave}
+                      onClick={() => void cambiarMonos(fila)}
+                      title={extras.monos ? "Tocá para no ofrecerlo en los monos" : "Tocá para volver a ofrecerlo en los monos"}
+                      className={`mt-1 inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[10px] font-bold transition disabled:opacity-50 ${
+                        extras.monos
+                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                          : "border-red-500/40 bg-red-500/10 text-red-600 dark:text-red-400"
+                      }`}
+                    >
+                      <span aria-hidden>{extras.monos ? "✓" : "✕"}</span>
+                      {cambiandoMonos === fila.clave ? "Guardando…" : extras.monos ? "En monos" : "No en monos"}
+                    </button>
+                  )}
                 </div>
                 {ordenando ? (
                   <span className="flex shrink-0 items-center gap-1">

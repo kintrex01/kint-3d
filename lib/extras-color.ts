@@ -17,9 +17,11 @@ export function monosPrimero<T extends { nombre: string }>(productos: T[]): T[] 
  * Los colores habilitados con el nombre que ve la gente (Configuración › filamento_*),
  * en el orden que eligió el dueño. Lo mismo que arma /cotizar.
  */
-export function coloresVisiblesDesdeConfig(configuracion: Record<string, { valor?: unknown; comentario?: unknown }>) {
+/* soloMonos: sin los colores apagados para monos (Configuración › Filamentos › «Monos»). */
+export function coloresVisiblesDesdeConfig(configuracion: Record<string, { valor?: unknown; comentario?: unknown }>, soloMonos = false) {
   return Object.entries(configuracion || {})
     .filter(([clave, opcion]) => clave.startsWith("filamento_") && ["habilitada", "habilitado", "sí", "si"].includes(String(opcion?.valor || "").trim().toLowerCase()))
+    .filter(([, opcion]) => !soloMonos || extrasFilamento(String(opcion?.comentario || "")).monos)
     .map(([clave, opcion]) => {
       const extras = extrasFilamento(String(opcion?.comentario || ""));
       const deClave = clave
@@ -166,9 +168,10 @@ export function precioMono(precios: PreciosMonos, escala: number) {
 }
 
 /* Colores con su tono (para pintar el botón del color): Configuración › filamento_* (color: #hex). */
-export function coloresConTonoDesdeConfig(configuracion: Record<string, { valor?: unknown; comentario?: unknown }>) {
+export function coloresConTonoDesdeConfig(configuracion: Record<string, { valor?: unknown; comentario?: unknown }>, soloMonos = false) {
   return Object.entries(configuracion || {})
     .filter(([clave, opcion]) => clave.startsWith("filamento_") && ["habilitada", "habilitado", "sí", "si"].includes(String(opcion?.valor || "").trim().toLowerCase()))
+    .filter(([, opcion]) => !soloMonos || extrasFilamento(String(opcion?.comentario || "")).monos)
     .map(([clave, opcion]) => {
       const extras = extrasFilamento(String(opcion?.comentario || ""));
       const deClave = clave

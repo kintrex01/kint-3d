@@ -106,8 +106,8 @@ export default function ExtrasPresupuesto({
       .then((respuesta) => respuesta.json())
       .then((data) => {
         if (!activo || !data?.configuracion) return;
-        setColores(coloresVisiblesDesdeConfig(data.configuracion));
-        setColoresTono(coloresConTonoDesdeConfig(data.configuracion));
+        setColores(coloresVisiblesDesdeConfig(data.configuracion, true));
+        setColoresTono(coloresConTonoDesdeConfig(data.configuracion, true));
         setPreciosMonos(preciosMonosDesdeConfig(data.configuracion));
       })
       .catch(() => undefined);
