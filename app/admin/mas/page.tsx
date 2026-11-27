@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronRight, ExternalLink, LogOut } from "lucide-react";
 import { ENLACES_ADMIN, cerrarSesionAdmin } from "@/components/admin/ShellAdmin";
 import { Encabezado, Tarjeta } from "@/components/admin/ui";
+import { InstalarPanel } from "@/components/admin/InstalarPanel";
 
 const DESCRIPCIONES: Record<string, string> = {
   "/admin/todos": "Maquetas y tienda juntos; borrar pedidos de prueba",
@@ -23,6 +24,11 @@ export default function MasAdmin() {
   return (
     <>
       <Encabezado titulo="Más" />
+
+      {/* Panel como app en la pantalla de inicio */}
+      <div className="-mt-4 mb-4">
+        <InstalarPanel />
+      </div>
 
       <Tarjeta className="divide-y divide-[var(--kint-panel-border)]">
         {extra.map((enlace) => {

@@ -6,6 +6,10 @@ export const metadata: Metadata = {
     default: "Panel",
     template: "%s | Panel Kint 3D",
   },
+  // App del panel: se instala aparte de la web (app/panel-app/manifest.webmanifest).
+  manifest: "/panel-app/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Kint Panel", statusBarStyle: "black-translucent" },
+  icons: { apple: "/panel-app/icono-180.png" },
   robots: {
     index: false,
     follow: false,
@@ -18,6 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: "#0b1738",
 };
 
 export default function AdminLayout({
