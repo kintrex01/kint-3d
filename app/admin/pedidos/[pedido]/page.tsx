@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   Clock,
   ExternalLink,
-  Flame,
   Info,
   Mail,
   MessageCircle,
@@ -68,6 +67,7 @@ import {
   textoEstado,
   tonoEstado,
   useAvisos,
+  MarcaUrgente,
 } from "@/components/admin/ui";
 import {
   FilaDato,
@@ -89,6 +89,7 @@ import {
 } from "@/components/admin/pedidos/PresupuestoPedido";
 import { ExtrasPedidoAdmin } from "@/components/admin/pedidos/ExtrasPedidoAdmin";
 import { CobrosExtraAdmin } from "@/components/admin/pedidos/CobrosExtraAdmin";
+import { YaPagoAdmin } from "@/components/admin/pedidos/YaPagoAdmin";
 
 type Confirmacion = {
   titulo: string;
@@ -740,11 +741,21 @@ export default function DetallePedidoAdmin({
         }
       />
 
+      {/* Urgente: franja roja arriba de todo para que no se pase */}
+      {pedido.prioritario && pedido.estado !== "Entregado" && (
+        <div className="mb-3 flex items-center gap-3 rounded-2xl bg-red-600 px-4 py-3 text-white shadow-[0_10px_30px_-12px_rgba(220,38,38,0.8)]">
+          <MarcaUrgente className="bg-white/20" />
+          <p className="text-sm font-bold">
+            Pedido urgente{pedido.entrega ? ` · lo quiere para el ${fechaDia(pedido.entrega)} (${textoDiasHasta(pedido.entrega)})` : ""}
+          </p>
+        </div>
+      )}
+
       {/* Cliente: tarjeta con el color de la fase del pedido */}
       <div
         className="relative overflow-hidden rounded-3xl border p-5 shadow-[var(--shadow-soft)]"
         style={{
-          borderColor: `${colorFase}66`,
+          borderColor: pedido.prioritario ? "rgb(220 38 38 / 0.7)" : `${colorFase}66`,
           background: `radial-gradient(120% 140% at 0% 0%, ${colorFase}38 0%, transparent 55%), radial-gradient(80% 80% at 100% 100%, ${colorFase}1f 0%, transparent 60%), var(--kint-panel)`,
         }}
       >
@@ -758,12 +769,7 @@ export default function DetallePedidoAdmin({
                 <IconoFase size={13} strokeWidth={2.6} />
                 {textoEstado(pedido.estado)}
               </span>
-              {pedido.prioritario && (
-                <Chip tono="rojo">
-                  <Flame size={11} aria-hidden />
-                  Urgente
-                </Chip>
-              )}
+              {pedido.prioritario && <MarcaUrgente className="px-2 py-1 text-[11px]" />}
             </div>
             {/* Tocando el nombre: la ficha (cuándo llegó, presupuestó, pagó, cuánto…) y el dinero a favor */}
             <button
@@ -1217,6 +1223,10 @@ export default function DetallePedidoAdmin({
                   ) : null
                 }
               />
+            )}
+            {/* Pagó en efectivo o mandó el comprobante por WhatsApp */}
+            {pedido.estado !== "❌❌❌" && (
+              <YaPagoAdmin pedido={pedido} onActualizado={(actualizado) => setDatos({ pedido: actualizado })} />
             )}
           </div>
         </Tarjeta>

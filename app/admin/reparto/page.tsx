@@ -18,6 +18,9 @@ import {
   linkWhatsapp,
   pesos,
   useAvisos,
+  FranjaUrgente,
+  MarcaUrgente,
+  claseUrgente,
 } from "@/components/admin/ui";
 
 /*
@@ -201,8 +204,9 @@ export default function Reparto() {
                 <div
                   className={`flex items-stretch gap-3 rounded-2xl border p-3 transition ${
                     pedido.guardado ? "border-emerald-500/50 bg-emerald-500/[0.06]" : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
-                  }`}
+                  } ${pedido.urgente ? `${claseUrgente} pl-4` : ""}`}
                 >
+                  {pedido.urgente && <FranjaUrgente />}
                   {/* Tick: guardado / empaquetado */}
                   <button
                     type="button"
@@ -223,6 +227,7 @@ export default function Reparto() {
                   <Link href={pedido.tipo === "maqueta" ? `/admin/pedidos/${pedido.pedido}` : `/admin/tienda/${pedido.pedido}`} className="min-w-0 flex-1">
                     <p className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-black">{pedido.pedido}</span>
+                      {pedido.urgente && <MarcaUrgente className="self-center" />}
                       <span className="truncate font-bold">{pedido.cliente}</span>
                     </p>
                     {pedido.detalle && <p className="text-xs text-[var(--text-muted)]">{pedido.detalle}</p>}

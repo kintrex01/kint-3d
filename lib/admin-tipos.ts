@@ -315,6 +315,7 @@ export type PedidoGeneral = {
   guardado?: string; // Reparto: cuándo lo marcó como guardado/empaquetado ("" = no)
   revisar?: "pago" | "saldo" | "extra" | ""; // subió un comprobante que falta validar
   cobroExtra?: number; // cobros extra sin pagar (pieza olvidada, etc.)
+  urgente?: boolean; // pidió entrega urgente
   detalle: string;
 };
 
@@ -445,7 +446,7 @@ export type AccionesAdmin = {
   };
   /* Igual que marcar la casilla Pagos J (llama al mismo handler de onEdit). */
   admin_pago_confirmar: {
-    pedido: { pedido: string };
+    pedido: { pedido: string; metodo?: "Efectivo" | "Transferencia" };
     respuesta: { pedido: PedidoDetalle; aviso: string };
   };
   /* Igual que marcar Pagos P. */
@@ -607,6 +608,10 @@ export type AccionesAdmin = {
   };
   admin_cobro_extra_crear: {
     pedido: { pedido: string; concepto: string; monto: number };
+    respuesta: CobrosExtra;
+  };
+  admin_cobro_extra_reenviar: {
+    pedido: { id: string };
     respuesta: CobrosExtra;
   };
   admin_cobro_extra_estado: {
@@ -959,6 +964,7 @@ export const ACCIONES_ADMIN = [
   "admin_cobros_extra_ver",
   "admin_cobro_extra_crear",
   "admin_cobro_extra_estado",
+  "admin_cobro_extra_reenviar",
   "admin_dinero_favor_cargar",
   "admin_dinero_favor_deshacer",
   "admin_cupon_crear",

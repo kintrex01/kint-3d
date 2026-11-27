@@ -97,7 +97,7 @@ function AgregarAPedido({ calculo }: { calculo: CalculoActual }) {
     try {
       const respuesta = await accionAdmin("admin_cobro_extra_crear", { pedido: pedido.pedido, concepto: conceptoExtra, monto: Math.round(precio) });
       setAgregados([{ pedido: pedido.pedido, nombre: pedido.nombre, opcion: `Extra: ${conceptoExtra}`, precio: Math.round(precio), extra: true }, ...agregados]);
-      avisar(`${pedido.pedido}: ${respuesta.aviso || "cobro extra cargado"} Avisale por WhatsApp desde el pedido.`);
+      avisar(`${pedido.pedido}: ${respuesta.aviso || "cobro extra cargado"}`);
       setDescripcion("");
       setPrecioTexto("");
     } catch (error) {

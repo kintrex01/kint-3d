@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ExternalLink, MessageCircle, Plus, Undo2, X } from "lucide-react";
+import { Check, ExternalLink, Mail, MessageCircle, Plus, Undo2, X } from "lucide-react";
 import { accionAdmin, useDatosAdmin } from "@/lib/admin-cliente";
 import type { CobroExtra, CobrosExtra } from "@/lib/admin-tipos";
 import { Boton, Chip, Tarjeta, claseInput, linkWhatsapp, pesos, useAvisos } from "@/components/admin/ui";
@@ -11,7 +11,7 @@ import { linkSeguimiento } from "@/lib/whatsapp-etapas";
  * Cobrar algo más a un pedido ya cotizado o pago (ej. se olvidó una pieza)
  * sin crear otro pedido. Le aparece en su seguimiento para transferir y
  * subir el comprobante; acá se valida (entra solo a la Caja).
- * No manda correos al cliente: se le avisa por WhatsApp con el botón.
+ * Al cargarlo le llega un correo con el link directo; también hay WhatsApp.
  */
 
 const TONO: Record<CobroExtra["estado"], "ambar" | "azul" | "verde" | "gris"> = {
@@ -89,8 +89,8 @@ export function CobrosExtraAdmin({
   return (
     <Tarjeta className="p-4">
       <p className="text-xs leading-5 text-[var(--text-muted)]">
-        Para cobrarle algo que se olvidó (una pieza, un cambio…) sin hacer otro pedido. Le aparece en su seguimiento para transferir y
-        subir el comprobante. No le llega correo: avisale por WhatsApp.
+        Para cobrarle algo que se olvidó (una pieza, un cambio…) sin hacer otro pedido. Le llega un correo con el link directo y le
+        aparece arriba de todo en su seguimiento para transferir y subir el comprobante.
       </p>
 
       {cargando && !datos && <p className="mt-3 text-sm text-[var(--text-muted)]">Cargando…</p>}
@@ -137,6 +137,18 @@ export function CobrosExtraAdmin({
                   {cobro.estado === "Pagado" && (
                     <Boton tamano="chico" variante="fantasma" icono={<Undo2 size={14} />} cargando={ocupado} disabled={Boolean(guardando)} onClick={() => cambiarEstado(cobro, "Pendiente")}>
                       Deshacer
+                    </Boton>
+                  )}
+                  {cobro.estado === "Pendiente" && (
+                    <Boton
+                      tamano="chico"
+                      variante="fantasma"
+                      icono={<Mail size={14} />}
+                      cargando={guardando === `correo-${cobro.id}`}
+                      disabled={Boolean(guardando)}
+                      onClick={() => void ejecutar(`correo-${cobro.id}`, () => accionAdmin("admin_cobro_extra_reenviar", { id: cobro.id }))}
+                    >
+                      Mandar correo
                     </Boton>
                   )}
                   {cobro.estado === "Pendiente" && whatsapp && (

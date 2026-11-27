@@ -8,6 +8,7 @@
 import {
   AlertTriangle,
   Check,
+  Flame,
   Inbox,
   LoaderCircle,
   RefreshCw,
@@ -252,6 +253,30 @@ const CLASES_TONO: Record<Tono, string> = {
   naranja: "bg-orange-500/12 text-orange-700 ring-orange-500/35 dark:text-orange-300",
   lima: "bg-lime-500/15 text-lime-800 ring-lime-500/40 dark:text-lime-300",
 };
+
+/* ------------------------------------------------------------------ */
+/* Pedidos urgentes: la misma marca en todas las listas                 */
+/* ------------------------------------------------------------------ */
+
+/* Clases para la tarjeta de un pedido urgente (va con <FranjaUrgente /> adentro). */
+export const claseUrgente = "relative overflow-hidden !border-red-500/60 ring-1 ring-red-500/25";
+
+/* Franja roja a la izquierda de la tarjeta (la tarjeta tiene que ser relative). */
+export function FranjaUrgente() {
+  return <span aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-red-600" />;
+}
+
+/* Etiqueta «Urgente» (roja, con llama). */
+export function MarcaUrgente({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-white ${className}`}
+    >
+      <Flame size={11} strokeWidth={2.6} aria-hidden />
+      Urgente
+    </span>
+  );
+}
 
 export function Chip({
   tono = "gris",

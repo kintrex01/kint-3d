@@ -6,7 +6,6 @@ import {
   CalendarDays,
   ChevronRight,
   Inbox,
-  Flame,
   Package,
   RefreshCw,
   Wallet,
@@ -22,6 +21,9 @@ import {
   Interruptor,
   Segmentos,
   Tarjeta,
+  FranjaUrgente,
+  MarcaUrgente,
+  claseUrgente,
   Vacio,
   claseFase,
   faseEstado,
@@ -323,12 +325,16 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
         color={claseFase(faseEstado(pedido.estado))}
         className={`flex items-center gap-3 px-4 py-3.5 transition hover:border-[var(--kint-selected-border)] active:scale-[0.99] ${
           cancelado ? "opacity-70" : ""
-        }`}
+        } ${pedido.prioritario && !cancelado ? claseUrgente : ""}`}
       >
+        {pedido.prioritario && !cancelado && <FranjaUrgente />}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-mono text-sm font-black tracking-tight">
-              {pedido.pedido}
+            <span className="flex items-center gap-2">
+              <span className="font-mono text-sm font-black tracking-tight">
+                {pedido.pedido}
+              </span>
+              {pedido.prioritario && <MarcaUrgente />}
             </span>
             <Chip tono={tonoEstado(pedido.estado)}>
               {textoEstado(pedido.estado)}
@@ -366,14 +372,8 @@ function TarjetaPedido({ pedido }: { pedido: PedidoResumen }) {
               )}
             </span>
 
-            {(pedido.prioritario || pago) && (
+            {pago && (
               <span className="flex flex-wrap gap-1.5">
-                {pedido.prioritario && (
-                  <Chip tono="rojo">
-                    <Flame size={11} aria-hidden />
-                    Urgente
-                  </Chip>
-                )}
                 {pago && (
                   <Chip tono={pago.tono}>
                     <Wallet size={11} aria-hidden />

@@ -1371,6 +1371,11 @@ function datosTecnicosPresupuesto(
       {resultado.pedido}
     </p>
 
+    {/* Cobros extra (algo que se sumó después, ej. una pieza que faltaba): arriba de todo, para que se vea */}
+    {!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (
+      <CobrosExtraCliente pedido={resultado.pedido} codigo={codigo} />
+    )}
+
     <div className="mb-12">
       <p className="mb-6 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">
         Estado
@@ -3071,11 +3076,6 @@ aplicada al pedido.
 )}
 
   </div>
-)}
-
-{/* Cobros extra (algo que se sumó después, ej. una pieza que faltaba) */}
-{!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (
-  <CobrosExtraCliente pedido={resultado.pedido} codigo={codigo} />
 )}
 
 {!String(resultado.estado || "").includes("❌") && resultado.estado !== "Cancelado" && (

@@ -46,7 +46,12 @@ export default function CobrosExtraCliente({ pedido, codigo }: { pedido: string;
     })
       .then((respuesta) => respuesta.json())
       .then((data) => {
-        if (activo && data?.ok) setCobros(data.cobros || []);
+        if (!activo || !data?.ok) return;
+        setCobros(data.cobros || []);
+        // Viene del correo (…#cobros-extra): lo lleva directo al cobro.
+        if (window.location.hash === "#cobros-extra" && (data.cobros || []).length) {
+          window.setTimeout(() => document.getElementById("cobros-extra")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+        }
       })
       .catch(() => {});
     return () => {
@@ -100,11 +105,16 @@ export default function CobrosExtraCliente({ pedido, codigo }: { pedido: string;
   return (
     <div id="cobros-extra" className={`mb-6 scroll-mt-24 rounded-2xl border p-4 sm:p-6 ${totalPendiente > 0 ? "border-red-600/50" : "border-[var(--border-color)]"}`}>
       <p className="mb-1 text-xs uppercase tracking-[0.3em] text-[var(--text-muted)]">Cobros extra</p>
-      <p className="mb-4 text-sm leading-6 text-[var(--text-muted)]">
-        {totalPendiente > 0
-          ? `Se sumó algo a tu pedido. Falta pagar ${pesos(totalPendiente)}.`
-          : "Lo que se sumó a tu pedido después del presupuesto."}
-      </p>
+      {totalPendiente > 0 ? (
+        <>
+          <p className="text-xl font-black leading-snug">Tenés un pago extra de {pesos(totalPendiente)}</p>
+          <p className="mb-4 mt-1 text-sm leading-6 text-[var(--text-muted)]">
+            Se sumó algo a tu pedido. Tocá «Pagar», transferí y subí el comprobante acá mismo.
+          </p>
+        </>
+      ) : (
+        <p className="mb-4 text-sm leading-6 text-[var(--text-muted)]">Lo que se sumó a tu pedido después del presupuesto.</p>
+      )}
 
       <ul className="space-y-3">
         {cobros.map((cobro) => (
