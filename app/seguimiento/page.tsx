@@ -8,6 +8,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import UsarDineroAFavor from "@/components/UsarDineroAFavor";
 import CobrosExtraCliente from "@/components/CobrosExtraCliente";
+import FilaCotizar from "@/components/FilaCotizar";
 import ExtrasPresupuesto from "@/components/ExtrasPresupuesto";
 import SeguimientoTienda, {
   buscarCompraTienda,
@@ -1383,6 +1384,9 @@ function datosTecnicosPresupuesto(
 
 {/* Los 7 pasos, cada uno con su color (como el panel y los correos). */}
 <PasosPedido estado={resultado.estado} />
+
+{/* Esperando presupuesto: en qué puesto de la fila está */}
+{resultado.estado === "Recibido" && <FilaCotizar pedido={resultado.pedido} codigo={codigo} />}
 
 {/* Entregado y sin reseña: el botón para dejarla, bien a la vista. */}
 {resultado.estado === "Entregado" && resultado.tieneResena === false && (

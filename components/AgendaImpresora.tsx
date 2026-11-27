@@ -203,8 +203,10 @@ export default function AgendaImpresora() {
       {(porHacer?.porCotizar ?? 0) > 0 && (
         <div className="flex items-center justify-between gap-3 border-t border-[var(--border-color)] px-4 py-3 sm:px-5">
           <div className="min-w-0">
-            <p className={etiqueta}>En cola para cotizar</p>
-            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Esperan su presupuesto, antes que el tuyo</p>
+            <p className={etiqueta}>Esperando presupuesto</p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
+              Ya los mandaron. Si mandás el tuyo ahora, quedás <b className="text-[var(--text-main)]">{porHacer!.porCotizar! + 1}.º</b> en la fila
+            </p>
           </div>
           <p className="shrink-0 text-right">
             <span className="text-lg font-semibold tabular-nums text-[var(--text-main)] sm:text-xl">{porHacer!.porCotizar}</span>
