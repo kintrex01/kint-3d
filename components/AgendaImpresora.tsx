@@ -12,7 +12,7 @@ import { Check } from "lucide-react";
  */
 
 type Bloque = { pedido?: string; inicio: string; fin: string; imprimiendo: boolean };
-type PorHacer = { pagadosMin: number; pagados: number; cotizadosMin: number; cotizados: number };
+type PorHacer = { pagadosMin: number; pagados: number; cotizadosMin: number; cotizados: number; porCotizar?: number };
 type Agenda = { ahora: string; bloques: Bloque[]; libreDesde: string; oculta?: boolean; porHacer?: PorHacer | null };
 
 /* Para los números chicos: «3h 45m», «12h», «45m». */
@@ -197,6 +197,20 @@ export default function AgendaImpresora() {
             </div>
           ))}
         </dl>
+      )}
+
+      {/* Pedidos que esperan presupuesto (Recibido): todavía no tienen horas */}
+      {(porHacer?.porCotizar ?? 0) > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border-color)] px-4 py-3 sm:px-5">
+          <div className="min-w-0">
+            <p className={etiqueta}>En cola para cotizar</p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">Esperan su presupuesto, antes que el tuyo</p>
+          </div>
+          <p className="shrink-0 text-right">
+            <span className="text-lg font-semibold tabular-nums text-[var(--text-main)] sm:text-xl">{porHacer!.porCotizar}</span>
+            <span className="ml-1 text-xs text-[var(--text-muted)]">{porHacer!.porCotizar === 1 ? "pedido" : "pedidos"}</span>
+          </p>
+        </div>
       )}
 
       {/* Desde cuándo puede empezar la suya */}
