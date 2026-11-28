@@ -115,6 +115,7 @@ export type PedidoDetalle = PedidoResumen & {
   alisado: string;
   boquilla: string;
   codigoDescuento: string;
+  codigoEspecial?: string; // si el código es especial (curso): el pedido se ve en violeta
   descuento: number; // % (0-100)
   comentarios: string;
   historial: string[]; // líneas de R, de la más vieja a la más nueva
@@ -316,6 +317,7 @@ export type PedidoGeneral = {
   revisar?: "pago" | "saldo" | "extra" | ""; // subió un comprobante que falta validar
   cobroExtra?: number; // cobros extra sin pagar (pieza olvidada, etc.)
   urgente?: boolean; // pidió entrega urgente
+  especial?: string; // código especial (curso, ej. BETOLAZA): se ve en violeta
   detalle: string;
 };
 

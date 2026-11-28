@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   Check,
   Flame,
+  GraduationCap,
   Inbox,
   LoaderCircle,
   RefreshCw,
@@ -274,6 +275,25 @@ export function MarcaUrgente({ className = "" }: { className?: string }) {
     >
       <Flame size={11} strokeWidth={2.6} aria-hidden />
       Urgente
+    </span>
+  );
+}
+
+/* Pedidos con código especial (cursos, ej. BETOLAZA): violeta, del lado derecho. */
+export const claseEspecial =
+  "relative overflow-hidden bg-[linear-gradient(270deg,rgba(139,92,246,0.16)_0%,rgba(139,92,246,0.05)_35%,transparent_60%)]";
+
+export function FranjaEspecial() {
+  return <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-1.5 bg-violet-600" />;
+}
+
+export function MarcaEspecial({ codigo, className = "" }: { codigo: string; className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-md bg-violet-600 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-white ${className}`}
+    >
+      <GraduationCap size={12} strokeWidth={2.4} aria-hidden />
+      {codigo}
     </span>
   );
 }

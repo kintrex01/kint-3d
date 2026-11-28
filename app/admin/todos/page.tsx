@@ -28,6 +28,9 @@ import {
   FranjaUrgente,
   MarcaUrgente,
   claseUrgente,
+  FranjaEspecial,
+  MarcaEspecial,
+  claseEspecial,
   DialogoConfirmar,
   Encabezado,
   Esqueleto,
@@ -378,6 +381,7 @@ function FilaPedido({
   const contenido = (
     <>
       {urgente && <FranjaUrgente />}
+      {pedido.especial && <FranjaEspecial />}
       {seleccionando ? (
         <span className={elegido ? "text-red-600" : "text-[var(--text-muted)]"}>
           {elegido ? <CheckSquare size={22} /> : <Square size={22} />}
@@ -398,6 +402,7 @@ function FilaPedido({
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-black">{pedido.pedido}</span>
           {urgente && <MarcaUrgente />}
+          {pedido.especial && <MarcaEspecial codigo={pedido.especial} />}
           <Chip tono={tonoEstado(pedido.estado, pedido.tipo === "tienda" && pedido.pagado)}>
             {textoEstado(pedido.estado)}
           </Chip>
@@ -495,7 +500,7 @@ function FilaPedido({
           claseFase(faseEstado(pedido.estado, pedido.tipo === "tienda" && pedido.pagado)) ||
           "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
         } hover:border-[var(--kint-selected-border)]`
-  } ${urgente ? claseUrgente : ""}`;
+  } ${urgente ? claseUrgente : ""} ${pedido.especial ? `${claseEspecial} pr-4` : ""}`;
 
   if (seleccionando) {
     return (

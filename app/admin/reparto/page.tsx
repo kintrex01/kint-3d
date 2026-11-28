@@ -21,6 +21,9 @@ import {
   FranjaUrgente,
   MarcaUrgente,
   claseUrgente,
+  FranjaEspecial,
+  MarcaEspecial,
+  claseEspecial,
 } from "@/components/admin/ui";
 
 /*
@@ -204,9 +207,10 @@ export default function Reparto() {
                 <div
                   className={`flex items-stretch gap-3 rounded-2xl border p-3 transition ${
                     pedido.guardado ? "border-emerald-500/50 bg-emerald-500/[0.06]" : "border-[var(--kint-panel-border)] bg-[var(--kint-panel)]"
-                  } ${pedido.urgente ? `${claseUrgente} pl-4` : ""}`}
+                  } ${pedido.urgente ? `${claseUrgente} pl-4` : ""} ${pedido.especial ? `${claseEspecial} pr-4` : ""}`}
                 >
                   {pedido.urgente && <FranjaUrgente />}
+                  {pedido.especial && <FranjaEspecial />}
                   {/* Tick: guardado / empaquetado */}
                   <button
                     type="button"
@@ -228,6 +232,7 @@ export default function Reparto() {
                     <p className="flex flex-wrap items-baseline gap-x-2">
                       <span className="font-black">{pedido.pedido}</span>
                       {pedido.urgente && <MarcaUrgente className="self-center" />}
+                      {pedido.especial && <MarcaEspecial codigo={pedido.especial} className="self-center" />}
                       <span className="truncate font-bold">{pedido.cliente}</span>
                     </p>
                     {pedido.detalle && <p className="text-xs text-[var(--text-muted)]">{pedido.detalle}</p>}

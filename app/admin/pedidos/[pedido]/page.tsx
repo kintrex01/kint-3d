@@ -68,6 +68,7 @@ import {
   tonoEstado,
   useAvisos,
   MarcaUrgente,
+  MarcaEspecial,
 } from "@/components/admin/ui";
 import {
   FilaDato,
@@ -751,14 +752,17 @@ export default function DetallePedidoAdmin({
         </div>
       )}
 
-      {/* Cliente: tarjeta con el color de la fase del pedido */}
+      {/* Cliente: tarjeta con el color de la fase del pedido (violeta del lado derecho si es de un curso) */}
       <div
         className="relative overflow-hidden rounded-3xl border p-5 shadow-[var(--shadow-soft)]"
         style={{
           borderColor: pedido.prioritario ? "rgb(220 38 38 / 0.7)" : `${colorFase}66`,
-          background: `radial-gradient(120% 140% at 0% 0%, ${colorFase}38 0%, transparent 55%), radial-gradient(80% 80% at 100% 100%, ${colorFase}1f 0%, transparent 60%), var(--kint-panel)`,
+          background: pedido.codigoEspecial
+            ? `radial-gradient(120% 140% at 0% 0%, ${colorFase}38 0%, transparent 55%), linear-gradient(270deg, rgba(139,92,246,0.22) 0%, rgba(139,92,246,0.06) 40%, transparent 70%), var(--kint-panel)`
+            : `radial-gradient(120% 140% at 0% 0%, ${colorFase}38 0%, transparent 55%), radial-gradient(80% 80% at 100% 100%, ${colorFase}1f 0%, transparent 60%), var(--kint-panel)`,
         }}
       >
+        {pedido.codigoEspecial && <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2 bg-violet-600" />}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -770,6 +774,7 @@ export default function DetallePedidoAdmin({
                 {textoEstado(pedido.estado)}
               </span>
               {pedido.prioritario && <MarcaUrgente className="px-2 py-1 text-[11px]" />}
+              {pedido.codigoEspecial && <MarcaEspecial codigo={pedido.codigoEspecial} className="px-2 py-1 text-[11px]" />}
             </div>
             {/* Tocando el nombre: la ficha (cuándo llegó, presupuestó, pagó, cuánto…) y el dinero a favor */}
             <button
